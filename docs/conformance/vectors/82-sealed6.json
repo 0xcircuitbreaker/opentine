@@ -1,0 +1,169 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "sealed6.empty-key-id",
+      "input": {
+        "bytes_b64": "VElORUFFUzYAAAAABwAAAAAAAAAAAAUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY2lwaGVydGV4dA==",
+        "sha256": "5d8f71e7bb9ad91b5938fcb7c0c987bbf9a92d8c4e162dbacba5e69b40db61ca"
+      },
+      "intent": "a key id is 1..255 bytes",
+      "op": "sealed6.header",
+      "profile": "reader",
+      "reason": "sealed6.malformed",
+      "section": "11",
+      "tier": "core",
+      "x_display": "TINEAES6\\x00\\x00\\x00\\x00\\x07\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x05\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00ciphertext",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "invalid encrypted object header"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "sealed6.non-ascii-key-id",
+      "input": {
+        "bytes_b64": "VElORUFFUzYCw6kAAAAHAAAAAAAAAAAABQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABjaXBoZXJ0ZXh0",
+        "sha256": "f0151ffda2dd7706afc52dec358390b166a3578d2e3415fc2e248cb4485de711"
+      },
+      "intent": "a key id is ASCII",
+      "op": "sealed6.header",
+      "profile": "reader",
+      "reason": "sealed6.malformed",
+      "section": "11",
+      "tier": "core",
+      "x_display": "TINEAES6\\x02\\xc3\\xa9\\x00\\x00\\x00\\x07\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x05\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00ciphertext",
+      "x_reference": {
+        "exception": "UnicodeDecodeError",
+        "message": "'ascii' codec can't decode byte 0xc3 in position 0: ordinal not in range(128)"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "sealed6.other-magic",
+      "input": {
+        "bytes_b64": "VElORUFFUzUEay0wMQAAAAcAAAAAAAAAAAAFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGNpcGhlcnRleHQ=",
+        "sha256": "d46233d0a789402d592a628dd98ee0c7ab86f5db2624ef72bdb992efed96cbbd"
+      },
+      "intent": "the 0.35 TINEAES5 envelope is not TINEAES6",
+      "op": "sealed6.header",
+      "profile": "reader",
+      "reason": "sealed6.malformed",
+      "section": "11",
+      "tier": "core",
+      "x_display": "TINEAES5\\x04k-01\\x00\\x00\\x00\\x07\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x05\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00ciphertext",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "invalid encrypted object header"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "sealed6.padded",
+      "input": {
+        "bytes_b64": "VElORUFFUzYEay0wMQAAAAcBAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGNpcGhlcnRleHQ=",
+        "sha256": "a77ed40f6d6831aaaba43f3a073dcf675f5b4b61bd5a2d994f809f3f8062aeec"
+      },
+      "intent": "the padded flag",
+      "op": "sealed6.header",
+      "output": {
+        "codec": 0,
+        "epoch": 7,
+        "flags": 1,
+        "header_length": 27,
+        "key_id": "k-01",
+        "size": 1099511627776
+      },
+      "profile": "reader",
+      "section": "11",
+      "tier": "core",
+      "x_display": "TINEAES6\\x04k-01\\x00\\x00\\x00\\x07\\x01\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00ciphertext",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "sealed6.plain",
+      "input": {
+        "bytes_b64": "VElORUFFUzYEay0wMQAAAAcAAAAAAAAAAAAFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGNpcGhlcnRleHQ=",
+        "sha256": "dbe6ce3cfc3b8206a55ac4636bd158a6a402b370a9d2337fef23b05e16c7c049"
+      },
+      "intent": "a TINEAES6 header: key id, epoch, flags, codec, size",
+      "op": "sealed6.header",
+      "output": {
+        "codec": 0,
+        "epoch": 7,
+        "flags": 0,
+        "header_length": 27,
+        "key_id": "k-01",
+        "size": 5
+      },
+      "profile": "reader",
+      "section": "11",
+      "tier": "core",
+      "x_display": "TINEAES6\\x04k-01\\x00\\x00\\x00\\x07\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x05\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00ciphertext",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "sealed6.truncated",
+      "input": {
+        "bytes_b64": "VElORUFFUzYEay0wMQAAAAcAAAAAAAAAAAAA",
+        "sha256": "f9452b2c71acef040235f2d7306cf86796ef53efd943df9fb145878574f864ba"
+      },
+      "intent": "no room for the nonce and tag",
+      "op": "sealed6.header",
+      "profile": "reader",
+      "reason": "sealed6.malformed",
+      "section": "11",
+      "tier": "core",
+      "x_display": "TINEAES6\\x04k-01\\x00\\x00\\x00\\x07\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "invalid encrypted object header"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "sealed6.unknown-flag",
+      "input": {
+        "bytes_b64": "VElORUFFUzYEay0wMQAAAAcCAAAAAAAAAAAFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGNpcGhlcnRleHQ=",
+        "sha256": "5082dc07a048c4805eaf1c327db9840d2bb2f6884cf6a9a34db8ba1fd6d3acb8"
+      },
+      "intent": "a flag bit this version does not define",
+      "op": "sealed6.header",
+      "profile": "reader",
+      "reason": "sealed6.malformed",
+      "section": "11",
+      "tier": "core",
+      "x_display": "TINEAES6\\x04k-01\\x00\\x00\\x00\\x07\\x02\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x05\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00ciphertext",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "encrypted object has unknown flags"
+      }
+    }
+  ],
+  "family": "sealed6",
+  "section": "11",
+  "suite_version": 1
+}

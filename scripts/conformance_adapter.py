@@ -185,6 +185,17 @@ _OP_CODES: dict[str, tuple[tuple[str, str], ...]] = {
         ("does not match its signed digest", "oms.digest-mismatch"),
         ("not covered by the signature", "oms.extra-file"),
     ),
+    "custody.chain": (
+        ("must be a list", "custody.malformed"),
+        ("is not an opentine-custody", "custody.malformed"),
+        ("breaks the hash chain", "custody.chain-broken"),
+        (": signature ", "custody.bad-signature"),
+    ),
+    "replay.verify": (
+        ("no signature verifies", "replay.bad-signature"),
+        ("", "replay.malformed"),
+    ),
+    "sealed6.header": (("", "sealed6.malformed"),),
     "fleet.verify": (
         ("not an opentine-fleet", "fleet.malformed"),
         ("has exactly scheme", "fleet.malformed"),

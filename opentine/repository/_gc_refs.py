@@ -140,9 +140,12 @@ def disable(repo) -> int:
 
 
 def housekeep(repo) -> int:
-    """gc's last step: finished fan-out state, then refs in an opted-in repository."""
+    """gc's last step: finished fan-out state, dictionaries no pack names, then refs
+    in an opted-in repository."""
     from opentine.repository._fanout_tidy import tidy_fanouts
+    from opentine.repository._pack_dicts import tidy
 
     tidy_fanouts(repo.path)
+    tidy(repo.path)
     config = read_config(internal_path(repo.path, "config.json"))
     return pack_refs(repo.path) if refs_packed(config) else 0

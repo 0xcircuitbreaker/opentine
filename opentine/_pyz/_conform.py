@@ -14,11 +14,24 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import hmac
 from typing import Any
 
 from .. import _agent_identity as identity
 from .. import kernel
-from . import _delegation, _evalv, _fleet, _keyless, _sig, _tlog
+from . import (
+    _conform_artifact,
+    _conform_docs,
+    _conform_records,
+    _conform_sig,
+    _conform_store,
+    _delegation,
+    _evalv,
+    _fleet,
+    _keyless,
+    _sig,
+    _tlog,
+)
 from ._forgeclaim import forge_claim_verify
 
 
@@ -98,12 +111,64 @@ OPS = {
     "tlog.consistency": lambda raw, value, args: _tlog.consistency_verdict(value),
     "tlog.quorum": lambda raw, value, args: _tlog.quorum(value),
     "forge-claim.verify": _forge,
+    **_conform_records.OPS,
+    **_conform_artifact.OPS,
+    **_conform_store.OPS,
+    **_conform_docs.OPS,
 }
 
 
-def answer(op: str, raw: bytes | None, value: Any, args: dict) -> dict:
-    """The pyz's answer to one case; ``KeyError`` for an op it does not answer here."""
+def _key_args(args: dict, keys: dict[str, bytes]) -> dict:
+    """The verification keys a case names (``docs/conformance/keys.json`` by name)."""
+    public = args.get("public_key")
+    return {
+        "hmac_key": keys[args["key"]] if args.get("key") else None,
+        "public_key": bytes.fromhex(public) if public else None,
+        "trust_embedded": bool(args.get("trust_embedded")),
+    }
+
+
+def _sig_message(raw: Any, value: Any, args: dict, keys: dict) -> dict:
+    message = _conform_sig.MESSAGES[args["scheme"]](value["document"], value["header"])
+    out = {"message_b64": _b64(message)}
+    if args.get("key"):
+        out["value"] = hmac.new(keys[args["key"]], message, hashlib.sha256).hexdigest()
+    return out
+
+
+def _sig_verify(raw: Any, value: Any, args: dict, keys: dict) -> dict:
+    document = _conform_artifact.parse(raw) if raw is not None else value
+    family, found = args.get("family", "attestation"), _key_args(args, keys)
+    if family in ("artifact-v4", "artifact-v5"):
+        return _conform_sig.verify_v4(document, found)
+    if family == "attestation":
+        block = document.get("signature") if isinstance(document, dict) else None
+        schemes: tuple[str, ...] = ("tine-attest/1", "tine-attest/2")
+        build = _conform_sig.attest_message
+    else:
+        metadata = document.get("metadata") or {}
+        block = (metadata.get("integrity") or {}).get("signature")
+        schemes, build = ("tine-sig/1", "tine-sig/2"), _conform_sig.artifact_message
+    return _conform_sig.verify_block(
+        block, lambda header: build(document, header), schemes, family, found
+    )
+
+
+#: Ops that take the published test keys as well.
+KEYED = {"sig.message": _sig_message, "sig.verify": _sig_verify}
+
+
+def answer(
+    op: str, raw: bytes | None, value: Any, args: dict, keys: dict[str, bytes] | None = None
+) -> dict:
+    """The pyz's answer to one case; ``KeyError`` for an op it does not answer here.
+
+    *keys* maps the names of ``docs/conformance/keys.json`` to key bytes, for
+    the ``sig.*`` ops a case names a key in.
+    """
+    if op in KEYED:
+        return KEYED[op](raw, value, dict(args), dict(keys or {}))
     return OPS[op](raw, value, dict(args))
 
 
-__all__ = ["OPS", "answer"]
+__all__ = ["KEYED", "OPS", "answer"]

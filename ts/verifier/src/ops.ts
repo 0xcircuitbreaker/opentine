@@ -16,6 +16,7 @@ import { canonicalBytesV2 } from "./canon2.js";
 import { verifyDelegation } from "./delegation.js";
 import { keylessSigningTime } from "./keyless.js";
 import { verifyFleet } from "./fleet.js";
+import { costStatement, custodyChain, custodyRecord, lineAttribution, replayVerify, sealed6Header, verifyReport } from "./signeddocs.js";
 import { verifyEvalVerdict } from "./evalverdict.js";
 import { verifyRedactionReport } from "./redactreport.js";
 import { tombstoneClosure, verifyRedactedCopy, verifyTombstone } from "./records.js";
@@ -229,6 +230,20 @@ export function runOp(op: string, input: OpInput, args: Args, table: KeyTable): 
         timeVerified: value.get("time_verified") !== false,
       });
     }
+    case "verify-report.verify":
+      return verifyReport(valueOf(input) as JObject);
+    case "custody.chain":
+      return custodyChain(valueOf(input) as JObject);
+    case "custody.record":
+      return custodyRecord(valueOf(input) as JObject);
+    case "replay.verify":
+      return replayVerify(valueOf(input) as JObject);
+    case "sealed6.header":
+      return sealed6Header(bytesOf(input));
+    case "line-attribution.verify":
+      return lineAttribution(valueOf(input) as JObject);
+    case "cost-statement.verify":
+      return costStatement(valueOf(input) as JObject);
     case "fleet.verify": {
       const value = valueOf(input) as JObject;
       const key = value.get("public_key");

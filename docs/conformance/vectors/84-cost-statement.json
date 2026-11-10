@@ -1,0 +1,563 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "cost-statement.edited",
+      "input": {
+        "value": {
+          "expected": {
+            "aggregate": {
+              "by_kind": {
+                "llm": {
+                  "$f": "0.0125"
+                }
+              },
+              "by_model": {
+                "m": {
+                  "$f": "0.0125"
+                }
+              },
+              "currency": "USD",
+              "input_tokens": {
+                "$i": "1200"
+              },
+              "output_tokens": {
+                "$i": "300"
+              },
+              "run_id": "run-cost-0001",
+              "total_cost": {
+                "$f": "0.0"
+              },
+              "total_tokens": {
+                "$i": "1500"
+              }
+            },
+            "schema": "tine-cost-statement/1"
+          },
+          "public_key": null,
+          "statement": {
+            "aggregate": {
+              "by_kind": {
+                "llm": {
+                  "$f": "0.0125"
+                }
+              },
+              "by_model": {
+                "m": {
+                  "$f": "0.0125"
+                }
+              },
+              "currency": "USD",
+              "input_tokens": {
+                "$i": "1200"
+              },
+              "output_tokens": {
+                "$i": "300"
+              },
+              "run_id": "run-cost-0001",
+              "total_cost": {
+                "$f": "0.0"
+              },
+              "total_tokens": {
+                "$i": "1500"
+              }
+            },
+            "schema": "tine-cost-statement/1",
+            "signature": {
+              "alg": "ed25519",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-01-01T00:00:00Z",
+              "signer": "alice",
+              "value": "d9543acd08d301f8953f61e4768cfe20fe0f83c23e362501c290543e109a13b038aa396ffef593defb362ce484d5e1961dc1b7bc583ddec48faa6640a840810b"
+            }
+          }
+        }
+      },
+      "intent": "a cost changed after signing",
+      "op": "cost-statement.verify",
+      "output": {
+        "basis": null,
+        "matches_run": true,
+        "ok": false,
+        "signature": "mismatch"
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.25",
+      "tier": "core",
+      "x_display": "{\"expected\": {\"aggregate\": {\"by_kind\": {\"llm\": {\"$f\": \"0.0125\"}}, \"by_model\": {\"m\": {\"$f\": \"0.0125\"}}, \"currency\": \"USD\", \"input_tokens\": {\"$i\": \"1200\"}, \"output_tokens\": {\"$i\": \"300\"}, \"run_id\": \"run-cost-0001\", \"total_cost\": {\"$f\": \"0.0\"}, \"total_tokens\": {\"$i\": \"1500\"}}, \"schema\": \"tine-cost-statement/1\"}, \"public_key\": null, \"statement\": {\"aggregate\": {\"by_kind\": {\"llm\": {\"$f\": \"0.0125\"}}, \"by...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "cost-statement.other-run",
+      "input": {
+        "value": {
+          "expected": {
+            "aggregate": {
+              "by_kind": {
+                "llm": {
+                  "$f": "0.0125"
+                }
+              },
+              "by_model": {
+                "m": {
+                  "$f": "0.0125"
+                }
+              },
+              "currency": "USD",
+              "input_tokens": {
+                "$i": "1200"
+              },
+              "output_tokens": {
+                "$i": "300"
+              },
+              "run_id": "run-cost-0001",
+              "total_cost": {
+                "$f": "0.0125"
+              },
+              "total_tokens": {
+                "$i": "1501"
+              }
+            },
+            "schema": "tine-cost-statement/1"
+          },
+          "public_key": null,
+          "statement": {
+            "aggregate": {
+              "by_kind": {
+                "llm": {
+                  "$f": "0.0125"
+                }
+              },
+              "by_model": {
+                "m": {
+                  "$f": "0.0125"
+                }
+              },
+              "currency": "USD",
+              "input_tokens": {
+                "$i": "1200"
+              },
+              "output_tokens": {
+                "$i": "300"
+              },
+              "run_id": "run-cost-0001",
+              "total_cost": {
+                "$f": "0.0125"
+              },
+              "total_tokens": {
+                "$i": "1500"
+              }
+            },
+            "schema": "tine-cost-statement/1",
+            "signature": {
+              "alg": "ed25519",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-01-01T00:00:00Z",
+              "signer": "alice",
+              "value": "d9543acd08d301f8953f61e4768cfe20fe0f83c23e362501c290543e109a13b038aa396ffef593defb362ce484d5e1961dc1b7bc583ddec48faa6640a840810b"
+            }
+          }
+        }
+      },
+      "intent": "a statement that does not match the run",
+      "op": "cost-statement.verify",
+      "output": {
+        "basis": "embedded key sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c (trust on first use)",
+        "matches_run": false,
+        "ok": false,
+        "signature": "verified"
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.25",
+      "tier": "core",
+      "x_display": "{\"expected\": {\"aggregate\": {\"by_kind\": {\"llm\": {\"$f\": \"0.0125\"}}, \"by_model\": {\"m\": {\"$f\": \"0.0125\"}}, \"currency\": \"USD\", \"input_tokens\": {\"$i\": \"1200\"}, \"output_tokens\": {\"$i\": \"300\"}, \"run_id\": \"run-cost-0001\", \"total_cost\": {\"$f\": \"0.0125\"}, \"total_tokens\": {\"$i\": \"1501\"}}, \"schema\": \"tine-cost-statement/1\"}, \"public_key\": null, \"statement\": {\"aggregate\": {\"by_kind\": {\"llm\": {\"$f\": \"0.0125\"}}, ...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "cost-statement.pinned",
+      "input": {
+        "value": {
+          "expected": {
+            "aggregate": {
+              "by_kind": {
+                "llm": {
+                  "$f": "0.0125"
+                }
+              },
+              "by_model": {
+                "m": {
+                  "$f": "0.0125"
+                }
+              },
+              "currency": "USD",
+              "input_tokens": {
+                "$i": "1200"
+              },
+              "output_tokens": {
+                "$i": "300"
+              },
+              "run_id": "run-cost-0001",
+              "total_cost": {
+                "$f": "0.0125"
+              },
+              "total_tokens": {
+                "$i": "1500"
+              }
+            },
+            "schema": "tine-cost-statement/1"
+          },
+          "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+          "statement": {
+            "aggregate": {
+              "by_kind": {
+                "llm": {
+                  "$f": "0.0125"
+                }
+              },
+              "by_model": {
+                "m": {
+                  "$f": "0.0125"
+                }
+              },
+              "currency": "USD",
+              "input_tokens": {
+                "$i": "1200"
+              },
+              "output_tokens": {
+                "$i": "300"
+              },
+              "run_id": "run-cost-0001",
+              "total_cost": {
+                "$f": "0.0125"
+              },
+              "total_tokens": {
+                "$i": "1500"
+              }
+            },
+            "schema": "tine-cost-statement/1",
+            "signature": {
+              "alg": "ed25519",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-01-01T00:00:00Z",
+              "signer": "alice",
+              "value": "d9543acd08d301f8953f61e4768cfe20fe0f83c23e362501c290543e109a13b038aa396ffef593defb362ce484d5e1961dc1b7bc583ddec48faa6640a840810b"
+            }
+          }
+        }
+      },
+      "intent": "under the supplied key",
+      "op": "cost-statement.verify",
+      "output": {
+        "basis": "supplied key sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+        "matches_run": true,
+        "ok": true,
+        "signature": "verified"
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.25",
+      "tier": "core",
+      "x_display": "{\"expected\": {\"aggregate\": {\"by_kind\": {\"llm\": {\"$f\": \"0.0125\"}}, \"by_model\": {\"m\": {\"$f\": \"0.0125\"}}, \"currency\": \"USD\", \"input_tokens\": {\"$i\": \"1200\"}, \"output_tokens\": {\"$i\": \"300\"}, \"run_id\": \"run-cost-0001\", \"total_cost\": {\"$f\": \"0.0125\"}, \"total_tokens\": {\"$i\": \"1500\"}}, \"schema\": \"tine-cost-statement/1\"}, \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"sta...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "cost-statement.tofu",
+      "input": {
+        "value": {
+          "expected": {
+            "aggregate": {
+              "by_kind": {
+                "llm": {
+                  "$f": "0.0125"
+                }
+              },
+              "by_model": {
+                "m": {
+                  "$f": "0.0125"
+                }
+              },
+              "currency": "USD",
+              "input_tokens": {
+                "$i": "1200"
+              },
+              "output_tokens": {
+                "$i": "300"
+              },
+              "run_id": "run-cost-0001",
+              "total_cost": {
+                "$f": "0.0125"
+              },
+              "total_tokens": {
+                "$i": "1500"
+              }
+            },
+            "schema": "tine-cost-statement/1"
+          },
+          "public_key": null,
+          "statement": {
+            "aggregate": {
+              "by_kind": {
+                "llm": {
+                  "$f": "0.0125"
+                }
+              },
+              "by_model": {
+                "m": {
+                  "$f": "0.0125"
+                }
+              },
+              "currency": "USD",
+              "input_tokens": {
+                "$i": "1200"
+              },
+              "output_tokens": {
+                "$i": "300"
+              },
+              "run_id": "run-cost-0001",
+              "total_cost": {
+                "$f": "0.0125"
+              },
+              "total_tokens": {
+                "$i": "1500"
+              }
+            },
+            "schema": "tine-cost-statement/1",
+            "signature": {
+              "alg": "ed25519",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-01-01T00:00:00Z",
+              "signer": "alice",
+              "value": "d9543acd08d301f8953f61e4768cfe20fe0f83c23e362501c290543e109a13b038aa396ffef593defb362ce484d5e1961dc1b7bc583ddec48faa6640a840810b"
+            }
+          }
+        }
+      },
+      "intent": "a signed statement that matches its run",
+      "op": "cost-statement.verify",
+      "output": {
+        "basis": "embedded key sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c (trust on first use)",
+        "matches_run": true,
+        "ok": true,
+        "signature": "verified"
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.25",
+      "tier": "core",
+      "x_display": "{\"expected\": {\"aggregate\": {\"by_kind\": {\"llm\": {\"$f\": \"0.0125\"}}, \"by_model\": {\"m\": {\"$f\": \"0.0125\"}}, \"currency\": \"USD\", \"input_tokens\": {\"$i\": \"1200\"}, \"output_tokens\": {\"$i\": \"300\"}, \"run_id\": \"run-cost-0001\", \"total_cost\": {\"$f\": \"0.0125\"}, \"total_tokens\": {\"$i\": \"1500\"}}, \"schema\": \"tine-cost-statement/1\"}, \"public_key\": null, \"statement\": {\"aggregate\": {\"by_kind\": {\"llm\": {\"$f\": \"0.0125\"}}, ...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "cost-statement.unsigned",
+      "input": {
+        "value": {
+          "expected": {
+            "aggregate": {
+              "by_kind": {
+                "llm": {
+                  "$f": "0.0125"
+                }
+              },
+              "by_model": {
+                "m": {
+                  "$f": "0.0125"
+                }
+              },
+              "currency": "USD",
+              "input_tokens": {
+                "$i": "1200"
+              },
+              "output_tokens": {
+                "$i": "300"
+              },
+              "run_id": "run-cost-0001",
+              "total_cost": {
+                "$f": "0.0125"
+              },
+              "total_tokens": {
+                "$i": "1500"
+              }
+            },
+            "schema": "tine-cost-statement/1"
+          },
+          "public_key": null,
+          "statement": {
+            "aggregate": {
+              "by_kind": {
+                "llm": {
+                  "$f": "0.0125"
+                }
+              },
+              "by_model": {
+                "m": {
+                  "$f": "0.0125"
+                }
+              },
+              "currency": "USD",
+              "input_tokens": {
+                "$i": "1200"
+              },
+              "output_tokens": {
+                "$i": "300"
+              },
+              "run_id": "run-cost-0001",
+              "total_cost": {
+                "$f": "0.0125"
+              },
+              "total_tokens": {
+                "$i": "1500"
+              }
+            },
+            "schema": "tine-cost-statement/1"
+          }
+        }
+      },
+      "intent": "an unsigned statement is never ok",
+      "op": "cost-statement.verify",
+      "output": {
+        "basis": null,
+        "matches_run": true,
+        "ok": false,
+        "signature": "unsigned"
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.25",
+      "tier": "core",
+      "x_display": "{\"expected\": {\"aggregate\": {\"by_kind\": {\"llm\": {\"$f\": \"0.0125\"}}, \"by_model\": {\"m\": {\"$f\": \"0.0125\"}}, \"currency\": \"USD\", \"input_tokens\": {\"$i\": \"1200\"}, \"output_tokens\": {\"$i\": \"300\"}, \"run_id\": \"run-cost-0001\", \"total_cost\": {\"$f\": \"0.0125\"}, \"total_tokens\": {\"$i\": \"1500\"}}, \"schema\": \"tine-cost-statement/1\"}, \"public_key\": null, \"statement\": {\"aggregate\": {\"by_kind\": {\"llm\": {\"$f\": \"0.0125\"}}, ...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "cost-statement.wrong-key",
+      "input": {
+        "value": {
+          "expected": {
+            "aggregate": {
+              "by_kind": {
+                "llm": {
+                  "$f": "0.0125"
+                }
+              },
+              "by_model": {
+                "m": {
+                  "$f": "0.0125"
+                }
+              },
+              "currency": "USD",
+              "input_tokens": {
+                "$i": "1200"
+              },
+              "output_tokens": {
+                "$i": "300"
+              },
+              "run_id": "run-cost-0001",
+              "total_cost": {
+                "$f": "0.0125"
+              },
+              "total_tokens": {
+                "$i": "1500"
+              }
+            },
+            "schema": "tine-cost-statement/1"
+          },
+          "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+          "statement": {
+            "aggregate": {
+              "by_kind": {
+                "llm": {
+                  "$f": "0.0125"
+                }
+              },
+              "by_model": {
+                "m": {
+                  "$f": "0.0125"
+                }
+              },
+              "currency": "USD",
+              "input_tokens": {
+                "$i": "1200"
+              },
+              "output_tokens": {
+                "$i": "300"
+              },
+              "run_id": "run-cost-0001",
+              "total_cost": {
+                "$f": "0.0125"
+              },
+              "total_tokens": {
+                "$i": "1500"
+              }
+            },
+            "schema": "tine-cost-statement/1",
+            "signature": {
+              "alg": "ed25519",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signed_at": "2026-01-01T00:00:00Z",
+              "signer": "alice",
+              "value": "d9543acd08d301f8953f61e4768cfe20fe0f83c23e362501c290543e109a13b038aa396ffef593defb362ce484d5e1961dc1b7bc583ddec48faa6640a840810b"
+            }
+          }
+        }
+      },
+      "intent": "under another key",
+      "op": "cost-statement.verify",
+      "output": {
+        "basis": null,
+        "matches_run": true,
+        "ok": false,
+        "signature": "mismatch"
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.25",
+      "tier": "core",
+      "x_display": "{\"expected\": {\"aggregate\": {\"by_kind\": {\"llm\": {\"$f\": \"0.0125\"}}, \"by_model\": {\"m\": {\"$f\": \"0.0125\"}}, \"currency\": \"USD\", \"input_tokens\": {\"$i\": \"1200\"}, \"output_tokens\": {\"$i\": \"300\"}, \"run_id\": \"run-cost-0001\", \"total_cost\": {\"$f\": \"0.0125\"}, \"total_tokens\": {\"$i\": \"1500\"}}, \"schema\": \"tine-cost-statement/1\"}, \"public_key\": \"29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7\", \"sta...",
+      "x_reference": null
+    }
+  ],
+  "family": "cost-statement",
+  "section": "8.25",
+  "suite_version": 1
+}

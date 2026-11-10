@@ -12,6 +12,8 @@ The order is what makes a purge safe to interrupt:
    rewritten without it (``_gc_prune._rewrite_packs``), and every kept transfer
    pack (``packs/<id>.pack``, a byte-exact copy of objects held elsewhere) that
    carries it is dropped; then the quarantine is finished with nothing kept.
+   Packs that name a zstd dictionary (0.50) are rewritten too and the old
+   dictionaries deleted, since a dictionary may hold text of the blob.
 
 The derived search index can hold text from the blob, so it is deleted (search
 falls back to the scan until ``tine repo-search --rebuild-index``). A blob
@@ -25,7 +27,7 @@ from typing import Any
 
 from opentine._tombstone import well_formed
 from opentine.kernel import KernelError, parse_oid
-from opentine.repository import _tombstones
+from opentine.repository import _pack_dicts, _tombstones
 from opentine.repository._gc import gc_lock
 from opentine.repository._gc_prune import PrunePlan, _rewrite_packs
 from opentine.repository._holds import held_oids, holds_path
@@ -68,6 +70,20 @@ def _drop_kept_packs(repo: Any, oid: str) -> int:
     return dropped
 
 
+def _dict_packs(repo: Any) -> frozenset[str]:
+    """Packs to rewrite because a zstd dictionary (0.50) may hold the blob's bytes.
+
+    A dictionary is trained on stored objects, so any of them may carry text of
+    the purged blob. The writer's hint goes first, so the rewrite trains afresh
+    on what stays (or writes plain zstd), and every pack naming an old
+    dictionary is rewritten; ``tidy`` then deletes the old dictionaries.
+    """
+    if not _pack_dicts.stored(repo.path):
+        return frozenset()
+    _pack_dicts.forget_latest(repo.path)
+    return frozenset(_pack_dicts.naming_packs(repo.path))
+
+
 def _drop_search_index(repo: Any) -> None:
     index = os.path.join(repo.path, "index", "search.sqlite")
     for suffix in ("", "-wal", "-shm"):
@@ -90,7 +106,7 @@ def purge(repo: Any, record: dict[str, Any]) -> dict[str, Any]:
         quarantine = Quarantine(repo)
         plan = PrunePlan(cutoff=float("inf"))
         try:
-            _rewrite_packs(repo, {oid}, plan, quarantine)
+            _rewrite_packs(repo, {oid}, plan, quarantine, also=_dict_packs(repo))
             quarantine.move_loose(oid)
             dropped = _drop_kept_packs(repo, oid)
         except BaseException:
@@ -100,6 +116,7 @@ def purge(repo: Any, record: dict[str, Any]) -> dict[str, Any]:
         from opentine.repository._packs import pack_set
 
         pack_set(repo.path).refresh()
+        _pack_dicts.tidy(repo.path)  # the old dictionaries no pack names now
         _drop_search_index(repo)
     if repo.has(oid):
         raise KernelError(f"purge left a readable copy of {oid}")

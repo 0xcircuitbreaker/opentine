@@ -36,7 +36,7 @@ from opentine.repository._paths import internal_path
 from opentine.repository._reap import reap_temp
 
 GC_LEVEL = 19  # packs are written once and read many times
-FOOTPRINT_DIRS = ("objects", "packs", "refs", "logs", "fanouts", "txn")
+FOOTPRINT_DIRS = ("objects", "packs", "dicts", "refs", "logs", "fanouts", "txn")
 
 
 @dataclass(frozen=True)

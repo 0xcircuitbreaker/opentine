@@ -10,6 +10,7 @@ tokens, with a verifying attestation each.
 from __future__ import annotations
 
 import json
+import os
 import random
 import subprocess
 import sys
@@ -220,7 +221,9 @@ while True:
             raise
         last = exc
 """
-WORKER_SECONDS = 120.0
+#: The nightly stress workflow scales the chaos test up (OPENTINE_STRESS_MQ_ENTRIES).
+MQ_ENTRIES = int(os.environ.get("OPENTINE_STRESS_MQ_ENTRIES", "16"))
+WORKER_SECONDS = 120.0 * max(1, MQ_ENTRIES // 16)
 
 
 def _spawn(path: Path, holder: str) -> subprocess.Popen:
@@ -273,7 +276,8 @@ def test_a_writer_killed_before_its_replace_never_wedges_the_queue(tmp_path):
 
 
 def test_kill_9_workers_never_double_merge(tmp_path):
-    entries = 16
+    entries = MQ_ENTRIES
+    kills, rounds = max(6, entries // 3), 600 * max(1, entries // 16)
     repo, runs = _repo(tmp_path / "r", entries)
     base = repo.read_ref("heads/main")
     queue.init(repo, "main", "heads/main")
@@ -284,12 +288,12 @@ def test_kill_9_workers_never_double_merge(tmp_path):
     spawned, killed = len(workers), 0
     # A generous bound on the loop, never a timing assertion: the queue drains
     # because a killed holder's lease expires and a live worker takes it over.
-    for _ in range(600):
+    for _ in range(rounds):
         if not queue.get(repo, "main")["entries"]:
             break
         time.sleep(chance.uniform(0.05, 0.3))
         name = chance.choice(sorted(workers))
-        if killed < 6 and workers[name].poll() is None:
+        if killed < kills and workers[name].poll() is None:
             workers[name].kill()  # SIGKILL / TerminateProcess: no cleanup runs
             workers[name].wait()
             killed += 1

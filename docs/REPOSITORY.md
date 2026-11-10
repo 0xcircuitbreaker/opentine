@@ -730,6 +730,25 @@ take the same flags.
   gate, `docs/bench/0.40-cdc-bakeoff.md`). `tine repo storage gc
   --no-blob-deltas` rewrites every pack without deltas, then lowers
   `min_reader` again (0.37.0 with packed refs, else 0.26.0).
+- `tine repo storage gc --dictionaries` (0.50+, opt-in, needs zstd) trains one
+  zstd dictionary per object kind on the objects gc is packing and compresses
+  that kind's local v3 pack blocks with it (codec 3, SPEC §2.8). A dictionary is
+  kept only when it saves more than its own size, a block uses it only when it
+  comes out smaller, and a small gc reuses the last dictionary for its kind.
+  Dictionaries live content-addressed in `.tine/dicts/<sha256>.zdict`; a block
+  names its dictionary's digest and a reader refuses a missing or altered one.
+  Ids are unchanged and every object is still checked against its id on read.
+  The opt-in writes `"pack_dicts": "zstd"` plus `"min_reader": "0.50.0"`, so
+  0.49 and older refuse the repository at open; the TypeScript verifier does
+  not decode codec 3 yet and refuses such a block by name. Transfer formats
+  carry canonical objects. On the bench corpus no dictionary pays for itself
+  against 16 MiB kind-grouped blocks, so gc keeps none there
+  (`docs/bench/0.50-dictionaries.md`). `--no-dictionaries` rewrites every pack
+  without them, deletes the dictionaries and lowers `min_reader` again. `tine
+  purge` rewrites every pack that names a dictionary and deletes the old
+  dictionaries (they were trained on stored bytes, so may hold the blob's text);
+  `tine prune` does not, so a pruned object's text can stay in a dictionary
+  until the next gc retrains it.
 - Pack indexes are read lazily (0.37+): the binary v3 `.tidx` is mapped into
   memory (read into memory on Windows, where a mapping would stop gc from
   replacing it) and searched through a fanout table, instead of every entry

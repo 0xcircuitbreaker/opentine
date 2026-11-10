@@ -109,10 +109,20 @@ def pki(**tsa_options):
 
 
 def token(
-    bound: bytes, tsa, tsa_key, *, when=None, tamper=False, ess="v2", policy=POLICY, extra=b""
+    bound: bytes,
+    tsa,
+    tsa_key,
+    *,
+    when=None,
+    tamper=False,
+    ess="v2",
+    policy=POLICY,
+    extra=b"",
+    crls=b"",
 ) -> bytes:
     """*ess*: ``v2`` (ESSCertIDv2, RFC 5816), ``v1``, ``none`` or ``wrong``; *extra*
-    is appended to TSTInfo (accuracy, nonce, extensions)."""
+    is appended to TSTInfo (accuracy, nonce, extensions); *crls* is the encoded
+    ``SignedData.crls`` field (0.50 embedded revocation data), outside the signature."""
     imprint = hashlib.sha256(bound).digest()
     tst = seq(
         integer(1),
@@ -156,6 +166,7 @@ def token(
         der_set(seq(oid(SHA256))),
         seq(oid("1.2.840.113549.1.9.16.1.4"), tlv(0xA0, octets(tst))),
         tlv(0xA0, cert_der),
+        crls,
         der_set(signer),
     )
     content_info = seq(oid("1.2.840.113549.1.7.2"), tlv(0xA0, signed_data))

@@ -1,5 +1,151 @@
 # Changelog
 
+## 0.50.0 — Freeze candidate (2026-11-09)
+
+0.50 exists to meet the 1.0 criteria, not to add features. It is the last
+release of this plan; the 1.0 criteria status below says what is met and what
+still needs people.
+
+### Behaviour changes
+
+- `tine verify` checks CRLs and RFC 5940 OCSP responses embedded in an RFC 3161
+  timestamp token (`SignedData.crls`) after the chain, offline, and fails the
+  token with `timestamp.revoked` or `timestamp.revocation-invalid`. The field is
+  outside the TSA signature, so it can only fail a token, never pass one. A
+  malformed embedded CRL or OCSP response gives `timestamp.revocation-invalid`
+  rather than an exception. Python only: the TS verifier and the pyz do not
+  check embedded revocation data, and there are no shared vectors for it.
+- Readers (Python and the TS verifier) accept `min_reader` up to 0.50.0
+  (`_config.READER_VERSION`); `layout.config.min-reader-newer` names the
+  version. The TS verifier refuses a dictionary-compressed block by name.
+- `tine purge` rewrites every pack that names a dictionary and deletes the old
+  dictionaries, which may hold the purged blob's text. Prune does not; the next
+  gc retrains them.
+- `du` and the gc footprint count dictionary bytes, and prune no longer scans
+  dictionaries for roots.
+
+### Added
+
+- **Python / TS / pyz parity on the full pinned vector set** (1.0 criterion
+  2): the pyz answers every reader and verifier case outside the repository
+  storage families case by case; `scripts/check_parity.py` runs the three
+  implementations on every case and fails on any disagreement, a crash
+  counted as a refusal, a gap, or a TS skip outside the writer profile
+  (TS skips only the 14 writer-profile redaction and `attest.sign` cases);
+  a new CI `parity` job runs it with the TS
+  column required. Families 79-84 add vectors for `tine-verify-report/2`,
+  `tine-custody/1` and its log records, `replay/v1`, the TINEAES6 header,
+  `opentine-line-attribution/1` and `tine-cost-statement/1`.
+  `docs/FREEZE.md` lists the frozen kinds and formats and the review result.
+- Per-kind zstd dictionaries for local v3 packs (P3, opt-in): `tine gc
+  --dictionaries` / `--no-dictionaries`. A dictionary is kept only when it
+  saves more than its own size, is stored as `dicts/<sha256>.zdict` and is
+  checked against that hash on read. Object ids don't change, and transfers
+  (wire packs, bundles, `.tine`) never carry the form. Opting in sets
+  `min_reader` 0.50.0.
+- Bench: the job gates the stored bytes of gc, gc_v3, wire and bundle at no
+  more than 5% over the 0.40.0 tag benched on the same runner (1.0 criterion
+  6, still pending a green CI run). Speed is reported, not gated. The job also
+  runs weekly, adds `gc_v3` and `gc_dicts` rows (measured after wire and
+  bundle) and adds `run_bench.py --library`.
+- Added `tine tenant export` and `tine tenant import` to leave a hosted `tine
+  serve` with your runs, refs, signatures, tombstones, Reviews and project
+  manifests, plus the old log and share metadata, all in formats frozen at
+  0.48. `export` refuses a folder that isn't empty. You can import into
+  another `tine serve` (not all-or-nothing) or into a local repository, where
+  a refused import writes nothing. `--json` writes `tine-cli-tenant-1`.
+- The "leave the hosted service" test runs in CI on Linux, macOS and Windows:
+  it exports a tenant, imports it into a fresh server and checks that `tine
+  verify . --offline` gives byte-identical reports.
+- Nightly stress at nightly scale (concurrent ref writers, kill -9 writers,
+  the 1,000-round prune race, ref retry, the 64-entry merge-queue chaos test
+  on three OSes, the full-size coord scale test, a one-hour OTLP fuzz) with a
+  `nightly-summary.json`; `scripts/stress_streak.py` reports the green streak
+  from the Actions API, counted back from today. An API error body, a
+  malformed run or a bad `--today` exits 2 with a JSON error, never a zero
+  streak.
+- The 0.34 peer compatibility job (`scripts/peer_compat_034.py`, ROADMAP §2):
+  the published 0.34.0 reads a repository, a pack and `--for-legacy` `.tine`
+  files this tree writes (runs, a trace-recorded run, the 0.46 project
+  manifest, a tombstone and its purge, the 0.47 prompt registry and team
+  memory) and fetches main over HTTP from this tree's server holding a
+  project. Pinned and shrink-only: the default v5 `.tine` is unreadable by
+  0.34 by design, and 0.34 skips the `project/`, `prompts/` and `memory/` refs
+  of a repository directory as illegal names (every object still reads).
+  Merge, review, eval-verdict and forge objects are not yet exercised.
+- `docs/DEPRECATION.md` (1.0 criterion 7), `docs/LEAVING.md` and
+  `docs/security/AUDIT-SCOPE.md` (the third-party audit is scoped, not
+  engaged).
+- The suite is now **1163 conformance vectors**; 507 of the 1163 refuse input, and the adapter contract still has one entry point: 75 ops.
+
+### Security
+
+- Embedded revocation data in timestamp tokens is now checked (see above); a
+  revoked or malformed CRL/OCSP response fails the token.
+- `tine purge` no longer leaves the purged blob's text in pack dictionaries,
+  and a later pack rewrite cannot reuse such a dictionary.
+- `tine tenant import --repo` checks every ref before writing any object, so a
+  refused import leaves the repository unchanged; `tine tenant export` refuses
+  a non-empty `--out`, so stale Reviews or manifests cannot be mixed into an
+  export. Every export request is scoped to `/v1/tenants/<tenant>`.
+
+### Compatibility
+
+- No object kind or wire format was added (the 0.48 cutoff holds;
+  `tests/freeze_inventory.py` allow-lists are empty). Codec 3 is a stored
+  form in local v3 packs only, reversible and checked against the oid on
+  read; every older format stays readable.
+- A repository opted in to dictionaries sets `min_reader` 0.50.0, so older
+  readers refuse it at open; `tine gc --no-dictionaries` lowers it again.
+  Fetch, clone and push are unchanged for 0.34–0.49 clients.
+- SPEC 0.50.0: §2.3 codec byte 3; §2.8 pack v3 dictionaries; §5.5 the freeze
+  review; §8.6 embedded CRL/OCSP; §8.24 and §8.25 for the two kinds that had no
+  section; Part 12 adds `tine-cli-tenant-1`.
+
+### Deferred
+
+- **RFC 4998 evidence records and `attest --renew`**, past the freeze: a
+  renewal token needs a new `tine-timestamp-sidecar/1` bound form, which is a
+  new wire format the 0.48 cutoff forbids. Root-bound tokens (up to 16) can
+  still be added over time.
+- Parity on rejection reasons: when an implementation refuses a case without
+  naming a reason code (124 pyz and 150 Python refusals, e.g. `agent.*`,
+  `artifact.malformed-json`, `oid.parse.*`; TS likewise), the pinned reason
+  is not compared. Parity holds on accept/refuse and accepted outputs only.
+- **For humans:** engaging the third-party security audit
+  (`docs/security/AUDIT-SCOPE.md`); 30 consecutive green nightly days; counsel
+  sign-off on the compliance profiles; the 72 h fuzz run; operating the public
+  witness and recruiting independent operators; live MinIO/AWS/Azure cloud
+  tests; the release owner's sign-off on the pyz storage-family exclusion.
+- The TS verifier does not decode codec 3 (no dictionary support in fzstd);
+  there is no codec-3 conformance vector. Prune does not retrain dictionaries.
+  Dictionaries have not been measured on repositories with many small packs;
+  the speed figures in `docs/bench/0.50-dictionaries.md` predate the bench
+  reorder.
+- `tine tenant import --remote` is not all-or-nothing, and its refusal of a
+  ref that already points elsewhere is untested. The transparency log stays
+  with the old server; share tokens are re-created by hand; project manifests
+  import only into a tenant of the same name.
+
+### 1.0 criteria status
+
+1. All P0/P1 items closed and a third-party audit done: **not met** (the
+   audit is scoped, not engaged).
+2. Formats frozen and Python, TS and pyz pass the same vectors: **not met
+   yet** (parity holds locally on every case each answers; the `parity` CI job
+   has not run green, the storage-family exclusion needs sign-off, and
+   reason codes are not compared where an implementation names none).
+3. The 0.34 peer compatibility job green for every release: **not met yet**
+   (the job ships in 0.50 and has not run green in CI).
+4. The pyz air-gap-tested on Linux, macOS and Windows: **met** (the audit-kit
+   CI job, with the network refused and an extra Linux run in a network
+   namespace, passed on all three in the 0.49.0 pull request).
+5. Nightly stress green for 30 days: **not met** (the streak starts with this
+   release).
+6. Compression bench within 5% of 0.40: **not met yet** (the gate ships; it
+   needs a green run on the pinned runner).
+7. The deprecation policy published: **met** (`docs/DEPRECATION.md`).
+
 ## 0.49.0 — Audit kit and public proof (2026-11-09)
 
 ### Behaviour changes

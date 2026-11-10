@@ -1,0 +1,401 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "replay.bad-base64",
+      "input": {
+        "value": {
+          "envelope": {
+            "payload": "!",
+            "payloadType": "application/vnd.in-toto+json",
+            "signatures": [
+              {
+                "keyid": "did:key:z6MkehRgf7yJbgaGfYsdoAsKdBPE3dj2CYhowQdcjqSJgvVd",
+                "sig": "vga1ID7/PAljv89aZcmV8gE5xKC4NeOOmUJy1RUkI70HFc/l+9aqEbFu9duTkJU93mehxlHriFT4zT0J9QAcBA=="
+              }
+            ]
+          },
+          "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+        }
+      },
+      "intent": "a payload that is not base64",
+      "op": "replay.verify",
+      "profile": "verifier",
+      "reason": "replay.malformed",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.8",
+      "tier": "core",
+      "x_display": "{\"envelope\": {\"payload\": \"!\", \"payloadType\": \"application/vnd.in-toto+json\", \"signatures\": [{\"keyid\": \"did:key:z6MkehRgf7yJbgaGfYsdoAsKdBPE3dj2CYhowQdcjqSJgvVd\", \"sig\": \"vga1ID7/PAljv89aZcmV8gE5xKC4NeOOmUJy1RUkI70HFc/l+9aqEbFu9duTkJU93mehxlHriFT4zT0J9QAcBA==\"}]}, \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\"}",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "malformed DSSE envelope"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "replay.bad-mode",
+      "input": {
+        "value": {
+          "envelope": {
+            "payload": "eyJfdHlwZSI6Imh0dHBzOi8vaW4tdG90by5pby9TdGF0ZW1lbnQvdjEiLCJwcmVkaWNhdGUiOnsiZmlkZWxpdHkiOnsibGV2ZWwiOiJleGFjdCJ9LCJtb2RlIjoibGl2ZSIsInJlcGxheSI6eyJleHBlY3RlZF9zdGVwcyI6MywiZm9ya19wb2ludCI6bnVsbCwicmVwbGF5X2lkIjoicnVuOnNoYTI1NjphYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiIiwicmV1c2VkX3N0ZXBzIjozLCJzZWNvbmRfaWQiOm51bGx9LCJyZXN1bHQiOnsiYWNjb3VudGluZ19kcmlmdCI6W10sImlkZW50aXR5X29rIjp0cnVlLCJpZ25vcmVfY29zdF9kcmlmdCI6ZmFsc2UsImludGVncml0eV9vayI6dHJ1ZSwicmVwcm9kdWNlZCI6dHJ1ZSwic2xpY2Vfb2siOm51bGwsInN0cnVjdHVyYWxfZHJpZnQiOltdfSwidmVyaWZpZWRfYXQiOiIyMDI2LTAxLTAxVDAwOjAwOjAwWiIsInZlcmlmaWVyIjp7ImlkIjoiaHR0cHM6Ly9vcGVudGluZS5kZXYvdGluZSIsInZlcnNpb24iOiIwLjUwLjAifX0sInByZWRpY2F0ZVR5cGUiOiJodHRwczovL29wZW50aW5lLmRldi9hdHRlc3RhdGlvbi9yZXBsYXkvdjEiLCJzdWJqZWN0IjpbeyJkaWdlc3QiOnsic2hhMjU2IjoiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiJ9LCJuYW1lIjoicnVuOnNoYTI1NjphYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiIn1dfQ==",
+            "payloadType": "application/vnd.in-toto+json",
+            "signatures": [
+              {
+                "keyid": "did:key:z6MkehRgf7yJbgaGfYsdoAsKdBPE3dj2CYhowQdcjqSJgvVd",
+                "sig": "TTx+O9rzqgxyrgXjBJtflUJ3hmhdPJ0KLLBiJzL7PeFForglj6YJR/Ol57g/aTD+WQhSgvFb/VJbi6JKp0AtBQ=="
+              }
+            ]
+          },
+          "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+        }
+      },
+      "intent": "mode is cache or rerun",
+      "op": "replay.verify",
+      "profile": "verifier",
+      "reason": "replay.malformed",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.8",
+      "tier": "core",
+      "x_display": "{\"envelope\": {\"payload\": \"eyJfdHlwZSI6Imh0dHBzOi8vaW4tdG90by5pby9TdGF0ZW1lbnQvdjEiLCJwcmVkaWNhdGUiOnsiZmlkZWxpdHkiOnsibGV2ZWwiOiJleGFjdCJ9LCJtb2RlIjoibGl2ZSIsInJlcGxheSI6eyJleHBlY3RlZF9zdGVwcyI6MywiZm9ya19wb2ludCI6bnVsbCwicmVwbGF5X2lkIjoicnVuOnNoYTI1NjphYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiIiwicmV1c2VkX3N0ZXBzIjozLCJzZWNvbmRfaWQiOm51bGx9LCJyZXN1bHQiOn...",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "mode must be cache or rerun"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "replay.bad-result",
+      "input": {
+        "value": {
+          "envelope": {
+            "payload": "eyJfdHlwZSI6Imh0dHBzOi8vaW4tdG90by5pby9TdGF0ZW1lbnQvdjEiLCJwcmVkaWNhdGUiOnsiZmlkZWxpdHkiOnsibGV2ZWwiOiJleGFjdCJ9LCJtb2RlIjoiY2FjaGUiLCJyZXBsYXkiOnsiZXhwZWN0ZWRfc3RlcHMiOjMsImZvcmtfcG9pbnQiOm51bGwsInJlcGxheV9pZCI6InJ1bjpzaGEyNTY6YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiIsInJldXNlZF9zdGVwcyI6Mywic2Vjb25kX2lkIjpudWxsfSwicmVzdWx0Ijp7ImFjY291bnRpbmdfZHJpZnQiOltdLCJpZGVudGl0eV9vayI6dHJ1ZSwiaWdub3JlX2Nvc3RfZHJpZnQiOmZhbHNlLCJpbnRlZ3JpdHlfb2siOnRydWUsInJlcHJvZHVjZWQiOiJ5ZXMiLCJzbGljZV9vayI6bnVsbCwic3RydWN0dXJhbF9kcmlmdCI6W119LCJ2ZXJpZmllZF9hdCI6IjIwMjYtMDEtMDFUMDA6MDA6MDBaIiwidmVyaWZpZXIiOnsiaWQiOiJodHRwczovL29wZW50aW5lLmRldi90aW5lIiwidmVyc2lvbiI6IjAuNTAuMCJ9fSwicHJlZGljYXRlVHlwZSI6Imh0dHBzOi8vb3BlbnRpbmUuZGV2L2F0dGVzdGF0aW9uL3JlcGxheS92MSIsInN1YmplY3QiOlt7ImRpZ2VzdCI6eyJzaGEyNTYiOiJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiIn0sIm5hbWUiOiJydW46c2hhMjU2OmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWIifV19",
+            "payloadType": "application/vnd.in-toto+json",
+            "signatures": [
+              {
+                "keyid": "did:key:z6MkehRgf7yJbgaGfYsdoAsKdBPE3dj2CYhowQdcjqSJgvVd",
+                "sig": "ExMhnKWXgre/Xcb0/KFXTteCUKKrKRhu3G2sEL+3PRbDRvBJ1muD+YjDrDmZymOTGEXHIb4+K/XNHv8nu6T5BA=="
+              }
+            ]
+          },
+          "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+        }
+      },
+      "intent": "result booleans are booleans",
+      "op": "replay.verify",
+      "profile": "verifier",
+      "reason": "replay.malformed",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.8",
+      "tier": "core",
+      "x_display": "{\"envelope\": {\"payload\": \"eyJfdHlwZSI6Imh0dHBzOi8vaW4tdG90by5pby9TdGF0ZW1lbnQvdjEiLCJwcmVkaWNhdGUiOnsiZmlkZWxpdHkiOnsibGV2ZWwiOiJleGFjdCJ9LCJtb2RlIjoiY2FjaGUiLCJyZXBsYXkiOnsiZXhwZWN0ZWRfc3RlcHMiOjMsImZvcmtfcG9pbnQiOm51bGwsInJlcGxheV9pZCI6InJ1bjpzaGEyNTY6YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiIsInJldXNlZF9zdGVwcyI6Mywic2Vjb25kX2lkIjpudWxsfSwicmVzdWx0Ij...",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "result.reproduced must be a boolean"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "replay.other-predicate",
+      "input": {
+        "value": {
+          "envelope": {
+            "payload": "eyJfdHlwZSI6Imh0dHBzOi8vaW4tdG90by5pby9TdGF0ZW1lbnQvdjEiLCJwcmVkaWNhdGUiOnsiZmlkZWxpdHkiOnsibGV2ZWwiOiJleGFjdCJ9LCJtb2RlIjoiY2FjaGUiLCJyZXBsYXkiOnsiZXhwZWN0ZWRfc3RlcHMiOjMsImZvcmtfcG9pbnQiOm51bGwsInJlcGxheV9pZCI6InJ1bjpzaGEyNTY6YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiIsInJldXNlZF9zdGVwcyI6Mywic2Vjb25kX2lkIjpudWxsfSwicmVzdWx0Ijp7ImFjY291bnRpbmdfZHJpZnQiOltdLCJpZGVudGl0eV9vayI6dHJ1ZSwiaWdub3JlX2Nvc3RfZHJpZnQiOmZhbHNlLCJpbnRlZ3JpdHlfb2siOnRydWUsInJlcHJvZHVjZWQiOnRydWUsInNsaWNlX29rIjpudWxsLCJzdHJ1Y3R1cmFsX2RyaWZ0IjpbXX0sInZlcmlmaWVkX2F0IjoiMjAyNi0wMS0wMVQwMDowMDowMFoiLCJ2ZXJpZmllciI6eyJpZCI6Imh0dHBzOi8vb3BlbnRpbmUuZGV2L3RpbmUiLCJ2ZXJzaW9uIjoiMC41MC4wIn19LCJwcmVkaWNhdGVUeXBlIjoiaHR0cHM6Ly9zbHNhLmRldi9wcm92ZW5hbmNlL3YxIiwic3ViamVjdCI6W3siZGlnZXN0Ijp7InNoYTI1NiI6ImFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWIifSwibmFtZSI6InJ1bjpzaGEyNTY6YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiJ9XX0=",
+            "payloadType": "application/vnd.in-toto+json",
+            "signatures": [
+              {
+                "keyid": "did:key:z6MkehRgf7yJbgaGfYsdoAsKdBPE3dj2CYhowQdcjqSJgvVd",
+                "sig": "aA1Aaj0ra4mbhVDXSyKfAVJtRjN0W8jx3KC652CIsODkyzhQFkH2pNyVhhDF8yBOkpj+bggTlPWOy0WCAv7dDA=="
+              }
+            ]
+          },
+          "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+        }
+      },
+      "intent": "a statement of another predicate type",
+      "op": "replay.verify",
+      "profile": "verifier",
+      "reason": "replay.malformed",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.8",
+      "tier": "core",
+      "x_display": "{\"envelope\": {\"payload\": \"eyJfdHlwZSI6Imh0dHBzOi8vaW4tdG90by5pby9TdGF0ZW1lbnQvdjEiLCJwcmVkaWNhdGUiOnsiZmlkZWxpdHkiOnsibGV2ZWwiOiJleGFjdCJ9LCJtb2RlIjoiY2FjaGUiLCJyZXBsYXkiOnsiZXhwZWN0ZWRfc3RlcHMiOjMsImZvcmtfcG9pbnQiOm51bGwsInJlcGxheV9pZCI6InJ1bjpzaGEyNTY6YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiIsInJldXNlZF9zdGVwcyI6Mywic2Vjb25kX2lkIjpudWxsfSwicmVzdWx0Ij...",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "predicateType is not https://opentine.dev/attestation/replay/v1"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "replay.payload-type",
+      "input": {
+        "value": {
+          "envelope": {
+            "payload": "eyJfdHlwZSI6Imh0dHBzOi8vaW4tdG90by5pby9TdGF0ZW1lbnQvdjEiLCJwcmVkaWNhdGUiOnsiZmlkZWxpdHkiOnsibGV2ZWwiOiJleGFjdCJ9LCJtb2RlIjoiY2FjaGUiLCJyZXBsYXkiOnsiZXhwZWN0ZWRfc3RlcHMiOjMsImZvcmtfcG9pbnQiOm51bGwsInJlcGxheV9pZCI6InJ1bjpzaGEyNTY6YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiIsInJldXNlZF9zdGVwcyI6Mywic2Vjb25kX2lkIjpudWxsfSwicmVzdWx0Ijp7ImFjY291bnRpbmdfZHJpZnQiOltdLCJpZGVudGl0eV9vayI6dHJ1ZSwiaWdub3JlX2Nvc3RfZHJpZnQiOmZhbHNlLCJpbnRlZ3JpdHlfb2siOnRydWUsInJlcHJvZHVjZWQiOnRydWUsInNsaWNlX29rIjpudWxsLCJzdHJ1Y3R1cmFsX2RyaWZ0IjpbXX0sInZlcmlmaWVkX2F0IjoiMjAyNi0wMS0wMVQwMDowMDowMFoiLCJ2ZXJpZmllciI6eyJpZCI6Imh0dHBzOi8vb3BlbnRpbmUuZGV2L3RpbmUiLCJ2ZXJzaW9uIjoiMC41MC4wIn19LCJwcmVkaWNhdGVUeXBlIjoiaHR0cHM6Ly9vcGVudGluZS5kZXYvYXR0ZXN0YXRpb24vcmVwbGF5L3YxIiwic3ViamVjdCI6W3siZGlnZXN0Ijp7InNoYTI1NiI6ImFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWIifSwibmFtZSI6InJ1bjpzaGEyNTY6YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiJ9XX0=",
+            "payloadType": "text/plain",
+            "signatures": [
+              {
+                "keyid": "did:key:z6MkehRgf7yJbgaGfYsdoAsKdBPE3dj2CYhowQdcjqSJgvVd",
+                "sig": "vga1ID7/PAljv89aZcmV8gE5xKC4NeOOmUJy1RUkI70HFc/l+9aqEbFu9duTkJU93mehxlHriFT4zT0J9QAcBA=="
+              }
+            ]
+          },
+          "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+        }
+      },
+      "intent": "only in-toto payloads",
+      "op": "replay.verify",
+      "profile": "verifier",
+      "reason": "replay.malformed",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.8",
+      "tier": "core",
+      "x_display": "{\"envelope\": {\"payload\": \"eyJfdHlwZSI6Imh0dHBzOi8vaW4tdG90by5pby9TdGF0ZW1lbnQvdjEiLCJwcmVkaWNhdGUiOnsiZmlkZWxpdHkiOnsibGV2ZWwiOiJleGFjdCJ9LCJtb2RlIjoiY2FjaGUiLCJyZXBsYXkiOnsiZXhwZWN0ZWRfc3RlcHMiOjMsImZvcmtfcG9pbnQiOm51bGwsInJlcGxheV9pZCI6InJ1bjpzaGEyNTY6YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiIsInJldXNlZF9zdGVwcyI6Mywic2Vjb25kX2lkIjpudWxsfSwicmVzdWx0Ij...",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "payloadType must be application/vnd.in-toto+json"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "replay.rerun",
+      "input": {
+        "value": {
+          "envelope": {
+            "payload": "eyJfdHlwZSI6Imh0dHBzOi8vaW4tdG90by5pby9TdGF0ZW1lbnQvdjEiLCJwcmVkaWNhdGUiOnsiZmlkZWxpdHkiOnsibGV2ZWwiOiJleGFjdCJ9LCJtb2RlIjoicmVydW4iLCJyZXBsYXkiOnsiZXhwZWN0ZWRfc3RlcHMiOjMsImZvcmtfcG9pbnQiOm51bGwsInJlcGxheV9pZCI6InJ1bjpzaGEyNTY6YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiIsInJldXNlZF9zdGVwcyI6Mywic2Vjb25kX2lkIjpudWxsfSwicmVzdWx0Ijp7ImFjY291bnRpbmdfZHJpZnQiOltdLCJpZGVudGl0eV9vayI6dHJ1ZSwiaWdub3JlX2Nvc3RfZHJpZnQiOmZhbHNlLCJpbnRlZ3JpdHlfb2siOnRydWUsInJlcHJvZHVjZWQiOnRydWUsInNsaWNlX29rIjpudWxsLCJzdHJ1Y3R1cmFsX2RyaWZ0IjpbXX0sInZlcmlmaWVkX2F0IjoiMjAyNi0wMS0wMVQwMDowMDowMFoiLCJ2ZXJpZmllciI6eyJpZCI6Imh0dHBzOi8vb3BlbnRpbmUuZGV2L3RpbmUiLCJ2ZXJzaW9uIjoiMC41MC4wIn19LCJwcmVkaWNhdGVUeXBlIjoiaHR0cHM6Ly9vcGVudGluZS5kZXYvYXR0ZXN0YXRpb24vcmVwbGF5L3YxIiwic3ViamVjdCI6W3siZGlnZXN0Ijp7InNoYTI1NiI6ImFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWIifSwibmFtZSI6InJ1bjpzaGEyNTY6YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiJ9XX0=",
+            "payloadType": "application/vnd.in-toto+json",
+            "signatures": [
+              {
+                "keyid": "did:key:z6MkehRgf7yJbgaGfYsdoAsKdBPE3dj2CYhowQdcjqSJgvVd",
+                "sig": "wUJtxR4IxBG0JOEzsuYITkL5K4yzxWnxdX+1SMZ1DidwzsecXdwZxZO/0O+nb5Xxe1UdBy27hGF7MddqKKIeAA=="
+              }
+            ]
+          },
+          "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+        }
+      },
+      "intent": "the rerun mode",
+      "op": "replay.verify",
+      "output": {
+        "_type": "https://in-toto.io/Statement/v1",
+        "predicate": {
+          "fidelity": {
+            "level": "exact"
+          },
+          "mode": "rerun",
+          "replay": {
+            "expected_steps": 3,
+            "fork_point": null,
+            "replay_id": "run:sha256:abababababababababababababababababababababababababababababababab",
+            "reused_steps": 3,
+            "second_id": null
+          },
+          "result": {
+            "accounting_drift": [],
+            "identity_ok": true,
+            "ignore_cost_drift": false,
+            "integrity_ok": true,
+            "reproduced": true,
+            "slice_ok": null,
+            "structural_drift": []
+          },
+          "verified_at": "2026-01-01T00:00:00Z",
+          "verifier": {
+            "id": "https://opentine.dev/tine",
+            "version": "0.50.0"
+          }
+        },
+        "predicateType": "https://opentine.dev/attestation/replay/v1",
+        "subject": [
+          {
+            "digest": {
+              "sha256": "abababababababababababababababababababababababababababababababab"
+            },
+            "name": "run:sha256:abababababababababababababababababababababababababababababababab"
+          }
+        ]
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.8",
+      "tier": "core",
+      "x_display": "{\"envelope\": {\"payload\": \"eyJfdHlwZSI6Imh0dHBzOi8vaW4tdG90by5pby9TdGF0ZW1lbnQvdjEiLCJwcmVkaWNhdGUiOnsiZmlkZWxpdHkiOnsibGV2ZWwiOiJleGFjdCJ9LCJtb2RlIjoicmVydW4iLCJyZXBsYXkiOnsiZXhwZWN0ZWRfc3RlcHMiOjMsImZvcmtfcG9pbnQiOm51bGwsInJlcGxheV9pZCI6InJ1bjpzaGEyNTY6YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiIsInJldXNlZF9zdGVwcyI6Mywic2Vjb25kX2lkIjpudWxsfSwicmVzdWx0Ij...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "replay.signed",
+      "input": {
+        "value": {
+          "envelope": {
+            "payload": "eyJfdHlwZSI6Imh0dHBzOi8vaW4tdG90by5pby9TdGF0ZW1lbnQvdjEiLCJwcmVkaWNhdGUiOnsiZmlkZWxpdHkiOnsibGV2ZWwiOiJleGFjdCJ9LCJtb2RlIjoiY2FjaGUiLCJyZXBsYXkiOnsiZXhwZWN0ZWRfc3RlcHMiOjMsImZvcmtfcG9pbnQiOm51bGwsInJlcGxheV9pZCI6InJ1bjpzaGEyNTY6YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiIsInJldXNlZF9zdGVwcyI6Mywic2Vjb25kX2lkIjpudWxsfSwicmVzdWx0Ijp7ImFjY291bnRpbmdfZHJpZnQiOltdLCJpZGVudGl0eV9vayI6dHJ1ZSwiaWdub3JlX2Nvc3RfZHJpZnQiOmZhbHNlLCJpbnRlZ3JpdHlfb2siOnRydWUsInJlcHJvZHVjZWQiOnRydWUsInNsaWNlX29rIjpudWxsLCJzdHJ1Y3R1cmFsX2RyaWZ0IjpbXX0sInZlcmlmaWVkX2F0IjoiMjAyNi0wMS0wMVQwMDowMDowMFoiLCJ2ZXJpZmllciI6eyJpZCI6Imh0dHBzOi8vb3BlbnRpbmUuZGV2L3RpbmUiLCJ2ZXJzaW9uIjoiMC41MC4wIn19LCJwcmVkaWNhdGVUeXBlIjoiaHR0cHM6Ly9vcGVudGluZS5kZXYvYXR0ZXN0YXRpb24vcmVwbGF5L3YxIiwic3ViamVjdCI6W3siZGlnZXN0Ijp7InNoYTI1NiI6ImFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWIifSwibmFtZSI6InJ1bjpzaGEyNTY6YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiJ9XX0=",
+            "payloadType": "application/vnd.in-toto+json",
+            "signatures": [
+              {
+                "keyid": "did:key:z6MkehRgf7yJbgaGfYsdoAsKdBPE3dj2CYhowQdcjqSJgvVd",
+                "sig": "vga1ID7/PAljv89aZcmV8gE5xKC4NeOOmUJy1RUkI70HFc/l+9aqEbFu9duTkJU93mehxlHriFT4zT0J9QAcBA=="
+              }
+            ]
+          },
+          "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+        }
+      },
+      "intent": "a replay/v1 statement signed by the supplied key",
+      "op": "replay.verify",
+      "output": {
+        "_type": "https://in-toto.io/Statement/v1",
+        "predicate": {
+          "fidelity": {
+            "level": "exact"
+          },
+          "mode": "cache",
+          "replay": {
+            "expected_steps": 3,
+            "fork_point": null,
+            "replay_id": "run:sha256:abababababababababababababababababababababababababababababababab",
+            "reused_steps": 3,
+            "second_id": null
+          },
+          "result": {
+            "accounting_drift": [],
+            "identity_ok": true,
+            "ignore_cost_drift": false,
+            "integrity_ok": true,
+            "reproduced": true,
+            "slice_ok": null,
+            "structural_drift": []
+          },
+          "verified_at": "2026-01-01T00:00:00Z",
+          "verifier": {
+            "id": "https://opentine.dev/tine",
+            "version": "0.50.0"
+          }
+        },
+        "predicateType": "https://opentine.dev/attestation/replay/v1",
+        "subject": [
+          {
+            "digest": {
+              "sha256": "abababababababababababababababababababababababababababababababab"
+            },
+            "name": "run:sha256:abababababababababababababababababababababababababababababababab"
+          }
+        ]
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.8",
+      "tier": "core",
+      "x_display": "{\"envelope\": {\"payload\": \"eyJfdHlwZSI6Imh0dHBzOi8vaW4tdG90by5pby9TdGF0ZW1lbnQvdjEiLCJwcmVkaWNhdGUiOnsiZmlkZWxpdHkiOnsibGV2ZWwiOiJleGFjdCJ9LCJtb2RlIjoiY2FjaGUiLCJyZXBsYXkiOnsiZXhwZWN0ZWRfc3RlcHMiOjMsImZvcmtfcG9pbnQiOm51bGwsInJlcGxheV9pZCI6InJ1bjpzaGEyNTY6YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiIsInJldXNlZF9zdGVwcyI6Mywic2Vjb25kX2lkIjpudWxsfSwicmVzdWx0Ij...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "replay.tampered",
+      "input": {
+        "value": {
+          "envelope": {
+            "payload": "eyJfdHlwZSI6Imh0dHBzOi8vaW4tdG90by5pby9TdGF0ZW1lbnQvdjEiLCJwcmVkaWNhdGUiOnsiZmlkZWxpdHkiOnsibGV2ZWwiOiJleGFjdCJ9LCJtb2RlIjoiY2FjaGUiLCJyZXBsYXkiOnsiZXhwZWN0ZWRfc3RlcHMiOjMsImZvcmtfcG9pbnQiOm51bGwsInJlcGxheV9pZCI6InJ1bjpzaGEyNTY6YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiIsInJldXNlZF9zdGVwcyI6Mywic2Vjb25kX2lkIjpudWxsfSwicmVzdWx0Ijp7ImFjY291bnRpbmdfZHJpZnQiOltdLCJpZGVudGl0eV9vayI6dHJ1ZSwiaWdub3JlX2Nvc3RfZHJpZnQiOmZhbHNlLCJpbnRlZ3JpdHlfb2siOnRydWUsInJlcHJvZHVjZWQiOnRydWUsInNsaWNlX29rIjpudWxsLCJzdHJ1Y3R1cmFsX2RyaWZ0IjpbXX0sInZlcmlmaWVkX2F0IjoiMjAyNi0wMS0wMVQwMDowMDowMFoiLCJ2ZXJpZmllciI6eyJpZCI6Imh0dHBzOi8vb3BlbnRpbmUuZGV2L3RpbmUiLCJ2ZXJzaW9uIjoiMC41MC4wIn19LCJwcmVkaWNhdGVUeXBlIjoiaHR0cHM6Ly9vcGVudGluZS5kZXYvYXR0ZXN0YXRpb24vcmVwbGF5L3YxIiwic3ViamVjdCI6W119",
+            "payloadType": "application/vnd.in-toto+json",
+            "signatures": [
+              {
+                "keyid": "did:key:z6MkehRgf7yJbgaGfYsdoAsKdBPE3dj2CYhowQdcjqSJgvVd",
+                "sig": "vga1ID7/PAljv89aZcmV8gE5xKC4NeOOmUJy1RUkI70HFc/l+9aqEbFu9duTkJU93mehxlHriFT4zT0J9QAcBA=="
+              }
+            ]
+          },
+          "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+        }
+      },
+      "intent": "a payload changed after signing",
+      "op": "replay.verify",
+      "profile": "verifier",
+      "reason": "replay.bad-signature",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.8",
+      "tier": "core",
+      "x_display": "{\"envelope\": {\"payload\": \"eyJfdHlwZSI6Imh0dHBzOi8vaW4tdG90by5pby9TdGF0ZW1lbnQvdjEiLCJwcmVkaWNhdGUiOnsiZmlkZWxpdHkiOnsibGV2ZWwiOiJleGFjdCJ9LCJtb2RlIjoiY2FjaGUiLCJyZXBsYXkiOnsiZXhwZWN0ZWRfc3RlcHMiOjMsImZvcmtfcG9pbnQiOm51bGwsInJlcGxheV9pZCI6InJ1bjpzaGEyNTY6YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiIsInJldXNlZF9zdGVwcyI6Mywic2Vjb25kX2lkIjpudWxsfSwicmVzdWx0Ij...",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "no signature verifies over the payload"
+      }
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "reject",
+      "id": "replay.wrong-key",
+      "input": {
+        "value": {
+          "envelope": {
+            "payload": "eyJfdHlwZSI6Imh0dHBzOi8vaW4tdG90by5pby9TdGF0ZW1lbnQvdjEiLCJwcmVkaWNhdGUiOnsiZmlkZWxpdHkiOnsibGV2ZWwiOiJleGFjdCJ9LCJtb2RlIjoiY2FjaGUiLCJyZXBsYXkiOnsiZXhwZWN0ZWRfc3RlcHMiOjMsImZvcmtfcG9pbnQiOm51bGwsInJlcGxheV9pZCI6InJ1bjpzaGEyNTY6YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiIsInJldXNlZF9zdGVwcyI6Mywic2Vjb25kX2lkIjpudWxsfSwicmVzdWx0Ijp7ImFjY291bnRpbmdfZHJpZnQiOltdLCJpZGVudGl0eV9vayI6dHJ1ZSwiaWdub3JlX2Nvc3RfZHJpZnQiOmZhbHNlLCJpbnRlZ3JpdHlfb2siOnRydWUsInJlcHJvZHVjZWQiOnRydWUsInNsaWNlX29rIjpudWxsLCJzdHJ1Y3R1cmFsX2RyaWZ0IjpbXX0sInZlcmlmaWVkX2F0IjoiMjAyNi0wMS0wMVQwMDowMDowMFoiLCJ2ZXJpZmllciI6eyJpZCI6Imh0dHBzOi8vb3BlbnRpbmUuZGV2L3RpbmUiLCJ2ZXJzaW9uIjoiMC41MC4wIn19LCJwcmVkaWNhdGVUeXBlIjoiaHR0cHM6Ly9vcGVudGluZS5kZXYvYXR0ZXN0YXRpb24vcmVwbGF5L3YxIiwic3ViamVjdCI6W3siZGlnZXN0Ijp7InNoYTI1NiI6ImFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWIifSwibmFtZSI6InJ1bjpzaGEyNTY6YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiJ9XX0=",
+            "payloadType": "application/vnd.in-toto+json",
+            "signatures": [
+              {
+                "keyid": "did:key:z6MkehRgf7yJbgaGfYsdoAsKdBPE3dj2CYhowQdcjqSJgvVd",
+                "sig": "vga1ID7/PAljv89aZcmV8gE5xKC4NeOOmUJy1RUkI70HFc/l+9aqEbFu9duTkJU93mehxlHriFT4zT0J9QAcBA=="
+              }
+            ]
+          },
+          "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7"
+        }
+      },
+      "intent": "an envelope signed by another key",
+      "op": "replay.verify",
+      "profile": "verifier",
+      "reason": "replay.bad-signature",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.8",
+      "tier": "core",
+      "x_display": "{\"envelope\": {\"payload\": \"eyJfdHlwZSI6Imh0dHBzOi8vaW4tdG90by5pby9TdGF0ZW1lbnQvdjEiLCJwcmVkaWNhdGUiOnsiZmlkZWxpdHkiOnsibGV2ZWwiOiJleGFjdCJ9LCJtb2RlIjoiY2FjaGUiLCJyZXBsYXkiOnsiZXhwZWN0ZWRfc3RlcHMiOjMsImZvcmtfcG9pbnQiOm51bGwsInJlcGxheV9pZCI6InJ1bjpzaGEyNTY6YWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYmFiYWJhYiIsInJldXNlZF9zdGVwcyI6Mywic2Vjb25kX2lkIjpudWxsfSwicmVzdWx0Ij...",
+      "x_reference": {
+        "exception": "ValueError",
+        "message": "no signature verifies over the payload"
+      }
+    }
+  ],
+  "family": "replay",
+  "section": "8.8",
+  "suite_version": 1
+}

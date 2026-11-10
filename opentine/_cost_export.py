@@ -122,8 +122,13 @@ def load(path: str | Path) -> dict[str, Any]:
 
 def verify_statement(doc: dict[str, Any], run: Any, public_key: Any = None) -> dict[str, Any]:
     """``{"ok", "matches_run", "signature", "basis"}`` for *doc* against *run*."""
+    return verify_against(doc, statement(run), public_key)
+
+
+def verify_against(doc: dict[str, Any], expected: Any, public_key: Any = None) -> dict[str, Any]:
+    """:func:`verify_statement` against the statement a run yields (*expected*)."""
     body = {key: value for key, value in doc.items() if key != "signature"}
-    matches = body == statement(run)
+    matches = body == expected
     block = doc.get("signature")
     if not isinstance(block, dict):
         return {"ok": False, "matches_run": matches, "signature": "unsigned", "basis": None}

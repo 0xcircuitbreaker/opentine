@@ -68,6 +68,8 @@ def usage(repo, by: str = "kind") -> dict:
     empty = sum(1 for directory in dirs if not os.listdir(directory))
     loose = [oid for oid, value in sizes.items() if value[2]]
     pack_files, pack_bytes = _tree_bytes(root, "packs")
+    dict_files, dict_bytes = _tree_bytes(root, "dicts")  # what dictionary packs need (0.50)
+    pack_files, pack_bytes = pack_files + dict_files, pack_bytes + dict_bytes
     report: dict = {
         "loose": {
             **_group(repo, sizes, loose),

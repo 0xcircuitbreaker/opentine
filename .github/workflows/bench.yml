@@ -12,6 +12,8 @@ on:
         type: boolean
         required: false
         default: true
+  schedule:
+    - cron: "17 3 * * 1"  # weekly: criterion 6 is checked even when no PR touches storage
   pull_request:
     branches: [main]
     paths:
@@ -31,7 +33,7 @@ jobs:
   bench:
     name: Bench (ubuntu-24.04, single-threaded)
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
       UV_PYTHON: "3.13"
       BENCH_RUNS: ${{ inputs.runs || '40' }}
@@ -48,6 +50,15 @@ jobs:
         with:
           ref: main
           path: base
+          persist-credentials: false
+
+      # 1.0 criterion 6 compares against 0.40.0 on this same runner: the tag's
+      # opentine/ benched with this checkout's interpreter and bench script.
+      - name: Check out 0.40.0 for the criterion-6 baseline
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          ref: v0.40.0
+          path: base040
           persist-credentials: false
 
       - name: Install uv
@@ -80,7 +91,21 @@ jobs:
           if [ -f bench-main.json ]; then args+=(--compare bench-main.json); fi
           uv run --locked python scripts/bench/run_bench.py "${args[@]}"
 
+      - name: Bench 0.40.0 (same runner, same interpreter)
+        shell: bash
+        run: |
+          uv run --locked python scripts/bench/run_bench.py --runs "$BENCH_RUNS" \
+            --library base040 --out bench-040.json > /dev/null
+
+      - name: Gate on 0.40 (criterion 6, bytes within 5%)
+        shell: bash
+        run: |
+          set -o pipefail
+          uv run --locked python scripts/bench/gate.py --base bench-040.json \
+            --current bench.json | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: Summarize
+        if: always()
         shell: bash
         run: |
           uv run --locked python - <<'EOF' >> "$GITHUB_STEP_SUMMARY"
@@ -97,10 +122,12 @@ jobs:
           EOF
 
       - name: Upload report
+        if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: bench-report
           path: |
             bench.json
             bench-main.json
-          if-no-files-found: error
+            bench-040.json
+          if-no-files-found: warn

@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-tenant-1.schema.json",
+  "title": "tine tenant export|import --json",
+  "description": "`tine tenant export` (0.50): the refs bundled to `out`, refs whose closure the server lacks (`skipped_refs`), the Reviews, log entries and share links written. `tine tenant import`: the refs and Reviews installed `into` a repository or tenant.",
+  "type": "object",
+  "required": [
+    "command",
+    "schema",
+    "refs",
+    "reviews"
+  ],
+  "properties": {
+    "command": {
+      "enum": [
+        "tenant-export",
+        "tenant-import"
+      ]
+    },
+    "schema": {
+      "const": "tine-cli-tenant/1"
+    },
+    "refs": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[a-z]+:sha256:[0-9a-f]{64}$"
+      }
+    },
+    "reviews": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "skipped_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "tenant": {
+      "type": "string"
+    },
+    "out": {
+      "type": "string"
+    },
+    "into": {
+      "type": "string"
+    },
+    "log_entries": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "project_versions": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "shares": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "bundle": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

@@ -11,6 +11,8 @@ from opentine import _codec
 from opentine.kernel import KernelError, canonical_json
 from opentine.repository._config import read_config, storage_version
 from opentine.repository._gc_deltas import blob_deltas_now
+from opentine.repository._gc_dicts import dicts_now
+from opentine.repository._pack_dicts import trainer
 from opentine.repository._pack_v3 import build_pack_v3
 from opentine.repository._pack_v3_index import PACK3_MAGIC
 from opentine.repository._packs import (
@@ -72,8 +74,8 @@ def write_pack(
     whose descriptor is version 3 may hold one.
     """
     if version == 3:  # BLOB_DELTA only where the descriptor opted in (``_gc_deltas``)
-        deltas = blob_deltas_now(root)
-        digest, body, index = build_pack_v3(objects, codec, level, blob_deltas=deltas)
+        deltas, train = blob_deltas_now(root), trainer(root) if dicts_now(root) else None
+        digest, body, index = build_pack_v3(objects, codec, level, blob_deltas=deltas, train=train)
     else:
         digest, body, index = build_pack(objects, codec, level)
     atomic_bytes(internal_path(root, "packs", f"{digest}.tpk"), body)

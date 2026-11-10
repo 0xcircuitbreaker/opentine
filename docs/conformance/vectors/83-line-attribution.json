@@ -1,0 +1,539 @@
+{
+  "cases": [
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "line-attribution.edited-line",
+      "input": {
+        "value": {
+          "added": {
+            "src/f.py": {
+              "1": "def f():",
+              "2": "    return 2"
+            }
+          },
+          "public_key": null,
+          "record": {
+            "files": [
+              {
+                "path": "src/f.py",
+                "ranges": [
+                  {
+                    "content_hash": "sha256:8795b1c438f59538c9f384a0cd430eecc44422596db895a1d5c17f27da4ccf1c",
+                    "end_line": {
+                      "$i": "2"
+                    },
+                    "model": "m",
+                    "run": "run:sha256:abababababababababababababababababababababababababababababababab",
+                    "seq": {
+                      "$i": "1"
+                    },
+                    "start_line": {
+                      "$i": "1"
+                    },
+                    "step": "event:sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+                    "tool": "write"
+                  }
+                ]
+              }
+            ],
+            "lines_added": {
+              "$i": "2"
+            },
+            "lines_attributed": {
+              "$i": "2"
+            },
+            "schema": "opentine-line-attribution/1",
+            "signature": {
+              "alg": "ed25519",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signer": "tine",
+              "value": "bcd1817e3b6dc28e589e3ff8ebe22dfc7c79944c8e0134d91c0bce6265afbe215ea6100bb265c4d0da754eb620ceb89793e7f0a9323c5812e4e3c856da053202"
+            }
+          }
+        }
+      },
+      "intent": "a line changed since: the range is stale",
+      "op": "line-attribution.verify",
+      "output": {
+        "content_matches": false,
+        "signature": {
+          "basis": "embedded key sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c (trust on first use)",
+          "present": true,
+          "state": "verified-tofu",
+          "valid": true
+        },
+        "stale_ranges": [
+          "src/f.py:1-2"
+        ]
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.24",
+      "tier": "core",
+      "x_display": "{\"added\": {\"src/f.py\": {\"1\": \"def f():\", \"2\": \"    return 2\"}}, \"public_key\": null, \"record\": {\"files\": [{\"path\": \"src/f.py\", \"ranges\": [{\"content_hash\": \"sha256:8795b1c438f59538c9f384a0cd430eecc44422596db895a1d5c17f27da4ccf1c\", \"end_line\": {\"$i\": \"2\"}, \"model\": \"m\", \"run\": \"run:sha256:abababababababababababababababababababababababababababababababab\", \"seq\": {\"$i\": \"1\"}, \"start_line\": {\"$i\": \"1\"},...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "line-attribution.edited-record",
+      "input": {
+        "value": {
+          "added": {
+            "src/f.py": {
+              "1": "def f():",
+              "2": "    return 1"
+            }
+          },
+          "public_key": null,
+          "record": {
+            "files": [
+              {
+                "path": "src/f.py",
+                "ranges": [
+                  {
+                    "content_hash": "sha256:8795b1c438f59538c9f384a0cd430eecc44422596db895a1d5c17f27da4ccf1c",
+                    "end_line": {
+                      "$i": "2"
+                    },
+                    "model": "m",
+                    "run": "run:sha256:abababababababababababababababababababababababababababababababab",
+                    "seq": {
+                      "$i": "1"
+                    },
+                    "start_line": {
+                      "$i": "1"
+                    },
+                    "step": "event:sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+                    "tool": "write"
+                  }
+                ]
+              }
+            ],
+            "lines_added": {
+              "$i": "2"
+            },
+            "lines_attributed": {
+              "$i": "1"
+            },
+            "schema": "opentine-line-attribution/1",
+            "signature": {
+              "alg": "ed25519",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signer": "tine",
+              "value": "bcd1817e3b6dc28e589e3ff8ebe22dfc7c79944c8e0134d91c0bce6265afbe215ea6100bb265c4d0da754eb620ceb89793e7f0a9323c5812e4e3c856da053202"
+            }
+          }
+        }
+      },
+      "intent": "a record edited after signing",
+      "op": "line-attribution.verify",
+      "output": {
+        "content_matches": true,
+        "signature": {
+          "basis": "embedded key sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c (trust on first use)",
+          "present": true,
+          "state": "mismatch",
+          "valid": false
+        },
+        "stale_ranges": []
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.24",
+      "tier": "core",
+      "x_display": "{\"added\": {\"src/f.py\": {\"1\": \"def f():\", \"2\": \"    return 1\"}}, \"public_key\": null, \"record\": {\"files\": [{\"path\": \"src/f.py\", \"ranges\": [{\"content_hash\": \"sha256:8795b1c438f59538c9f384a0cd430eecc44422596db895a1d5c17f27da4ccf1c\", \"end_line\": {\"$i\": \"2\"}, \"model\": \"m\", \"run\": \"run:sha256:abababababababababababababababababababababababababababababababab\", \"seq\": {\"$i\": \"1\"}, \"start_line\": {\"$i\": \"1\"},...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "line-attribution.missing-line",
+      "input": {
+        "value": {
+          "added": {
+            "src/f.py": {
+              "1": "def f():"
+            }
+          },
+          "public_key": null,
+          "record": {
+            "files": [
+              {
+                "path": "src/f.py",
+                "ranges": [
+                  {
+                    "content_hash": "sha256:8795b1c438f59538c9f384a0cd430eecc44422596db895a1d5c17f27da4ccf1c",
+                    "end_line": {
+                      "$i": "2"
+                    },
+                    "model": "m",
+                    "run": "run:sha256:abababababababababababababababababababababababababababababababab",
+                    "seq": {
+                      "$i": "1"
+                    },
+                    "start_line": {
+                      "$i": "1"
+                    },
+                    "step": "event:sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+                    "tool": "write"
+                  }
+                ]
+              }
+            ],
+            "lines_added": {
+              "$i": "2"
+            },
+            "lines_attributed": {
+              "$i": "2"
+            },
+            "schema": "opentine-line-attribution/1",
+            "signature": {
+              "alg": "ed25519",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signer": "tine",
+              "value": "bcd1817e3b6dc28e589e3ff8ebe22dfc7c79944c8e0134d91c0bce6265afbe215ea6100bb265c4d0da754eb620ceb89793e7f0a9323c5812e4e3c856da053202"
+            }
+          }
+        }
+      },
+      "intent": "a line the commit no longer adds: the range is stale",
+      "op": "line-attribution.verify",
+      "output": {
+        "content_matches": false,
+        "signature": {
+          "basis": "embedded key sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c (trust on first use)",
+          "present": true,
+          "state": "verified-tofu",
+          "valid": true
+        },
+        "stale_ranges": [
+          "src/f.py:1-2"
+        ]
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.24",
+      "tier": "core",
+      "x_display": "{\"added\": {\"src/f.py\": {\"1\": \"def f():\"}}, \"public_key\": null, \"record\": {\"files\": [{\"path\": \"src/f.py\", \"ranges\": [{\"content_hash\": \"sha256:8795b1c438f59538c9f384a0cd430eecc44422596db895a1d5c17f27da4ccf1c\", \"end_line\": {\"$i\": \"2\"}, \"model\": \"m\", \"run\": \"run:sha256:abababababababababababababababababababababababababababababababab\", \"seq\": {\"$i\": \"1\"}, \"start_line\": {\"$i\": \"1\"}, \"step\": \"event:sha25...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "line-attribution.pinned",
+      "input": {
+        "value": {
+          "added": {
+            "src/f.py": {
+              "1": "def f():",
+              "2": "    return 1"
+            }
+          },
+          "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+          "record": {
+            "files": [
+              {
+                "path": "src/f.py",
+                "ranges": [
+                  {
+                    "content_hash": "sha256:8795b1c438f59538c9f384a0cd430eecc44422596db895a1d5c17f27da4ccf1c",
+                    "end_line": {
+                      "$i": "2"
+                    },
+                    "model": "m",
+                    "run": "run:sha256:abababababababababababababababababababababababababababababababab",
+                    "seq": {
+                      "$i": "1"
+                    },
+                    "start_line": {
+                      "$i": "1"
+                    },
+                    "step": "event:sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+                    "tool": "write"
+                  }
+                ]
+              }
+            ],
+            "lines_added": {
+              "$i": "2"
+            },
+            "lines_attributed": {
+              "$i": "2"
+            },
+            "schema": "opentine-line-attribution/1",
+            "signature": {
+              "alg": "ed25519",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signer": "tine",
+              "value": "bcd1817e3b6dc28e589e3ff8ebe22dfc7c79944c8e0134d91c0bce6265afbe215ea6100bb265c4d0da754eb620ceb89793e7f0a9323c5812e4e3c856da053202"
+            }
+          }
+        }
+      },
+      "intent": "under the supplied key",
+      "op": "line-attribution.verify",
+      "output": {
+        "content_matches": true,
+        "signature": {
+          "basis": "supplied key sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+          "present": true,
+          "state": "verified",
+          "valid": true
+        },
+        "stale_ranges": []
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.24",
+      "tier": "core",
+      "x_display": "{\"added\": {\"src/f.py\": {\"1\": \"def f():\", \"2\": \"    return 1\"}}, \"public_key\": \"03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8\", \"record\": {\"files\": [{\"path\": \"src/f.py\", \"ranges\": [{\"content_hash\": \"sha256:8795b1c438f59538c9f384a0cd430eecc44422596db895a1d5c17f27da4ccf1c\", \"end_line\": {\"$i\": \"2\"}, \"model\": \"m\", \"run\": \"run:sha256:abababababababababababababababababababababababababa...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "line-attribution.tofu",
+      "input": {
+        "value": {
+          "added": {
+            "src/f.py": {
+              "1": "def f():",
+              "2": "    return 1"
+            }
+          },
+          "public_key": null,
+          "record": {
+            "files": [
+              {
+                "path": "src/f.py",
+                "ranges": [
+                  {
+                    "content_hash": "sha256:8795b1c438f59538c9f384a0cd430eecc44422596db895a1d5c17f27da4ccf1c",
+                    "end_line": {
+                      "$i": "2"
+                    },
+                    "model": "m",
+                    "run": "run:sha256:abababababababababababababababababababababababababababababababab",
+                    "seq": {
+                      "$i": "1"
+                    },
+                    "start_line": {
+                      "$i": "1"
+                    },
+                    "step": "event:sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+                    "tool": "write"
+                  }
+                ]
+              }
+            ],
+            "lines_added": {
+              "$i": "2"
+            },
+            "lines_attributed": {
+              "$i": "2"
+            },
+            "schema": "opentine-line-attribution/1",
+            "signature": {
+              "alg": "ed25519",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signer": "tine",
+              "value": "bcd1817e3b6dc28e589e3ff8ebe22dfc7c79944c8e0134d91c0bce6265afbe215ea6100bb265c4d0da754eb620ceb89793e7f0a9323c5812e4e3c856da053202"
+            }
+          }
+        }
+      },
+      "intent": "a signed record whose ranges match the commit",
+      "op": "line-attribution.verify",
+      "output": {
+        "content_matches": true,
+        "signature": {
+          "basis": "embedded key sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c (trust on first use)",
+          "present": true,
+          "state": "verified-tofu",
+          "valid": true
+        },
+        "stale_ranges": []
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.24",
+      "tier": "core",
+      "x_display": "{\"added\": {\"src/f.py\": {\"1\": \"def f():\", \"2\": \"    return 1\"}}, \"public_key\": null, \"record\": {\"files\": [{\"path\": \"src/f.py\", \"ranges\": [{\"content_hash\": \"sha256:8795b1c438f59538c9f384a0cd430eecc44422596db895a1d5c17f27da4ccf1c\", \"end_line\": {\"$i\": \"2\"}, \"model\": \"m\", \"run\": \"run:sha256:abababababababababababababababababababababababababababababababab\", \"seq\": {\"$i\": \"1\"}, \"start_line\": {\"$i\": \"1\"},...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "line-attribution.unsigned",
+      "input": {
+        "value": {
+          "added": {
+            "src/f.py": {
+              "1": "def f():",
+              "2": "    return 1"
+            }
+          },
+          "public_key": null,
+          "record": {
+            "files": [
+              {
+                "path": "src/f.py",
+                "ranges": [
+                  {
+                    "content_hash": "sha256:8795b1c438f59538c9f384a0cd430eecc44422596db895a1d5c17f27da4ccf1c",
+                    "end_line": {
+                      "$i": "2"
+                    },
+                    "model": "m",
+                    "run": "run:sha256:abababababababababababababababababababababababababababababababab",
+                    "seq": {
+                      "$i": "1"
+                    },
+                    "start_line": {
+                      "$i": "1"
+                    },
+                    "step": "event:sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+                    "tool": "write"
+                  }
+                ]
+              }
+            ],
+            "lines_added": {
+              "$i": "2"
+            },
+            "lines_attributed": {
+              "$i": "2"
+            },
+            "schema": "opentine-line-attribution/1"
+          }
+        }
+      },
+      "intent": "an unsigned record reports its ranges only",
+      "op": "line-attribution.verify",
+      "output": {
+        "content_matches": true,
+        "signature": {
+          "present": false
+        },
+        "stale_ranges": []
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.24",
+      "tier": "core",
+      "x_display": "{\"added\": {\"src/f.py\": {\"1\": \"def f():\", \"2\": \"    return 1\"}}, \"public_key\": null, \"record\": {\"files\": [{\"path\": \"src/f.py\", \"ranges\": [{\"content_hash\": \"sha256:8795b1c438f59538c9f384a0cd430eecc44422596db895a1d5c17f27da4ccf1c\", \"end_line\": {\"$i\": \"2\"}, \"model\": \"m\", \"run\": \"run:sha256:abababababababababababababababababababababababababababababababab\", \"seq\": {\"$i\": \"1\"}, \"start_line\": {\"$i\": \"1\"},...",
+      "x_reference": null
+    },
+    {
+      "checklist": [
+        8
+      ],
+      "expect": "accept",
+      "id": "line-attribution.wrong-key",
+      "input": {
+        "value": {
+          "added": {
+            "src/f.py": {
+              "1": "def f():",
+              "2": "    return 1"
+            }
+          },
+          "public_key": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+          "record": {
+            "files": [
+              {
+                "path": "src/f.py",
+                "ranges": [
+                  {
+                    "content_hash": "sha256:8795b1c438f59538c9f384a0cd430eecc44422596db895a1d5c17f27da4ccf1c",
+                    "end_line": {
+                      "$i": "2"
+                    },
+                    "model": "m",
+                    "run": "run:sha256:abababababababababababababababababababababababababababababababab",
+                    "seq": {
+                      "$i": "1"
+                    },
+                    "start_line": {
+                      "$i": "1"
+                    },
+                    "step": "event:sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+                    "tool": "write"
+                  }
+                ]
+              }
+            ],
+            "lines_added": {
+              "$i": "2"
+            },
+            "lines_attributed": {
+              "$i": "2"
+            },
+            "schema": "opentine-line-attribution/1",
+            "signature": {
+              "alg": "ed25519",
+              "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+              "scheme": "tine-sig/3",
+              "signer": "tine",
+              "value": "bcd1817e3b6dc28e589e3ff8ebe22dfc7c79944c8e0134d91c0bce6265afbe215ea6100bb265c4d0da754eb620ceb89793e7f0a9323c5812e4e3c856da053202"
+            }
+          }
+        }
+      },
+      "intent": "under another key the signature is not valid",
+      "op": "line-attribution.verify",
+      "output": {
+        "content_matches": true,
+        "signature": {
+          "basis": "supplied key sha256:56475aa75463474c0285df5dbf2bcab73da651358839e9b77481b2eab107708c",
+          "present": true,
+          "state": "mismatch",
+          "valid": false
+        },
+        "stale_ranges": []
+      },
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "section": "8.24",
+      "tier": "core",
+      "x_display": "{\"added\": {\"src/f.py\": {\"1\": \"def f():\", \"2\": \"    return 1\"}}, \"public_key\": \"29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7\", \"record\": {\"files\": [{\"path\": \"src/f.py\", \"ranges\": [{\"content_hash\": \"sha256:8795b1c438f59538c9f384a0cd430eecc44422596db895a1d5c17f27da4ccf1c\", \"end_line\": {\"$i\": \"2\"}, \"model\": \"m\", \"run\": \"run:sha256:abababababababababababababababababababababababababa...",
+      "x_reference": null
+    }
+  ],
+  "family": "line-attribution",
+  "section": "8.24",
+  "suite_version": 1
+}

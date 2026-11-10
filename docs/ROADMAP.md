@@ -52,6 +52,8 @@ These come from `docs/audit-roadmap:docs/ROADMAP.md`.
    - Hardware-pinned performance gates (GitHub `ubuntu-24.04` 4-vCPU runners, single-threaded unless stated). Gates are *relative*: a new path is compared against the old path on the same runner.
 6. **Deletion is hold-aware** from 0.35 onward.
 
+These invariants are published as the deprecation policy in [DEPRECATION.md](DEPRECATION.md) (0.50, criterion 7).
+
 ---
 
 ## 3. Competitor landscape (subset surveyed; cells left blank where the research shows nothing)
@@ -299,6 +301,9 @@ The earlier draft built three separate append-only logs (op log, custody, tlog).
 | 0.47.0 | Delivered (§10, §11 projects second half) |
 | 0.48.0 | Delivered (§10; counsel sign-off and the 72 h fuzz run outstanding) |
 | 0.49.0 | Delivered (operator kit and test paths; the public witness, independent operators and live MinIO/AWS/Azure runs outstanding) |
+| 0.50.0 | Delivered (freeze candidate; criterion 7 met; the audit engagement, 30 nightly green days, green CI runs of the parity, peer-compat, audit-kit and bench jobs, counsel sign-off and the 72 h fuzz outstanding) |
+
+**Status:** 0.50.0 is the end of this plan. The next plan, toward 1.0, is pending.
 
 ### 0.35.0: Security hardening (about 5 weeks)
 
@@ -760,11 +765,15 @@ Rules for this stretch:
 
 - **Format freeze review.** Python, TS and pyz parity on the full pinned vector set (criterion 2). Deprecation policy published (criterion 7). Third-party security audit started, covering the CLI and the hosted service (criterion 1).
 - **RFC 4998 evidence records** with PQ re-timestamping (`attest --renew`) and embedded CRL/OCSP, moved from the 1.0 track. *Justification: long-term evidence must be fixed before the freeze, or 1.0 freezes formats that cannot carry it.*
-- **Per-kind dictionaries (P3).** Compression bench within 5% of 0.40 (criterion 6).
+- **Per-kind dictionaries (P3).** Compression bench within 5% of 0.40 (criterion 6). *Status: dictionaries ship opt-in (`tine gc --dictionaries`, codec 3 in local v3 packs only; the TS verifier refuses it by name). The bench job gates stored bytes against 0.40.0 on the same runner; speed is reported, not gated. Numbers: `docs/bench/0.50-dictionaries.md`.*
 - **Nightly stress** runs green for 30 days (criterion 5). The 0.34 peer compatibility job stays green (criterion 3).
 - **"Leave the hosted service" test:** export, then `tine serve` import, then a byte-identical verify.
 
+*Evidence-records status (0.50):* embedded CRL/OCSP is done inside the existing token format (SPEC §8.6, `timestamp.revoked`, `timestamp.revocation-invalid`; checked offline, can only fail a token). RFC 4998 evidence records and `attest --renew` are **deferred past the freeze, to a later additive format**: a renewal token must be bound to the previous archive timestamp, and `tine-timestamp-sidecar/1` has a closed `bound` set (`sha256:`, `run:sha256:`, `sig:sha256:`) that every 0.31–0.49 verifier reports as `timestamp.bound-mismatch` otherwise. Adding a bound form or an `EvidenceRecord` file is a new wire format, which the 0.48 cutoff forbids. Until then a run keeps up to 16 root-bound tokens, so a fresh token (SHA-384/512 imprint) can be added over time, but it is not a hash-tree renewal and does not survive a break of the SHA-256 content digest.
+
 **Rationale:** 0.50 exists to meet the 1.0 criteria, not to add features.
+
+**Progress (format freeze review):** Python, TS and the pyz agree on every case of the pinned suite each answers (61 families, 1163 cases; the pyz answers 990, the TS verifier 1149), checked case by case by `scripts/check_parity.py` and the CI `parity` job; the freeze-audit allow-lists in `tests/freeze_inventory.py` are empty and the six kinds 0.48 deferred have families 79-84. The pyz still excludes, by design, the repository storage families (it never opens a repository). The frozen list and the review result are [`docs/FREEZE.md`](FREEZE.md). Criterion 2 is not yet declared met: the storage-family exclusion needs the release owner's sign-off, and the `parity` job has not yet run green in CI. The other 0.50 items are open.
 
 **Acceptance:** every 1.0 criterion except the completion of the audit is met. The leave-the-service test passes on every release from here on.
 

@@ -1,7 +1,7 @@
 # The OpenTine Format Specification
 
-**Spec version:** 0.49.0 (draft until opentine 0.49.0 is tagged). **Previous
-version:** 0.48.0. Changes between versions are listed in
+**Spec version:** 0.50.0 (draft until opentine 0.50.0 is tagged). **Previous
+version:** 0.49.0. Changes between versions are listed in
 [Spec changelog](#spec-changelog); section anchors are stable (see
 [Stable anchors](#stable-anchors)).
 
@@ -24,8 +24,8 @@ documented rather than smoothed over; those places are marked **⚠ Hazard**.
 
 ## How to cite
 
-> *The OpenTine Format Specification*, opentine `docs/SPEC.md`, version 0.49.0.
-> https://github.com/0xcircuitbreaker/opentine/blob/v0.49.0/docs/SPEC.md
+> *The OpenTine Format Specification*, opentine `docs/SPEC.md`, version 0.50.0.
+> https://github.com/0xcircuitbreaker/opentine/blob/v0.50.0/docs/SPEC.md
 
 Cite a version, not `main`: the tagged URL is immutable, and a citation of a
 section should add its anchor (for example `#s-4.8` for `tine-actions/1`). The
@@ -47,7 +47,8 @@ the anchor set.
 Companion documents: [TINE_FORMAT.md](TINE_FORMAT.md) (format *policy* and the
 v2 delta history), [REPOSITORY.md](REPOSITORY.md) (CLI/remote protocol),
 [SECURITY_MODEL.md](SECURITY_MODEL.md) (what a signature does and does not
-prove).
+prove), [DEPRECATION.md](DEPRECATION.md) (how a format, flag, exit code,
+`--json` shape or MUST in this document may be deprecated: readers never are).
 
 ## Conformance language
 
@@ -788,7 +789,7 @@ descriptor carrying both `format` and `objects`, `objects` without
 `min_reader`, or `objects` other than the integer 4 (naming the newer format
 when it is larger). Independently of `objects`, a reader MUST refuse a
 `min_reader` that is not `MAJOR.MINOR.PATCH` or that names a release newer than
-the format it implements (`_config.READER_VERSION`, 0.40.0 in this build),
+the format it implements (`_config.READER_VERSION`, 0.50.0 in this build),
 naming the version needed. Unless the legacy writer is chosen, the first
 object write into an object-format-3 repository rewrites the descriptor this
 way **before** the object is stored (`_config.mark_v4`), the order `tine gc
@@ -831,7 +832,9 @@ with `TINEZ1\0` has this layout:
 TINEZ1\0 ‖ codec (1 byte) ‖ uvarint(canonical length) ‖ frame
 ```
 
-- **Codec byte:** 0 = raw, 1 = zlib (RFC 1950), 2 = zstd (RFC 8878, one frame).
+- **Codec byte:** 0 = raw, 1 = zlib (RFC 1950), 2 = zstd (RFC 8878, one frame),
+  3 = zstd with a trained dictionary (since 0.50, only in the blocks of a local
+  v3 pack: see "Pack v3", §2.8), 4 = xz.
 - **Length:** a minimal LEB128 varint of at most 10 bytes.
 - **Anything else:** a stored body that does not begin with `TINEZ1\0` is the
   canonical bytes themselves.
@@ -1170,6 +1173,23 @@ tells the formats apart by magic; a version-3 repository may hold both.
   16 MiB (`MAX_BLOCK_BYTES`); a single object may have a block of its own up to
   the object limit. Writers order blobs and events by recording order and run
   snapshots by session and length, and default to 16 MiB blocks.
+- **Dictionaries (0.50, P3).** A block may be a codec-3 body, whose frame is
+  `sha256(dictionary)[32] ‖ zstd frame` compressed with that zstd dictionary.
+  The dictionary is kept outside the pack, content-addressed, as
+  `dicts/<lowercase hex sha256>.zdict` (at most 1 MiB). A reader MUST refuse
+  the block when that file is missing, larger than 1 MiB or does not hash to
+  the named digest, and otherwise applies every rule of §2.3 to the body.
+  Writers train one dictionary per object kind on the stored forms they pack,
+  and write codec 3 only in a repository whose descriptor carries
+  `"pack_dicts": "zstd"` with a `min_reader` of at least `0.50.0` (`tine gc
+  --dictionaries`; `tine gc --no-dictionaries` rewrites every pack without
+  them before removing both), so an older reader refuses the repository at
+  open. `dicts/kinds.json` is a writer's hint (the latest dictionary per kind)
+  that readers ignore. gc deletes a dictionary no pack names unless it is the
+  latest for its kind; `tine purge` rewrites every pack that names one and
+  deletes the old dictionaries, which may hold text of the blob. Dictionaries
+  are a stored form: every object is still rebuilt and checked against its id,
+  and transfer formats (wire packs, bundles, `.tine`) never carry codec 3.
 - **`.tidx`:** binary, big-endian:
 
   ```text
@@ -2780,6 +2800,20 @@ answered by the reference, the TS verifier and the pyz (through
 `tests/test_048_oms.py`). As of 0.48.0 the cutoff is in force: 0.49.0 and
 0.50.0 add no object kind and no wire format.
 
+**The 0.50 freeze review** closed those lists without adding a kind or a
+format. The pyz now answers every reader and verifier case of every family
+outside the repository storage set case by case (`.tine` parsing, the v2
+integrity digest and verdict, every scheme's signed message and the full
+seven-field signature verdict, stored-object loading and links, and every
+record family that was pinned only by a named test), and the six kinds above
+have families 79-84 (§8.7, §8.4 and §8.9, §8.8, Part 11, §8.24, §8.25). The
+storage set that remains outside the pyz is refs, reflogs, shallow files, the
+repository layout and config, and packs (families 16, 22, 24, 26-29, 99):
+repository internals a verifier of exported files never opens; the TS
+verifier answers them. `scripts/check_parity.py` runs the reference, the TS
+verifier and the built pyz on every case and fails on any disagreement. The
+frozen list and the review result are `docs/FREEZE.md`.
+
 ---
 
 <a id="part-6"></a>
@@ -2944,7 +2978,7 @@ Reason codes are dotted `area.detail` strings matching
 | claims | `claims.match`, `claims.absent`, `claims.no-run`, `claims.no-tool-step`, `claims.output-mismatch`, `claims.digest-mismatch`, `claims.unclaimed-step`, `claims.unreadable`, `claims.unrecomputable` |
 | locate | `locate.digest-field`, `locate.digest-malformed`, `locate.graph-meters-changed`, `locate.step-id-mismatch`, `locate.step-key-mismatch`, `locate.manifest-entry`, `locate.action-digest-mismatch`, `locate.signature`, `locate.nothing-to-locate`, `locate.unlocalisable`, `locate.unreadable` |
 | provenance (§9.9) | `provenance.none` (no `upgraded_from`, or not v4), `provenance.recorded` (the record is shown as a claim, `unavailable-offline`), `provenance.source-match`, `provenance.source-mismatch` (with `--source PATH`) |
-| timestamp (§8.6) | `timestamp.verified`, `timestamp.absent`, `timestamp.integrity-failed`, `timestamp.malformed`, `timestamp.bound-mismatch`, `timestamp.imprint-mismatch`, `timestamp.bad-signature`, `timestamp.unsupported-algorithm`, `timestamp.missing-eku`, `timestamp.outside-validity`, `timestamp.no-roots` (`unavailable-offline`), `timestamp.untrusted-root`, `timestamp.roots-unreadable` |
+| timestamp (§8.6) | `timestamp.verified`, `timestamp.absent`, `timestamp.integrity-failed`, `timestamp.malformed`, `timestamp.bound-mismatch`, `timestamp.imprint-mismatch`, `timestamp.bad-signature`, `timestamp.unsupported-algorithm`, `timestamp.missing-eku`, `timestamp.outside-validity`, `timestamp.no-roots` (`unavailable-offline`), `timestamp.untrusted-root`, `timestamp.roots-unreadable`, `timestamp.revoked`, `timestamp.revocation-invalid` (0.50) |
 | delegation (§4.10) | `delegation.verified`, `delegation.unsigned`, and the chain codes of §4.10 |
 | offline | `offline.network-refused` — a check tried to open a connection and was refused; the run fails |
 
@@ -3097,9 +3131,23 @@ serial, or subject key identifier, among the token's certificates) has the
 is `timestamp.no-roots`, `unavailable-offline`). A timestamp check is never
 required and never establishes authorship: it shows *when* the digest
 existed, not *who* recorded it. With no token and no `--tsa-roots` the report
-is unchanged from 0.30. Not checked: revocation (no CRL or OCSP offline),
-the `nonce`, `accuracy`, the TSA `tsa` name field, and RSASSA-PSS signatures
+is unchanged from 0.30. Not checked: revocation status that the token does not
+carry (opentine never fetches a CRL or asks an OCSP responder), the `nonce`,
+`accuracy`, the TSA `tsa` name field, and RSASSA-PSS signatures
 (reported `timestamp.unsupported-algorithm`).
+
+**Embedded revocation data (0.50).** The token format is unchanged: RFC 5652
+`SignedData.crls` may already carry CRLs and RFC 5940
+`OtherRevocationInfoFormat` entries; those with format `id-ri-ocsp-response`
+(1.3.6.1.5.5.7.16.2) hold an OCSP response, and other formats are ignored.
+After the chain check, each one must parse and be signed by a CA on the TSA's
+path (for OCSP, that CA or a responder it issued with `id-kp-OCSPSigning`),
+else `timestamp.revocation-invalid`. A certificate on the path listed as
+revoked at or before `genTime`, or for `keyCompromise` or `cACompromise` at any
+time, fails the token with `timestamp.revoked`. The field lies outside the TSA
+signature and can be stripped, so this data can only fail a token, never
+strengthen one; its absence is not a finding, and `thisUpdate`/`nextUpdate`
+are not judged.
 
 **Signature binding (0.39, X20).** `bound` may instead be
 `sig:sha256:<hex>`: the SHA-256 of the canonical JSON (§0.2) of one signature
@@ -3395,6 +3443,16 @@ what it fetches by recomputing every oid (2.8, and the TS SDK's
 `@opentine/sdk/verified`). `tests/api_conformance/` is the black-box suite an
 implementation runs against its base URL. No byte format changed.
 
+Leaving a server (0.50) uses these routes only, and writes formats defined
+elsewhere in this document: a bundle (`opentine-bundle/1`, with its optional
+`tombstones` and `signatures` keys) of every tenant ref, each Review's
+`opentine-review-bundle-1`, each `opentine.project` version, and the
+`log/entries` and `transparency/checkpoint` responses as served. Importing
+replays them through the same routes (`packs`, `refs`, `tombstones`,
+`reviews`, `project`); a server's transparency log and share tokens are its
+own and are not moved. `docs/LEAVING.md` is the walkthrough. No byte format
+changed.
+
 <a id="s-8.16"></a>
 ## 8.16 The agent hook protocol, `opentine-hook/1` (0.46)
 
@@ -3644,6 +3702,37 @@ A witness of the hosted trust network serves the C2SP tlog-witness protocol
   are distinct; a checkpoint then needs cosignatures from `N` distinct listed
   witnesses, any listed key of a witness counting once. No byte format
   changes.
+
+<a id="s-8.24"></a>
+## 8.24 Line attribution: `opentine-line-attribution/1` (0.42)
+
+`tine git attribute COMMIT` stores one line in the commit's `refs/notes/tine`
+note: `Tine-Attribution: ` followed by the record as JSON with sorted keys and
+no whitespace. The record is `{schema, files, lines_added, lines_attributed[,
+signature]}`; `files` is a list of `{path, ranges}`, each range `{start_line,
+end_line, content_hash, run, step, seq, tool, model}` with 1-based inclusive
+line numbers in the commit's new file and `content_hash` =
+`"sha256:" + hex(SHA-256(UTF-8 of the covered lines joined by "\n"))`. The
+record never names its commit, so the note stays true when git copies it to a
+rewritten commit. A verifier recomputes each range's hash from the lines the
+commit adds; a range whose lines are missing or differ is stale (reported as
+`path:start-end`). The optional `signature` is an Ed25519 `tine-sig/3` block
+over `opentine.line-attribution.v1:` + JCS of `{"body": <the record without
+signature>, "header": <the five-key header>}`; without a trusted key the
+embedded key is used and the verdict is `verified-tofu`. Vectors: family 83.
+
+<a id="s-8.25"></a>
+## 8.25 Cost statements: `tine-cost-statement/1` (0.44)
+
+`tine cost RUN --statement PATH` writes `{schema, aggregate[, signature]}`
+as canonical JSON; `aggregate` is `{run_id, total_cost, total_tokens,
+input_tokens, output_tokens, by_model, by_kind, currency}` computed from the
+run. A verifier recomputes the statement from the run (`matches_run`, Python
+`==` over the parsed values) and checks the optional Ed25519 `tine-sig/3`
+block over `opentine.cost-statement.v1:` + JCS of `{"body": <the statement
+without signature>, "header": ...}`. `ok` needs both; an unsigned statement
+is never `ok`. Vectors: family 84 (the run's statement is given as
+`expected`).
 
 <a id="part-9"></a>
 # Part 9 — Format v4 (0.26.0)
@@ -4196,6 +4285,7 @@ Versions are the opentine release that changed this document.
 
 | Spec version | Change |
 |---|---|
+| 0.50.0 | 2.3, codec byte 3 (zstd with a dictionary, local v3 packs only); 2.8, pack v3 dictionaries (`dicts/<sha256>.zdict`, `pack_dicts`, gc keeps the latest dictionary per kind, purge drops the old dictionaries), `min_reader` 0.50.0 and `_config.READER_VERSION` 0.50.0; 5.5, the 0.50 freeze review (Python, TS and pyz parity, families 79-84); 8.6, CRLs and OCSP responses embedded in an RFC 3161 token and the `timestamp.revoked` and `timestamp.revocation-invalid` codes; 8.24 `opentine-line-attribution/1` and 8.25 `tine-cost-statement/1` documented; Part 12 adds `tine-cli-tenant-1`. RFC 4998 evidence records are deferred past the freeze. No object kind or wire format was added. |
 | 0.49.0 | 8.4.1, the audit kit: its layout (`kit.json` as `tine-cli-audit-kit-build-1`, `tine-verify.pyz`, the offline `verify.html`, the evidence folder, Run Crates, the `replay/v1` attestation, the pinned witness set, the report, `ae/` and `SHA256SUMS`) and what a checker must refuse (changed or unlisted files, links and special files, run entries outside `runs/`, unsafe, linked, duplicate or oversized zip entries), and a SHOULD to check run signatures against a key from outside the kit; 8.23, the `opentine-witness-network/1` registry, a pinned configuration checked against the majority-of-three policy, not a kind; Part 12 adds `opentine-witness-network-1`, `tine-cli-audit-kit-build-1`, `tine-cli-audit-kit-verify-1`, `tine-cli-publish-1`, `tine-cli-alert-1` and `tine-cli-witness-doctor-1`. FastCDC chunk manifests in the object store are a stored form, and alerts reuse `tine-event/1` and `tine-webhook/1`. No object kind or wire format was added and no existing byte format changed. |
 | 0.48.0 | 4.24, `opentine.forge-check`: the unsigned record `tine forge publish` shows on GitHub, GitLab, Forgejo and Entire (AI share in parts per million, verify state, the blame overlay, the digest and URL of an offline-verifiable bundle) and the four `forge-check.*` reason codes; Part 12 adds `opentine-forge-check-1` and `tine-cli-forge-1`; 4.25, `opentine.review-finding`: one reviewer's signed finding on a Review, as `tine review run` writes it for each finding a reviewer harness of the fleet reports (review and finding ids, severity, a repository-relative path and line, the message, the reviewer and its run), and the five `review-finding.*` reason codes; Part 12 adds `opentine-review-finding-1` and `tine-graph-1` (`tine code-graph`, `tine-graph/1`); 12.5, compliance profiles (`opentine-compliance-profile-1`, draft, pending counsel review), the evidence facts, `tine-cli-compliance-check-1` and `tine-cli-compliance-list-1`, and the Provenance Run Crate export; 4.26, OMS model signatures (OpenSSF Model Signing v1.0, key-based) as an assurance factor: the bundle, the pinned-key check, the eight `oms.*` reason codes and the `factors` list of `tine-assurance-1`. OTLP protobuf logs and OTLP/gRPC ingest are transports, not formats; 4.10.1, delegation × revocation: a chain is refused (`delegation.revoked`) when any of its keys was revoked at or before the verified signing time, or at all without one; 4.11, `fleet.*` reason codes and the first fleet vectors; 5.5, the freeze cutoff and its audit; 8.12.1, an RFC 3161 token bound to a Rekor v2 keyless signature gives the verified signing time (`keyless.*` codes). This is the last object kind added before 1.0. No existing byte format changed. |
 | 0.47.0 | 4.19, run merge and pick (deterministic merge events and runs, three-way tree merge, conflicts), `opentine.merge` (merge/v1) signed merge attestations, `opentine.merge-approval`, the `coord/merge-queue/` record with fenced landing and its gates; Part 12 adds `opentine-merge-1`, `opentine-merge-approval-1`, `opentine-merge-gates-1`, `tine-cli-merge-1`, `tine-cli-pick-1` and `tine-cli-merge-queue-1`; 4.20, Reviews: `opentine.review` signed, hash-chained versions over runs and commits in one or more repositories (the multi-repo object model), with findings, monitors as eval scorers and gates; `opentine.review-gate` signed gate decisions; the `opentine.review-bundle` that verifies offline; the thirteen `review.*` and `review-gate.*` reason codes; 8.19, `caps.reviews`; Part 12 adds `opentine-review-1`, `opentine-review-gate-1`, `opentine-review-bundle-1` and `tine-cli-review-1`; 4.21, `opentine.prompt` signed, hash-chained prompt versions and the `prompts/` ref namespace (2.4); 4.22, `opentine.memory` signed team-memory notes and the `memory/` ref namespace; 8.20, memory notes in MCP `recall` and MCP 2025-11-25 tasks; Part 12 adds `opentine-prompt-1`, `opentine-memory-1`, `tine-cli-prompt-1`, `tine-cli-memory-1` and `tine-cli-eval-ci-1`; 8.21, plugin loading rules (entry-point groups, the user allow-list `opentine-plugin-allow/1`, the `plugin` eval scorer pin) and `tine-experts/1`; Part 12 adds `opentine-plugin-allow-1`, `tine-cli-plugins-1` and `tine-experts-1`; 4.23, `opentine.forge-claim` (`.opentine/project` committed upstream; never a pass) and project forks (`forked_from` checked against the source's history); 8.22, `caps.coord`, the remote task backend; 8.23, operating a witness (persistence, key rotation, rate limits, `GET /health`, `GET /keys`); Part 12 adds `opentine-forge-claim-1`. No existing byte format changed. |

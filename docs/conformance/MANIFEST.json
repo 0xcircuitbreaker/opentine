@@ -924,6 +924,85 @@
       "verdict": 0
     },
     {
+      "core": 8,
+      "count": 8,
+      "file": "vectors/79-verify-report.json",
+      "name": "verify-report",
+      "ops": [
+        "verify-report.verify"
+      ],
+      "reject": 0,
+      "section": "8.7",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
+      "core": 14,
+      "count": 14,
+      "file": "vectors/80-custody.json",
+      "name": "custody",
+      "ops": [
+        "custody.chain",
+        "custody.record"
+      ],
+      "reject": 6,
+      "section": "8.4",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
+      "core": 9,
+      "count": 9,
+      "file": "vectors/81-replay.json",
+      "name": "replay",
+      "ops": [
+        "replay.verify"
+      ],
+      "reject": 7,
+      "section": "8.8",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
+      "core": 7,
+      "count": 7,
+      "file": "vectors/82-sealed6.json",
+      "name": "sealed6",
+      "ops": [
+        "sealed6.header"
+      ],
+      "reject": 5,
+      "section": "11",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
+      "core": 7,
+      "count": 7,
+      "file": "vectors/83-line-attribution.json",
+      "name": "line-attribution",
+      "ops": [
+        "line-attribution.verify"
+      ],
+      "reject": 0,
+      "section": "8.24",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
+      "core": 6,
+      "count": 6,
+      "file": "vectors/84-cost-statement.json",
+      "name": "cost-statement",
+      "ops": [
+        "cost-statement.verify"
+      ],
+      "reject": 0,
+      "section": "8.25",
+      "stress": 0,
+      "verdict": 0
+    },
+    {
       "core": 14,
       "count": 14,
       "file": "vectors/99-repair.json",
@@ -946,8 +1025,8 @@
   ],
   "files": {
     "PROTOCOL.md": "2f6ad88179a297226d06010553a9da4583164682eb9d24c1fd971c75f9d752ea",
-    "README.md": "3c32fc1bb82f7e779c0e28c3a95fece0a0f3f861272332766db840296c4c860a",
-    "REASON_CODES.md": "b87d8733e053dd0bdf6a6d96d2677015192826a7e8ef4746b8e131b4e30480e3",
+    "README.md": "14f6e444df70638dbcf04057df254166f2f96cac25114e47ce82c92b41e7e47c",
+    "REASON_CODES.md": "4a793b35d562cb533cf94985d6ad7dbd9bf41c4bd4d54e4491c839b20305235b",
     "SPEC_NOTES.md": "0f305537097053e2b1edc008be6252b3eaaf278c7c1f2428178decd3f4bc5345",
     "blobs/171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168.bin": "171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168",
     "blobs/350567390157182e154ec207238473a3954228c4eaf65f9cc5a182327c9ba60a.bin": "350567390157182e154ec207238473a3954228c4eaf65f9cc5a182327c9ba60a",
@@ -2024,7 +2103,7 @@
     "vectors/15c-graph.json": "eb596311bee1dec0d73f2f9e1fa1efcd93f79c0c180ee0c16ffd23338649e376",
     "vectors/15d-load.json": "5d29d5efc51dc7a3a53d33f852017b4be3b41bd31283ce69820f429be6b45bbe",
     "vectors/16-bounds.json": "79dc94acfc3500d165b2e88ce4323cd331cc16d42e2dc16128dcb7de3b68f91c",
-    "vectors/22-layout.json": "8963f5f5ed90f91b41d4a2c7cfd95424ef673bd4634c4995bb0a050558893da5",
+    "vectors/22-layout.json": "c073bd29bbfd7f2657b88734b2b60d44e21aaa692cd03988e5bcc2ebeeb69470",
     "vectors/24-refs.json": "4bdc4719bff3b08287cc9ad23095e92031559ee2b2443164ec270f9fef8f9c68",
     "vectors/26-reflog.json": "4fba01cba35ceec15fb4d420d23c8c27dcf9eb5e826afa8775f9057b6d81f961",
     "vectors/27-shallow.json": "a7ae17674325d2c6cd5c4f401f04d85d57004a3ca4f3f0c2cf2cb60d7da5652d",
@@ -2063,9 +2142,15 @@
     "vectors/76-delegation-revocation.json": "95cf0e382d6b6bef540a473aeddb187f877962f889325a8e80e1053e02466e32",
     "vectors/77-keyless-tsa.json": "4653498fbacb1df5e7080f1b6b07c14c999280adb5953f6c9e77a58c41017f23",
     "vectors/78-fleet.json": "3096854959ef2e815c7521763bb6124541c8f2dead801fbb8530a1409d4ce335",
+    "vectors/79-verify-report.json": "09288ca8663924a46e037dff0db5ab234e270026198740942cc5106f4130d1ce",
+    "vectors/80-custody.json": "8a2bb55106f8195d63acb63e231b88c06020c31b5db01bd8e6ea6acd32773494",
+    "vectors/81-replay.json": "5adf0c7ca4375d8d3ce176cd87d679f9eae1978f7a057c20967514c0938f6a16",
+    "vectors/82-sealed6.json": "b70f2a9c80bb6d8b9489efbcb656aa932d895348ca08b3bd246520c4e4e72ff5",
+    "vectors/83-line-attribution.json": "66dcae2aba043176386c305ed1639cb1518a0d549fca478a00266d8376732bea",
+    "vectors/84-cost-statement.json": "23d99b3d114d8b6d694199a1b73598d9070cd4e0a1bb5a84f602cdb413610719",
     "vectors/99-repair.json": "a3c41ce58377ef2ddb77d220ad0f3ac15ea64418933b15fbcccc0e299c7200e6"
   },
-  "generated_by": "opentine 0.49.0",
+  "generated_by": "opentine 0.50.0",
   "levels": {
     "1": "reject-parity: every accept produces the exact output, every reject is refused",
     "2": "diagnostic-parity: Level 1, plus each rejection reported with the vector's reason code (or any code in its alias group)"
@@ -2204,6 +2289,59 @@
       "profile": "reader",
       "requires": [],
       "summary": "SPEC 2.2 repository descriptor",
+      "unordered": []
+    },
+    "cost-statement.verify": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "ok",
+        "matches_run",
+        "signature",
+        "basis"
+      ],
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "summary": "SPEC 8.25: a tine-cost-statement/1 against its run's aggregate",
+      "unordered": []
+    },
+    "custody.chain": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "size",
+        "records",
+        "head"
+      ],
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "summary": "SPEC 8.4, 8.9: exported tine-custody/1 records, their chain and signatures",
+      "unordered": []
+    },
+    "custody.record": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "schema",
+        "manifest_sha256",
+        "signed",
+        "valid"
+      ],
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "summary": "SPEC 8.4: an evidence folder's tine-custody/1 record under its own key",
       "unordered": []
     },
     "delegation.verify": {
@@ -2433,6 +2571,23 @@
       "profile": "verifier",
       "requires": [],
       "summary": "SPEC 8.12.1: an RFC 3161 token bound to a Rekor v2 keyless signature",
+      "unordered": []
+    },
+    "line-attribution.verify": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "signature",
+        "content_matches",
+        "stale_ranges"
+      ],
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "summary": "SPEC 8.24: an opentine-line-attribution/1 record against a commit's lines",
       "unordered": []
     },
     "links.extract": {
@@ -2910,6 +3065,24 @@
       "summary": "SPEC 2.6 one canonical reflog row plus its LF",
       "unordered": []
     },
+    "replay.verify": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "_type",
+        "subject",
+        "predicateType",
+        "predicate"
+      ],
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "summary": "SPEC 8.8: a DSSE-signed in-toto replay/v1 statement under a pinned key",
+      "unordered": []
+    },
     "review-finding.verify": {
       "args": [],
       "input": [
@@ -2997,6 +3170,24 @@
       "profile": "reader",
       "requires": [],
       "summary": "SPEC 1.5.3 status, ordering, legacy_refs, and exact roots/tips",
+      "unordered": []
+    },
+    "sealed6.header": {
+      "args": [],
+      "input": [
+        "bytes_b64"
+      ],
+      "output": [
+        "key_id",
+        "epoch",
+        "flags",
+        "codec",
+        "size",
+        "header_length"
+      ],
+      "profile": "reader",
+      "requires": [],
+      "summary": "SPEC Part 11: the header of a TINEAES6 sealed object (no decryption)",
       "unordered": []
     },
     "shallow.encode": {
@@ -3170,6 +3361,30 @@
       "summary": "SPEC 4.14: verify a signed opentine.tombstone under the key given",
       "unordered": []
     },
+    "verify-report.verify": {
+      "args": [],
+      "input": [
+        "value"
+      ],
+      "output": [
+        "schema",
+        "report_verdict",
+        "path",
+        "signed",
+        "signature",
+        "timestamps",
+        "signing_time",
+        "evidence",
+        "ok",
+        "reason"
+      ],
+      "profile": "verifier",
+      "requires": [
+        "ed25519"
+      ],
+      "summary": "SPEC 8.7: a tine-verify-report/2 and its tine-sig/3 signature (no tokens)",
+      "unordered": []
+    },
     "vsa.verify": {
       "args": [],
       "input": [
@@ -3211,15 +3426,15 @@
   "retired_ids": [
     "chain.previous-not-an-annotation"
   ],
-  "spec_version": "0.49.0",
+  "spec_version": "0.50.0",
   "suite_version": 1,
   "totals": {
-    "cases": 1112,
-    "core": 1102,
-    "families": 55,
-    "ops": 68,
-    "reason_codes": 223,
-    "reject": 489,
+    "cases": 1163,
+    "core": 1153,
+    "families": 61,
+    "ops": 75,
+    "reason_codes": 229,
+    "reject": 507,
     "stress": 10,
     "verdict": 178
   }

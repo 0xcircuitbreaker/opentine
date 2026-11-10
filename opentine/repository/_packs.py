@@ -26,6 +26,7 @@ from opentine import _codec
 from opentine.kernel import KernelError, object_id
 from opentine.repository import _pack_v3_index as v3index
 from opentine.repository import _winretry
+from opentine.repository._pack_dicts import lookup
 from opentine.repository._pack_index import (  # noqa: F401 -- re-exported
     BLOCK_BYTES,
     MAX_INDEX_BYTES,
@@ -114,9 +115,8 @@ class PackSet(LazyIndexes):
             except ValueError:  # KernelError and CodecError included
                 continue  # its objects read as missing; fsck names the broken pack
             except OSError:
-                # Unreadable for now (another process is renaming it in, or it is
-                # gone): skip it, but don't remember this listing, or that pack's
-                # objects would stay invisible to this process.
+                # Unreadable for now (being renamed in, or gone): skip it, but don't
+                # remember this listing, or its objects would stay invisible here.
                 complete = False
         self.indexes, self._where, self._v3 = indexes, None, None
         self.blocks = {digest: index.table for digest, index in indexes.items()}
@@ -154,7 +154,7 @@ class PackSet(LazyIndexes):
             stored = _read_file(path, offset, length, limit=MAX_OBJECT_BYTES + 64)
             if _codec.declared_size(stored) != size:
                 raise KernelError("pack block size does not match its index")
-            data = _codec.unwrap(stored, limit=size)
+            data = _codec.unwrap(stored, limit=size, dictionaries=lookup(self.root))
             while self._recent and (
                 len(self._recent) >= 16
                 or sum(map(len, self._recent.values())) + len(data) > CACHE_BYTES

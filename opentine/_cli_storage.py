@@ -12,6 +12,7 @@ from opentine._cli_du import DU_COMMANDS
 from opentine._cli_hold import HOLD_COMMANDS
 from opentine._cli_op import OP_COMMANDS
 from opentine._cli_retention import RETENTION_COMMANDS
+from opentine._cli_storage_packs import add_pack_form_flags, opt_in, opt_out
 from opentine._cli_watch import WATCH_COMMANDS
 
 _CODECS = ("zstd", "zlib")
@@ -97,12 +98,7 @@ def add_storage_parsers(sub: argparse._SubParsersAction) -> None:
         refs.add_argument(
             "--unpack-refs", action="store_true", help="Write every ref loose again (0.36 reads)"
         )
-        deltas = command.add_mutually_exclusive_group()
-        deltas.add_argument(
-            "--blob-deltas", action="store_true", help="Opt in to blob delta packs (storage "
-            "v3; opentine 0.39 and older then refuse the repository until --no-blob-deltas)",
-        )  # fmt: skip
-        deltas.add_argument("--no-blob-deltas", action="store_true", help="Rewrite packs whole")
+        add_pack_form_flags(command)
     add_archive_parsers(sub, _CODECS)
     compress = sub.add_parser(
         "compress", help="Rewrite .tine files compressed (or plain with --decompress)"
@@ -150,26 +146,24 @@ def _prune_now(args: argparse.Namespace):
 
 
 def _gc_run(gc, args: argparse.Namespace):
-    from opentine.repository import _gc_deltas, _gc_refs
+    from opentine.repository import _gc_refs
 
     repo = _repo(args.repo)
     if args.pack_refs:
         _gc_refs.enable(repo)  # descriptor first; gc then folds the loose refs
-    if getattr(args, "blob_deltas", False):
-        _gc_deltas.enable(repo)  # descriptor first; the repack below writes the deltas
+    rewrite = opt_in(repo, args)  # descriptor first; the repack below writes the form
     result = gc(
         repo,
-        repack=args.command == "repack" or getattr(args, "blob_deltas", False),
+        repack=args.command == "repack" or rewrite,
         codec=args.codec,
         keep_transfer_packs=args.keep_transfer_packs,
-        upgrade=args.upgrade or getattr(args, "blob_deltas", False),
+        upgrade=args.upgrade or rewrite,
         downgrade=args.downgrade,
         **({} if args.level is None else {"level": args.level}),
     )
     if args.unpack_refs:
         _gc_refs.disable(repo)
-    if getattr(args, "no_blob_deltas", False):
-        _gc_deltas.disable(repo)
+    opt_out(repo, args)
     return result
 
 
