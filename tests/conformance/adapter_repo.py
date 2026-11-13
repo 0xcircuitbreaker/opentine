@@ -202,6 +202,7 @@ def op_localpack_read(inp, args: dict[str, Any]) -> dict[str, Any]:
 
     Accepts only if the index parses and every object it lists rebuilds to bytes
     that match its id; answers each object with the SHA-256 of those bytes.
+    ``args.dicts_b64`` ({digest: base64}) is the repository's ``dicts/`` (codec 3).
     """
     import hashlib
 
@@ -214,6 +215,10 @@ def op_localpack_read(inp, args: dict[str, Any]) -> dict[str, Any]:
         (root / "packs").mkdir()
         (root / "packs" / f"{digest}.tpk").write_bytes(body)
         (root / "packs" / f"{digest}.tidx").write_bytes(inp.bytes_())
+        for name, encoded in (args.get("dicts_b64") or {}).items():
+            (root / "dicts").mkdir(exist_ok=True)
+            content = base64.b64decode(encoded, validate=True)
+            (root / "dicts" / f"{name}.zdict").write_bytes(content)
         if pack_version(root, digest) != 3:
             raise ValueError("not a storage-v3 pack")
         single = load_pack(root, digest)

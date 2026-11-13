@@ -170,6 +170,12 @@ function repoArgs(args: Args): RepoArgs {
   };
 }
 
+/** `args.dicts_b64` ({file name digest: base64 bytes}): a repository's `dicts/` directory. */
+function dictionaryArgs(args: Args): (idHex: string) => Uint8Array | null {
+  const files = (args.dicts_b64 as Record<string, string> | undefined) ?? {};
+  return (idHex) => (Object.hasOwn(files, idHex) ? strictBase64(files[idHex]) : null);
+}
+
 function verdict(result: SignatureResult): Output {
   return { ...result };
 }
@@ -497,7 +503,7 @@ export function runOp(op: string, input: OpInput, args: Args, table: KeyTable): 
       return { pack_id: result.packId, objects: result.objects };
     }
     case "localpack.read":
-      return readLocalPack(bytesOf(input), strictBase64(args.pack_b64));
+      return readLocalPack(bytesOf(input), strictBase64(args.pack_b64), dictionaryArgs(args));
     case "object.load":
       return { ...loadObject(bytesOf(input), (args.expected_oid as string | undefined) ?? null, repoArgs(args)) };
     default:

@@ -137,7 +137,7 @@ case of that op requires. The `input` and `requires` columns are derived from th
 emitted cases rather than hand-listed, so the two can never disagree.
 
 **Capabilities are gated per case, not per op.** A case that needs `zlib`,
-`ed25519` or `wtf8` carries it in its own `requires`, which is what a runner
+`zstd`, `ed25519` or `wtf8` carries it in its own `requires`, which is what a runner
 must check; `MANIFEST.ops.<op>.requires` is the intersection over that op's
 cases, and is there to tell an implementer which ops they cannot attempt at all.
 A case whose `requires` is not covered by the capabilities a run declares is

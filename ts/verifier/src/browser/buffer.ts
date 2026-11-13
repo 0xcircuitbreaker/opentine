@@ -6,7 +6,7 @@
  * verifier re-encodes and compares wherever canonical base64 matters.
  */
 
-type Encoding = "hex" | "base64" | "base64url" | "latin1" | "binary" | "utf8" | "utf-8";
+type Encoding = "hex" | "base64" | "base64url" | "latin1" | "binary" | "ascii" | "utf8" | "utf-8";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -61,6 +61,7 @@ export class Buffer extends Uint8Array {
         break;
       case "latin1":
       case "binary":
+      case "ascii":
         bytes = Uint8Array.from(value, (c) => c.charCodeAt(0) & 0xff);
         break;
       default:
@@ -69,8 +70,25 @@ export class Buffer extends Uint8Array {
     return Buffer.from(bytes);
   }
 
-  static alloc(size: number): Buffer {
-    return new Buffer(size);
+  static alloc(size: number, fill?: number | Uint8Array): Buffer {
+    const out = new Buffer(size);
+    if (fill !== undefined) out.fill(fill);
+    return out;
+  }
+
+  /** Node's `buf.copy(target, targetStart, sourceStart, sourceEnd)`; returns the bytes copied. */
+  copy(target: Uint8Array, targetStart = 0, sourceStart = 0, sourceEnd = this.length): number {
+    const part = this.subarray(sourceStart, Math.min(sourceEnd, sourceStart + target.length - targetStart));
+    target.set(part, targetStart);
+    return part.length;
+  }
+
+  /** Node's `fill`: a byte, or a repeated byte pattern. */
+  override fill(value: number | Uint8Array, start = 0, end = this.length): this {
+    if (typeof value === "number") return super.fill(value, start, end);
+    if (value.length === 0) return super.fill(0, start, end);
+    for (let at = start; at < end; at += value.length) this.set(value.subarray(0, Math.min(value.length, end - at)), at);
+    return this;
   }
 
   static concat(list: readonly Uint8Array[]): Buffer {

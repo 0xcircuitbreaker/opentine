@@ -18,7 +18,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "tsc -p tsconfig.json && node --test dist/test/conformance.test.js dist/test/cli.test.js dist/test/mldsa.test.js dist/test/zstd.test.js dist/test/trailers.test.js"
+    "test": "tsc -p tsconfig.json && node --test dist/test/conformance.test.js dist/test/cli.test.js dist/test/mldsa.test.js dist/test/zstd.test.js dist/test/trailers.test.js dist/test/claim.test.js dist/test/bundle.test.js dist/test/zstddict.test.js dist/test/trustbundle.test.js"
   },
   "devDependencies": {
     "@types/node": "20.14.10",
@@ -28,6 +28,7 @@
     "@noble/curves": "2.0.1",
     "@noble/hashes": "2.0.1",
     "@noble/post-quantum": "0.5.4",
-    "fzstd": "0.1.1"
+    "fzstd": "0.1.1",
+    "pako": "2.1.0"
   }
 }

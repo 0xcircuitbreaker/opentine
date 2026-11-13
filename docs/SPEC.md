@@ -1,7 +1,7 @@
 # The OpenTine Format Specification
 
-**Spec version:** 0.50.0 (draft until opentine 0.50.0 is tagged). **Previous
-version:** 0.49.0. Changes between versions are listed in
+**Spec version:** 0.51.0 (draft until opentine 0.51.0 is tagged). **Previous
+version:** 0.50.0. Changes between versions are listed in
 [Spec changelog](#spec-changelog); section anchors are stable (see
 [Stable anchors](#stable-anchors)).
 
@@ -24,8 +24,8 @@ documented rather than smoothed over; those places are marked **⚠ Hazard**.
 
 ## How to cite
 
-> *The OpenTine Format Specification*, opentine `docs/SPEC.md`, version 0.50.0.
-> https://github.com/0xcircuitbreaker/opentine/blob/v0.50.0/docs/SPEC.md
+> *The OpenTine Format Specification*, opentine `docs/SPEC.md`, version 0.51.0.
+> https://github.com/0xcircuitbreaker/opentine/blob/v0.51.0/docs/SPEC.md
 
 Cite a version, not `main`: the tagged URL is immutable, and a citation of a
 section should add its anchor (for example `#s-4.8` for `tine-actions/1`). The
@@ -1179,6 +1179,9 @@ tells the formats apart by magic; a version-3 repository may hold both.
   `dicts/<lowercase hex sha256>.zdict` (at most 1 MiB). A reader MUST refuse
   the block when that file is missing, larger than 1 MiB or does not hash to
   the named digest, and otherwise applies every rule of §2.3 to the body.
+  The file is a formatted zstd dictionary (RFC 8878 §5: magic `0xEC30A437`,
+  entropy tables, repeat offsets, content), as `zstd --train` writes it;
+  readers refuse a raw-content one (0.51, so the Python and TS readers agree).
   Writers train one dictionary per object kind on the stored forms they pack,
   and write codec 3 only in a repository whose descriptor carries
   `"pack_dicts": "zstd"` with a `min_reader` of at least `0.50.0` (`tine gc
@@ -2797,8 +2800,8 @@ last: `opentine.forge-check` (§4.24, family 73), `opentine.review-finding`
 (§4.25, family 74) and the OMS model-signature check (§4.26, family 75), each
 answered by the reference, the TS verifier and the pyz (through
 `tests/test_048_forge.py`, `tests/test_048_review_finding.py` and
-`tests/test_048_oms.py`). As of 0.48.0 the cutoff is in force: 0.49.0 and
-0.50.0 add no object kind and no wire format.
+`tests/test_048_oms.py`). As of 0.48.0 the cutoff is in force: 0.49.0,
+0.50.0 and 0.51.0 add no object kind and no wire format.
 
 **The 0.50 freeze review** closed those lists without adding a kind or a
 format. The pyz now answers every reader and verifier case of every family
@@ -3734,6 +3737,49 @@ without signature>, "header": ...}`. `ok` needs both; an unsigned statement
 is never `ok`. Vectors: family 84 (the run's statement is given as
 `expected`).
 
+<a id="s-8.26"></a>
+## 8.26 Browser trust bundles (0.51, a profile, not a kind)
+
+A trust bundle is the trust configuration a viewer pins without a local
+`trust-policies.json`. It is a profile of existing formats and adds no object
+kind or wire format:
+
+- **Container.** A C2SP signed note (the checkpoint format of §8.10) signed by
+  the bundle owner's Ed25519 key. Its text is two lines: the owner's key name,
+  then the payload as canonical JSON (§0.2, one line). A signature line is
+  `— <name> <base64(key id || signature)>` with the signed-note key id; the
+  owner's verifier key is the signed-note `name+hash+key` form, pinned by the
+  reader out of band.
+- **Payload.** `{"trust_bundle": 1, "serial", "issued_at", ["expires_at"],
+  "trust_policy", ["witness_network"], ["log_keys"], ["admission_policies"]}`
+  and no other key. `serial` is a positive integer below 2^53; times are RFC
+  3339 with an offset, `expires_at` after `issued_at`. `trust_policy` is an
+  entry of `trust-policies.json` limited to its portable fields (`pin`,
+  `require_receipt`, `cert_identity`, `cert_oidc_issuer`, `require_sct`,
+  `key_lifecycle`), with `pin` spelled `sha256:` + 64 lowercase hex;
+  `witness_network` is an `opentine-witness-network/1` registry (§8.23);
+  `log_keys` are signed-note log verifier keys; `admission_policies` maps names
+  to `opentine.admission-policy` documents (§8.17). Each part is valid exactly
+  when its own format says so.
+- **Reading.** A reader MUST refuse a bundle that the pinned owner key did not
+  sign, whose first line is not that key's name, whose payload is not
+  canonical, that has expired, or whose serial is lower than the highest it
+  accepted before (rollback). A bundle is cacheable by the SHA-256 of its bytes.
+- **Pinning.** The `pin` fingerprints apply as `tine verify --pin` does
+  (`_signing_pins`): a signature that verifies under a pinned Ed25519 key is `verified`,
+  one under any other key `mismatch`. With no pin, nothing changes. A viewer
+  without a bundle, or whose bundle does not open, pins nothing and says so.
+- **Where the anchor comes from.** The run viewer takes the bundle URL (same
+  origin only) and the owner key from its host page's `<meta>` tags, so its
+  pins are exactly as trustworthy as the origin that serves the page; it keeps
+  the highest serial per owner key in the browser. The TS reader checks the
+  witness registry and admission policies only by their `schema`/`kind`; the
+  full validators run in `tine trust bundle verify`.
+
+`tine trust bundle create|verify` write and check bundles (Part 12,
+`tine-cli-trust-bundle-1`); the TS verifier's `openTrustBundle` reads them in a
+browser.
+
 <a id="part-9"></a>
 # Part 9 — Format v4 (0.26.0)
 
@@ -4285,6 +4331,7 @@ Versions are the opentine release that changed this document.
 
 | Spec version | Change |
 |---|---|
+| 0.51.0 | 2.8, a formatted zstd dictionary is required (a raw-content one is refused, so the Python and TS readers agree); 8.26, browser trust bundles: an owner-signed C2SP signed note over a trust policy's portable fields, an `opentine-witness-network/1` registry, log keys and admission policies, refused on rollback, applied as `tine verify --pin` (a profile, not a kind); Part 12 adds `tine-cli-trust-bundle-1`. The freeze ruling on predicates inside frozen envelopes is recorded in FREEZE.md (no predicate granted). No existing byte format changed. |
 | 0.50.0 | 2.3, codec byte 3 (zstd with a dictionary, local v3 packs only); 2.8, pack v3 dictionaries (`dicts/<sha256>.zdict`, `pack_dicts`, gc keeps the latest dictionary per kind, purge drops the old dictionaries), `min_reader` 0.50.0 and `_config.READER_VERSION` 0.50.0; 5.5, the 0.50 freeze review (Python, TS and pyz parity, families 79-84); 8.6, CRLs and OCSP responses embedded in an RFC 3161 token and the `timestamp.revoked` and `timestamp.revocation-invalid` codes; 8.24 `opentine-line-attribution/1` and 8.25 `tine-cost-statement/1` documented; Part 12 adds `tine-cli-tenant-1`. RFC 4998 evidence records are deferred past the freeze. No object kind or wire format was added. |
 | 0.49.0 | 8.4.1, the audit kit: its layout (`kit.json` as `tine-cli-audit-kit-build-1`, `tine-verify.pyz`, the offline `verify.html`, the evidence folder, Run Crates, the `replay/v1` attestation, the pinned witness set, the report, `ae/` and `SHA256SUMS`) and what a checker must refuse (changed or unlisted files, links and special files, run entries outside `runs/`, unsafe, linked, duplicate or oversized zip entries), and a SHOULD to check run signatures against a key from outside the kit; 8.23, the `opentine-witness-network/1` registry, a pinned configuration checked against the majority-of-three policy, not a kind; Part 12 adds `opentine-witness-network-1`, `tine-cli-audit-kit-build-1`, `tine-cli-audit-kit-verify-1`, `tine-cli-publish-1`, `tine-cli-alert-1` and `tine-cli-witness-doctor-1`. FastCDC chunk manifests in the object store are a stored form, and alerts reuse `tine-event/1` and `tine-webhook/1`. No object kind or wire format was added and no existing byte format changed. |
 | 0.48.0 | 4.24, `opentine.forge-check`: the unsigned record `tine forge publish` shows on GitHub, GitLab, Forgejo and Entire (AI share in parts per million, verify state, the blame overlay, the digest and URL of an offline-verifiable bundle) and the four `forge-check.*` reason codes; Part 12 adds `opentine-forge-check-1` and `tine-cli-forge-1`; 4.25, `opentine.review-finding`: one reviewer's signed finding on a Review, as `tine review run` writes it for each finding a reviewer harness of the fleet reports (review and finding ids, severity, a repository-relative path and line, the message, the reviewer and its run), and the five `review-finding.*` reason codes; Part 12 adds `opentine-review-finding-1` and `tine-graph-1` (`tine code-graph`, `tine-graph/1`); 12.5, compliance profiles (`opentine-compliance-profile-1`, draft, pending counsel review), the evidence facts, `tine-cli-compliance-check-1` and `tine-cli-compliance-list-1`, and the Provenance Run Crate export; 4.26, OMS model signatures (OpenSSF Model Signing v1.0, key-based) as an assurance factor: the bundle, the pinned-key check, the eight `oms.*` reason codes and the `factors` list of `tine-assurance-1`. OTLP protobuf logs and OTLP/gRPC ingest are transports, not formats; 4.10.1, delegation × revocation: a chain is refused (`delegation.revoked`) when any of its keys was revoked at or before the verified signing time, or at all without one; 4.11, `fleet.*` reason codes and the first fleet vectors; 5.5, the freeze cutoff and its audit; 8.12.1, an RFC 3161 token bound to a Rekor v2 keyless signature gives the verified signing time (`keyless.*` codes). This is the last object kind added before 1.0. No existing byte format changed. |

@@ -7,8 +7,11 @@ on:
     branches: [main]
 
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # 0.51: every commit on main keeps its own gate evidence (parity, peer-compat,
+  # audit-kit, leave-service): main runs are grouped by SHA and never cancelled;
+  # only superseded PR runs are.
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -51,6 +54,9 @@ jobs:
 
       - name: Format check with ruff
         run: uv run ruff format --check .
+
+      - name: Overclaim lint for docs copy
+        run: uv run python scripts/check_copy.py
 
       - name: Run tests
         run: uv run pytest tests -m "not live and not live_harness" -v
@@ -233,6 +239,54 @@ jobs:
           npm ci --ignore-scripts --no-audit --no-fund
           npm run build
           git diff --exit-code -- ../../opentine/data/ui
+
+  browser-verifier:
+    # 0.51: the full pinned conformance set and every bundle shape, verified in
+    # Chromium, Firefox and WebKit by the browser build, must give ts/verifier's
+    # Node verdicts; a >= 200 MiB bundle verifies with zero network requests.
+    name: Browser verifier (Playwright)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45  # a hung browser fails the job instead of holding CI for 6 h
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with:
+          version: "0.11.12"
+
+      - name: Install dependencies
+        run: uv sync --locked --all-extras
+
+      - name: Set up Node 20
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "20"
+
+      - name: Build the TS verifier (the Node reference)
+        working-directory: ts/verifier
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build
+
+      - name: Install the harness and its browsers
+        working-directory: ts/browser-tests
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm audit --audit-level=low
+          npx playwright-core install --with-deps chromium firefox webkit
+
+      - name: Run the conformance set and the bundles in every browser
+        working-directory: ts/browser-tests
+        env:
+          OPENTINE_PYTHON: ${{ github.workspace }}/.venv/bin/python
+          OPENTINE_BROWSER_LARGE: "1"
+        run: npm test
 
   fips:
     # 0.41 (X30): the real gate for --fips. cryptography is built against the

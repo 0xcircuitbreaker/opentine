@@ -1,5 +1,5 @@
 /**
- * Browser stand-in for the `node:crypto` calls the verifier makes (SHA-256,
+ * Browser stand-in for the `node:crypto` calls the verifier makes (SHA-256/384/512, SHA-1,
  * HMAC-SHA256, timing-safe compare, Ed25519 verify), built on the audited
  * `@noble/hashes` and `@noble/curves`. The browser bundle aliases `node:crypto`
  * here (ts/run-viewer/build-verifier.mjs); Node keeps OpenSSL.
@@ -11,7 +11,7 @@
 import { ed25519 } from "@noble/curves/ed25519.js";
 import { hmac } from "@noble/hashes/hmac.js";
 import { sha1 } from "@noble/hashes/legacy.js";
-import { sha256 } from "@noble/hashes/sha2.js";
+import { sha256, sha384, sha512 } from "@noble/hashes/sha2.js";
 
 const hexOf = (bytes: Uint8Array) => Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 const encoder = new TextEncoder();
@@ -37,7 +37,7 @@ class Digest {
       at += part.length;
     }
     const out = this.finish(all);
-    return encoding === "hex" ? hexOf(out) : out;
+    return encoding === "hex" ? hexOf(out) : Buffer.from(out); // a Buffer, as Node's digest() returns
   }
 }
 
@@ -47,6 +47,8 @@ function only256(algorithm: string): void {
 
 export function createHash(algorithm: string): Digest {
   if (algorithm === "sha1") return new Digest((data) => sha1(data)); // git object ids (SPEC 4.18)
+  if (algorithm === "sha384") return new Digest((data) => sha384(data)); // RFC 3161 tokens (0.51: SPEC 4.27 in browsers)
+  if (algorithm === "sha512") return new Digest((data) => sha512(data));
   only256(algorithm);
   return new Digest((data) => sha256(data));
 }

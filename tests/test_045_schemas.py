@@ -257,6 +257,11 @@ DRIVEN = (
         + ("--dry-run", "--json"),
         "tine-cli-publish-1",
     ),  # 0.49
+    (
+        ("trust", "bundle", "create", "--key", "purge.key", "--name", "example.com/trust")
+        + ("--serial", "1", "--pin", "ab" * 32, "--out", "bundle.note", "--json"),
+        "tine-cli-trust-bundle-1",
+    ),  # 0.51
 )
 
 

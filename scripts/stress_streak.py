@@ -11,7 +11,15 @@ day with no finished scheduled run, or whose latest run did not succeed, ends
 the streak (a skipped night is not a green night). Manual
 (``workflow_dispatch``) runs never count. ``GITHUB_TOKEN`` (or ``GH_TOKEN``)
 is sent when set. Prints one JSON object; exit 0 when ``streak >= --need``,
-1 when not, 2 when the API cannot be read.
+1 when not, 2 when the API or the waiver file cannot be read.
+
+Flake waivers (0.51, docs/RELEASING.md): ``docs/bench/stress-waivers.json``
+lists nights whose failure was proven to be infrastructure, each a committed,
+dated record naming its owner, the cause and the evidence. A waived night
+neither counts towards nor breaks the streak. A waiver without a date, an
+owner, a cause or evidence, or dated before the night it waives, is refused
+(exit 2). ``--write PATH`` also stores the result as plain JSON (the committed
+``docs/bench/nightly-streak.json``).
 """
 
 from __future__ import annotations
@@ -27,6 +35,8 @@ from pathlib import Path
 from typing import Any
 
 WORKFLOW = "nightly-stress.yml"
+WAIVERS = Path(__file__).resolve().parents[1] / "docs" / "bench" / "stress-waivers.json"
+WAIVER_FIELDS = ("night", "recorded", "owner", "cause", "evidence")
 API = "https://api.github.com"
 
 
@@ -70,7 +80,34 @@ def _day(run: dict[str, Any]) -> date:
     return datetime.fromisoformat(stamp.replace("Z", "+00:00")).date()
 
 
-def streak(runs: list[dict[str, Any]], today: date | None = None) -> dict[str, Any]:
+def load_waivers(data: Any) -> dict[date, dict[str, Any]]:
+    """Validated waivers by night; any malformed record refuses the whole file."""
+    records = data.get("waivers") if isinstance(data, dict) else None
+    if not isinstance(records, list):
+        raise ValueError("waiver file: expected an object with a 'waivers' list")
+    out: dict[date, dict[str, Any]] = {}
+    for i, rec in enumerate(records):
+        if not isinstance(rec, dict):
+            raise ValueError(f"waiver {i}: not an object")
+        for field in WAIVER_FIELDS:
+            if not isinstance(rec.get(field), str) or not rec[field].strip():
+                raise ValueError(
+                    f"waiver {i}: missing {field!r} (undated or unowned waivers are refused)"
+                )
+        night, recorded = date.fromisoformat(rec["night"]), date.fromisoformat(rec["recorded"])
+        if recorded < night:
+            raise ValueError(f"waiver {i}: recorded {recorded} before the night it waives")
+        if night in out:
+            raise ValueError(f"waiver {i}: {night} is waived twice")
+        out[night] = rec
+    return out
+
+
+def streak(
+    runs: list[dict[str, Any]],
+    today: date | None = None,
+    waivers: dict[date, dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     """Consecutive green days ending at *today* (or yesterday, while today's run is pending).
 
     Without *today* the streak ends at the latest day with a finished scheduled
@@ -78,6 +115,7 @@ def streak(runs: list[dict[str, Any]], today: date | None = None) -> dict[str, A
     streak: the walk starts at *today* (or the day before, when today has no
     finished run yet), so stale green history counts zero.
     """
+    waivers = waivers or {}
     latest: dict[date, dict[str, Any]] = {}
     for run in runs:
         if run.get("event", "schedule") != "schedule" or run.get("status") != "completed":
@@ -86,13 +124,20 @@ def streak(runs: list[dict[str, Any]], today: date | None = None) -> dict[str, A
         if day not in latest or _stamp(run) > _stamp(latest[day]):
             latest[day] = run
     if not latest:
-        return {"streak": 0, "since": None, "through": None, "broken_by": None}
+        return {"streak": 0, "since": None, "through": None, "broken_by": None, "waived": []}
     through = day = max(latest)
     if today is not None:
         through = day = today if today in latest else today - timedelta(days=1)
-    count, broken_by = 0, None
+    count, broken_by, waived, since = 0, None, [], None
     while True:
         run = latest.get(day)
+        if day in waivers and (run is None or run.get("conclusion") != "success"):
+            waived.append(day.isoformat())
+            day -= timedelta(days=1)
+            if day < min(latest):
+                broken_by = {"day": day.isoformat(), "reason": "before the first recorded run"}
+                break
+            continue
         if run is None:
             broken_by = {"day": day.isoformat(), "reason": "no finished scheduled run"}
             break
@@ -100,13 +145,13 @@ def streak(runs: list[dict[str, Any]], today: date | None = None) -> dict[str, A
             broken_by = {"day": day.isoformat(), "reason": str(run.get("conclusion")),
                          "url": run.get("html_url")}  # fmt: skip
             break
-        count += 1
+        count, since = count + 1, day
         day -= timedelta(days=1)
         if day < min(latest):
             broken_by = {"day": day.isoformat(), "reason": "before the first recorded run"}
             break
-    since = (through - timedelta(days=count - 1)).isoformat() if count else None
-    return {"streak": count, "since": since, "through": through.isoformat(), "broken_by": broken_by}
+    return {"streak": count, "since": since and since.isoformat(), "through": through.isoformat(),
+            "broken_by": broken_by, "waived": waived}  # fmt: skip
 
 
 def _stamp(run: dict[str, Any]) -> str:
@@ -121,22 +166,30 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--branch", default="main")
     parser.add_argument("--need", type=int, default=30, help="Days the 1.0 criterion needs")
     parser.add_argument("--today", help="UTC date the streak must reach (default: now, UTC)")
+    parser.add_argument("--waivers", type=Path, default=WAIVERS, help="Flake waiver records")
+    parser.add_argument("--write", type=Path, help="Also store the result here (plain JSON)")
     args = parser.parse_args(argv)
     try:
+        waivers = {}
+        if args.waivers.is_file():
+            waivers = load_waivers(json.loads(args.waivers.read_text("utf-8")))
         if args.runs_file:
             runs = _runs(json.loads(Path(args.runs_file).read_text("utf-8")))
         else:
             runs = fetch_runs(args.repo, args.branch)
         today = date.fromisoformat(args.today) if args.today else datetime.now(UTC).date()
         result = {"workflow": WORKFLOW, "branch": args.branch, "need": args.need}
-        result.update(streak(runs, today))
+        result.update(streak(runs, today, waivers))
     except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
         # HTTPError/URLError/timeouts are OSError; a rate-limit or error body, a
         # malformed run or a bad --today is not a streak of zero: exit 2.
         print(json.dumps({"error": f"{type(exc).__name__}: {exc}"}))
         return 2
     result["met"] = result["streak"] >= args.need
-    print(json.dumps(result, indent=2, sort_keys=True))
+    text = json.dumps(result, indent=2, sort_keys=True)
+    if args.write:
+        args.write.write_text(text + "\n", encoding="utf-8")
+    print(text)
     return 0 if result["met"] else 1
 
 

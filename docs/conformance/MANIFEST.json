@@ -461,14 +461,14 @@
       "verdict": 0
     },
     {
-      "core": 11,
-      "count": 11,
+      "core": 14,
+      "count": 14,
       "file": "vectors/29-localpack.json",
       "name": "localpack",
       "ops": [
         "localpack.read"
       ],
-      "reject": 9,
+      "reject": 11,
       "section": "2.8",
       "stress": 0,
       "verdict": 0
@@ -1024,9 +1024,9 @@
     }
   ],
   "files": {
-    "PROTOCOL.md": "2f6ad88179a297226d06010553a9da4583164682eb9d24c1fd971c75f9d752ea",
-    "README.md": "14f6e444df70638dbcf04057df254166f2f96cac25114e47ce82c92b41e7e47c",
-    "REASON_CODES.md": "4a793b35d562cb533cf94985d6ad7dbd9bf41c4bd4d54e4491c839b20305235b",
+    "PROTOCOL.md": "51524346cc1f8775da8fbd1be40201d90728a9b093abe7a0bf46c87ed90964fc",
+    "README.md": "0ae3b42c2f27d3e5c017ef19057f879eb7385fe7789cf828c4a957933b467628",
+    "REASON_CODES.md": "28bead96f11d518ceb59b4f6db23872003fd5e9072b90907f05cc111b634c3f1",
     "SPEC_NOTES.md": "0f305537097053e2b1edc008be6252b3eaaf278c7c1f2428178decd3f4bc5345",
     "blobs/171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168.bin": "171ccb14b4d800939a1a5574b9835e373f8840c640efe2f3097afb313bcb2168",
     "blobs/350567390157182e154ec207238473a3954228c4eaf65f9cc5a182327c9ba60a.bin": "350567390157182e154ec207238473a3954228c4eaf65f9cc5a182327c9ba60a",
@@ -2108,7 +2108,7 @@
     "vectors/26-reflog.json": "4fba01cba35ceec15fb4d420d23c8c27dcf9eb5e826afa8775f9057b6d81f961",
     "vectors/27-shallow.json": "a7ae17674325d2c6cd5c4f401f04d85d57004a3ca4f3f0c2cf2cb60d7da5652d",
     "vectors/28-pack.json": "0f7194ed6e505e1e69727e60f5900ff97d12ae64c77c21a1a7bea212eda682d7",
-    "vectors/29-localpack.json": "6f1cf700f52c0c24456bdea593d16061fb701e119cafee55720fdef63b7f24a9",
+    "vectors/29-localpack.json": "4287e5c791cbb2e949dcb0af5c17a6fe2382c0bbf5b3028be77bde387a0b198f",
     "vectors/31-artifact-v2.json": "f83c46167d41a9e0e319fed34d4faebc428dc7abbf787869a6bab837a84c7f83",
     "vectors/35-integrity.json": "c31947dc24bbad8d0da04edaedf672dc8e56a6b030e6a6744b27ee9dc4d6ef3e",
     "vectors/42-signing.json": "128ac717112ba02ca80832bcec73967ecf757486bac49e04313b1f9479456079",
@@ -2150,7 +2150,7 @@
     "vectors/84-cost-statement.json": "23d99b3d114d8b6d694199a1b73598d9070cd4e0a1bb5a84f602cdb413610719",
     "vectors/99-repair.json": "a3c41ce58377ef2ddb77d220ad0f3ac15ea64418933b15fbcccc0e299c7200e6"
   },
-  "generated_by": "opentine 0.50.0",
+  "generated_by": "opentine 0.51.0",
   "levels": {
     "1": "reject-parity: every accept produces the exact output, every reject is refused",
     "2": "diagnostic-parity: Level 1, plus each rejection reported with the vector's reason code (or any code in its alias group)"
@@ -2611,7 +2611,8 @@
     },
     "localpack.read": {
       "args": [
-        "pack_b64"
+        "pack_b64",
+        "dicts_b64"
       ],
       "input": [
         "blob",
@@ -3426,15 +3427,15 @@
   "retired_ids": [
     "chain.previous-not-an-annotation"
   ],
-  "spec_version": "0.50.0",
+  "spec_version": "0.51.0",
   "suite_version": 1,
   "totals": {
-    "cases": 1163,
-    "core": 1153,
+    "cases": 1166,
+    "core": 1156,
     "families": 61,
     "ops": 75,
-    "reason_codes": 229,
-    "reject": 507,
+    "reason_codes": 230,
+    "reject": 509,
     "stress": 10,
     "verdict": 178
   }

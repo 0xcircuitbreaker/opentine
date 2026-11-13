@@ -1,0 +1,11 @@
+{
+  "branch": "main",
+  "broken_by": null,
+  "met": false,
+  "need": 30,
+  "since": null,
+  "streak": 0,
+  "through": null,
+  "waived": [],
+  "workflow": "nightly-stress.yml"
+}

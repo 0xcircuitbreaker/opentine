@@ -4,19 +4,31 @@
  *
  * `verifyArtifact(raw)` runs the same `.tine` v4/v5 check as the CLI
  * (`verifyBytes`): every envelope id, the root, the annotation chain and the
- * `tine-sig/3` blocks. No key is pinned in a browser, so an Ed25519 signature is
- * checked under the key the file embeds (`verified-tofu`) and an HMAC one cannot
- * be checked (`no-key`). A zlib-wrapped file is inflated here first, with
+ * `tine-sig/3` blocks. Without a trust bundle no key is pinned in a browser, so
+ * an Ed25519 signature is checked under the key the file embeds
+ * (`verified-tofu`) and an HMAC one cannot be checked (`no-key`). With one
+ * (0.51, `openTrustBundle`, SPEC 8.26) its pinned fingerprints apply: a pinned
+ * key reads `verified`, any other `mismatch`, as `tine verify --pin` does. A zlib-wrapped file is inflated here first, with
  * `DecompressionStream`, under the same declared-length rule as the reader.
+ * Since 0.51 `verifyBundle(blobSource(file))` checks a `tine bundle` file as
+ * `tine bundle verify` does, streamed with `Blob.slice`, and `verifyRecord`
+ * checks one signed record by its kind.
  */
 
 import { isWrapped, MAGIC, MAX_TINE_ARTIFACT_BYTES, readUvarint } from "../codec.js";
+import type { TrustBundle } from "../trustbundle.js";
 import { verifyBytes, type Report } from "../verify.js";
+
+export { keyFingerprint, openTrustBundle, type TrustBundle } from "../trustbundle.js";
 
 export { verifyRedactionReport } from "../redactreport.js";
 export { checkGitObject } from "../gitobject.js"; // SPEC 4.18 (0.46.1)
 export { projectDigest, verifyMirrorState, verifyProject, verifyProjectChain } from "../project.js";
 export { verifyReview, verifyReviewBundle, verifyReviewGate } from "../review.js"; // SPEC 4.20 (0.47)
+// 0.51: bundles streamed from a File, every 0.46-0.50 record family, and the release this build is for.
+export { blobSource, bytesSource, isBundle, verifyBundle, verifyBundleBytes, type BundleKeys, type BundleReport, type Check } from "../bundle.js";
+export { recordKinds, verifyRecord, verifyRecordBytes, type RecordCheck } from "../recordcheck.js";
+export { OPENTINE_VERSION } from "../version.js";
 export type { Report };
 
 /** The Compression Streams API surface used here (the verifier compiles without DOM types). */
@@ -56,7 +68,7 @@ async function inflated(raw: Uint8Array): Promise<Uint8Array | null> {
 }
 
 /** The CLI's report for one artifact's bytes, checked in this runtime. */
-export async function verifyArtifact(raw: Uint8Array, name = "artifact"): Promise<Report> {
+export async function verifyArtifact(raw: Uint8Array, name = "artifact", trust?: TrustBundle | null): Promise<Report> {
   let body = raw;
   try {
     body = (await inflated(raw)) ?? raw;
@@ -72,6 +84,6 @@ export async function verifyArtifact(raw: Uint8Array, name = "artifact"): Promis
       signature: null,
     };
   }
-  return verifyBytes(body, name, { trustEmbedded: true });
+  return verifyBytes(body, name, { trustEmbedded: true, pins: trust?.pins });
 }
 export { verifyMemory, verifyPrompt } from "../registry.js";

@@ -93,6 +93,24 @@ case.
 | Evidence folder (`MANIFEST.sha256`, `custody.jsonl`) and the audit kit | 8.4, 8.4.1 |
 | Published JSON Schemas and the `--json` envelope | 12 |
 
+## 0.51: codec-3 vectors and trust bundles
+
+The owner's sign-off on the pyz storage-family exclusion (2026-11-13) is
+recorded under "Rulings after the freeze (0.51)" below.
+
+`29-localpack` gained three cases (no new family, kind or format): codec 3,
+the zstd-with-dictionary stored form of 0.50 (SPEC 2.3), which the TS verifier
+now decodes (`ts/verifier/src/zstddict.ts`). They carry `requires: ["zlib",
+"zstd"]`. The suite is 61 families and 1166 cases; the TS verifier answers
+1152, the 14 writer-side cases aside.
+
+Browser trust bundles (SPEC 8.26, `tine trust bundle create|verify`) are a
+profile, not a kind: a C2SP signed note (the checkpoint format of 8.10) over
+canonical JSON that carries only existing documents, a trust policy's portable
+fields, an `opentine-witness-network/1` registry, signed-note log keys and
+`opentine.admission-policy` documents. Only the CLI output schema
+`tine-cli-trust-bundle-1` was added.
+
 ## The 0.50 freeze review
 
 **Result: no disagreement and no unanswered case on the pinned suite, with
@@ -159,3 +177,77 @@ What the vectors do not cover, recorded rather than hidden:
 The other 1.0 criteria are not decided here: the third-party audit (1), 30
 days of green nightly stress (5) and the compression bench (6) are tracked in
 ROADMAP 0.50.0.
+
+## Rulings after the freeze (0.51)
+
+### Predicates and claim schemas inside frozen envelopes
+
+**Adopted by the owner on 2026-11-13 (decision D1), as an explicit
+relaxation of the strict reading, not a clarification.** Without this
+ruling a new in-toto `predicateType`, or a new claim schema with its own
+vectors, counts as a new wire format.
+
+> A new in-toto `predicateType` or `attestation.claim` schema carried inside
+> an existing frozen envelope (`attestation` SPEC §1.5.4, DSSE/`tine-attest/2`)
+> may be added before 1.0 only if:
+>
+> - (a) envelope bytes, framing, hashing and signature algorithms are
+>   unchanged, so no new signature scheme is allowed;
+> - (b) Python, TS and pyz verifiers that do not know it report `unchecked:`
+>   and never `pass` or `fail`, and a vector proves this in the **existing**
+>   attestation family;
+> - (c) its vectors live in an existing vector family, with no new family and
+>   no new `docs/schemas` file;
+> - (d) it is listed by name in FREEZE.md and in `KINDS` under its envelope's
+>   entry, with full Python, TS and pyz conformance;
+> - (e) the owner signs off each one by name.
+
+What the ruling does not do: it adds no new escape list to
+`tests/freeze_inventory.py`, and it does not cover new signature algorithms
+(WebAuthn, for example), new bound forms (RFC 4998) or new object kinds.
+Those wait for 1.x.
+
+**Granted predicates: none.**
+
+Each grant is recorded here by name, with its date and release. The
+candidates on the 0.51-0.60 plan (ROADMAP §12) are E1
+`https://opentine.dev/hardware-key/v1` (decided at 0.56, and only with this
+ruling in force), and E2 `https://opentine.dev/promotion/v1` and E3 the
+`memory-provenance` claim schema (decided at the end of 0.55). Each has a
+frozen-safe form that ships if it is refused.
+
+How condition (b) stands in 0.51: no verify path reads `attestation.claim`
+to reach a verdict. The reference, the pyz and the TS verifier check the
+envelope's signature and give the claim no verdict at all, so no claim can
+`pass` or `fail`. The rule that the first granted predicate's checker must
+follow is in one helper per implementation: the reference
+(`opentine/_claim_status.py`), the pyz (`opentine/_pyz/_claim.py`) and the TS
+verifier (`ts/verifier/src/claim.ts`, exported as `claimStatus`). Each helper
+returns `unchecked` (`claim.unknown-predicate`, or `claim.unnamed`) for any
+claim with no granted checker. No `verify` report shows that status yet:
+wiring it into the reports and the `--json` output schemas comes with the
+first grant. With no predicate granted there is no vector to add, so
+`tests/test_051_unknown_claim.py` and `ts/verifier/test/claim.test.ts` test
+the helpers and the unchanged envelope check over the shared fixture
+`tests/data/unknown_claim_attestation.json`. The fixture holds a
+`tine-attest/1` and a `tine-attest/2` attestation that name an ungranted
+predicate. The first granted predicate brings its own `unchecked` case into
+the existing attestation family under condition (b).
+
+### The pyz storage-family exclusion
+
+**Signed off by the owner on 2026-11-13.** Criterion 2 ("the Python, TS and
+pyz implementations pass the same vectors") is read as excluding, for the pyz
+only, the repository storage families 16-bounds, 22-layout, 24-refs,
+26-reflog, 27-shallow, 28-pack, 29-localpack and 99-repair (`STORAGE` in
+`tests/freeze_inventory.py`). The pyz reads exported files and never opens a
+repository; the reference and the TS verifier answer those families. The list
+may only shrink.
+
+### RFC 4998 evidence records
+
+**Deferred to 1.1 (decision D2, 2026-11-13).** No RFC 4998 bound form is added
+before 1.0: it would be a new bound form and would reopen the freeze while the
+audit is reading it. The caveat, which every compliance profile repeats:
+long-term timestamp renewal before 1.1 covers **up to 16 root-bound tokens; it
+is not a hash-tree renewal; it does not survive a SHA-256 break.**

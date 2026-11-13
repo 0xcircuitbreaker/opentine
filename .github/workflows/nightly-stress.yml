@@ -133,6 +133,9 @@ jobs:
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read  # stress_streak.py lists this workflow's earlier runs
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
@@ -149,10 +152,23 @@ jobs:
           NEEDS_JSON: ${{ toJSON(needs) }}
         run: python3 scripts/nightly_summary.py results --needs "$NEEDS_JSON" --out nightly-summary.json --markdown "$GITHUB_STEP_SUMMARY"
 
+      # 0.51: the streak (with committed flake waivers) as plain JSON, the same
+      # shape as docs/bench/nightly-streak.json; exit 1 (streak not yet met) is
+      # not a red night, exit 2 (API or waiver file unreadable) is.
+      - name: Green streak
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python3 scripts/stress_streak.py --repo "$GITHUB_REPOSITORY" --branch "${GITHUB_REF_NAME}" \
+            --write nightly-streak.json || [ $? -eq 1 ]
+
       - name: Keep the summary
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: nightly-summary
-          path: nightly-summary.json
+          path: |
+            nightly-summary.json
+            nightly-streak.json
           if-no-files-found: ignore

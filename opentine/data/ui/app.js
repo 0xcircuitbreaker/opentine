@@ -5,6 +5,9 @@
  * Rules: every recorded value is inserted with textContent, never parsed as markup,
  * all data comes from the page's own origin, and the timeline renders rows
  * lazily in fixed-size chunks so a 10k-step run stays interactive.
+ *
+ * 0.51: "Verify a file" checks a bundle, a .tine artifact or a signed record
+ * the user picks, in a Web Worker, without uploading it anywhere.
  */
 export const CHUNK = 500;
 const TABS = ["Timeline", "Workspace", "Run DAG", "Fleet", "Verify", "Attribution"];
@@ -151,6 +154,38 @@ function renderFleet(host, runs) {
         ul.append(el("li", `fleet ${id}: ${members.map((m) => m.id.slice(0, 12)).join(", ")}`));
     host.replaceChildren(ul);
 }
+/**
+ * The trust bundle the host page pins (0.51, SPEC 8.26): `<meta
+ * name="opentine-trust-bundle" content="URL">` and `<meta
+ * name="opentine-trust-owner" content="VKEY">`. The highest serial accepted
+ * is remembered in this browser, per owner key, so an older bundle cannot be replayed.
+ */
+const serialKey = (owner) => `opentine.trust-bundle.serial:${owner}`;
+function meta(name) {
+    return document.querySelector(`meta[name="${name}"]`)?.getAttribute("content") || null;
+}
+function remember(key, value) {
+    try {
+        localStorage.setItem(key, value);
+    }
+    catch {
+        // storage may be unavailable (a private window); the bundle still applied
+    }
+}
+function trustRequest() {
+    const url = meta("opentine-trust-bundle");
+    const ownerVkey = meta("opentine-trust-owner");
+    if (!url || !ownerVkey)
+        return null;
+    let minSerial = 0;
+    try {
+        minSerial = Number(localStorage.getItem(serialKey(ownerVkey))) || 0;
+    }
+    catch {
+        minSerial = 0;
+    }
+    return { url, ownerVkey, minSerial };
+}
 async function renderVerify(host, runId) {
     const box = el("div", "Checking…");
     box.setAttribute("aria-live", "polite");
@@ -169,9 +204,13 @@ async function renderVerify(host, runId) {
         for (const r of v.reasons || [])
             box.append(el("p", r, "meta"));
         box.append(el("p", `this browser: ${b.detail}`, "meta"));
+        if (b.trustSerial && trust)
+            remember(serialKey(trust.ownerVkey), String(b.trustSerial));
         worker.terminate();
     };
-    worker.postMessage({ verification: v, artifact: `/api/run/${encodeURIComponent(runId)}/artifact` });
+    const trust = trustRequest();
+    const artifact = `/api/run/${encodeURIComponent(runId)}/artifact`;
+    worker.postMessage(trust ? { verification: v, artifact, trust } : { verification: v, artifact });
 }
 async function renderAttribution(host, runId) {
     const rows = await get(`/api/run/${encodeURIComponent(runId)}/attribution`);
@@ -230,10 +269,57 @@ async function openRun(main, id, runs) {
     main.replaceChildren(header, tabs, panel);
     await select(0);
 }
+/** Render a worker's file report: one row per check, each pass / fail / unchecked with its reason. */
+export function renderFileReport(host, report) {
+    const table = el("table");
+    table.setAttribute("aria-label", "Checks run in this browser");
+    for (const [what, state, why] of report.rows) {
+        const tr = el("tr");
+        tr.dataset.state = state;
+        const css = state === "pass" ? "verified" : state === "fail" ? "failed" : "unchecked";
+        tr.append(el("td", what), el("td", state, `state ${css}`), el("td", why));
+        table.append(tr);
+    }
+    const head = el("p", `${report.verdict}: ${report.summary}`, `state ${report.verdict === "pass" ? "verified" : "failed"}`);
+    head.id = "file-verdict";
+    head.dataset.verdict = report.verdict;
+    host.replaceChildren(head, table, el("p", `checked in this browser by the verifier built for OpenTine ${report.built_for}; nothing was uploaded`, "meta"));
+}
+function fileVerifier(main) {
+    const box = el("div", undefined, "controls");
+    const label = el("label", "Verify a file (bundle, .tine, record) ");
+    const input = el("input");
+    input.type = "file";
+    input.id = "verify-file";
+    label.append(input);
+    input.addEventListener("change", () => {
+        const file = input.files?.[0];
+        if (!file)
+            return;
+        const out = el("div", "Checking…");
+        out.setAttribute("aria-live", "polite");
+        main.replaceChildren(el("h2", `File ${file.name}`), out);
+        const worker = new Worker("verify-browser.js", { type: "module" });
+        worker.onmessage = (ev) => {
+            renderFileReport(out, ev.data);
+            worker.terminate();
+        };
+        worker.postMessage({ file });
+    });
+    box.append(label);
+    return box;
+}
 export async function start() {
     const nav = document.getElementById("runs");
     const main = document.getElementById("main");
-    const runs = await get("/api/runs");
+    let runs = [];
+    try {
+        runs = await get("/api/runs");
+    }
+    catch {
+        nav.replaceChildren(el("p", "No run API here."), fileVerifier(main));
+        return;
+    }
     const ul = el("ul");
     for (const r of runs) {
         const b = el("button", `${r.id.slice(0, 12)} · ${r.status} · ${r.steps} steps`);
@@ -242,7 +328,7 @@ export async function start() {
         li.append(b);
         ul.append(li);
     }
-    nav.replaceChildren(runs.length ? ul : el("p", "No runs found."));
+    nav.replaceChildren(runs.length ? ul : el("p", "No runs found."), fileVerifier(main));
     if (runs.length === 1)
         await openRun(main, runs[0].id, runs);
 }

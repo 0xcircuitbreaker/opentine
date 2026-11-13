@@ -14,6 +14,7 @@ import {
   ed25519Verify,
   hmacSha256Hex,
   mldsa65Verify,
+  sha256Hex,
   MLDSA65_PUBLIC_KEY_BYTES,
   MLDSA65_SIGNATURE_BYTES,
   weakPublicKey,
@@ -59,6 +60,13 @@ export interface VerifyKeys {
   hmacKey?: Uint8Array | null;
   publicKey?: Uint8Array | null;
   trustEmbedded?: boolean;
+  /**
+   * Pinned Ed25519 key fingerprints (`sha256:` + 64 hex), as `--pin` or a
+   * trust bundle (0.51) gives them: a verified signature by a key not pinned
+   * is `mismatch`, a pinned one under `trustEmbedded` is `verified`
+   * (`_signing_pins.apply_pins`). Empty or absent: no pinning.
+   */
+  pins?: ReadonlySet<string>;
 }
 
 export type Header = Map<string, JValue>;
@@ -231,6 +239,28 @@ function hex(text: string): Uint8Array {
 
 /** Check one block against the content *build* projects (`_signing_verify.verify_block`). */
 export function verifyBlock(
+  block: JValue | undefined,
+  build: MessageBuilder,
+  schemes: readonly string[],
+  subject: string,
+  keys: VerifyKeys,
+): SignatureResult {
+  const result = unpinnedVerdict(block, build, schemes, subject, keys);
+  if (!keys.pins?.size || !result.ok) return result;
+  const embedded = isObject(block) && block.get("alg") === "ed25519" ? block.get("public_key") : undefined;
+  let fingerprint: string | null = null;
+  if (keys.publicKey != null && isObject(block) && block.get("alg") === "ed25519") {
+    fingerprint = `sha256:${sha256Hex(keys.publicKey)}`;
+  } else if (typeof embedded === "string" && /^[0-9a-f]{64}$/.test(embedded)) {
+    fingerprint = `sha256:${sha256Hex(hex(embedded))}`;
+  }
+  if (fingerprint === null || !keys.pins.has(fingerprint)) {
+    return { ...result, ok: false, state: "mismatch", reason: `${fingerprint ?? "no Ed25519 key"} is not a pinned key` };
+  }
+  return { ...result, state: "verified", reason: "ok (pinned key)" };
+}
+
+function unpinnedVerdict(
   block: JValue | undefined,
   build: MessageBuilder,
   schemes: readonly string[],

@@ -4,8 +4,10 @@ Machine-readable evidence for [`docs/SPEC.md`](../SPEC.md): 1163 vectors that an
 implementation in any language can run to demonstrate it reads, writes and
 verifies OpenTine data the way the specification says.
 
-**What you need:** SHA-256, HMAC-SHA256, base64 and a JSON parser. Four
+**What you need:** SHA-256, HMAC-SHA256, base64 and a JSON parser. Five
 capabilities beyond that are optional: zlib *inflate* for the pack family,
+`zstd` (decoding with a trained dictionary, for the three codec-3 cases of
+`29-localpack.json`, 0.51),
 Ed25519 for a handful of verifier cases (the witness quorums of `57-tlog.json`, the verdicts of `58-eval-verdict.json`, the reports of `60-redaction-report.json` and the records of `63-tombstone.json`, `64-redacted-copy.json`, `65-project.json`, `66-mirror-state.json`, `68-merge.json`, `69-memory.json`, `70-review.json`, `71-prompt.json` and `74-review-finding.json`
 among them), `ml-dsa-65` (FIPS 204 verification, for the post-quantum family
 `55-sig-pq.json`), and `wtf8` — a string type that can hold

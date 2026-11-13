@@ -44,7 +44,7 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 * `chain.target-changed` == `chain.previous-unavailable`
 * `text.lone-surrogate` == `canon.unencodable-text` == `artifact.lone-surrogate`
 
-## The codes (229)
+## The codes (230)
 
 | code | SPEC | bound | refuses | MUST NOT repair by |
 |---|---|---|---|---|
@@ -134,6 +134,7 @@ whose diagnostics are as coarse as the reference's is not marked wrong for it.
 | `localpack.block-size` | 2.8 | -- | a block of several objects declared to inflate past 16 MiB | inflate it anyway and cut at the limit |
 | `localpack.delta-no-base` | 2.8 | -- | a run delta stored first in its block, where no base precedes it | look the base up elsewhere in the pack or repository |
 | `localpack.delta-too-deep` | 2.8 | -- | a run delta chain longer than 64 | resolve it recursively without a bound |
+| `localpack.dictionary` | 2.3 | -- | a codec-3 block whose zstd dictionary is not kept, or whose kept bytes do not hash to the digest the frame names | inflate it without the dictionary, or with whichever dictionary is at hand |
 | `localpack.encoding-kind` | 2.8 | -- | a stored-form code used for a kind it does not apply to | decode it anyway |
 | `localpack.index-checksum` | 2.8 | -- | a storage-v3 .tidx whose trailing SHA-256 does not cover the bytes before it | trust the fields anyway, or recompute the checksum |
 | `localpack.index-length` | 2.8 | -- | a .tidx whose length is not exactly header + 9 per block + 50 per object + 32 | read the entries that fit, or ignore trailing bytes |

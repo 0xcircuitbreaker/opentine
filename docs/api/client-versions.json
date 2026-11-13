@@ -1,0 +1,16 @@
+{
+  "browser_verifier": {
+    "built_for": "0.51.0",
+    "minimum_supported": "0.51.0",
+    "package": "ts/verifier (shipped as opentine/data/ui/tine-verifier.js)",
+    "reads": [
+      ".tine format v4 and v5 artifacts",
+      "tine bundle files (opentine-bundle/1, TINEPACK3 streamed, TINEPACK5 in memory)",
+      "every reader and verifier family of docs/conformance"
+    ],
+    "reports_version_as": "OPENTINE_VERSION (browser build) / opentine-verify --version (Node) / opentine_version in a bundle report"
+  },
+  "current_release": "0.51.0",
+  "description": "Which OpenTine release the client packages in ts/ were built for, and the oldest browser verifier this release still supports. A client below minimum_supported cannot read everything current (for example bundles, or the 0.46-0.50 record families) and must say so instead of reporting a pass. Not an object kind: a manifest for embedders such as hosted viewers.",
+  "manifest_version": 1
+}

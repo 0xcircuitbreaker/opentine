@@ -14,9 +14,9 @@ Definitions live in :mod:`opentine._schema_defs` (object kinds) and
 :mod:`opentine._schema_defs_compliance` (compliance profiles, 0.48);
 :mod:`opentine._schema_defs_audit_kit` (``tine audit-kit``, 0.49);
 :mod:`opentine._schema_defs_alerts` (``tine alert``, 0.49);
-:mod:`opentine._schema_defs_witness` (the witness network, 0.49); ``docs/schemas`` is
-their rendered copy (``scripts/gen_schemas.py``). A schema's *name* is its file
-stem, e.g. ``tine-verify-report-2``; the tag a document carries
+:mod:`opentine._schema_defs_witness` (the witness network, 0.49; trust bundles,
+0.51); ``docs/schemas`` is their rendered copy (``scripts/gen_schemas.py``). A
+schema's *name* is its file stem, e.g. ``tine-verify-report-2``; the tag a document carries
 (``tine-verify-report/2``) maps to it by spelling ``/`` as ``-``.
 """
 
@@ -71,6 +71,7 @@ from opentine._schema_defs_review import SCHEMAS as _REVIEW
 from opentine._schema_defs_share import COMMAND_SCHEMAS as _SHARE_COMMANDS
 from opentine._schema_defs_share import KIND_SCHEMAS as _SHARE_KINDS
 from opentine._schema_defs_share import SCHEMAS as _SHARE
+from opentine._schema_defs_witness import COMMAND_SCHEMAS as _WITNESS_COMMANDS
 from opentine._schema_defs_witness import SCHEMAS as _WITNESS
 
 SCHEMAS: dict[str, dict[str, Any]] = {
@@ -112,6 +113,7 @@ COMMAND_SCHEMAS: dict[str, str] = {
     **_AUDIT_KIT_COMMANDS,
     **_PUBLISH_COMMANDS,
     **_ALERT_COMMANDS,
+    **_WITNESS_COMMANDS,
 }
 KIND_SCHEMAS: dict[str, str] = {
     **_REDACT_KINDS,

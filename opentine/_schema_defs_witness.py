@@ -3,7 +3,9 @@
 ``opentine-witness-network-1`` is the registry a hosted log publishes of the
 witnesses it requires (``_witness_network``): configuration a verifier pins,
 not a signed object kind. ``tine-cli-witness-doctor-1`` is the ``--json``
-output of ``tine witness doctor``.
+output of ``tine witness doctor``, and ``tine-cli-trust-bundle-1`` (0.51) that
+of ``tine trust bundle create|verify``: a summary of a trust bundle, itself a
+signed note over existing trust documents (SPEC 8.26), not a kind.
 """
 
 from __future__ import annotations
@@ -56,6 +58,23 @@ SCHEMAS: dict[str, dict[str, Any]] = {
             "command": {"const": "witness doctor"},
             "schema": {"const": "tine-cli-witness-doctor/1"}, "ok": BOOL, "witness": STR,
             "vkeys": strs(), "checks": {"type": "array", "items": _CHECK}})),
+    "tine-cli-trust-bundle-1": doc("tine-cli-trust-bundle-1", "tine trust bundle --json",
+        "A trust bundle `tine trust bundle create` signed or `verify` checked against the "
+        "pinned owner key (SPEC 8.26): its digest, serial and times, the pinned signer "
+        "fingerprints, log keys, the witness network's log and quorum, and the names of "
+        "its admission policies. A bundle that does not verify is the error envelope (exit 4).",
+        open_(["command", "schema", "ok", "owner_vkey", "digest", "serial", "issued_at", "pins",
+               "log_keys", "admission_policies"], {
+            "command": {"enum": ["trust bundle create", "trust bundle verify"]},
+            "schema": {"const": "tine-cli-trust-bundle/1"}, "ok": BOOL, "owner_vkey": STR,
+            "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+            "serial": {"type": "integer", "minimum": 1}, "issued_at": STR, "expires_at": STR,
+            "pins": strs(), "log_keys": strs(), "admission_policies": strs(), "path": STR,
+            "witness_network": closed(["log", "quorum"], {"log": STR, "quorum": STR})})),
 }  # fmt: skip
+COMMAND_SCHEMAS: dict[str, str] = {
+    "trust bundle create": "tine-cli-trust-bundle-1",
+    "trust bundle verify": "tine-cli-trust-bundle-1",
+}
 
-__all__ = ["SCHEMAS"]
+__all__ = ["COMMAND_SCHEMAS", "SCHEMAS"]

@@ -95,7 +95,11 @@ function boundedInflate(data: Uint8Array, limit: number): Uint8Array {
 function inspectV3(data: Uint8Array, maxBody: number): InspectedPack {
   if (!startsWith(data, MAGIC3) || data.length < MAGIC3.length + 32) fail("invalid pack header", "pack.bad-magic");
   const expected = data.subarray(MAGIC3.length, MAGIC3.length + 32);
-  const body = boundedInflate(data.subarray(MAGIC3.length + 32), maxBody);
+  return inspectV3Body(boundedInflate(data.subarray(MAGIC3.length + 32), maxBody), expected);
+}
+
+/** The checks of a `TINEPACK3` after its body was inflated (by any inflater) under the size cap. */
+export function inspectV3Body(body: Uint8Array, expected: Uint8Array): InspectedPack {
   const actual = sha256(body);
   if (!bytesEqual(actual, expected)) fail("pack checksum mismatch", "pack.checksum-mismatch");
   validateJsonShape(body);

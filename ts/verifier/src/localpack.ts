@@ -9,6 +9,7 @@ import { createHash } from "node:crypto";
 import { bytesEqual } from "./canon.js";
 import { readUvarint, isWrapped, unwrap } from "./codec.js";
 import { TineError } from "./errors.js";
+import type { DictLookup } from "./zstddict.js";
 import {
   applyBlobDelta,
   applyRunDelta,
@@ -155,6 +156,8 @@ export class LocalPack {
   constructor(
     readonly pack: Uint8Array,
     indexBytes: Uint8Array,
+    /** The repository's `dicts/<sha256>.zdict` files, for codec-3 blocks. */
+    private readonly dictionaries?: DictLookup,
   ) {
     if (pack.length < PACK3_MAGIC.length || !bytesEqual(pack.subarray(0, 8), PACK3_MAGIC)) {
       fail("not a storage-v3 pack", "localpack.index-length");
@@ -174,7 +177,7 @@ export class LocalPack {
       const frame = this.pack.subarray(offset, offset + stored);
       const declared = isWrapped(frame) ? readUvarint(frame, 8)[0] : frame.length;
       if (declared !== inflated) fail("pack block size does not match its index", "localpack.block-size");
-      data = unwrap(frame, inflated);
+      data = unwrap(frame, inflated, this.dictionaries);
       this.blocks.clear(); // one block at a time: reads go in block order
       this.blocks.set(number, data);
     }
@@ -270,8 +273,12 @@ function check(oid: string, raw: Uint8Array, size: number): void {
 }
 
 /** The localpack.read op: each object's id and the SHA-256 of its rebuilt bytes. */
-export function readLocalPack(indexBytes: Uint8Array, pack: Uint8Array): { pack_id: string; objects: [string, string][] } {
-  const local = new LocalPack(pack, indexBytes);
+export function readLocalPack(
+  indexBytes: Uint8Array,
+  pack: Uint8Array,
+  dictionaries?: DictLookup,
+): { pack_id: string; objects: [string, string][] } {
+  const local = new LocalPack(pack, indexBytes, dictionaries);
   const known = new Map<string, [Uint8Array, number]>();
   const objects: [string, string][] = local
     .inBlockOrder()
