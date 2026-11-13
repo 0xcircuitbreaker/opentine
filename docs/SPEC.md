@@ -3769,6 +3769,12 @@ kind or wire format:
   (`_signing_pins`): a signature that verifies under a pinned Ed25519 key is `verified`,
   one under any other key `mismatch`. With no pin, nothing changes. A viewer
   without a bundle, or whose bundle does not open, pins nothing and says so.
+- **Where the anchor comes from.** The run viewer takes the bundle URL (same
+  origin only) and the owner key from its host page's `<meta>` tags, so its
+  pins are exactly as trustworthy as the origin that serves the page; it keeps
+  the highest serial per owner key in the browser. The TS reader checks the
+  witness registry and admission policies only by their `schema`/`kind`; the
+  full validators run in `tine trust bundle verify`.
 
 `tine trust bundle create|verify` write and check bundles (Part 12,
 `tine-cli-trust-bundle-1`); the TS verifier's `openTrustBundle` reads them in a
