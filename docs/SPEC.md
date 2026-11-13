@@ -3775,7 +3775,6 @@ kind or wire format:
 browser.
 
 <a id="part-9"></a>
-
 # Part 9 — Format v4 (0.26.0)
 
 **Status:** normative since 0.26.0. Format v4 unifies the portable `.tine`

@@ -33,7 +33,7 @@ import re
 from datetime import UTC, datetime
 from typing import Any
 
-from opentine.kernel import canonical_json
+from opentine.kernel import _parse_int, canonical_json
 
 MAX_BYTES = 1 << 20
 _DASH = "— "
@@ -170,7 +170,7 @@ def open_bundle(
     try:
         body, signatures = note.decode("utf-8").split("\n\n", 1)
         owner, text = body.split("\n")
-        payload = json.loads(text)
+        payload = json.loads(text, parse_int=_parse_int)
     except ValueError:
         raise BundleError("trust bundle is not a signed note over one JSON line") from None
     if owner != name:

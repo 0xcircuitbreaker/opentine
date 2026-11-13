@@ -37,11 +37,11 @@ def add_bundle_parser(group_sub: argparse._SubParsersAction) -> None:
     create.add_argument("--serial", required=True, type=int, help="Bundle serial (increases)")
     create.add_argument("--policy", dest="bundle_policy", metavar="NAME",
                         help="Take the portable fields of this named trust policy")  # fmt: skip
-    create.add_argument("--pin", action="append", default=[], metavar="SHA256",
+    create.add_argument("--pin", action="append", metavar="SHA256",
                         help="Pinned signer key fingerprint (repeatable)")  # fmt: skip
     create.add_argument("--witnesses", metavar="FILE", help="opentine-witness-network/1 file")
-    create.add_argument("--log-vkey", action="append", default=[], help="Pinned log key")
-    create.add_argument("--admission", action="append", default=[], metavar="NAME=FILE",
+    create.add_argument("--log-vkey", action="append", help="Pinned log key")
+    create.add_argument("--admission", action="append", metavar="NAME=FILE",
                         help="opentine.admission-policy document (repeatable)")  # fmt: skip
     create.add_argument("--expires", metavar="TIME", help="RFC 3339 expiry time")
     create.add_argument("--out", metavar="FILE", help="Write the bundle here (else stdout)")
