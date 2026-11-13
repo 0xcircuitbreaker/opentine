@@ -14,7 +14,9 @@ Gates (docs/RELEASING.md "Standing release gates"):
   of ``ci.yml``'s push run for the commit, every matrix leg ``success``;
 * ``bench``: the criterion-6 job of ``bench.yml``'s run for the commit;
 * ``nightly-streak``: ``scripts/stress_streak.py`` over the scheduled
-  ``nightly-stress.yml`` runs, with the committed flake waivers, ``>= --need``.
+  ``nightly-stress.yml`` runs, with the committed flake waivers, ``>= --need``;
+* ``waivers-signed``: when any waiver exists, every commit that touched
+  ``docs/bench/stress-waivers.json`` has a good signature (``git log %G?``).
 
 Prints one JSON object; exit 0 when every gate is green, 1 when any is not,
 2 when the API cannot be read.
@@ -84,10 +86,16 @@ def _streak_module():
 
 def job_gate(api: Api, repo: str, sha: str, workflow: str, prefix: str) -> dict[str, Any]:
     page = api(f"repos/{repo}/actions/workflows/{workflow}/runs?head_sha={sha}&per_page=100")
-    runs = [r for r in page.get("workflow_runs", []) if r.get("head_sha") == sha]
+    # A pull_request run tests a merge ref, not the commit: only main's own
+    # (push, schedule or dispatch) runs are evidence for the release SHA.
+    runs = [
+        r
+        for r in page.get("workflow_runs", [])
+        if r.get("head_sha") == sha and r.get("event") != "pull_request"
+    ]
     if not runs:
         return {"status": "missing", "detail": f"no {workflow} run for {sha[:12]}"}
-    run = max(runs, key=lambda r: (r.get("run_attempt", 1), r.get("created_at", "")))
+    run = max(runs, key=lambda r: (r.get("created_at", ""), r.get("run_attempt", 1)))
     jobs = api(f"repos/{repo}/actions/runs/{run['id']}/jobs?per_page=100").get("jobs", [])
     mine = [j for j in jobs if str(j.get("name", "")).startswith(prefix)]
     detail = {"run": run.get("html_url"), "jobs": len(mine)}
@@ -114,9 +122,52 @@ def streak_gate(api: Api, repo: str, need: int, today: date) -> dict[str, Any]:
     return {"status": status, "streak": got["streak"], "need": need, "waived": got["waived"]}
 
 
-def check(api: Api, repo: str, sha: str, need: int, today: date) -> dict[str, Any]:
+Signatures = Callable[[Path], list[tuple[str, str]]]
+
+
+def git_signatures(path: Path) -> list[tuple[str, str]]:
+    """(commit, %G? status) for every commit that touched *path*; OSError if git fails."""
+    rel = path.relative_to(ROOT).as_posix()
+    proc = subprocess.run(  # noqa: S603 - fixed argv, no shell
+        ["git", "-C", str(ROOT), "log", "--format=%H %G?", "--", rel],
+        capture_output=True,
+        text=True,
+        timeout=120,
+        check=False,
+    )
+    if proc.returncode != 0:
+        raise OSError(f"git log: {proc.stderr.strip() or proc.returncode}")
+    return [tuple(line.split(" ", 1)) for line in proc.stdout.splitlines() if " " in line]
+
+
+def waiver_gate(signatures: Signatures, path: Path | None = None) -> dict[str, Any]:
+    """Waivers must be signed: every commit that touched the waiver file carries a
+    good signature (``%G?`` G or U). With no waiver there is nothing to sign."""
+    module = _streak_module()
+    path = path or module.WAIVERS
+    count = 0
+    if path.is_file():
+        count = len(module.load_waivers(json.loads(path.read_text("utf-8"))))
+    if not count:
+        return {"status": "green", "waivers": 0}
+    commits = signatures(path)
+    unsigned = sorted(c for c, g in commits if g not in ("G", "U"))
+    if unsigned or not commits:
+        return {"status": "red", "waivers": count, "unsigned_commits": unsigned}
+    return {"status": "green", "waivers": count}
+
+
+def check(
+    api: Api,
+    repo: str,
+    sha: str,
+    need: int,
+    today: date,
+    signatures: Signatures = git_signatures,
+) -> dict[str, Any]:
     gates = {name: job_gate(api, repo, sha, *spec) for name, spec in JOB_GATES.items()}
     gates["nightly-streak"] = streak_gate(api, repo, need, today)
+    gates["waivers-signed"] = waiver_gate(signatures)
     green = all(g["status"] == "green" for g in gates.values())
     return {"sha": sha, "repo": repo, "gates": gates, "all_green": green}
 

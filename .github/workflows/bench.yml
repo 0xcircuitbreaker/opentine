@@ -27,7 +27,9 @@ on:
       - ".github/workflows/bench.yml"
 
 concurrency:
-  group: bench-${{ github.ref }}
+  # A main run is grouped by its SHA: GitHub cancels a *pending* run in a busy
+  # group even with cancel-in-progress off, so a shared group would drop evidence.
+  group: bench-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   # Never cancel a main run: each commit on main keeps its own gate evidence.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 

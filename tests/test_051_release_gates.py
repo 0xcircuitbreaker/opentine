@@ -48,6 +48,10 @@ def test_the_bench_gate_runs_on_every_push_to_main_pinned_and_keeps_its_report()
     assert "schedule:" in on and "pull_request:" in on
     text = (WORKFLOWS / "bench.yml").read_text("utf-8")
     assert "cancel-in-progress: ${{ github.event_name == 'pull_request' }}" in text
+    # A pending main run in a shared group is cancelled even without
+    # cancel-in-progress, so main runs are grouped by their own SHA.
+    per_sha = "${{ github.event_name == 'pull_request' && github.ref || github.sha }}"
+    assert f"group: bench-{per_sha}" in text
     bench = _jobs("bench.yml")["bench"]
     assert "runs-on: ubuntu-24.04" in bench and 'OMP_NUM_THREADS: "1"' in bench
     assert "timeout-minutes:" in bench and "ref: v0.40.0" in bench
@@ -201,7 +205,7 @@ def test_every_gate_green_for_the_commit():
     got = _check(_recorded())
     assert got["all_green"] is True
     assert set(got["gates"]) == {"parity", "peer-compat", "audit-kit", "leave-service", "bench",
-                                 "nightly-streak"}  # fmt: skip
+                                 "nightly-streak", "waivers-signed"}  # fmt: skip
     assert got["gates"]["audit-kit"]["jobs"] == 3 and got["gates"]["nightly-streak"]["streak"] == 30
 
 
@@ -243,3 +247,32 @@ def test_releasing_documents_the_gates_and_the_waiver_policy():
     assert "scripts/check_release_gates.py" in text and "stress-waivers.json" in text
     for needle in ("dated", "owner", "infrastructure", "refuse"):
         assert needle in text, needle
+
+
+def test_ci_main_runs_are_never_cancelled_so_each_sha_keeps_its_gate_evidence():
+    text = (WORKFLOWS / "ci.yml").read_text("utf-8")
+    per_sha = "${{ github.event_name == 'pull_request' && github.ref || github.sha }}"
+    assert f"group: ci-{per_sha}" in text
+    assert "cancel-in-progress: ${{ github.event_name == 'pull_request' }}" in text
+
+
+def test_a_pull_request_run_for_the_sha_is_not_release_evidence():
+    responses = _recorded()
+    path = f"repos/{REPO}/actions/workflows/bench.yml/runs?head_sha={SHA}&per_page=100"
+    for run in responses[path]["workflow_runs"]:
+        run["event"] = "pull_request"
+    assert _check(responses)["gates"]["bench"]["status"] == "missing"
+
+
+def test_waivers_must_come_from_signed_commits(tmp_path):
+    mod = _script("check_release_gates")
+    path = tmp_path / "stress-waivers.json"
+    assert mod.waiver_gate(lambda _p: [], path)["status"] == "green"  # no file
+    path.write_text(json.dumps({"waivers": []}))
+    assert mod.waiver_gate(lambda _p: [("a", "N")], path) == {"status": "green", "waivers": 0}
+    path.write_text(json.dumps({"waivers": [{"night": "2026-11-01", "recorded": "2026-11-02",
+        "owner": "ci", "cause": "runner lost", "evidence": "u/1"}]}))  # fmt: skip
+    assert mod.waiver_gate(lambda _p: [("a", "G"), ("b", "U")], path)["status"] == "green"
+    red = mod.waiver_gate(lambda _p: [("a", "G"), ("b", "N")], path)
+    assert red["status"] == "red" and red["unsigned_commits"] == ["b"]
+    assert mod.waiver_gate(lambda _p: [], path)["status"] == "red"  # untracked: unsigned

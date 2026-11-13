@@ -163,13 +163,15 @@ upload different bytes under the same version.
 - **Flake waivers (0.51).** A red or missing scheduled night may be waived only
   by a committed record in `docs/bench/stress-waivers.json`: an object with a
   `waivers` list whose entries name the `night` (UTC date), the date it was
-  `recorded` (not before the night), the `owner` who signed it, the proven
+  `recorded` (not before the night), the `owner` who answers for it, the proven
   infrastructure `cause` (a runner outage, an image regression, a GitHub
   incident; never a test that failed on our code) and the `evidence` (a link to
   the incident or run). A waived night neither counts towards nor breaks the
   streak. `scripts/stress_streak.py` refuses (exit 2) any undated, unowned,
   causeless, evidence-free, duplicate or back-dated waiver, so a waiver cannot
-  be added quietly: it is a reviewed commit. The nightly summary job stores the
+  be added quietly: it is a reviewed commit. Waivers are signed: every commit
+  that touches the waiver file must carry a good git signature, and
+  `scripts/check_release_gates.py` reports `waivers-signed` red otherwise. The nightly summary job stores the
   current streak as `nightly-streak.json` next to `nightly-summary`;
   `docs/bench/nightly-streak.json` is the same plain data (not an object kind),
   refreshed with `python scripts/stress_streak.py --repo OWNER/NAME --write
