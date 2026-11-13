@@ -66,7 +66,11 @@ export interface RecordCheck {
 export function blobSource(blob: Blob): ByteSource;
 export function bytesSource(data: Uint8Array): ByteSource;
 export function isBundle(head: Uint8Array): boolean;
-export function verifyBundle(source: ByteSource): Promise<BundleReport>;
-export function verifyBundleBytes(data: Uint8Array): Promise<BundleReport>;
+export interface BundleKeys {
+  hmacKey?: Uint8Array | null;
+  publicKey?: Uint8Array | null;
+}
+export function verifyBundle(source: ByteSource, keys?: BundleKeys): Promise<BundleReport>;
+export function verifyBundleBytes(data: Uint8Array, keys?: BundleKeys): Promise<BundleReport>;
 export function recordKinds(): string[];
 export function verifyRecordBytes(raw: Uint8Array): RecordCheck;

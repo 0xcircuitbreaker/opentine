@@ -26,7 +26,8 @@ const USAGE =
   "  Verifies a .tine format v4 artifact: every envelope id, the root, the\n" +
   "  annotation chain and its tine-sig/3 signatures. Exactly one key option.\n" +
   "  A FILE ending in .jsonl is a tine eval verdicts.jsonl (Ed25519 verdicts).\n" +
-  "  A tine bundle file (TINEBUNDLE1) is verified as `tine bundle verify` does.\n";
+  "  A tine bundle file (TINEBUNDLE1) is verified as `tine bundle verify` does;\n" +
+  "  --pubkey / --hmac-key-file then check its redacted-copy record.\n";
 
 function keyMaterial(text: string): Uint8Array {
   const raw = existsSync(text) ? readFileSync(text) : Buffer.from(text, "utf8");
@@ -76,7 +77,7 @@ async function main(argv: string[]): Promise<number> {
   const source = fileSource(file);
   try {
     if (isBundle(await source.read(0, 12))) {
-      const bundle = await verifyBundle(source);
+      const bundle = await verifyBundle(source, { hmacKey: keys.hmacKey, publicKey: keys.publicKey });
       process.stdout.write(JSON.stringify(bundle, null, 2) + "\n");
       return bundle.ok ? 0 : 1;
     }

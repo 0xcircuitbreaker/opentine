@@ -90,6 +90,7 @@ if (scope.document === undefined && typeof scope.postMessage === "function") {
 }
 const MAX_SMALL_FILE = 256 * 1024 * 1024;
 /** The canon rows of an artifact report: unsigned or unpinned is never "pass" by omission. */
+const PINNED = ["Signer identity (pinned key)", "unchecked", "no key is pinned in a browser"];
 export function artifactRows(report) {
     const rows = [
         ["Integrity (envelope ids, root, annotation chain)", report.integrity.ok ? "pass" : "fail", report.integrity.reason],
@@ -105,17 +106,22 @@ export function artifactRows(report) {
         rows.push(["Signature", "pass", "holds under the key the file embeds (unpinned)"]);
     else
         rows.push(["Signature", "pass", sig.reason]);
-    rows.push(["Signer identity (pinned key)", "unchecked", "no key is pinned in a browser"]);
+    rows.push(PINNED);
     return rows;
 }
 export function bundleRows(report) {
     const rows = report.checks.map((item) => [item.name, item.state, item.reason]);
     if (report.ok && !report.transparency)
         rows.push(["transparency receipts", "unchecked", "none carried"]);
+    if (report.ok && (report.signatures || report.redacted_public))
+        rows.push(PINNED);
     return rows;
 }
 function recordRows(found) {
-    return [[found.kind ? `record ${found.kind}` : "record", found.state, found.reason]];
+    const rows = [[found.kind ? `record ${found.kind}` : "record", found.state, found.reason]];
+    if (found.state === "pass")
+        rows.push(PINNED);
+    return rows;
 }
 /** Check a file in this browser; never throws, never makes a request. */
 export async function checkFile(file) {

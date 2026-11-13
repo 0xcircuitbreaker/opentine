@@ -21,7 +21,7 @@ export { checkGitObject } from "../gitobject.js"; // SPEC 4.18 (0.46.1)
 export { projectDigest, verifyMirrorState, verifyProject, verifyProjectChain } from "../project.js";
 export { verifyReview, verifyReviewBundle, verifyReviewGate } from "../review.js"; // SPEC 4.20 (0.47)
 // 0.51: bundles streamed from a File, every 0.46-0.50 record family, and the release this build is for.
-export { blobSource, bytesSource, isBundle, verifyBundle, verifyBundleBytes, type BundleReport, type Check } from "../bundle.js";
+export { blobSource, bytesSource, isBundle, verifyBundle, verifyBundleBytes, type BundleKeys, type BundleReport, type Check } from "../bundle.js";
 export { recordKinds, verifyRecord, verifyRecordBytes, type RecordCheck } from "../recordcheck.js";
 export { OPENTINE_VERSION } from "../version.js";
 export type { Report };

@@ -118,3 +118,30 @@ def test_the_client_version_manifest_matches_the_release():
     source = (ROOT / "ts" / "verifier" / "src" / "version.ts").read_text("utf-8")
     assert re.search(r'OPENTINE_VERSION = "([^"]+)"', source).group(1) == VERSION
     assert f'"{VERSION}"' in (UI / "tine-verifier.js").read_text("utf-8")
+
+
+PINNED = """
+import { readFileSync } from "node:fs";
+import { bytesSource, verifyBundle } from "./tine-verifier.js";
+const data = new Uint8Array(readFileSync(process.argv[1]));
+const other = new Uint8Array(32).fill(7);
+const out = {
+  tofu: await verifyBundle(bytesSource(data)),
+  pubkey: await verifyBundle(bytesSource(data), { publicKey: other }),
+  hmac: await verifyBundle(bytesSource(data), { hmacKey: other }),
+};
+console.log(JSON.stringify(out));
+"""
+
+
+@needs_node
+def test_a_key_given_for_a_bundle_is_used_never_dropped(corpus):
+    files, _verdicts = corpus
+    found = _node(PINNED, (files / "redacted-public-ed25519.bundle").as_posix())
+    assert found["tofu"]["ok"] and found["tofu"]["redacted_public"]["state"] == "verified-tofu"
+    # Under a key that did not sign the record, the bundle is refused, as
+    # `tine bundle verify --pubkey/--key-file` refuses it (exit 4).
+    for name in ("pubkey", "hmac"):
+        assert not found[name]["ok"], name
+        assert found[name]["redacted_public"]["state"] == "failed", name
+        assert found[name]["code"] == "bundle.redacted-public-failed", name

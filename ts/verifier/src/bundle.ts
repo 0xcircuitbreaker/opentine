@@ -208,7 +208,13 @@ async function digests(source: ByteSource, packStart: number): Promise<[Uint8Arr
   return [file.digest(), body.digest(), pack.digest()];
 }
 
-async function verifyOrThrow(source: ByteSource, report: BundleReport): Promise<void> {
+/** `tine bundle verify --key-file` / `--pubkey`: the key a redacted-copy record is checked under. */
+export interface BundleKeys {
+  hmacKey?: Uint8Array | null;
+  publicKey?: Uint8Array | null;
+}
+
+async function verifyOrThrow(source: ByteSource, report: BundleReport, keys: BundleKeys): Promise<void> {
   const pass = (name: string, reason: string) => report.checks.push({ name, state: "pass", reason });
   if (source.size > MAX_BUNDLE_BYTES) refuse("bundle exceeds the maximum size", "bundle.oversized");
   const head = await source.read(0, Math.min(source.size, BUNDLE_MAGIC.length + 36));
@@ -256,23 +262,26 @@ async function verifyOrThrow(source: ByteSource, report: BundleReport): Promise<
   report.content_unavailable = tombstones.map((record) => (record as JObject).get("oid") as string);
   if (tombstones.length) pass("tombstones", `${tombstones.length} purged boundaries, each well formed (signatures not checked without a key)`);
   const copy = manifest.get("redacted_public");
-  if (copy !== undefined) report.redacted_public = redactedPublic(copy, report);
+  if (copy !== undefined) report.redacted_public = redactedPublic(copy, report, keys);
 }
 
-function redactedPublic(copy: JValue, report: BundleReport): Record<string, unknown> {
+function redactedPublic(copy: JValue, report: BundleReport, keys: BundleKeys): Record<string, unknown> {
   const body = copy as JObject;
   const row: Record<string, unknown> = {};
   for (const key of ["source_run", "public_run", "objects", "redacted", "ruleset"]) {
     const value = body.get(key);
     row[key] = typeof value === "bigint" ? Number(value) : value;
   }
-  if ((body.get("signature") as JObject).get("alg") === "hmac-sha256") {
+  const hmacKey = keys.hmacKey ?? null;
+  const publicKey = keys.publicKey ?? null;
+  if ((body.get("signature") as JObject).get("alg") === "hmac-sha256" && hmacKey === null) {
     report.checks.push({ name: "redacted-copy record", state: "unchecked", reason: "an HMAC record needs the signer's key" });
     return { ...row, state: "unchecked", reason: null };
   }
   try {
-    const found = verifyRedactedCopy(copy, null, null, body.get("pack") as string);
-    report.checks.push({ name: "redacted-copy record", state: "pass", reason: `${found.state} (embedded key, unpinned)` });
+    const found = verifyRedactedCopy(copy, hmacKey, publicKey, body.get("pack") as string);
+    const how = found.state === "verified-tofu" ? "embedded key, unpinned" : "under the key given";
+    report.checks.push({ name: "redacted-copy record", state: "pass", reason: `${found.state} (${how})` });
     return { ...row, state: found.state, reason: null };
   } catch (exc) {
     const code = (exc as TineError).code;
@@ -281,8 +290,12 @@ function redactedPublic(copy: JValue, report: BundleReport): Record<string, unkn
   }
 }
 
-/** Verify a bundle from any `ByteSource`; never throws. */
-export async function verifyBundle(source: ByteSource): Promise<BundleReport> {
+/**
+ * Verify a bundle from any `ByteSource`; never throws. `keys` checks a
+ * redacted-copy record as `tine bundle verify --key-file/--pubkey` does;
+ * without them an Ed25519 record holds only under its embedded key (unpinned).
+ */
+export async function verifyBundle(source: ByteSource, keys: BundleKeys = {}): Promise<BundleReport> {
   const report: BundleReport = {
     schema: BUNDLE_REPORT_SCHEMA,
     opentine_version: OPENTINE_VERSION,
@@ -302,7 +315,7 @@ export async function verifyBundle(source: ByteSource): Promise<BundleReport> {
     checks: [],
   };
   try {
-    await verifyOrThrow(source, report);
+    await verifyOrThrow(source, report, keys);
     const failed = report.redacted_public?.state === "failed";
     report.ok = !failed;
     report.verdict = failed ? "fail" : "pass";
@@ -316,7 +329,7 @@ export async function verifyBundle(source: ByteSource): Promise<BundleReport> {
 }
 
 /** `verifyBundle` over bytes already in memory. */
-export const verifyBundleBytes = (data: Uint8Array) => verifyBundle(bytesSource(data));
+export const verifyBundleBytes = (data: Uint8Array, keys: BundleKeys = {}) => verifyBundle(bytesSource(data), keys);
 
 export function isBundle(head: Uint8Array): boolean {
   return head.length >= BUNDLE_MAGIC.length && bytesEqual(head.subarray(0, BUNDLE_MAGIC.length), BUNDLE_MAGIC);
