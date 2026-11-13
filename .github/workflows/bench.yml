@@ -47,13 +47,13 @@ jobs:
       BENCH_COMPARE: ${{ github.event_name == 'pull_request' || inputs.compare == true }}
       OMP_NUM_THREADS: "1"
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v5
         with:
           persist-credentials: false
 
       - name: Check out main for the baseline
         if: env.BENCH_COMPARE == 'true'
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v5
         with:
           ref: main
           path: base
@@ -62,7 +62,7 @@ jobs:
       # 1.0 criterion 6 compares against 0.40.0 on this same runner: the tag's
       # opentine/ benched with this checkout's interpreter and bench script.
       - name: Check out 0.40.0 for the criterion-6 baseline
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v5
         with:
           ref: v0.40.0
           path: base040
