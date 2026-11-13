@@ -2,8 +2,10 @@
 /**
  * opentine-verify FILE [--pubkey HEX|FILE] [--hmac-key-file FILE] [--trust-embedded]
  *
- * FILE is a `.tine` artifact or (0.45) a `verdicts.jsonl` of `tine-eval-verdict/1`
- * objects, checked under --pubkey or, without it, each verdict's embedded key.
+ * FILE is a `.tine` artifact, (0.45) a `verdicts.jsonl` of `tine-eval-verdict/1`
+ * objects, checked under --pubkey or, without it, each verdict's embedded key,
+ * or (0.51) a `tine bundle` file (`TINEBUNDLE1`), streamed from disk.
+ * `--version` prints the OpenTine release this build was made for.
  *
  * Prints one JSON report. Exit 0: intact, and no signature check failed (an
  * unsigned or unchecked file still passes integrity; read `signature.state`).
@@ -11,6 +13,9 @@
  */
 
 import { existsSync, readFileSync } from "node:fs";
+import { isBundle, verifyBundle } from "./bundle.js";
+import { fileSource } from "./filesource.js";
+import { OPENTINE_VERSION } from "./version.js";
 import { TineError } from "./errors.js";
 import type { VerifyKeys } from "./signature.js";
 import { verifyFile } from "./verify.js";
@@ -20,7 +25,8 @@ const USAGE =
   "usage: opentine-verify FILE [--pubkey HEX|FILE] [--hmac-key-file FILE] [--trust-embedded]\n" +
   "  Verifies a .tine format v4 artifact: every envelope id, the root, the\n" +
   "  annotation chain and its tine-sig/3 signatures. Exactly one key option.\n" +
-  "  A FILE ending in .jsonl is a tine eval verdicts.jsonl (Ed25519 verdicts).\n";
+  "  A FILE ending in .jsonl is a tine eval verdicts.jsonl (Ed25519 verdicts).\n" +
+  "  A tine bundle file (TINEBUNDLE1) is verified as `tine bundle verify` does.\n";
 
 function keyMaterial(text: string): Uint8Array {
   const raw = existsSync(text) ? readFileSync(text) : Buffer.from(text, "utf8");
@@ -36,13 +42,17 @@ function hmacKeyFile(path: string): Uint8Array {
   return Uint8Array.from(raw.at(-1) === 0x0a ? raw.subarray(0, -1) : raw);
 }
 
-function main(argv: string[]): number {
+async function main(argv: string[]): Promise<number> {
   const keys: VerifyKeys = {};
   let file: string | undefined;
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "-h" || arg === "--help") {
       process.stdout.write(USAGE);
+      return 0;
+    }
+    if (arg === "--version") {
+      process.stdout.write(`${OPENTINE_VERSION}\n`);
       return 0;
     }
     if (arg === "--pubkey") keys.publicKey = keyMaterial(argv[++i] ?? "");
@@ -63,14 +73,27 @@ function main(argv: string[]): number {
     process.stdout.write(JSON.stringify(evalReport, null, 2) + "\n");
     return evalReport.ok ? 0 : 1;
   }
+  const source = fileSource(file);
+  try {
+    if (isBundle(await source.read(0, 12))) {
+      const bundle = await verifyBundle(source);
+      process.stdout.write(JSON.stringify(bundle, null, 2) + "\n");
+      return bundle.ok ? 0 : 1;
+    }
+  } finally {
+    source.close();
+  }
   const report = verifyFile(file, keys);
   process.stdout.write(JSON.stringify(report, null, 2) + "\n");
   return report.ok ? 0 : 1;
 }
 
-try {
-  process.exitCode = main(process.argv.slice(2));
-} catch (exc) {
-  process.stderr.write(`opentine-verify: ${(exc as Error).message}\n`);
-  process.exitCode = 2;
-}
+main(process.argv.slice(2)).then(
+  (code) => {
+    process.exitCode = code;
+  },
+  (exc) => {
+    process.stderr.write(`opentine-verify: ${(exc as Error).message}\n`);
+    process.exitCode = 2;
+  },
+);

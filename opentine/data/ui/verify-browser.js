@@ -13,8 +13,14 @@
  * reads "unpinned", never "verified"; an HMAC signature reads "unchecked". When
  * the bytes are withheld (the server's redaction scan found something) or the
  * check cannot run, the browser column reads "unchecked" and says why.
+ *
+ * 0.51: a file the viewer is handed (`{file: Blob}`) is checked here too, read
+ * with `Blob.slice` and never uploaded: a `tine bundle` file (streamed, no
+ * whole-file buffer), a `.tine` v4/v5 artifact, or one signed record. Every
+ * check reads pass, fail, or unchecked with its reason; a check this browser
+ * did not run is never listed as passed.
  */
-import { verifyArtifact } from "./tine-verifier.js";
+import { blobSource, isBundle, OPENTINE_VERSION, recordKinds, verifyArtifact, verifyBundle, verifyRecordBytes, } from "./tine-verifier.js";
 const STATES = ["verified", "failed", "partial", "unchecked", "unpinned"];
 const HERE = "this browser (TS verifier)";
 export function asState(value) {
@@ -72,8 +78,71 @@ export async function check(request) {
 const scope = globalThis;
 if (scope.document === undefined && typeof scope.postMessage === "function") {
     scope.onmessage = (event) => {
+        const file = event.data?.file;
+        if (file) {
+            void checkFile(file).then((report) => scope.postMessage(report));
+            return;
+        }
         const data = (event.data || {});
         const request = data.verification ? data : { verification: data };
         void check(request).then((mine) => scope.postMessage(badge(request.verification, mine)));
     };
+}
+const MAX_SMALL_FILE = 256 * 1024 * 1024;
+/** The canon rows of an artifact report: unsigned or unpinned is never "pass" by omission. */
+export function artifactRows(report) {
+    const rows = [
+        ["Integrity (envelope ids, root, annotation chain)", report.integrity.ok ? "pass" : "fail", report.integrity.reason],
+    ];
+    const sig = report.signature;
+    if (!sig || sig.state === "unsigned")
+        rows.push(["Signature", "unchecked", "the artifact carries no signature"]);
+    else if (sig.state === "no-key")
+        rows.push(["Signature", "unchecked", "an HMAC signature needs the signer's key"]);
+    else if (sig.state === "mismatch" || sig.state === "error")
+        rows.push(["Signature", "fail", sig.reason]);
+    else if (sig.state === "verified-tofu")
+        rows.push(["Signature", "pass", "holds under the key the file embeds (unpinned)"]);
+    else
+        rows.push(["Signature", "pass", sig.reason]);
+    rows.push(["Signer identity (pinned key)", "unchecked", "no key is pinned in a browser"]);
+    return rows;
+}
+export function bundleRows(report) {
+    const rows = report.checks.map((item) => [item.name, item.state, item.reason]);
+    if (report.ok && !report.transparency)
+        rows.push(["transparency receipts", "unchecked", "none carried"]);
+    return rows;
+}
+function recordRows(found) {
+    return [[found.kind ? `record ${found.kind}` : "record", found.state, found.reason]];
+}
+/** Check a file in this browser; never throws, never makes a request. */
+export async function checkFile(file) {
+    const built_for = OPENTINE_VERSION;
+    try {
+        const head = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+        if (isBundle(head)) {
+            const report = await verifyBundle(blobSource(file));
+            const refs = Object.keys(report.refs).length;
+            const summary = report.ok ? `bundle ${report.bundle}: ${report.objects} objects, ${refs} refs` : `bundle refused: ${report.reason}`;
+            return { kind: "bundle", verdict: report.verdict, summary, rows: bundleRows(report), built_for };
+        }
+        if (file.size > MAX_SMALL_FILE)
+            throw new Error("file exceeds the 256 MiB artifact limit");
+        const raw = new Uint8Array(await file.arrayBuffer());
+        if (raw[0] === 0x7b) {
+            const found = verifyRecordBytes(raw);
+            if (recordKinds().includes(found.kind)) {
+                const verdict = found.state === "fail" ? "fail" : "pass";
+                return { kind: "record", verdict, summary: `${found.kind}: ${found.state}`, rows: recordRows(found), built_for };
+            }
+        }
+        const report = await verifyArtifact(raw, "artifact");
+        const summary = `artifact ${report.format ?? "?"}, root ${report.root ?? "-"}`;
+        return { kind: "artifact", verdict: report.ok ? "pass" : "fail", summary, rows: artifactRows(report), built_for };
+    }
+    catch (exc) {
+        return { kind: "unknown", verdict: "fail", summary: "check could not run", rows: [["file", "unchecked", exc.message]], built_for };
+    }
 }

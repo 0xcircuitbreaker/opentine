@@ -8,6 +8,9 @@
  * checked under the key the file embeds (`verified-tofu`) and an HMAC one cannot
  * be checked (`no-key`). A zlib-wrapped file is inflated here first, with
  * `DecompressionStream`, under the same declared-length rule as the reader.
+ * Since 0.51 `verifyBundle(blobSource(file))` checks a `tine bundle` file as
+ * `tine bundle verify` does, streamed with `Blob.slice`, and `verifyRecord`
+ * checks one signed record by its kind.
  */
 
 import { isWrapped, MAGIC, MAX_TINE_ARTIFACT_BYTES, readUvarint } from "../codec.js";
@@ -17,6 +20,10 @@ export { verifyRedactionReport } from "../redactreport.js";
 export { checkGitObject } from "../gitobject.js"; // SPEC 4.18 (0.46.1)
 export { projectDigest, verifyMirrorState, verifyProject, verifyProjectChain } from "../project.js";
 export { verifyReview, verifyReviewBundle, verifyReviewGate } from "../review.js"; // SPEC 4.20 (0.47)
+// 0.51: bundles streamed from a File, every 0.46-0.50 record family, and the release this build is for.
+export { blobSource, bytesSource, isBundle, verifyBundle, verifyBundleBytes, type BundleReport, type Check } from "../bundle.js";
+export { recordKinds, verifyRecord, verifyRecordBytes, type RecordCheck } from "../recordcheck.js";
+export { OPENTINE_VERSION } from "../version.js";
 export type { Report };
 
 /** The Compression Streams API surface used here (the verifier compiles without DOM types). */

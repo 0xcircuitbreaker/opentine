@@ -5,6 +5,9 @@
  * Rules: every recorded value is inserted with textContent, never parsed as markup,
  * all data comes from the page's own origin, and the timeline renders rows
  * lazily in fixed-size chunks so a 10k-step run stays interactive.
+ *
+ * 0.51: "Verify a file" checks a bundle, a .tine artifact or a signed record
+ * the user picks, in a Web Worker, without uploading it anywhere.
  */
 export const CHUNK = 500;
 const TABS = ["Timeline", "Workspace", "Run DAG", "Fleet", "Verify", "Attribution"];
@@ -230,10 +233,57 @@ async function openRun(main, id, runs) {
     main.replaceChildren(header, tabs, panel);
     await select(0);
 }
+/** Render a worker's file report: one row per check, each pass / fail / unchecked with its reason. */
+export function renderFileReport(host, report) {
+    const table = el("table");
+    table.setAttribute("aria-label", "Checks run in this browser");
+    for (const [what, state, why] of report.rows) {
+        const tr = el("tr");
+        tr.dataset.state = state;
+        const css = state === "pass" ? "verified" : state === "fail" ? "failed" : "unchecked";
+        tr.append(el("td", what), el("td", state, `state ${css}`), el("td", why));
+        table.append(tr);
+    }
+    const head = el("p", `${report.verdict}: ${report.summary}`, `state ${report.verdict === "pass" ? "verified" : "failed"}`);
+    head.id = "file-verdict";
+    head.dataset.verdict = report.verdict;
+    host.replaceChildren(head, table, el("p", `checked in this browser by the verifier built for OpenTine ${report.built_for}; nothing was uploaded`, "meta"));
+}
+function fileVerifier(main) {
+    const box = el("div", undefined, "controls");
+    const label = el("label", "Verify a file (bundle, .tine, record) ");
+    const input = el("input");
+    input.type = "file";
+    input.id = "verify-file";
+    label.append(input);
+    input.addEventListener("change", () => {
+        const file = input.files?.[0];
+        if (!file)
+            return;
+        const out = el("div", "Checking…");
+        out.setAttribute("aria-live", "polite");
+        main.replaceChildren(el("h2", `File ${file.name}`), out);
+        const worker = new Worker("verify-browser.js", { type: "module" });
+        worker.onmessage = (ev) => {
+            renderFileReport(out, ev.data);
+            worker.terminate();
+        };
+        worker.postMessage({ file });
+    });
+    box.append(label);
+    return box;
+}
 export async function start() {
     const nav = document.getElementById("runs");
     const main = document.getElementById("main");
-    const runs = await get("/api/runs");
+    let runs = [];
+    try {
+        runs = await get("/api/runs");
+    }
+    catch {
+        nav.replaceChildren(el("p", "No run API here."), fileVerifier(main));
+        return;
+    }
     const ul = el("ul");
     for (const r of runs) {
         const b = el("button", `${r.id.slice(0, 12)} · ${r.status} · ${r.steps} steps`);
@@ -242,7 +292,7 @@ export async function start() {
         li.append(b);
         ul.append(li);
     }
-    nav.replaceChildren(runs.length ? ul : el("p", "No runs found."));
+    nav.replaceChildren(runs.length ? ul : el("p", "No runs found."), fileVerifier(main));
     if (runs.length === 1)
         await openRun(main, runs[0].id, runs);
 }

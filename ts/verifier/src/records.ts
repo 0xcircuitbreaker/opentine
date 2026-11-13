@@ -213,3 +213,29 @@ export function tombstoneClosure(run: string, objects: Map<string, Uint8Array>, 
     state: unavailable.size > 0 ? "content-unavailable" : "verified",
   };
 }
+
+/**
+ * `_tombstone.well_formed` / `_redacted_copy.body`: the field rules and a
+ * signature block present, never the signature itself (what a bundle reader
+ * checks before it knows any key). Returns the signed body.
+ */
+export function wellFormed(which: "tombstone" | "redacted-copy", record: JValue): JObject {
+  const [kind, rule] = which === "tombstone" ? [TOMBSTONE, tombstoneRule] : [COPY, copyRule];
+  if (isObject(record) && !isObject((record as JObject).get("signature") ?? null)) {
+    const bare: JObject = new Map([...(record as JObject)].filter(([key]) => key !== "signature"));
+    try {
+      signed(kind, bare, rule);
+    } catch (exc) {
+      if ((exc as TineError).code !== `${kind.code}.unsigned`) throw exc;
+    }
+    throw new TineError(`the ${kind.subject} is unsigned`, `${kind.code}.unsigned`);
+  }
+  try {
+    return signed(kind, record, rule, null, null).body;
+  } catch (exc) {
+    const code = (exc as TineError).code;
+    if (code === `${kind.code}.malformed` || code === `${kind.code}.unsigned`) throw exc;
+    const object = record as JObject;
+    return new Map(kind.fields.map((name) => [name, object.get(name) as JValue]));
+  }
+}
