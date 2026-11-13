@@ -1,6 +1,6 @@
 # OpenTine roadmap: 0.35 to 0.60
 
-*Status, 2026-11-13: 0.35–0.50 are delivered (§8, §10). §11 covers the web platform and §12 plans 0.51–0.60, with the owner decisions of 2026-11-13; 0.60 is a waypoint on the way to 1.0, not 1.0 itself. Status, 2026-11-07: §10 planned 0.45–0.50 and §11 the web platform. Original baseline: v0.34.0, November 2026. Horizon: about **7–9 months**. Each release below is 3–5 weeks of work, not the 1–3 weeks the earlier draft claimed. Work that does not fit has moved to "0.45+" or the 1.0 track and is not hidden inside a release. Every claim that OpenTine "lacks" something was grep-checked in `opentine/`. Claims about competitors come from a survey of a subset of tools and are stated with that caveat.*
+*Status, 2026-11-13: 0.35–0.50 are delivered (§8, §10) and 0.51 is delivered (§12). §11 covers the web platform and §12 plans 0.51–0.60, with the owner decisions of 2026-11-13; 0.60 is a waypoint on the way to 1.0, not 1.0 itself. Status, 2026-11-07: §10 planned 0.45–0.50 and §11 the web platform. Original baseline: v0.34.0, November 2026. Horizon: about **7–9 months**. Each release below is 3–5 weeks of work, not the 1–3 weeks the earlier draft claimed. Work that does not fit has moved to "0.45+" or the 1.0 track and is not hidden inside a release. Every claim that OpenTine "lacks" something was grep-checked in `opentine/`. Claims about competitors come from a survey of a subset of tools and are stated with that caveat.*
 
 ## 1. Prior roadmap items, copied inline
 
@@ -302,8 +302,9 @@ The earlier draft built three separate append-only logs (op log, custody, tlog).
 | 0.48.0 | Delivered (§10; counsel sign-off and the 72 h fuzz run outstanding) |
 | 0.49.0 | Delivered (operator kit and test paths; the public witness, independent operators and live MinIO/AWS/Azure runs outstanding) |
 | 0.50.0 | Delivered (freeze candidate; criterion 7 met; the audit engagement, 30 nightly green days, green CI runs of the parity, peer-compat, audit-kit and bench jobs, counsel sign-off and the 72 h fuzz outstanding) |
+| 0.51.0 | Delivered (§12; the browser verifier reads bundles and trust bundles, TS codec-3, gates produce evidence, D1 in force with no predicate granted; outstanding: tag-locked npm packages and the tineyard version-lag CI check, Firefox/WebKit harness runs, three consecutive green main runs, the audit engagement letter) |
 
-**Status:** 0.50.0 is the end of this plan. The next plan, toward 1.0, is pending.
+**Status:** 0.50.0 ended the §10 plan; §12 plans 0.51–0.60 toward 1.0, and 0.51.0 is its first release.
 
 ### 0.35.0: Security hardening (about 5 weeks)
 

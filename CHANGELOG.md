@@ -1,10 +1,165 @@
 # Changelog
 
-## Unreleased
+## 0.51.0 — Trust anchor (2026-11-13)
 
-Work toward 0.51.0; the release section is written when it is cut.
+0.51 is the first release of the 0.51–0.60 plan (ROADMAP §12). It moves the
+trust anchor into the browser: the browser verifier reads bundles, codec-3
+packs and owner-signed trust bundles, and the standing 1.0 gates now leave
+evidence for every main commit. 0.60 is a waypoint on the way to 1.0, not a
+release candidate.
 
+### Behaviour changes
+
+- `opentine-verify BUNDLE --pubkey K` and `--hmac-key-file K` check a bundle's
+  redacted-copy record under the key given, as `tine bundle verify
+  --pubkey/--key-file` does. Without a key, an Ed25519 record is checked only
+  under its embedded key and reported as unpinned.
+- `opentine-verify --trust-bundle` with a `verdicts.jsonl` exits 2 instead of
+  silently ignoring the pins.
+- Readers refuse a raw-content zstd dictionary (SPEC 2.8), so the Python and
+  TS readers agree; a dictionary must be the formatted kind `zstd --train`
+  writes.
+- CI: ci.yml and bench runs on main are grouped per commit and never
+  cancelled, so parity, peer-compat-034, audit-kit (on Linux also under
+  `unshare --net`), leave-service and the bench leave a result for every main
+  SHA. Only superseded PR runs are cancelled.
+
+### Added
+
+- The browser verifier (ts/verifier, shipped as
+  `opentine/data/ui/tine-verifier.js`) verifies tine bundles: refs, objects,
+  signature sidecars, tombstones and redacted copies, with the same verdicts
+  and `bundle.*` reason codes as `tine bundle verify`. It reads from a Blob or
+  File with no 32 MiB cap. TINEPACK3 packs are streamed one object at a time;
+  TINEPACK4 and TINEPACK5 packs are read into memory (up to 256 MiB).
+- `opentine-verify` accepts bundle files and prints `--version`.
+- The run viewer accepts bundles, v4/v5 .tine files and single signed records.
+  It shows each check as pass, fail or unchecked with a reason, never reports
+  a check it did not run, and marks the signer identity unchecked when no key
+  is pinned.
+- The browser verifier checks single dropped 0.47–0.50 records: reviews and
+  review bundles, merge/v1 and merge approvals, eval verdicts, prompt
+  versions, memory notes, forge checks, review findings, tombstones, redacted
+  copies and projects. Review gates, forge claims and admission VSAs are shown
+  as unchecked, with the reason.
+- The TS verifier and the browser viewer read codec-3 (zstd dictionary) local
+  pack blocks, with a vendored pure-TS copy of fzstd 0.1.1's block decoder and
+  dictionary support (no new dependency, no wasm). The dictionary must hash to
+  the id its frame names and be at most 1 MiB. `29-localpack` gains three
+  codec-3 cases with an optional `zstd` capability and the reason code
+  `localpack.dictionary`.
+- New `tine trust bundle create|verify` (`--json`: `tine-cli-trust-bundle/1`):
+  an owner-signed C2SP signed note over existing trust documents (a trust
+  policy's portable fields such as `pin`, an `opentine-witness-network/1`
+  registry, log keys, admission policies), cacheable and refused on serial
+  rollback (SPEC 8.26; a profile, not a new kind).
+- The TS verifier gains `openTrustBundle`, `VerifyKeys.pins` (same semantics
+  as `tine verify --pin`) and `opentine-verify --trust-bundle FILE
+  --owner-vkey VKEY`. In TS the witness registry and admission policies are
+  checked by their `schema`/`kind` only; `tine trust bundle verify` runs the
+  full validators.
+- The run viewer can pin signers from a same-origin trust bundle that the host
+  page names with `<meta>` tags, and remembers the highest serial per owner
+  key. With such a bundle, signatures read verified or failed instead of
+  "unpinned". The pin is only as trustworthy as the origin serving the page.
+- New `docs/api/client-versions.json`: the release the ts/ clients were built
+  for, and the oldest browser verifier this release still supports.
+- New ts/browser-tests Playwright harness: the pinned conformance set and the
+  bundle corpus run in Chromium, Firefox and WebKit (each skipped if not
+  installed), compared with Node; a bundle of at least 200 MiB is checked for
+  zero network requests (gated by `OPENTINE_BROWSER_LARGE=1`). New CI job with
+  a 45-minute timeout and read-only permissions.
+- Verifiers: the Python reference, the pyz and the TS verifier (`claimStatus`)
+  each have a `claim_status` helper that returns `unchecked`
+  (`claim.unknown-predicate` or `claim.unnamed`) for any claim with no granted
+  checker. No verify path gives an attestation claim a pass or fail; the
+  status appears in reports with the first granted predicate.
+- Gates: the compression bench (criterion 6) runs on every push to main as
+  well as weekly and on PRs, and uploads `bench-report-<sha>`. The nightly
+  stress summary stores the green streak as `nightly-streak.json`;
+  `docs/bench/nightly-streak.json` holds the same plain data and is refreshed
+  by hand with `--write`. `scripts/stress_streak.py` honours dated, owned flake
+  waivers in `docs/bench/stress-waivers.json` with a proven infrastructure
+  cause, and gains `--waivers` and `--write`.
+- New `scripts/check_release_gates.py`: for one commit it checks parity,
+  peer-compat, audit-kit, leave-service, bench, the nightly streak (with
+  waivers) and `waivers-signed`. It reads only main's own runs, never PR runs,
+  uses the `gh` CLI and skips cleanly without it (`--require` makes the skip
+  exit 3). docs/RELEASING.md gains the standing release gates checklist and
+  the flake-waiver policy.
+- New `scripts/check_copy.py`: an overclaim lint for README.md and docs, run
+  in the CI `test` job.
+- Docs: ROADMAP §12 plans releases 0.51–0.60 and records owner decisions
+  D1–D8. §11 pricing: every feature and all verification are free forever;
+  only metered hosted storage beyond fair use and runner compute at cost may
+  be charged, on the user's own model credentials, with no token resale.
 - The suite is now **1166 conformance vectors**; 509 of the 1166 refuse input, and the adapter contract still has one entry point: 75 ops.
+
+### Security
+
+- The run viewer's build moves to esbuild 0.28.2, fixing GHSA-67mh-4wv8-2f99
+  (a dev-server issue only; the shipped assets were rebuilt and rebuild
+  byte-for-byte). `npm audit` is clean in every ts/ package.
+- The viewer fetches a trust bundle only from its own origin; a bundle that
+  pins nothing or is cross-origin is refused.
+- Trust-bundle parsing matches between Python and TS: the version must be the
+  integer 1, pins are exactly `sha256:` plus 64 lowercase hex, impossible
+  dates and times are refused, and a leading BOM is refused.
+- Flake waivers count toward the nightly streak at release time only when
+  every commit that touched the waiver file carries a good git signature.
+
+### Compatibility
+
+- No object kind or wire format was added (the 0.48 cutoff holds;
+  `tests/freeze_inventory.py` allow-lists are empty). The codec-3 cases sit in
+  the existing `29-localpack` family; the trust bundle is a profile over
+  frozen formats; the only new schema is the CLI output schema
+  `tine-cli-trust-bundle-1`.
+- FREEZE.md adopts the narrow predicate and claim-schema ruling (decision D1,
+  conditions a–e); granted predicates: none. It records the owner's sign-off
+  (2026-11-13) on the pyz excluding the repository storage families, and the
+  RFC 4998 deferral to 1.1 with its caveat (D2).
+- SPEC 0.51.0: §2.8 formatted dictionaries; §8.26 browser trust bundles;
+  Part 12 adds `tine-cli-trust-bundle-1`.
+- `_config.READER_VERSION` stays 0.50.0; repositories and transfers are
+  unchanged for 0.34–0.50 clients.
+
+### Deferred
+
+- Tag-locked npm packages for the verifier and run viewer, and the
+  opentine-web CI check that fails when tineyard pins more than one minor
+  behind.
+- Firefox and WebKit runs of the browser harness (only Chromium was run for
+  this release), and the 200 MiB bundle run in CI.
+- The `unchecked` claim status is not yet wired into verify reports or the
+  `--json` schemas; it comes with the first granted predicate.
+- `check_release_gates.py` checks one SHA; "3 consecutive main-branch runs"
+  is a manual step. `docs/bench/nightly-streak.json` is refreshed by hand.
+- TS does not run the full witness-registry and admission-policy validators;
+  `tine ui` has no flag to serve a trust bundle; review gates, forge claims
+  and VSAs are shown unchecked in the browser.
+- E1 is decided at 0.56 and E2/E3 at the end of 0.55 (D8).
+- **For humans:** engaging and funding the third-party audit firm and
+  scheduling its two finding drops; 30 consecutive green nightly days and
+  approving signed waivers; three consecutive green main runs of parity,
+  peer-compat, bench and audit-kit; counsel sign-off on the compliance
+  profiles; the 72 h fuzz run; tineyard bumping its verifier pin from 0.45.1.
+
+### 1.0 criteria status
+
+1. All P0/P1 items closed and a third-party audit done: **not met** (the
+   audit is scoped; the engagement letter is a human step).
+2. Formats frozen and Python, TS and pyz pass the same vectors: **not met
+   yet** (the storage-family exclusion is signed off and TS decodes codec 3;
+   the `parity` CI job has not run green).
+3. The 0.34 peer compatibility job green for every release: **not met yet**
+   (runs on every main commit now; no green streak recorded).
+4. The pyz air-gap-tested on Linux, macOS and Windows: **met**.
+5. Nightly stress green for 30 days: **not met** (the streak is recorded and
+   auditable; it stands at 0).
+6. Compression bench within 5% of 0.40: **not met yet** (runs on every main
+   commit; needs a green run on the pinned runner).
+7. The deprecation policy published: **met** (`docs/DEPRECATION.md`).
 
 ## 0.50.0 — Freeze candidate (2026-11-09)
 

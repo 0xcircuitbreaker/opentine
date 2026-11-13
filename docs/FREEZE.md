@@ -93,16 +93,10 @@ case.
 | Evidence folder (`MANIFEST.sha256`, `custody.jsonl`) and the audit kit | 8.4, 8.4.1 |
 | Published JSON Schemas and the `--json` envelope | 12 |
 
-## 0.51: owner sign-off and codec-3 vectors
+## 0.51: codec-3 vectors and trust bundles
 
-**The pyz storage-family exclusion is signed off by the release owner
-(2026-11-13).** The reading recorded below as "a decision for the release
-owner" is accepted: for criterion 2, "Python, TS and pyz on the same vectors"
-holds for every family except the repository storage families of
-`tests/freeze_inventory.py` `STORAGE` (16-bounds, 22-layout, 24-refs,
-26-reflog, 27-shallow, 28-pack, 29-localpack, 99-repair), which the pyz never
-opens because it reads exported files, not repositories. Python and the TS
-verifier answer those families case by case. The list may only shrink.
+The owner's sign-off on the pyz storage-family exclusion (2026-11-13) is
+recorded under "Rulings after the freeze (0.51)" below.
 
 `29-localpack` gained three cases (no new family, kind or format): codec 3,
 the zstd-with-dictionary stored form of 0.50 (SPEC 2.3), which the TS verifier
