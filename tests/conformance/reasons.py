@@ -578,6 +578,13 @@ REASONS: dict[str, Reason] = {
         "a slim event that stores a field holding its default value",
         "accept the redundant field",
     ),
+    "localpack.dictionary": R(
+        "2.3",
+        None,
+        "a codec-3 block whose zstd dictionary is not kept, or whose kept bytes do not "
+        "hash to the digest the frame names",
+        "inflate it without the dictionary, or with whichever dictionary is at hand",
+    ),
     "pack.version-unsupported": R(
         "2.8",
         None,

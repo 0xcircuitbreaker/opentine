@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+Work toward 0.51.0; the release section is written when it is cut.
+
+- The suite is now **1166 conformance vectors**; 509 of the 1166 refuse input, and the adapter contract still has one entry point: 75 ops.
+
 ## 0.50.0 — Freeze candidate (2026-11-09)
 
 0.50 exists to meet the 1.0 criteria, not to add features. It is the last

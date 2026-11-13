@@ -3,7 +3,8 @@
  * long-distance `TINEPACK5` frame, over the pure-JS `fzstd` decoder.
  *
  * Before `fzstd` sees a byte, the frame's structure is walked here (RFC 8878
- * section 3.1.1): one frame, no dictionary, a window of at most 2**27 (the
+ * section 3.1.1): one frame, no dictionary (codec 3, `./zstddict.ts`, names
+ * the one it was given), a window of at most 2**27 (the
  * reference reader's `window_log_max`, X17), and an exact end. A crafted
  * frame therefore cannot make this reader reserve more than 128 MiB, carry
  * trailing data, or stop short; output is bounded by the declared size.
@@ -28,7 +29,7 @@ function corrupt(message: string): never {
 }
 
 /** Walk one zstd frame's header and block headers without decoding anything. */
-export function scanFrame(data: Uint8Array): FrameInfo {
+export function scanFrame(data: Uint8Array, allowedDictId = 0): FrameInfo {
   if (data.length < 6) corrupt("zstd frame is truncated");
   const magic = (data[0] | (data[1] << 8) | (data[2] << 16) | (data[3] << 24)) >>> 0;
   if (magic !== MAGIC) corrupt("not a zstd frame");
@@ -50,7 +51,7 @@ export function scanFrame(data: Uint8Array): FrameInfo {
   let dictId = 0;
   for (let i = 0; i < dictBytes; i++) dictId += data[pos + i] * 2 ** (8 * i);
   pos += dictBytes;
-  if (dictId !== 0) corrupt("zstd frame needs a dictionary");
+  if (dictId !== 0 && dictId !== allowedDictId) corrupt("zstd frame needs a dictionary");
   const fcsBytes = [single ? 1 : 0, 2, 4, 8][fcsFlag];
   let contentSize: number | null = null;
   if (fcsBytes) {

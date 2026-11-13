@@ -214,7 +214,7 @@ OP_META: dict[str, dict[str, object]] = {
     "localpack.read": {
         "profile": READER,
         "input": ["bytes_b64", "blob"],
-        "args": ["pack_b64"],
+        "args": ["pack_b64", "dicts_b64"],
         "output": ["pack_id", "objects"],
         "unordered": ["objects"],
         "requires": ["zlib"],

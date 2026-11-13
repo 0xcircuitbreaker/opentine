@@ -19,9 +19,15 @@ from pathlib import Path
 
 import pytest
 
+from opentine import _codec
+
 ROOT = Path(__file__).resolve().parent.parent
 RUNNER = ROOT / "docs" / "conformance" / "run_conformance.py"
 ADAPTER = ROOT / "scripts" / "conformance_adapter.py"
+
+
+#: The codec-3 cases need zstd with dictionaries (opentine[zstd] or Python 3.14).
+_ZSTD = ("--capability", "zstd") if _codec._zstd() is not None else ()
 
 
 def _run(*extra: str, report: Path | None = None) -> subprocess.CompletedProcess[str]:
@@ -38,6 +44,7 @@ def _run(*extra: str, report: Path | None = None) -> subprocess.CompletedProcess
         "ml-dsa-65",
         "--capability",
         "wtf8",
+        *_ZSTD,
         *extra,
     ]
     if report is not None:

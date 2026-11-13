@@ -30,6 +30,125 @@
     },
     {
       "args": {
+        "dicts_b64": {
+          "5614e77f75445ce3098c5799fdafe1391c8b0abdcc80a27dc02cd92746de44d8": "N6Qw7C64yF8ZEOhqdAAAABEB8Li3lEnKlFAEIYQQQgghJOMDAAAAAkAIhMYAAARgAIqBEQQAAICJCQECAJSPgwEAAAAAAAAAAAAAAAAAAACZAgAACL0NsA0AAABkaM4vawEAAAAAAAAAAAAAAAAAAQAAAAQAAAAIAAAAOltdLCJjb3N0Ijo3LCJkdXJhdGlvbiI6NDksImtpbmQiOiJ0b29sIiwicGFyZW50X2lkcyI6W10sInVzYWdlIjp7ImlucHV0X3Rva2VucyI6NzcsIm91dHB1dF90b2tlbnMiOjM1fX17ImVuY29kaW5nIjoianNvbiIsInNjaGVtYSI6MSwidHlwZSI6ImV2ZW50In0KeyJhY3RvciI6ImFnZW50LTIiLCJhdHRyaWJ1dGVzIjp7InF1ZXJ5IjoicXVlcnkgbnVtYmVyIDgiLCJ0b29sIjoic2VhcmNoIn0sImJpbGxpbmciOnt9LCJjYXVzYWxfaWRzIjpbXSwiY29zdCI6OCwiZHVyYXRpb24iOjU2LCJraW5kIjoidG9vbCIsInBhcmVudF9pZHMiOltdLCJ1c2FnZSI6eyJpbnB1dF90b2tlbnMiOjg4LCJvdXRwdXRfdG9rZW5zIjo0MH19eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiYWN0b3IiOiJhZ2VudC0wIiwiYXR0cmlidXRlcyI6eyJxdWVyeSI6InF1ZXJ5IG51bWJlciA5IiwidG9vbCI6InNlYXJjaCJ9LCJiaWxsaW5nIjp7fSwiY2F1c2FsX2lkcyI6W10sImNvc3QiOjksImR1cmF0aW9uIjo2Mywia2luZCI6InRvb2wiLCJwYXJlbnRfaWRzIjpbXSwidXNhZ2UiOnsiaW5wdXRfdG9rZW5zIjo5OSwib3V0cHV0X3Rva2VucyI6NDV9fXsiZW5jb2RpbmciOiJqc29uIiwic2NoZW1hIjoxLCJ0eXBlIjoiZXZlbnQifQp7ImFjdG9yIjoiYWdlbnQtMSIsImF0dHJpYnV0ZXMiOnsicXVlcnkiOiJxdWVyeSBudW1iZXIgMTAiLCJ0b29sIjoic2VhcmNoIn0sImJpbGxpbmciOnt9LCJjYXVzYWxfaWRzIjpbXSwiY29zdCI6MTAsImR1cmF0aW9uIjo3MCwia2luZCI6InRvb2wiLCJwYXJlbnRfaWRzIjpbXSwidXNhZ2UiOnsiaW5wdXRfdG9rZW5zIjoxMTAsIm91dHB1dF90b2tlbnMiOjUwfX17ImVuY29kaW5nIjoianNvbiIsInNjaGVtYSI6MSwidHlwZSI6ImV2ZW50Ig=="
+        },
+        "pack_b64": "VElORUxQMwpUSU5FWjEAA6oMVhTnf3VEXOMJjFeZ/a/hORyLCr3MgKJ9wCzZJ0beRNgotS/9Yy64yF8qBZ0CADPDBb9rm+xpFWmVScQSDdtiOyaP7D8zM2OGIqwwqMeQM0o3fQHx9YzF1xjfZ2x6DXk5idHRLp8WvhFbJvPEHjItnYKZ0iDIuBuG38U+s5B4pVEN"
+      },
+      "checklist": [
+        6
+      ],
+      "expect": "accept",
+      "id": "localpack.codec3.dictionary",
+      "input": {
+        "bytes_b64": "VElORUlYMwo3iiTeiKoWL8gkLcpaIbCE/j/GlI9aYaTMG3LpcK2b8gAAAAEAAAAGAAAAiwAABioDAyrGmP1yeyDykbu1BYRrzYumq5aBIF2EUT3y6nWYJxw1AAAAAAAAAQcAAAEHAAABBwADMmCcUQpGKOOuV2/tutJltC8W9nIrfCgg0utv9LqzF3IAAAAAAAAAAAAAAQcAAAEHAANQxz6u0zbQuJMaNkRYqEJL6l3BDvCUkibFd4IZyf4cIgAAAAAAAAQcAAABBwAAAQcAA6AlLs43o3W9GUU+7cE3WFJo/sc0svo3v69YV5HVglmSAAAAAAAAAg4AAAEHAAABBwADop9yH7RKh/tJGyDBMzf/rN6tGzcrW6l+U59g3XqcBU0AAAAAAAADFQAAAQcAAAEHAAPI//yAWR/+qa66mm0euJnfCS4H7NoOv47a+oO8Bf5FzQAAAAAAAAUjAAABBwAAAQcA4J2U/BijkoPR62Fv1ki/+Oz8XxsMar/Jc8ChKdRpB+0=",
+        "sha256": "7ccc1c0f24ab6fcd105f1c20d9d3ad40912612fa2edd7f263761c16985166eb3"
+      },
+      "intent": "a block in codec 3 (0.50 `tine gc --dictionaries`) inflates with the trained zstd dictionary its frame names by SHA-256, to the same objects as in codec 2",
+      "op": "localpack.read",
+      "output": {
+        "objects": [
+          [
+            "event:sha256:2ac698fd727b20f291bbb505846bcd8ba6ab9681205d84513df2ea7598271c35",
+            "493d1d2975400e6782735021c3de9d859fb8dcdd161b8d0ee3bb2612f3c6fd8c"
+          ],
+          [
+            "event:sha256:32609c510a4628e3ae576fedbad265b42f16f6722b7c2820d2eb6ff4bab31772",
+            "fcf66f76e0d97940dee76af63b234b468de1729ab372ebe9d50e1b77a33a45a5"
+          ],
+          [
+            "event:sha256:50c73eaed336d0b8931a364458a8424bea5dc10ef0949226c5778219c9fe1c22",
+            "5f685ddd7307f70ae5c25c9fa6d15238d4c77994ad3e7ab74ffe87e96aecd856"
+          ],
+          [
+            "event:sha256:a0252ece37a375bd19453eedc137585268fec734b2fa37bfaf585791d5825992",
+            "ab8630e023bc49df68fef13d82db22ecf2f195912016cbf38a4a4a4cb8362e19"
+          ],
+          [
+            "event:sha256:a29f721fb44a87fb491b20c13337ffacdead1b372b5ba97e539f60dd7a9c054d",
+            "6ec07210012520c34727d3d8122bb5c4d22837ab83af2e6f5d9b318127807f3b"
+          ],
+          [
+            "event:sha256:c8fffc80591ffea9aeba9a6d1eb899df092e07ecda0ebf8edafa83bc05fe45cd",
+            "b0cf855a3ee4f265d8a582f5d5bae84df04dcf4a9c24e5c233a90a601e1e8b07"
+          ]
+        ],
+        "pack_id": "378a24de88aa162fc8242dca5a21b084fe3fc6948f5a61a4cc1b72e970ad9bf2"
+      },
+      "profile": "reader",
+      "requires": [
+        "zlib",
+        "zstd"
+      ],
+      "section": "2.8",
+      "tier": "core",
+      "x_display": "TINEIX3\\n7\\x8a$\\xde\\x88\\xaa\\x16/\\xc8$-\\xcaZ!\\xb0\\x84\\xfe?\\xc6\\x94\\x8fZa\\xa4\\xcc\\x1br\\xe9p\\xad\\x9b\\xf2\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\x06\\x00\\x00\\x00\\x8b\\x00\\x00\\x06*\\x03\\x03*\\xc6\\x98\\xfdr{ \\xf2\\x91\\xbb\\xb5\\x05\\x84k\\xcd\\x8b\\xa6\\xab\\x96\\x81 ]\\x84Q=\\xf2\\xeau\\x98'\\x1c5\\x00\\x00\\x00\\x00\\x00\\x00\\x01\\x07\\x00\\x00\\x01\\x07\\x00\\x00\\x01\\x07\\x00\\x032`\\x9cQ\\nF(\\xe3\\xaeWo\\xed\\xba\\xd2e\\xb4/\\x16\\xf6r+|( \\xd2\\xebo\\xf4\\xba\\xb3\\x17r\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x01\\x07\\x00\\x00\\x01\\x07\\x00\\x03P\\xc7>\\xae\\xd36\\xd0\\xb8\\x93\\x1a6DX\\xa8BK\\xea]\\xc1\\x0e\\xf0\\x94\\x92&\\xc5w\\x82\\x19\\xc9\\xfe\\x1c\"\\x00\\x00\\x00\\x00\\x00\\x00\\x04\\x1c\\x00\\x00\\x01\\x07\\x00\\x00\\x01\\x07\\x00\\x03\\xa0%.\\xce7\\xa3u\\xbd\\x19E>\\xed\\xc17XRh\\xfe\\xc74\\xb2\\xfa7\\xbf\\xafXW\\x91\\xd5\\x82Y\\x92\\x00\\x00\\x00\\x00\\x00\\x00\\x02\\x0e\\x00\\x00\\x01\\x07\\x00\\x00\\x01\\x07\\x00\\x03\\xa2\\x9fr\\x1f\\xb4J\\x87\\xfbI\\x1b \\xc137\\xff\\xac\\xde\\xad\\x1b7+[\\xa9~S\\x9f`\\xddz\\x9c\\x05M\\x00\\x00\\x00\\x00\\x00\\x00\\x03\\x15\\x00\\x00\\x01\\x07\\x00\\x00\\x01\\x07\\x00\\x03\\xc8\\xff\\xfc\\x80Y\\x1f\\xfe\\xa9\\xae\\xba\\x9am\\x1e\\xb8\\x99\\xdf\\x09.\\x07\\xec\\xda\\x0e\\xbf\\x8e\\xda\\xfa\\x83\\xbc\\x05\\xfeE\\xcd\\x00\\x00\\x00\\x00\\x00\\x00\\x05#\\x00\\x00\\x01\\x07\\x00\\x00\\x01\\x07\\x00\\xe0\\x9d\\x94\\xfc\\x18\\xa3\\x92\\x83\\xd1\\xebao\\xd6H\\xbf\\xf8\\xec\\xfc_\\x1b\\x0cj\\xbf\\xc9s\\xc0\\xa1)\\xd4i\\x07\\xed",
+      "x_reference": null
+    },
+    {
+      "args": {
+        "dicts_b64": {
+          "5614e77f75445ce3098c5799fdafe1391c8b0abdcc80a27dc02cd92746de44d8": "N6Qw7C64yF8ZEOhqdAAAABEB8Li3lEnKlFAEIYQQQgghJOMDAAAAAkAIhMYAAARgAIqBEQQAAICJCQECAJSPgwEAAAAAAAAAAAAAAAAAAACZAgAACL0NsA0AAABkaM4vawEAAAAAAAAAAAAAAAAAAQAAAAQAAAAIAAAAOltdLCJjb3N0Ijo3LCJkdXJhdGlvbiI6NDksImtpbmQiOiJ0b29sIiwicGFyZW50X2lkcyI6W10sInVzYWdlIjp7ImlucHV0X3Rva2VucyI6NzcsIm91dHB1dF90b2tlbnMiOjM1fX17ImVuY29kaW5nIjoianNvbiIsInNjaGVtYSI6MSwidHlwZSI6ImV2ZW50In0KeyJhY3RvciI6ImFnZW50LTIiLCJhdHRyaWJ1dGVzIjp7InF1ZXJ5IjoicXVlcnkgbnVtYmVyIDgiLCJ0b29sIjoic2VhcmNoIn0sImJpbGxpbmciOnt9LCJjYXVzYWxfaWRzIjpbXSwiY29zdCI6OCwiZHVyYXRpb24iOjU2LCJraW5kIjoidG9vbCIsInBhcmVudF9pZHMiOltdLCJ1c2FnZSI6eyJpbnB1dF90b2tlbnMiOjg4LCJvdXRwdXRfdG9rZW5zIjo0MH19eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiYWN0b3IiOiJhZ2VudC0wIiwiYXR0cmlidXRlcyI6eyJxdWVyeSI6InF1ZXJ5IG51bWJlciA5IiwidG9vbCI6InNlYXJjaCJ9LCJiaWxsaW5nIjp7fSwiY2F1c2FsX2lkcyI6W10sImNvc3QiOjksImR1cmF0aW9uIjo2Mywia2luZCI6InRvb2wiLCJwYXJlbnRfaWRzIjpbXSwidXNhZ2UiOnsiaW5wdXRfdG9rZW5zIjo5OSwib3V0cHV0X3Rva2VucyI6NDV9fXsiZW5jb2RpbmciOiJqc29uIiwic2NoZW1hIjoxLCJ0eXBlIjoiZXZlbnQifQp7ImFjdG9yIjoiYWdlbnQtMSIsImF0dHJpYnV0ZXMiOnsicXVlcnkiOiJxdWVyeSBudW1iZXIgMTAiLCJ0b29sIjoic2VhcmNoIn0sImJpbGxpbmciOnt9LCJjYXVzYWxfaWRzIjpbXSwiY29zdCI6MTAsImR1cmF0aW9uIjo3MCwia2luZCI6InRvb2wiLCJwYXJlbnRfaWRzIjpbXSwidXNhZ2UiOnsiaW5wdXRfdG9rZW5zIjoxMTAsIm91dHB1dF90b2tlbnMiOjUwfX17ImVuY29kaW5nIjoianNvbiIsInNjaGVtYSI6MSwidHlwZSI6ImV2ZW50Iw=="
+        },
+        "pack_b64": "VElORUxQMwpUSU5FWjEAA6oMVhTnf3VEXOMJjFeZ/a/hORyLCr3MgKJ9wCzZJ0beRNgotS/9Yy64yF8qBZ0CADPDBb9rm+xpFWmVScQSDdtiOyaP7D8zM2OGIqwwqMeQM0o3fQHx9YzF1xjfZ2x6DXk5idHRLp8WvhFbJvPEHjItnYKZ0iDIuBuG38U+s5B4pVEN"
+      },
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "localpack.codec3.dictionary-mismatch",
+      "input": {
+        "bytes_b64": "VElORUlYMwo3iiTeiKoWL8gkLcpaIbCE/j/GlI9aYaTMG3LpcK2b8gAAAAEAAAAGAAAAiwAABioDAyrGmP1yeyDykbu1BYRrzYumq5aBIF2EUT3y6nWYJxw1AAAAAAAAAQcAAAEHAAABBwADMmCcUQpGKOOuV2/tutJltC8W9nIrfCgg0utv9LqzF3IAAAAAAAAAAAAAAQcAAAEHAANQxz6u0zbQuJMaNkRYqEJL6l3BDvCUkibFd4IZyf4cIgAAAAAAAAQcAAABBwAAAQcAA6AlLs43o3W9GUU+7cE3WFJo/sc0svo3v69YV5HVglmSAAAAAAAAAg4AAAEHAAABBwADop9yH7RKh/tJGyDBMzf/rN6tGzcrW6l+U59g3XqcBU0AAAAAAAADFQAAAQcAAAEHAAPI//yAWR/+qa66mm0euJnfCS4H7NoOv47a+oO8Bf5FzQAAAAAAAAUjAAABBwAAAQcA4J2U/BijkoPR62Fv1ki/+Oz8XxsMar/Jc8ChKdRpB+0=",
+        "sha256": "7ccc1c0f24ab6fcd105f1c20d9d3ad40912612fa2edd7f263761c16985166eb3"
+      },
+      "intent": "a dictionary is found by the digest of its bytes; bytes filed under that digest that hash to another are refused",
+      "op": "localpack.read",
+      "profile": "reader",
+      "reason": "localpack.dictionary",
+      "requires": [
+        "zlib",
+        "zstd"
+      ],
+      "section": "2.8",
+      "tier": "core",
+      "x_display": "TINEIX3\\n7\\x8a$\\xde\\x88\\xaa\\x16/\\xc8$-\\xcaZ!\\xb0\\x84\\xfe?\\xc6\\x94\\x8fZa\\xa4\\xcc\\x1br\\xe9p\\xad\\x9b\\xf2\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\x06\\x00\\x00\\x00\\x8b\\x00\\x00\\x06*\\x03\\x03*\\xc6\\x98\\xfdr{ \\xf2\\x91\\xbb\\xb5\\x05\\x84k\\xcd\\x8b\\xa6\\xab\\x96\\x81 ]\\x84Q=\\xf2\\xeau\\x98'\\x1c5\\x00\\x00\\x00\\x00\\x00\\x00\\x01\\x07\\x00\\x00\\x01\\x07\\x00\\x00\\x01\\x07\\x00\\x032`\\x9cQ\\nF(\\xe3\\xaeWo\\xed\\xba\\xd2e\\xb4/\\x16\\xf6r+|( \\xd2\\xebo\\xf4\\xba\\xb3\\x17r\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x01\\x07\\x00\\x00\\x01\\x07\\x00\\x03P\\xc7>\\xae\\xd36\\xd0\\xb8\\x93\\x1a6DX\\xa8BK\\xea]\\xc1\\x0e\\xf0\\x94\\x92&\\xc5w\\x82\\x19\\xc9\\xfe\\x1c\"\\x00\\x00\\x00\\x00\\x00\\x00\\x04\\x1c\\x00\\x00\\x01\\x07\\x00\\x00\\x01\\x07\\x00\\x03\\xa0%.\\xce7\\xa3u\\xbd\\x19E>\\xed\\xc17XRh\\xfe\\xc74\\xb2\\xfa7\\xbf\\xafXW\\x91\\xd5\\x82Y\\x92\\x00\\x00\\x00\\x00\\x00\\x00\\x02\\x0e\\x00\\x00\\x01\\x07\\x00\\x00\\x01\\x07\\x00\\x03\\xa2\\x9fr\\x1f\\xb4J\\x87\\xfbI\\x1b \\xc137\\xff\\xac\\xde\\xad\\x1b7+[\\xa9~S\\x9f`\\xddz\\x9c\\x05M\\x00\\x00\\x00\\x00\\x00\\x00\\x03\\x15\\x00\\x00\\x01\\x07\\x00\\x00\\x01\\x07\\x00\\x03\\xc8\\xff\\xfc\\x80Y\\x1f\\xfe\\xa9\\xae\\xba\\x9am\\x1e\\xb8\\x99\\xdf\\x09.\\x07\\xec\\xda\\x0e\\xbf\\x8e\\xda\\xfa\\x83\\xbc\\x05\\xfeE\\xcd\\x00\\x00\\x00\\x00\\x00\\x00\\x05#\\x00\\x00\\x01\\x07\\x00\\x00\\x01\\x07\\x00\\xe0\\x9d\\x94\\xfc\\x18\\xa3\\x92\\x83\\xd1\\xebao\\xd6H\\xbf\\xf8\\xec\\xfc_\\x1b\\x0cj\\xbf\\xc9s\\xc0\\xa1)\\xd4i\\x07\\xed",
+      "x_reference": {
+        "exception": "CodecError",
+        "message": "zstd dictionary sha256:5614e77f75445ce3098c5799fdafe1391c8b0abdcc80a27dc02cd92746de44d8 does not match its id"
+      }
+    },
+    {
+      "args": {
+        "dicts_b64": {},
+        "pack_b64": "VElORUxQMwpUSU5FWjEAA6oMVhTnf3VEXOMJjFeZ/a/hORyLCr3MgKJ9wCzZJ0beRNgotS/9Yy64yF8qBZ0CADPDBb9rm+xpFWmVScQSDdtiOyaP7D8zM2OGIqwwqMeQM0o3fQHx9YzF1xjfZ2x6DXk5idHRLp8WvhFbJvPEHjItnYKZ0iDIuBuG38U+s5B4pVEN"
+      },
+      "checklist": [
+        6
+      ],
+      "expect": "reject",
+      "id": "localpack.codec3.dictionary-missing",
+      "input": {
+        "bytes_b64": "VElORUlYMwo3iiTeiKoWL8gkLcpaIbCE/j/GlI9aYaTMG3LpcK2b8gAAAAEAAAAGAAAAiwAABioDAyrGmP1yeyDykbu1BYRrzYumq5aBIF2EUT3y6nWYJxw1AAAAAAAAAQcAAAEHAAABBwADMmCcUQpGKOOuV2/tutJltC8W9nIrfCgg0utv9LqzF3IAAAAAAAAAAAAAAQcAAAEHAANQxz6u0zbQuJMaNkRYqEJL6l3BDvCUkibFd4IZyf4cIgAAAAAAAAQcAAABBwAAAQcAA6AlLs43o3W9GUU+7cE3WFJo/sc0svo3v69YV5HVglmSAAAAAAAAAg4AAAEHAAABBwADop9yH7RKh/tJGyDBMzf/rN6tGzcrW6l+U59g3XqcBU0AAAAAAAADFQAAAQcAAAEHAAPI//yAWR/+qa66mm0euJnfCS4H7NoOv47a+oO8Bf5FzQAAAAAAAAUjAAABBwAAAQcA4J2U/BijkoPR62Fv1ki/+Oz8XxsMar/Jc8ChKdRpB+0=",
+        "sha256": "7ccc1c0f24ab6fcd105f1c20d9d3ad40912612fa2edd7f263761c16985166eb3"
+      },
+      "intent": "a codec-3 block whose dictionary the repository does not keep is refused, never read without it",
+      "op": "localpack.read",
+      "profile": "reader",
+      "reason": "localpack.dictionary",
+      "requires": [
+        "zlib",
+        "zstd"
+      ],
+      "section": "2.8",
+      "tier": "core",
+      "x_display": "TINEIX3\\n7\\x8a$\\xde\\x88\\xaa\\x16/\\xc8$-\\xcaZ!\\xb0\\x84\\xfe?\\xc6\\x94\\x8fZa\\xa4\\xcc\\x1br\\xe9p\\xad\\x9b\\xf2\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\x06\\x00\\x00\\x00\\x8b\\x00\\x00\\x06*\\x03\\x03*\\xc6\\x98\\xfdr{ \\xf2\\x91\\xbb\\xb5\\x05\\x84k\\xcd\\x8b\\xa6\\xab\\x96\\x81 ]\\x84Q=\\xf2\\xeau\\x98'\\x1c5\\x00\\x00\\x00\\x00\\x00\\x00\\x01\\x07\\x00\\x00\\x01\\x07\\x00\\x00\\x01\\x07\\x00\\x032`\\x9cQ\\nF(\\xe3\\xaeWo\\xed\\xba\\xd2e\\xb4/\\x16\\xf6r+|( \\xd2\\xebo\\xf4\\xba\\xb3\\x17r\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x01\\x07\\x00\\x00\\x01\\x07\\x00\\x03P\\xc7>\\xae\\xd36\\xd0\\xb8\\x93\\x1a6DX\\xa8BK\\xea]\\xc1\\x0e\\xf0\\x94\\x92&\\xc5w\\x82\\x19\\xc9\\xfe\\x1c\"\\x00\\x00\\x00\\x00\\x00\\x00\\x04\\x1c\\x00\\x00\\x01\\x07\\x00\\x00\\x01\\x07\\x00\\x03\\xa0%.\\xce7\\xa3u\\xbd\\x19E>\\xed\\xc17XRh\\xfe\\xc74\\xb2\\xfa7\\xbf\\xafXW\\x91\\xd5\\x82Y\\x92\\x00\\x00\\x00\\x00\\x00\\x00\\x02\\x0e\\x00\\x00\\x01\\x07\\x00\\x00\\x01\\x07\\x00\\x03\\xa2\\x9fr\\x1f\\xb4J\\x87\\xfbI\\x1b \\xc137\\xff\\xac\\xde\\xad\\x1b7+[\\xa9~S\\x9f`\\xddz\\x9c\\x05M\\x00\\x00\\x00\\x00\\x00\\x00\\x03\\x15\\x00\\x00\\x01\\x07\\x00\\x00\\x01\\x07\\x00\\x03\\xc8\\xff\\xfc\\x80Y\\x1f\\xfe\\xa9\\xae\\xba\\x9am\\x1e\\xb8\\x99\\xdf\\x09.\\x07\\xec\\xda\\x0e\\xbf\\x8e\\xda\\xfa\\x83\\xbc\\x05\\xfeE\\xcd\\x00\\x00\\x00\\x00\\x00\\x00\\x05#\\x00\\x00\\x01\\x07\\x00\\x00\\x01\\x07\\x00\\xe0\\x9d\\x94\\xfc\\x18\\xa3\\x92\\x83\\xd1\\xebao\\xd6H\\xbf\\xf8\\xec\\xfc_\\x1b\\x0cj\\xbf\\xc9s\\xc0\\xa1)\\xd4i\\x07\\xed",
+      "x_reference": {
+        "exception": "CodecError",
+        "message": "this body needs zstd dictionary sha256:5614e77f75445ce3098c5799fdafe1391c8b0abdcc80a27dc02cd92746de44d8, which is not here (dictionary packs are local only; `tine gc --no-dictionaries` rewrites them)"
+      }
+    },
+    {
+      "args": {
         "pack_b64": "VElORUxQMwpUSU5FWjEAAVp42g2LvQqAMAwGdx/jm7u45lXEobTBHzANbRWl5N3NeNzdAEsq+ZANhLMVQUBLO18RNAf0T9lFvQU2DURVlgwa4IelN9CCF6sF5FrUafWbuwdmP0B4HYk="
       },
       "checklist": [

@@ -1179,6 +1179,9 @@ tells the formats apart by magic; a version-3 repository may hold both.
   `dicts/<lowercase hex sha256>.zdict` (at most 1 MiB). A reader MUST refuse
   the block when that file is missing, larger than 1 MiB or does not hash to
   the named digest, and otherwise applies every rule of §2.3 to the body.
+  The file is a formatted zstd dictionary (RFC 8878 §5: magic `0xEC30A437`,
+  entropy tables, repeat offsets, content), as `zstd --train` writes it;
+  readers refuse a raw-content one (0.51, so the Python and TS readers agree).
   Writers train one dictionary per object kind on the stored forms they pack,
   and write codec 3 only in a repository whose descriptor carries
   `"pack_dicts": "zstd"` with a `min_reader` of at least `0.50.0` (`tine gc

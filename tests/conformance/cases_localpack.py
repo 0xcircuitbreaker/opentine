@@ -3,6 +3,13 @@
 Each input is a ``.tidx`` (the case's bytes) over a ``.tpk`` (``pack_b64``).
 The packs are built here with zlib so a runner needs no zstd; a reader must
 treat the codec byte exactly as for any TINEZ1 frame.
+
+The codec-3 cases (0.51) pin a block compressed with a trained zstd dictionary
+(SPEC 2.3): the dictionary and the zstd frame are committed bytes, made once by
+``_codec_dict.train`` and ``_codec_dict.compress`` at level 19, because
+compressor output is never a writer expectation (``frames.py``). The block's
+objects are built here and each is checked against its id on read. A runner
+passes the repository's ``dicts/`` directory as ``args.dicts_b64``.
 """
 
 from __future__ import annotations
@@ -23,6 +30,48 @@ from tests.conformance.builders import (
     oid_of,
 )
 from tests.conformance.cases import ACCEPT, REJECT, B, Case, Family
+
+#: The dictionary (``zstd --train`` format, 1024 bytes) and the frame of one block.
+DICTIONARY = base64.b64decode(
+    "N6Qw7C64yF8ZEOhqdAAAABEB8Li3lEnKlFAEIYQQQgghJOMDAAAAAkAIhMYAAARgAIqBEQQAAICJCQECAJSPgwEA"
+    "AAAAAAAAAAAAAAAAAACZAgAACL0NsA0AAABkaM4vawEAAAAAAAAAAAAAAAAAAQAAAAQAAAAIAAAAOltdLCJjb3N0"
+    "Ijo3LCJkdXJhdGlvbiI6NDksImtpbmQiOiJ0b29sIiwicGFyZW50X2lkcyI6W10sInVzYWdlIjp7ImlucHV0X3Rv"
+    "a2VucyI6NzcsIm91dHB1dF90b2tlbnMiOjM1fX17ImVuY29kaW5nIjoianNvbiIsInNjaGVtYSI6MSwidHlwZSI6"
+    "ImV2ZW50In0KeyJhY3RvciI6ImFnZW50LTIiLCJhdHRyaWJ1dGVzIjp7InF1ZXJ5IjoicXVlcnkgbnVtYmVyIDgi"
+    "LCJ0b29sIjoic2VhcmNoIn0sImJpbGxpbmciOnt9LCJjYXVzYWxfaWRzIjpbXSwiY29zdCI6OCwiZHVyYXRpb24i"
+    "OjU2LCJraW5kIjoidG9vbCIsInBhcmVudF9pZHMiOltdLCJ1c2FnZSI6eyJpbnB1dF90b2tlbnMiOjg4LCJvdXRw"
+    "dXRfdG9rZW5zIjo0MH19eyJlbmNvZGluZyI6Impzb24iLCJzY2hlbWEiOjEsInR5cGUiOiJldmVudCJ9CnsiYWN0"
+    "b3IiOiJhZ2VudC0wIiwiYXR0cmlidXRlcyI6eyJxdWVyeSI6InF1ZXJ5IG51bWJlciA5IiwidG9vbCI6InNlYXJj"
+    "aCJ9LCJiaWxsaW5nIjp7fSwiY2F1c2FsX2lkcyI6W10sImNvc3QiOjksImR1cmF0aW9uIjo2Mywia2luZCI6InRv"
+    "b2wiLCJwYXJlbnRfaWRzIjpbXSwidXNhZ2UiOnsiaW5wdXRfdG9rZW5zIjo5OSwib3V0cHV0X3Rva2VucyI6NDV9"
+    "fXsiZW5jb2RpbmciOiJqc29uIiwic2NoZW1hIjoxLCJ0eXBlIjoiZXZlbnQifQp7ImFjdG9yIjoiYWdlbnQtMSIs"
+    "ImF0dHJpYnV0ZXMiOnsicXVlcnkiOiJxdWVyeSBudW1iZXIgMTAiLCJ0b29sIjoic2VhcmNoIn0sImJpbGxpbmci"
+    "Ont9LCJjYXVzYWxfaWRzIjpbXSwiY29zdCI6MTAsImR1cmF0aW9uIjo3MCwia2luZCI6InRvb2wiLCJwYXJlbnRf"
+    "aWRzIjpbXSwidXNhZ2UiOnsiaW5wdXRfdG9rZW5zIjoxMTAsIm91dHB1dF90b2tlbnMiOjUwfX17ImVuY29kaW5n"
+    "IjoianNvbiIsInNjaGVtYSI6MSwidHlwZSI6ImV2ZW50Ig=="
+)
+FRAME = base64.b64decode(
+    "KLUv/WMuuMhfKgWdAgAzwwW/a5vsaRVplUnEEg3bYjsmj+w/MzNjhiKsMKjHkDNKN30B8fWMxdcY32dseg15OYnR"
+    "0S6fFr4RWybzxB4yLZ2CmdIgyLgbht/FPrOQeKVRDQ=="
+)
+DICT_EVENTS = [
+    json_object(
+        "event",
+        {
+            "actor": f"agent-{n % 3}",
+            "attributes": {"tool": "search", "query": f"query number {n}"},
+            "billing": {},
+            "causal_ids": [],
+            "cost": n,
+            "duration": n * 7,
+            "kind": "tool",
+            "parent_ids": [],
+            "usage": {"input_tokens": n * 11, "output_tokens": n * 5},
+        },
+    )
+    for n in range(1000, 1006)
+]
+DICT_ID = hashlib.sha256(DICTIONARY).hexdigest()
 
 RUN_A = {"events": [], "session_id": "s", "status": "running", "tips": []}
 RUN_B = {**RUN_A, "events": [oid_of(ROOT_EVENT)], "tips": [oid_of(ROOT_EVENT)]}
@@ -71,6 +120,24 @@ def _crafted(items: list[tuple[str, bytes, int, int]]):
     return ix.encode_index(digest, rows, entries), body
 
 
+def _dictionary_pack() -> tuple[bytes, bytes]:
+    """One block of events in codec 3: ``TINEZ1`` + 3 + size + sha256(dictionary) + frame."""
+    from opentine import _codec
+
+    block = b"".join(DICT_EVENTS)
+    frame = _codec.MAGIC + bytes([_codec.DICT]) + _codec._uvarint(len(block))
+    frame += bytes.fromhex(DICT_ID) + FRAME
+    body = ix.PACK3_MAGIC + frame
+    digest = hashlib.sha256(body).hexdigest()
+    entries, start = [], 0
+    for raw in DICT_EVENTS:
+        entries.append((oid_of(raw), 0, start, len(raw), len(raw), 0))
+        start += len(raw)
+    entries.sort()
+    rows = [(len(frame), len(block), ix.KINDS.index("event"))]
+    return ix.encode_index(digest, rows, entries), body
+
+
 def _oversized() -> tuple[bytes, bytes]:
     """Two blobs declared to tile a block 1 byte past the cap; nothing is inflated."""
     frame = _frame(HELLO_BLOB)
@@ -94,8 +161,11 @@ def _delta(append: dict, changed: dict | None = None) -> bytes:
     return RUN_HEADER + b"\n" + canonical_json(body)
 
 
-def _case(name, expect, intent, pair, reason=None) -> Case:
+def _case(name, expect, intent, pair, reason=None, dicts=None) -> Case:
     index, body = pair
+    args = {"pack_b64": base64.b64encode(body).decode("ascii")}
+    if dicts is not None:
+        args["dicts_b64"] = {k: base64.b64encode(v).decode("ascii") for k, v in dicts.items()}
     return Case(
         id=f"localpack.{name}",
         section="2.8",
@@ -105,14 +175,15 @@ def _case(name, expect, intent, pair, reason=None) -> Case:
         expect=expect,
         intent=intent,
         input=B(index),
-        args={"pack_b64": base64.b64encode(body).decode("ascii")},
+        args=args,
         reason=reason,
-        requires=("zlib",),
+        requires=("zlib",) if dicts is None else ("zlib", "zstd"),
     )
 
 
 _MIXED = _pack([HELLO_BLOB, ROOT_EVENT, CHILD_EVENT, SLIM_EVENT, *RUNS])
 _RUN_ID = oid_of(RUNS[1])
+_DICT_PACK = _dictionary_pack()
 _UNSORTED = bytearray(_MIXED[0])
 _FIRST = struct.calcsize(">8s32sII") + struct.calcsize(">IIB") * 3
 _ENTRY = struct.calcsize(">B32sIIIIB")
@@ -211,6 +282,32 @@ LOCALPACK = Family(
             "a slim event leaves every default-valued field out; storing one is refused",
             _crafted([(oid_of(SLIM_EVENT), SLIM_EVENT, 2, len(SLIM_EVENT))]),
             "localpack.slim-default",
+        ),
+        _case(
+            "codec3.dictionary",
+            ACCEPT,
+            "a block in codec 3 (0.50 `tine gc --dictionaries`) inflates with the trained "
+            "zstd dictionary its frame names by SHA-256, to the same objects as in codec 2",
+            _DICT_PACK,
+            dicts={DICT_ID: DICTIONARY},
+        ),
+        _case(
+            "codec3.dictionary-missing",
+            REJECT,
+            "a codec-3 block whose dictionary the repository does not keep is refused, "
+            "never read without it",
+            _DICT_PACK,
+            "localpack.dictionary",
+            dicts={},
+        ),
+        _case(
+            "codec3.dictionary-mismatch",
+            REJECT,
+            "a dictionary is found by the digest of its bytes; bytes filed under that "
+            "digest that hash to another are refused",
+            _DICT_PACK,
+            "localpack.dictionary",
+            dicts={DICT_ID: DICTIONARY[:-1] + bytes([DICTIONARY[-1] ^ 1])},
         ),
     ),
 )

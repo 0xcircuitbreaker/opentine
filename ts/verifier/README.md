@@ -80,6 +80,19 @@ Before `fzstd` sees a frame, `src/zstd.ts` walks its structure and refuses a
 second frame, a dictionary, a window above 2**27 or a short or trailing frame,
 and output is bounded by the declared size. `fzstd` does not check the
 optional frame checksum; every object read is checked against its id anyway.
+
+Codec 3 (0.51; zstd with a trained dictionary, only in local storage-v3 pack
+blocks) is read when the caller can look a dictionary up by its SHA-256, as
+`localpack.read` can (`args.dicts_b64`). `fzstd` has no dictionary support, so
+`src/vendor/fzstd-blocks.ts` vendors its block decoder from the same pinned
+0.1.1 release (MIT, lines 1-591 unchanged apart from exports and one added
+bounds check, so a review is a short diff against upstream) and
+`src/zstddict.ts` seeds a frame's Huffman and FSE tables, repeat offsets and
+history from the dictionary (RFC 8878 section 5). A pure-TS port was chosen
+over a WebAssembly build of libzstd: no new dependency, no binary to audit,
+nothing fetched at runtime, and the browser bundle grows by a few kilobytes.
+A dictionary that is missing, over 1 MiB or does not hash to the digest the
+frame names is refused (`localpack.dictionary`).
 xz (codec 4, opt-in archival) is refused with a clear message.
 
 Requires Node 20.19 or newer (the `@noble` packages' floor).
