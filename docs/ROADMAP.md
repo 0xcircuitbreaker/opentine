@@ -1,6 +1,6 @@
-# OpenTine roadmap: 0.35 to 0.50
+# OpenTine roadmap: 0.35 to 0.60
 
-*Status, 2026-11-07: 0.35–0.44 are delivered (§8). §10 plans 0.45–0.50 and §11 the web platform. Original baseline: v0.34.0, November 2026. Horizon: about **7–9 months**. Each release below is 3–5 weeks of work, not the 1–3 weeks the earlier draft claimed. Work that does not fit has moved to "0.45+" or the 1.0 track and is not hidden inside a release. Every claim that OpenTine "lacks" something was grep-checked in `opentine/`. Claims about competitors come from a survey of a subset of tools and are stated with that caveat.*
+*Status, 2026-11-13: 0.35–0.50 are delivered (§8, §10). §11 covers the web platform and §12 plans 0.51–0.60, with the owner decisions of 2026-11-13; 0.60 is a waypoint on the way to 1.0, not 1.0 itself. Status, 2026-11-07: §10 planned 0.45–0.50 and §11 the web platform. Original baseline: v0.34.0, November 2026. Horizon: about **7–9 months**. Each release below is 3–5 weeks of work, not the 1–3 weeks the earlier draft claimed. Work that does not fit has moved to "0.45+" or the 1.0 track and is not hidden inside a release. Every claim that OpenTine "lacks" something was grep-checked in `opentine/`. Claims about competitors come from a survey of a subset of tools and are stated with that caveat.*
 
 ## 1. Prior roadmap items, copied inline
 
@@ -842,12 +842,14 @@ A project is a run repository plus a read-only mirror of the code repository it 
 5. No token resale. No preferred model or harness.
 6. No git hosting: a code mirror is a read-only cache of an upstream. It never accepts a push, never becomes the canonical source, and every code surface names the upstream and the last sync time.
 
-**Free for everyone.** The tools to track, audit, manage and hold agents accountable should be in the hands of everyone running AI. So:
+**Free for everyone (amended 2026-11-13, decision D3 in §12).** The tools to track, audit, manage and hold agents accountable should be in the hands of everyone running AI. So:
 
-- Every feature is free for everyone, for public and private projects. There are no paid tiers, no per-seat prices and no per-feature paywalls.
+- Every feature and all verification are free for everyone, for ever, for public and private projects. There are no per-seat prices and no per-feature paywalls, and no feature is held back for a paid plan.
 - Self-host is the same software and is free.
-- The service is sustained by sponsorship, grants and donations, and by optional paid support for organisations that want it. Paid support buys help, not features.
-- Fair-use limits on storage and egress apply to everyone, so the service stays sustainable and hard to abuse. The limits are published as numbers, and exceeding them is answered by contact, not by silent deletion; self-host has no limits.
+- The only things the hosted service may ever charge for are hosted storage beyond the published fair-use limit, metered, and hosted runner compute, at cost. Runner model calls always use the user's own model credentials: there is no token resale (rule 5), and no margin on model usage.
+- The service is otherwise sustained by sponsorship, grants and donations, and by optional paid support for organisations that want it. Paid support buys help, not features.
+- Fair-use limits on storage and egress apply to everyone, so the service stays sustainable and hard to abuse. The limits are published as numbers before any metering starts (0.52), and exceeding them is answered by contact or by the metered option, never by silent deletion; self-host has no limits.
+- Any pricing page (tineyard.com included) must match this section; a page that advertises paid feature tiers or per-member prices is out of line with it.
 
 **Open questions.**
 
@@ -855,3 +857,276 @@ A project is a run repository plus a read-only mirror of the code repository it 
 - **Security and privacy before M2:** CSRF and cookie model, SSE auth, per-tenant authz on CDN object reads, rate limits on share tokens, browser key storage, an npm supply-chain policy, `security.txt` and a disclosure process, a DPA and subprocessor list, retention defaults and a deletion SLA, what the server sees per mode in E2EE projects, and no third-party analytics.
 - **Operations:** backup and disaster recovery, incident response, a status page, and an accessibility target (WCAG 2.2 AA).
 - **Ownership:** trademark, domain and repo ownership moved to a legal entity, and a CLA/DCO policy, before M2.
+
+---
+
+## 12. Releases 0.51 to 0.60
+
+*Planned 2026-11-13 against the released 0.50.0 tree (tag v0.50.0). Owner decisions D1–D8 below are final as of that date. **0.60.0 is a waypoint on the way to 1.0, not 1.0 and not a release candidate:** after 0.60 the owner reassesses, with more research and with tineyard's progress alongside OpenTine, before the 1.0 track is scheduled. Every release keeps the §2 invariants, the §11 rules and the format freeze in `docs/FREEZE.md`.*
+
+**Where things stand at 0.50.** Two of the seven 1.0 criteria are met (pyz air-gapped on 3 OSes; the deprecation policy). Parity is green, but reason codes are not compared when an implementation names none. The nightly streak has just started, the compression gate has no green run on the pinned runner, and the audit is not engaged. tineyard.com (the hosted service of §11, a separate repo that consumes this repo's `ts/` packages and OpenAPI document) runs a browser verifier pinned to 0.45.1: `.tine` v4/v5 only, a 32 MiB cap, no bundles, no pinned signer, and backend APIs not yet specified here (rule 4).
+
+**Thesis.** Fix the trust anchor first (tineyard's verifier at HEAD, its APIs specified here). Move the 1.0 criteria on a real schedule: green gates, reason-code parity, the audit started in 0.51 with two finding drops. Differentiate where others cannot quickly follow: hosted review as "just another reviewer" whose results verify offline, hardware **key** attestation phrased narrowly, and signed, reversible promotion for self-improving agent loops.
+
+**Freeze rule for 0.5x.** Strict by default (FREEZE.md "Rulings after the freeze"): a new `predicateType` or claim schema counts as a new wire format unless granted by name under the adopted ruling, and no predicate is granted in 0.51. Each item below states its freeze impact: **none** (existing objects, envelopes, predicates, a derived index or local config), **NOT_KINDS** (an HTTP or CLI response shape or local config, classified like `tine-cli-*` outputs), or a **frozen-safe form** that ships by default, with an optional exception form. Every item has a frozen-safe fallback.
+
+**Copy discipline.** Banned in docs and site copy: "verified execution", "genuine model output", "only line-level attribution", "unique line-level attribution", "proves the model". Hardware results read "valid at T against collateral C". `scripts/check_copy.py` enforces the list in CI from 0.51.
+
+### 0.51.0: Trust anchor at HEAD, green gates, audit engaged (about 5 weeks)
+
+**Theme:** close tineyard's biggest trust hole, turn the shipped 1.0 gates green on the pinned runner, and start the audit clock.
+
+**Scope:**
+- `verify-browser` and `run-viewer` tag-locked to each CLI release; a published version manifest, and opentine-web CI fails if tineyard pins more than one minor behind.
+- Bundles verify in the browser with a streaming reader (no 32 MiB cap), covering Reviews, merge-queue decisions, eval verdicts, VSAs, prompts and memory.
+- TS codec-3 dictionary decode (a deferred item; an existing stored form).
+- A browser trust bundle: a cacheable, owner-signed config built from the existing `opentine-witness-network/1` and trust-policy formats, pinned locally by the viewer.
+- The run-viewer esbuild advisory fixed.
+- Gates: the compression bench on the pinned runner; the audit-kit job under `unshare --net`; a nightly streak file `docs/bench/nightly-streak.json` (local data, NOT_KINDS); signed, dated flake waivers with an owner.
+- The overclaim docs lint (`scripts/check_copy.py`).
+- The freeze ruling adopted (D1) and recorded in FREEZE.md with its unknown-predicate test; the pyz storage-family exclusion sign-off and the RFC 4998 deferral (D2) recorded there.
+
+**Tineyard unlock:** `/verify` and `/view` reach the current version and accept bundles; the banner caveat shrinks to the checks the viewer chose not to pin.
+
+**1.0 criteria moved:** 2 (exclusion signed off; TS codec-3), 5 (streak running and auditable), 6, and 1 (audit engagement letter; human-only).
+
+**Acceptance:** the browser harness runs the full pinned set in Chromium, Firefox and WebKit with the same verdict as `ts/verifier`, against the case count `scripts/check_parity.py` prints at the tag (not a hard-coded number); a bundle of at least 200 MiB verifies in the browser with zero network requests; every codec-3 vector decodes in TS; the bench is within 5% of 0.40.0 on the pinned runner, or the regression is documented with a fix assigned to 0.53; parity, peer-compat, bench and audit-kit pass on 3 consecutive main-branch runs.
+
+**Freeze impact:** none (new readers; the trust bundle reuses frozen configs).
+
+### 0.52.0: Web contract and security debt (about 5 weeks)
+
+**Theme:** rule 4. Everything tineyard runs is specified here and served by `tine serve`; security-shaped debt is cleared before auditors read it.
+
+**Scope:**
+- `openapi-v1.yaml` gains a tagged admin surface carrying no signed data: session; auth (passkey login as a server concern, provider sign-in as identity linking only); tenants (create, rename, archive, membership, roles, invitations, settings, retention, holds). All implemented in `tine serve`.
+- `caps.authentication`: scoped, expiring, revocable tokens (per tenant, read or write, per ref namespace) and CI OIDC exchange for GitHub, GitLab and Forgejo, as optional `caps` fields where SPEC 5.2 allows, otherwise as unsigned `/v1/limits` and `/v1/auth-methods` documents.
+- Quotas and limits (storage, egress, mirror size, runner minutes): 429 or 507, never deletion; published under D3.
+- Security debt: OTLP alert DNS-rebinding pinned; S3 Object Lock delete/upload race fixed plus `tine gc --sweep-expired`; all-or-nothing `tenant import --remote`; TS keyless checks the RFC 3161 CMS signature and chain; `alert list` no longer creates a key.
+- Merge approvals: queue id, nonce and expiry in an `attestation` over the approval (the approval schema is closed); `land` refuses a gated landing without a signing key.
+- A uniform-404 oracle suite over every tenant route, and a token-scope fuzzer.
+
+**Tineyard unlock:** gaps 2, 4 and 12 (sign-in, workspaces, settings, tokens, limits), with self-host parity.
+
+**1.0 criteria moved:** 1 (P0/P1 security items).
+
+**Acceptance:** 0 undocumented `/api/*` routes against a tineyard staging route list; the 404 oracle passes on 100% of routes; 24 h of token fuzzing finds no escalation; 200 fault-injected imports leave the target unchanged or fully imported; no chunk loss in the MinIO race test; the sweep removes every expired orphan chunk in the fixture.
+
+**Freeze impact:** NOT_KINDS (HTTP admin shapes). The approval attestation is an existing `attestation` with a plain JSON claim and no new vectors; if that is read as a claim schema, nonce and expiry move to local queue state and become a 1.x item.
+
+### 0.53.0: Reason-code parity, storage evidence, RFC 4998 recorded (about 4 weeks)
+
+**Theme:** the three verifiers agree on *why* they refuse; the data behind criterion 6 becomes valid.
+
+**Scope:**
+- Every refusal in Python (150 unnamed today) and the pyz (124) names its pinned reason code; `check_parity.py --reasons` compares codes on every refusal.
+- A 72 h fuzz run over OTLP, `.tine` v4/v5, pack readers and DSSE.
+- The CDC bake-off re-run with a correct gear table (`docs/bench/0.53-cdc.md`, reproducible from a pinned script).
+- The Windows gc/lock stress test stays in the nightly.
+- RFC 4998 deferred to 1.1 (D2) with its caveat repeated in every compliance profile.
+
+**Tineyard unlock:** the browser shows the same reason text as the CLI.
+
+**1.0 criteria moved:** 2 (closed), 6 (valid data), 1 (fuzz).
+
+**Acceptance:** 0 unnamed refusals and 0 reason mismatches across the pinned set in all three implementations; 0 untriaged crashes from the 72 h fuzz; the CDC report reproduces on the pinned runner.
+
+**Freeze impact:** none.
+
+### 0.54.0: Code mirror API and hosted review runner (about 6 weeks)
+
+**Theme:** review on every push without becoming a forge. The runner is just another reviewer.
+
+**Scope:**
+- Mirror: the `caps.project.mirror` sync spec (polling, webhook sync, last-sync time, limits); a code-read API (tree, blob, raw, history, compare, refs) over the frozen `opentine-project/1` manifest and mirror state, every response labelled with its upstream, last-sync time and "computed by host"; per-tenant code search on the `repo-search --hybrid` index.
+- The mirror refuses push, receive-pack, archive download, LFS and a public project over private code; unlinking deletes the mirror and its caches.
+- Runner: `tine review run --fleet` as one container image for hosted and self-hosted use, triggered by a mirror sync or forge webhook. It emits existing Review findings, eval verdicts and the existing admission VSA under a published, rotatable "tineyard runner" key. It never signs as a user and is never trusted by default (D4). Users bring their own model credentials (no token resale); cost is shown per push; the sandbox has no egress except the user's configured model endpoints.
+- `docs/REVIEW-RUNNERS.md` with a free local path; push-triggered evals (`.tine/evals.toml`) on the same runner; the runner sandbox added to the audit scope.
+
+**Tineyard unlock:** gap 3, a real Code tab, and review on every push with every finding verifiable offline and clearly a third-party opinion.
+
+**1.0 criteria moved:** 1 (the runner is in audit drop 2).
+
+**Acceptance:** identical code-read responses from `tine serve` and tineyard on a fixture repo; every push to every endpoint refused; byte-identical hosted and self-hosted findings for a deterministic scorer set; exported runner decisions verify with `tine-verify.pyz --offline`; removing the runner key from trust policy flips the gate to "unmet" and nothing else; the sandbox egress test passes.
+
+**Freeze impact:** none or NOT_KINDS (frozen kinds emitted; API shapes are NOT_KINDS).
+
+### 0.55.0: Audit fixes I and one-command onboarding (about 5 weeks)
+
+**Theme:** absorb audit drop 1 and close the onboarding gap.
+
+**Scope:**
+- Audit drop 1: every critical and high finding received by week 2 fixed or carrying a signed risk acceptance.
+- `tine init --auto`: detects installed agents and wires hooks, OTLP and the MCP proxy; offers a default push of runs beside the code repository behind the existing pre-push preview gate, with redaction first.
+- New hook dialects (OpenCode, Factory Droid, Pi, Antigravity), each a thin adapter with fixtures and a named owner; a dialect without fixtures by code freeze is dropped.
+- `tine doctor --bundle` (a redacted diagnostics tarball); the Entire importer fixtures refreshed against CLI v0.13.3, including its metadata ref name.
+- E2 and E3 decided at the end of this release (D8).
+
+**Tineyard unlock:** new users get runs into tineyard in minutes.
+
+**1.0 criteria moved:** 1.
+
+**Acceptance:** 0 critical or high findings open more than 2 weeks; on clean Linux, macOS and Windows VMs `init --auto` produces a first signed run in under 5 commands for every agent with a fixture (live-agent runs human-logged); seeded secrets never leave the machine.
+
+**Freeze impact:** none (adapters producing existing hook-protocol runs, and CLI behaviour).
+
+### 0.56.0: Hardware-backed key attestation (about 5 weeks)
+
+**Theme:** make "this witness, runner or release key is non-exportable" checkable, and say nothing more (D6: key attestation is the only hardware work before 1.0).
+
+**Scope:**
+- `tine keys attest-hw KEY --from {yubikey-piv, gcp-hsm, aws-cloudhsm, azure-mhsm, tpm2-certify}`; PIV accepts only on-device keys; TPM requires EK/AK activation.
+- Evidence: raw vendor attestation, vendor chain and an RFC 3161 token over both, as evidence blobs; vendor roots pinned in the pyz and TS verifiers; chip and EK identifiers redacted in public copies and never written to public logs.
+- A qualifier `T2+hw:<class>` computed by verify and never stored in a run; `--require-hw` and an admission-policy `require_hw` field (local config).
+- Reason codes `fail:hw-attestation-signature`, `fail:hw-key-mismatch`, `caveat:hw-chain-expired-at-T`, `unchecked:hw-collateral-missing`, `unchecked:hw-unknown-class`.
+- Copy: "signing key held in <class> hardware, attested at T". First users: the tineyard runner key and the public witness key.
+- E1 decided here (D8), only because D1 is in force.
+
+**Tineyard unlock:** a hardware badge, computed in the browser, on service and witness keys.
+
+**1.0 criteria moved:** 1 (the parsers go into audit drop 2).
+
+**Acceptance:** vectors for every vendor class pass in Python, TS and pyz (accept, wrong key, imported PIV key, expired chain, tampered signature, missing collateral); zero network calls during verification; 72 h fuzzing of the CBOR, COSE, X.509 and TPMS_ATTEST parsers finds no crash; a YubiKey 5 and a GCP Cloud HSM key attest end to end (human-run, logged).
+
+**Freeze impact:** E1 if granted by name under the ruling. Otherwise the frozen-safe form ships: evidence blobs on a plain attestation, a local unsigned `T2+hw` report (NOT_KINDS), labelled experimental, no new vectors, not a tier factor until 1.1.
+
+### 0.57.0: Signed promotion and memory provenance for self-improving loops (about 5 weeks; may move after 0.60, D7)
+
+**Theme:** the highest-fit differentiator, built from frozen parts.
+
+**Scope:**
+- `tine promote CANDIDATE --baseline LABEL`: signed eval verdicts that beat the baseline under a stated test (paired bootstrap interval or permutation test, a minimum n, a holdout), an approver set and a budget cap; emits the existing admission VSA; `--revert` writes a signed decision; canary evals revert automatically on a signed regression.
+- Lineage: E2, or the frozen-safe form (VSA evidence plus verdict references). The prompt schema is untouched.
+- Holdouts sealed with TINEAES with keys held only by the eval role; contamination checks (exact oid and near-duplicate, threshold recorded); `eval` refuses a run whose closure touched holdout items.
+- Reward-hacking monitors as scorer plugins (grader or test edits, deleted or skipped tests, held-out versus visible gap, judge versus ground truth, fabricated tool-use evidence); a firing monitor blocks promotion unless a human overrides.
+- Key separation lint; `tine loop stop` writes a signed stop and lease fencing refuses further generations.
+- Memory provenance: E3, or the frozen-safe form (signer plus tlog entry); served memory oids recorded at capture time in the consuming run's existing step evidence; `recall --min-assurance`; `tine memory quarantine NOTE` writes a signed supersede note and lists every run served the note.
+
+**Tineyard unlock:** a promotion page and a memory "served to" view.
+
+**1.0 criteria moved:** none.
+
+**Acceptance:** in a red-team fixture with 20 seeded hacks at least 18 are detected and 0 promoted; a planted holdout leak is refused; n below minimum or an interval crossing 0 is refused with a named reason; promote, revert, promote verifies offline in all three implementations; after a stop the next generation is refused within one lease period, with a clock-skewed fleet too; an injected note is traced to every consuming run on a 100k-run repo in under 5 s.
+
+**Freeze impact:** none in the frozen-safe forms; E2 and E3 optional.
+
+### 0.58.0: Audit fixes II, deferred debt, product surfaces on frozen objects (about 5 weeks)
+
+**Theme:** close the audit, then make existing features visible in tineyard with no new kinds.
+
+**Scope:**
+- Audit drop 2 (runner, hardware parsers, web contract): every finding through medium fixed or risk-accepted in writing.
+- Deferred items: Reviews pull from a remote and exports include run bundles; team-key pinning for a prompt's first version (local trust config); `tine experts` counts only validly signed notes; a merge-queue lease poll limit and `merge-queue recover`; the forge commit-status fallback for fine-grained tokens; importer, signer and snapshot plugins wired into `import`, `sign` and `rewind`.
+- Run-anchored comments and an annotation queue in `tine ui` on the existing v3 `annotation` (`target_id` the run, chained by `previous_id`; the `value` convention is documentation only).
+- Score history per push, insights, explore, badges and OG cards as derived indexes and HTTP outputs labelled "server-computed"; the browser recomputes badges and warns on a mismatch; explore lists public tenants only.
+- SSE event kinds documented for Reviews, merge queue and coord.
+
+**Tineyard unlock:** gaps 6 to 11; changelog, docs and status pages generated from this repo.
+
+**1.0 criteria moved:** 1 (all P0/P1 closed).
+
+**Acceptance:** the audit firm confirms in writing that every critical and high finding is resolved; every chart point links to its signed objects; insights recomputed offline from an export equal the hosted numbers; a private oid queried through explore, a badge or `/r/<oid>` gets the same 404 as a random oid; the `freeze_inventory.py` lists are unchanged or shorter.
+
+**Freeze impact:** none or NOT_KINDS.
+
+### 0.59.0: Hardening (about 3 weeks)
+
+**Theme:** no features. Prove stability and collect the human sign-offs.
+
+**Scope:** FREEZE.md regenerated from the inventory, listing every grant made under the ruling (if any); SPEC, CLI.md, DEPRECATION.md and the OpenAPI document reviewed for 1.0 readiness; a leave-the-service test against tineyard production (export a tenant of at least 10k runs, import it with `tine serve`, verify byte-identically); a reproducible, attested web build and a tineyard trust page listing every service key and its hardware attestation; human sign-offs (counsel on the compliance profiles with eIDAS references re-checked; live S3, Azure and forge tests; one Zenodo and one HF publish; the witness registry).
+
+**1.0 criteria moved:** evidence collected for all seven.
+
+**Acceptance:** each criterion has a dated evidence link in the CHANGELOG; the nightly streak is at least 30 days and unbroken through the branch cut; 0 open P0 or P1 bugs.
+
+**Freeze impact:** none.
+
+### 0.60.0: Waypoint and reassessment (about 3 weeks, mostly soak)
+
+**Theme:** 0.60.0 is a stabilisation waypoint on the way to 1.0 (D5 as modified). It is not 1.0.0-rc1 and is not re-tagged 1.0.0.
+
+**Scope:**
+- A 14-day soak in which nightly, parity, peer-compat, bench, audit-kit and fuzz stay green; regression fixes only, each as 0.60.x.
+- The audit's final report published with the fix list, if it has arrived.
+- **The reassessment:** after 0.60 the owner reviews the 1.0 criteria evidence, further research (competition, hardware, self-improving loops) and tineyard's progress alongside OpenTine, and only then schedules the 1.0 track (release candidate, the RFC 4998 1.1 work, and whatever moved, such as 0.57 under D7).
+
+**Acceptance:** 14 days with zero red standing jobs; a written criteria status for all seven; the owner's reassessment recorded in this roadmap.
+
+**Freeze impact:** none. The formats stay frozen as in FREEZE.md; nothing is added while the reassessment is pending.
+
+### Timeline and dependencies
+
+```
+audit engagement (human, 0.51) ─> drop 1 ─> 0.55 ─> drop 2 ─> 0.58 ─> 0.59 ─> 0.60 waypoint ─> reassess ─> 1.0 track
+0.51 browser verifier/trust bundle + green gates + D1 in force
+  ├─> 0.52 web contract/auth/404/security debt ─> 0.54 mirror + hosted runner ─> 0.58 surfaces
+  ├─> 0.53 reason-code parity + fuzz + CDC (closes criterion 2)
+  ├─> 0.55 onboarding (needs 0.52 tokens); E2/E3 decided
+  ├─> 0.56 hw key attestation (E1 decided here; runner key from 0.54)
+  └─> 0.57 promote + memory provenance [may move after 0.60, D7]
+nightly streak from 0.51 ─────────── unbroken ≥30 days at the 0.59 cut
+```
+
+Starting 2026-11-16 with one core team and the audit engaged by 2026-12-15: 0.51 about 2026-12-21, 0.52 2027-02-01 (holiday slack), 0.53 2027-03-01, 0.54 2027-04-12, 0.55 2027-05-17, 0.56 2027-06-21, 0.57 2027-07-26, 0.58 2027-08-30, 0.59 2027-09-20, 0.60 about 2027-10-11. Slip risk is about 6 weeks, dominated by the audit. No 1.0 date is set until the post-0.60 reassessment.
+
+### 1.0 criteria tracker
+
+| # | 0.51 | 0.52 | 0.53 | 0.54 | 0.55 | 0.56 | 0.57 | 0.58 | 0.59 | 0.60 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1 Audit, P0/P1 | engaged | security debt | fuzz | runner in scope | drop 1 fixed | parsers in scope | — | drop 2; all P0/P1 closed | evidence | report, if arrived |
+| 2 Parity | exclusion signed; TS codec-3 | — | reason codes: closed | hold | hold | hold | hold | hold | evidence | soak |
+| 3 Peer-compat | green | green | green | green | green | green | green | green | evidence | soak |
+| 4 pyz air-gap | re-run | … | … | … | … | … | … | … | evidence | soak |
+| 5 30 nightly days | streak file starts | … | … | … | … | … | … | … | ≥30 unbroken | soak |
+| 6 Compression | pinned run | — | valid CDC data | hold | … | … | … | … | evidence | soak |
+| 7 Deprecation | met | … | … | … | … | … | … | … | evidence | soak |
+
+The streak is only required to be unbroken at the 0.59 cut; a feature release may reset it without being blocked.
+
+### Owner decisions, 2026-11-13
+
+| # | Decision |
+|---|---|
+| D1 | The narrow freeze ruling is adopted as an explicit relaxation (text in FREEZE.md, conditions a–e): no new vector families, no new `docs/schemas` files, no new signature schemes, each predicate signed off by name. None is granted in 0.51. |
+| D2 | RFC 4998 is deferred to 1.1, with the documented caveat: up to 16 root-bound tokens; not a hash-tree renewal; does not survive a SHA-256 break. |
+| D3 | Every feature and all verification stay free for ever. At most, metered hosted storage beyond fair use and hosted runner compute at cost may be charged, always on the user's own model credentials; no token resale. §11 is amended accordingly. |
+| D4 | The hosted runner key is an optional, labelled reviewer and is never trusted by default. |
+| D5 | **Modified:** 0.60.0 is not 1.0-rc1. It is a waypoint on the way to 1.0; after 0.60 the owner reassesses with more research and tineyard's progress. |
+| D6 | Hardware before 1.0 is key attestation only (0.56). Nitro/SNP witness, TDX, CCA, GPU confidential computing and per-run binding go to 1.x. |
+| D7 | 0.57 may move after 0.60 if the audit slips. |
+| D8 | E1 (hardware-key predicate) is granted only with D1 in force and is decided at 0.56; E2 (promotion lineage) and E3 (memory-provenance claim) are decided at the end of 0.55. The frozen-safe forms ship regardless. |
+
+Also signed off on 2026-11-13: the pyz storage-family exclusion for criterion 2 (FREEZE.md).
+
+### Human-only work
+
+| Item | Suggested owner | Must start |
+|---|---|---|
+| Engage and fund the third-party audit (CLI, hosted service, browser verifier, runner, hardware parsers); schedule two finding drops | Release owner / funding lead | Now; signed by 0.51 week 2 |
+| Watch the nightly streak; approve signed waivers | CI owner | 0.51 to 0.60 |
+| 72 h fuzz runs and crash triage (0.53, 0.56) | Security engineer | 0.52 |
+| Hardware lab: YubiKey 5, TPM box, GCP, AWS and Azure HSM accounts; live attest runs | Security engineer with cloud access | Purchase by 0.54 |
+| Licensed agent installs for onboarding runs; one named owner per hook dialect | Integrations lead | 0.54 |
+| GEPA reference loop and the 20-hack red-team suite | Self-improvement owner | 0.55 |
+| Public witness operation; at least 2 independent operators; the registry | Witness operator lead | 0.54 |
+| Live S3/MinIO/Azure Object Lock, forge, Zenodo and HF tests | Infra owner | 0.58 |
+| Counsel: compliance profiles, eIDAS re-check, "hardware-held key" copy | Legal reviewer | Engage by 0.56; sign by 0.59 |
+| Tineyard: implement the OpenAPI routes, bump the verifier pin, runner operations and unit economics, DPA and subprocessor list, `security.txt`, status page, incident response, a pricing page that matches §11 | Web / tineyard operator | 0.51 onward; runner economics before 0.54 |
+| Legal entity, trademark, CLA/DCO | Project lead | Before 0.59 |
+| The post-0.60 reassessment (D5) | Project owner | At the 0.60 soak |
+
+### Cut ideas
+
+- **Code hosting, push to the mirror, an own forge:** breaks rule 6; we stay the evidence layer beside the forge.
+- **New fields on `opentine.memory`, `opentine.prompt` or `opentine.merge-approval`:** all three schemas are closed; attestations or capture-time evidence are used instead.
+- **A new signed "issue" kind:** the v3 `annotation` covers it.
+- **A profiles escape list in `freeze_inventory.py`:** a self-granted escape class beside lists that may only stay empty or shrink.
+- **WebAuthn signatures verified inside a claim:** a new signature scheme, so 1.x. Passkeys may gate access to an existing `tine-sig` key.
+- **RFC 4998 `attest --renew` before 1.0:** a new bound form (D2).
+- **TEE witness, TDX DCAP, Arm CCA, NVIDIA NRAS, per-run TEE binding before 1.0:** weaker evidence, collateral rot and parser surface during the audit (D6).
+- **"Verifiable inference", a TEE agent runtime, zkML, on-chain anchoring:** hardware cannot vouch for a remote model; the tlog and witnesses already anchor.
+- **TLSNotary/zkTLS transcripts and EAT/Veraison/ITA token ingest:** late parser surface; 1.x spikes.
+- **FIDO device attestation for approvals:** synced passkeys mostly give "none" attestation.
+- **`tine ask` cross-repo search and live SSE share sessions:** move no 1.0 criterion; 1.1, on existing indexes.
+- **Columnar pack v6, prolly-tree, OpenZL, hash-agility activation:** format work, so 1.x.
+- **Marketing claims of only or unique signed line-level attribution, or that no one else ships this offline:** refuted or unverified.

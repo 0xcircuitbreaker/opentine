@@ -52,6 +52,9 @@ jobs:
       - name: Format check with ruff
         run: uv run ruff format --check .
 
+      - name: Overclaim lint for docs copy
+        run: uv run python scripts/check_copy.py
+
       - name: Run tests
         run: uv run pytest tests -m "not live and not live_harness" -v
 

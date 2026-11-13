@@ -1,0 +1,65 @@
+{
+  "about": "attestations whose claim names a predicate no verifier is granted (FREEZE.md ruling (b)); regenerate with tests/test_051_unknown_claim.py",
+  "cases": [
+    {
+      "args": {
+        "family": "attestation",
+        "key": "hmac_a"
+      },
+      "id": "tine-attest/1",
+      "value": {
+        "claim": {
+          "predicate": {
+            "anything": [
+              "the verifier cannot judge"
+            ]
+          },
+          "predicateType": "https://example.invalid/not-granted/v1"
+        },
+        "evidence_ids": [],
+        "signature": {
+          "alg": "hmac-sha256",
+          "scheme": "tine-attest/1",
+          "signed_at": "2026-11-13T00:00:00Z",
+          "signer": "release-bot",
+          "value": "77b78f1fcb5d570b63455d3f3decb3dee75773f668ee6621a5fa32d1706252e1"
+        },
+        "signer": "release-bot",
+        "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+      }
+    },
+    {
+      "args": {
+        "family": "attestation",
+        "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8"
+      },
+      "id": "tine-attest/2",
+      "value": {
+        "claim": {
+          "predicate": {
+            "anything": [
+              "the verifier cannot judge"
+            ]
+          },
+          "predicateType": "https://example.invalid/not-granted/v1"
+        },
+        "evidence_ids": [],
+        "signature": {
+          "alg": "ed25519",
+          "public_key": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+          "scheme": "tine-attest/2",
+          "signed_at": "2026-11-13T00:00:00Z",
+          "signer": "release-bot",
+          "value": "337c84cd53d705c0cac5fab3c84d86f316af73cb1bd497e1fdf975ac9621917eac2ef36ad380bb08e2e36f21e5287e6d84661524ac1e9a049d9482b111532705"
+        },
+        "signer": "release-bot",
+        "target_id": "run:sha256:1111111111111111111111111111111111111111111111111111111111111111"
+      }
+    }
+  ],
+  "expect_claim": {
+    "predicate": "https://example.invalid/not-granted/v1",
+    "reason": "claim.unknown-predicate",
+    "status": "unchecked"
+  }
+}
