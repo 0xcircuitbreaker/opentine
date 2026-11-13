@@ -130,7 +130,10 @@ export function badge(v: Verification, check?: BrowserCheck): Badge {
 export async function loadTrust(trust?: TrustRequest): Promise<[TrustBundle | null, string]> {
   if (!trust) return [null, ""];
   try {
-    const res = await fetch(trust.url, { credentials: "same-origin" });
+    const here = (globalThis as { location?: { href: string; origin: string } }).location;
+    const target = here ? new URL(trust.url, here.href) : null;
+    if (!here || !target || target.origin !== here.origin) return [null, "trust bundle is not same-origin; no signer is pinned"];
+    const res = await fetch(target.href, { credentials: "same-origin" });
     if (!res.ok) return [null, `trust bundle unavailable (${res.status}); no signer is pinned`];
     const bundle = openTrustBundle(new Uint8Array(await res.arrayBuffer()), trust.ownerVkey, { minSerial: trust.minSerial });
     return [bundle, ""];

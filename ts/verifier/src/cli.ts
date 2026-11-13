@@ -79,6 +79,11 @@ async function main(argv: string[]): Promise<number> {
     process.stderr.write(USAGE);
     return 2;
   }
+  if (bundle !== undefined && file.endsWith(".jsonl")) {
+    // eval verdicts are checked under --pubkey or their embedded key: a bundle's pins would not apply
+    process.stderr.write("opentine-verify: --trust-bundle applies to .tine artifacts, not a verdicts.jsonl\n");
+    return 2;
+  }
   if (bundle !== undefined) {
     keys.pins = openTrustBundle(readFileSync(bundle), owner as string).pins;
     keys.trustEmbedded = keys.publicKey == null && keys.hmacKey == null;

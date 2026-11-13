@@ -66,6 +66,13 @@ test("an expired bundle and a rollback below the accepted serial are refused", (
   refuses(() => openTrustBundle(note(GOOD), OWNER, { minSerial: 4 }), /older than 4/);
 });
 
+test("times Python refuses (Feb 30, 24:00), a BOM-prefixed note and a boolean version are refused, as in Python", () => {
+  refuses(() => openTrustBundle(note(GOOD.replace("2026-11-13T00", "2026-02-30T00")), OWNER), /RFC 3339/);
+  refuses(() => openTrustBundle(note(GOOD.replace("2026-11-13T00", "2026-11-13T24")), OWNER), /RFC 3339/);
+  refuses(() => openTrustBundle(Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), note(GOOD)]), OWNER), /names owner/);
+  refuses(() => openTrustBundle(note(GOOD.replace('"trust_bundle":1', '"trust_bundle":true')), OWNER), /not a trust bundle/);
+});
+
 test("a key fingerprint is sha256 of the raw key, as tine verify prints it", () => {
   assert.equal(keyFingerprint("00".repeat(32)), `sha256:${createHash("sha256").update(Buffer.alloc(32)).digest("hex")}`);
 });

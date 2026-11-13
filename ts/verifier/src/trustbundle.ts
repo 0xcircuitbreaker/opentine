@@ -34,7 +34,7 @@ const TOP = new Set([
 ]);
 const PORTABLE = new Set(["pin", "require_receipt", "cert_identity", "cert_oidc_issuer", "require_sct", "key_lifecycle"]);
 const PIN = /^sha256:[0-9a-f]{64}$/;
-const RFC3339 = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
+const RFC3339 = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(\.\d+)?(Z|[+-](\d{2}):(\d{2}))$/;
 
 export interface TrustBundle {
   owner: string;
@@ -78,8 +78,19 @@ export function parseVkey(vkey: string): [string, Uint8Array] {
   return [name, raw.subarray(1)];
 }
 
+/** A real calendar time, as Python's `datetime.fromisoformat` reads it (no Feb 30, no 24:00). */
+function calendar(m: RegExpExecArray): boolean {
+  const [y, mo, d, h, mi, s] = m.slice(1, 7).map(Number);
+  const day = new Date(Date.UTC(2000, mo - 1, d));
+  day.setUTCFullYear(y);
+  const real = day.getUTCFullYear() === y && day.getUTCMonth() === mo - 1 && day.getUTCDate() === d;
+  const offset = m[9] === undefined || (Number(m[9]) < 24 && Number(m[10]) < 60);
+  return y >= 1 && real && h < 24 && mi < 60 && s < 60 && offset;
+}
+
 function time(value: JValue | undefined, what: string): number {
-  const parsed = typeof value === "string" && RFC3339.test(value) ? Date.parse(value) : NaN;
+  const match = typeof value === "string" ? RFC3339.exec(value) : null;
+  const parsed = match && calendar(match) ? Date.parse(value as string) : NaN;
   if (Number.isNaN(parsed)) bad(`${what} must be an RFC 3339 time with an offset`);
   return parsed;
 }
@@ -131,7 +142,7 @@ export function openTrustBundle(note: Uint8Array, ownerVkey: string, options: Op
   if (note.length > MAX_BUNDLE_BYTES) bad(`exceeds ${MAX_BUNDLE_BYTES} bytes`);
   let text: string;
   try {
-    text = new TextDecoder("utf-8", { fatal: true }).decode(note);
+    text = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(note);
   } catch {
     bad("is not UTF-8");
   }

@@ -51,6 +51,7 @@ _TOP = {
 PORTABLE = ("pin", "require_receipt", "cert_identity", "cert_oidc_issuer", "require_sct",
             "key_lifecycle")  # fmt: skip
 _RFC3339 = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})")
+_PIN = re.compile(r"sha256:[0-9a-f]{64}")
 MAX_LOG_KEYS = 64
 MAX_ADMISSION = 64
 
@@ -83,7 +84,7 @@ def _policy(value: Any) -> dict[str, Any]:
     except (PolicyError, SignatureError) as exc:
         raise BundleError(f"trust bundle: {exc}") from None
     pins = value.get("pin", [])
-    if any(not str(pin).startswith("sha256:") or pin != pin.lower() for pin in pins):
+    if any(not _PIN.fullmatch(pin) for pin in pins):
         raise BundleError("trust bundle: pin must list sha256:<64 lowercase hex> fingerprints")
     return value
 
@@ -117,7 +118,13 @@ def _admission(value: Any) -> dict[str, Any]:
 
 def validate(payload: Any) -> dict[str, Any]:
     """*payload* if every part passes its own format's validator; BundleError otherwise."""
-    if not isinstance(payload, dict) or set(payload) - _TOP or payload.get("trust_bundle") != 1:
+    version = payload.get("trust_bundle") if isinstance(payload, dict) else None
+    if (
+        not isinstance(payload, dict)
+        or set(payload) - _TOP
+        or type(version) is not int
+        or version != 1
+    ):
         raise BundleError("not a trust bundle payload (trust_bundle: 1)")
     serial = payload.get("serial")
     if not isinstance(serial, int) or isinstance(serial, bool) or not 1 <= serial < 2**53:

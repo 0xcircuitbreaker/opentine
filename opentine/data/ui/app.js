@@ -158,9 +158,9 @@ function renderFleet(host, runs) {
  * The trust bundle the host page pins (0.51, SPEC 8.26): `<meta
  * name="opentine-trust-bundle" content="URL">` and `<meta
  * name="opentine-trust-owner" content="VKEY">`. The highest serial accepted
- * is remembered in this browser so an older bundle cannot be replayed.
+ * is remembered in this browser, per owner key, so an older bundle cannot be replayed.
  */
-const TRUST_SERIAL = "opentine.trust-bundle.serial";
+const serialKey = (owner) => `opentine.trust-bundle.serial:${owner}`;
 function meta(name) {
     return document.querySelector(`meta[name="${name}"]`)?.getAttribute("content") || null;
 }
@@ -179,7 +179,7 @@ function trustRequest() {
         return null;
     let minSerial = 0;
     try {
-        minSerial = Number(localStorage.getItem(TRUST_SERIAL)) || 0;
+        minSerial = Number(localStorage.getItem(serialKey(ownerVkey))) || 0;
     }
     catch {
         minSerial = 0;
@@ -204,8 +204,8 @@ async function renderVerify(host, runId) {
         for (const r of v.reasons || [])
             box.append(el("p", r, "meta"));
         box.append(el("p", `this browser: ${b.detail}`, "meta"));
-        if (b.trustSerial)
-            remember(TRUST_SERIAL, String(b.trustSerial));
+        if (b.trustSerial && trust)
+            remember(serialKey(trust.ownerVkey), String(b.trustSerial));
         worker.terminate();
     };
     const trust = trustRequest();

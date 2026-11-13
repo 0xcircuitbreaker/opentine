@@ -85,6 +85,9 @@ def test_a_bundle_round_trips_and_carries_only_existing_documents(tmp_path):
     "change, message",
     [
         ({"trust_bundle": 2}, "not a trust bundle payload"),
+        ({"trust_bundle": True}, "not a trust bundle payload"),
+        ({"trust_policy": {"pin": ["sha256:" + "a" * 64 + "\n"]}}, "fingerprint"),
+        ({"trust_policy": {"pin": ["a" * 64]}}, "fingerprint"),
         ({"serial": 0}, "serial"),
         ({"serial": True}, "serial"),
         ({"issued_at": "2026-11-13"}, "issued_at"),
