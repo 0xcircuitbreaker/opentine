@@ -160,9 +160,42 @@ upload different bytes under the same version.
   yesterday, while today's run is pending). A skipped night breaks the streak,
   a manual run never fills one, and a workflow that stopped running counts zero.
   Not met until 30 real scheduled nights on the default branch are green.
+- **Flake waivers (0.51).** A red or missing scheduled night may be waived only
+  by a committed record in `docs/bench/stress-waivers.json`: an object with a
+  `waivers` list whose entries name the `night` (UTC date), the date it was
+  `recorded` (not before the night), the `owner` who signed it, the proven
+  infrastructure `cause` (a runner outage, an image regression, a GitHub
+  incident; never a test that failed on our code) and the `evidence` (a link to
+  the incident or run). A waived night neither counts towards nor breaks the
+  streak. `scripts/stress_streak.py` refuses (exit 2) any undated, unowned,
+  causeless, evidence-free, duplicate or back-dated waiver, so a waiver cannot
+  be added quietly: it is a reviewed commit. The nightly summary job stores the
+  current streak as `nightly-streak.json` next to `nightly-summary`;
+  `docs/bench/nightly-streak.json` is the same plain data (not an object kind),
+  refreshed with `python scripts/stress_streak.py --repo OWNER/NAME --write
+  docs/bench/nightly-streak.json`.
 - **Criterion 7, the deprecation policy.** Published as [DEPRECATION.md](DEPRECATION.md);
   the criterion asks only that it be published, so it counts as met; maintainer
   and counsel review of its wording is still advisable before 1.0.
+
+## Standing release gates (0.51)
+
+Every push to `main` produces evidence for each standing 1.0 gate:
+`ci.yml` runs `parity`, `peer-compat-034`, `audit-kit` (on Linux also inside
+`unshare --net`) and `leave-service`; `bench.yml` runs the criterion-6 gate
+(bytes within 5% of 0.40.0, ubuntu-24.04, single-threaded) and uploads
+`bench-report-<sha>`; `nightly-stress.yml` keeps the green streak. Before
+tagging, check the release commit:
+
+```bash
+python scripts/check_release_gates.py "$(git rev-parse HEAD)" --repo 0xcircuitbreaker/opentine --need 30
+```
+
+It reads the Actions API through `gh` and prints one JSON object with each
+gate's status (`green`, `red`, `pending` or `missing`); exit 0 only when every
+gate is green. Without `gh` it says why it skipped and exits 0 (`--require`
+makes that exit 3); it is never needed offline. Until the 30-night streak is
+met, pass a lower `--need` only for a waypoint release and say so in its notes.
 
 ## `tine-verify.pyz` (0.39)
 

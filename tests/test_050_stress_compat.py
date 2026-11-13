@@ -137,7 +137,7 @@ def test_the_streak_script_reads_a_saved_page_and_exits_on_the_criterion(tmp_pat
     assert json.loads(capsys.readouterr().out) == {
         "branch": "main", "broken_by": {"day": "2026-10-31",
         "reason": "before the first recorded run"}, "met": False, "need": 30,
-        "since": "2026-11-01", "streak": 3, "through": "2026-11-03",
+        "since": "2026-11-01", "streak": 3, "through": "2026-11-03", "waived": [],
         "workflow": "nightly-stress.yml"}  # fmt: skip
     assert script.main(["--runs-file", str(page), "--today", "2027-01-01"]) == 1
     assert json.loads(capsys.readouterr().out)["streak"] == 0  # stale history
