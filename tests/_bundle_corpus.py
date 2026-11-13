@@ -58,7 +58,11 @@ def _canonical(manifest: dict) -> bytes:
 
 
 def _repath(manifest: dict, pack: bytes) -> dict:
-    return {**manifest, "pack": "sha256:" + hashlib.sha256(pack).hexdigest(), "pack_bytes": len(pack)}
+    return {
+        **manifest,
+        "pack": "sha256:" + hashlib.sha256(pack).hexdigest(),
+        "pack_bytes": len(pack),
+    }
 
 
 def build(root: Path) -> dict[str, bytes]:
@@ -87,7 +91,9 @@ def build(root: Path) -> dict[str, bytes]:
     sig_manifest, sig_pack = _split(out["signed-ed25519"])
     block = sig_manifest["signatures"][root_oid][0]["block"]
     forged = {root_oid: [{"annotations_head": None, "block": {**block, "signer": "mallory"}}]}
-    out["signed-tampered"] = _bundle.assemble(sig_pack, sig_manifest["refs"], {"signatures": forged})
+    out["signed-tampered"] = _bundle.assemble(
+        sig_pack, sig_manifest["refs"], {"signatures": forged}
+    )
 
     purged = Repo.init(root / "purged")
     run = _run(purged, "purged")
@@ -115,7 +121,9 @@ def build(root: Path) -> dict[str, bytes]:
     p_manifest, p_pack = _split(out["redacted-public-ed25519"])
     record = dict(p_manifest["redacted_public"])
     record["signature"] = {**record["signature"], "signer": "mallory"}
-    out["redacted-public-bad-signature"] = _raw(_canonical({**p_manifest, "redacted_public": record}), p_pack)
+    out["redacted-public-bad-signature"] = _raw(
+        _canonical({**p_manifest, "redacted_public": record}), p_pack
+    )
 
     # Refusals of the outer layer, in _bundle.verify's order.
     out["bad-magic"] = b"TINEBUNDLE2\n" + base[12:]
@@ -123,23 +131,31 @@ def build(root: Path) -> dict[str, bytes]:
     flipped = bytearray(base)
     flipped[60] ^= 0x01
     out["checksum-mismatch"] = bytes(flipped)
-    out["manifest-length"] = _bundle.MAGIC + hashlib.sha256(b"\xff\xff\xff\x00").digest() + b"\xff\xff\xff\x00"
+    out["manifest-length"] = (
+        _bundle.MAGIC + hashlib.sha256(b"\xff\xff\xff\x00").digest() + b"\xff\xff\xff\x00"
+    )
     out["manifest-not-canonical"] = _raw(json.dumps(manifest, indent=1).encode(), pack)
     out["manifest-unknown-key"] = _raw(_canonical({**manifest, "extra": 1}), pack)
-    out["manifest-wrong-format"] = _raw(_canonical({**manifest, "format": "opentine-bundle/9"}), pack)
+    out["manifest-wrong-format"] = _raw(
+        _canonical({**manifest, "format": "opentine-bundle/9"}), pack
+    )
     out["pack-length-mismatch"] = _raw(_canonical({**manifest, "pack_bytes": len(pack) + 1}), pack)
     out["pack-digest-mismatch"] = _raw(_canonical({**manifest, "pack": "sha256:" + "0" * 64}), pack)
     bad_pack = pack[:-1] + bytes([pack[-1] ^ 0xFF])
     out["pack-invalid"] = _raw(_canonical(_repath(manifest, bad_pack)), bad_pack)
     trailing = pack + b"xx"
     out["pack-trailing-bytes"] = _raw(_canonical(_repath(manifest, trailing)), trailing)
-    out["ref-outside"] = _bundle.assemble(pack, {**manifest["refs"], "heads/ghost": "run:sha256:" + "1" * 64}, {})
+    out["ref-outside"] = _bundle.assemble(
+        pack, {**manifest["refs"], "heads/ghost": "run:sha256:" + "1" * 64}, {}
+    )
     out["ref-unsafe"] = _bundle.assemble(pack, {"heads/../x": main}, {})
     out["ref-remotes"] = _bundle.assemble(pack, {"remotes/o/main": main}, {})
     out["ref-collision"] = _bundle.assemble(pack, {"heads/tags/x": main, "tags/x": main}, {})
     out["transparency-not-list"] = _raw(_canonical({**manifest, "transparency": {}}), pack)
     out["signatures-not-object"] = _raw(_canonical({**manifest, "signatures": []}), pack)
-    out["signatures-foreign-root"] = _bundle.assemble(pack, manifest["refs"], {"signatures": sig_manifest["signatures"]})
+    out["signatures-foreign-root"] = _bundle.assemble(
+        pack, manifest["refs"], {"signatures": sig_manifest["signatures"]}
+    )
     return out
 
 
@@ -173,7 +189,9 @@ def write(out: Path, work: Path) -> dict[str, dict]:
     for name, data in sorted(build(work).items()):
         (out / f"{name}.bundle").write_bytes(data)
         verdicts[name] = verdict(data)
-    (out / "verdicts.json").write_text(json.dumps(verdicts, indent=2, sort_keys=True), encoding="utf-8")
+    (out / "verdicts.json").write_text(
+        json.dumps(verdicts, indent=2, sort_keys=True), encoding="utf-8"
+    )
     return verdicts
 
 

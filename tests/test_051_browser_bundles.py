@@ -33,7 +33,8 @@ import { blobSource, verifyBundle, OPENTINE_VERSION } from "./tine-verifier.js";
 const dir = process.argv[1];
 const out = { version: OPENTINE_VERSION, reports: {} };
 for (const name of readdirSync(dir).filter((n) => n.endsWith(".bundle")).sort()) {
-  out.reports[name.slice(0, -7)] = await verifyBundle(blobSource(new Blob([readFileSync(join(dir, name))])));
+  const blob = new Blob([readFileSync(join(dir, name))]);
+  out.reports[name.slice(0, -7)] = await verifyBundle(blobSource(blob));
 }
 console.log(JSON.stringify(out));
 """
@@ -75,7 +76,9 @@ def test_the_shipped_browser_verifier_gives_pythons_bundle_verdicts(corpus):
         if want["ok"]:
             assert got["refs"] == want["refs"], name
             assert (got["bundle"], got["pack"], got["objects"]) == (
-                want["bundle"], want["pack"], want["objects"]
+                want["bundle"],
+                want["pack"],
+                want["objects"],
             ), name
             assert got["content_unavailable"] == want["content_unavailable"], name
             if want["redacted_public"]:
@@ -96,7 +99,9 @@ def test_a_v3_bundle_is_streamed_one_object_at_a_time(corpus):
     assert reports["v3-two-refs"]["pack_reader"] == "streamed"
     assert reports["v5-two-refs"]["pack_reader"] == "in-memory"
     # A refusal inside the pack is re-derived by the exact reader, with its code.
-    assert reports["pack-trailing-bytes"]["code"] == "bundle.pack-invalid:pack.truncated-or-trailing"
+    assert (
+        reports["pack-trailing-bytes"]["code"] == "bundle.pack-invalid:pack.truncated-or-trailing"
+    )
 
 
 def test_the_client_version_manifest_matches_the_release():
