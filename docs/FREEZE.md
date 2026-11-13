@@ -198,18 +198,23 @@ ruling in force), and E2 `https://opentine.dev/promotion/v1` and E3 the
 `memory-provenance` claim schema (decided at the end of 0.55). Each has a
 frozen-safe form that ships if it is refused.
 
-Condition (b) is in force from 0.51 for every claim, granted or not: the
-reference (`opentine/_claim_status.py`), the pyz (`opentine/_pyz/_claim.py`)
-and the TS verifier (`ts/verifier/src/claim.ts`) report a claim they have no
-granted checker for as `unchecked` (`claim.unknown-predicate`, or
-`claim.unnamed`), while the envelope's signature is checked exactly as
-before. With no predicate granted there is no vector to add, so this is
-proved by `tests/test_051_unknown_claim.py` and
-`ts/verifier/test/claim.test.ts` over the shared fixture
-`tests/data/unknown_claim_attestation.json` (a `tine-attest/1` and a
-`tine-attest/2` attestation naming an ungranted predicate). The first
-granted predicate brings its own `unchecked` case into the existing
-attestation family under condition (b).
+How condition (b) stands in 0.51: no verify path reads `attestation.claim`
+to reach a verdict. The reference, the pyz and the TS verifier check the
+envelope's signature and give the claim no verdict at all, so no claim can
+`pass` or `fail`. The rule that the first granted predicate's checker must
+follow is in one helper per implementation: the reference
+(`opentine/_claim_status.py`), the pyz (`opentine/_pyz/_claim.py`) and the TS
+verifier (`ts/verifier/src/claim.ts`, exported as `claimStatus`). Each helper
+returns `unchecked` (`claim.unknown-predicate`, or `claim.unnamed`) for any
+claim with no granted checker. No `verify` report shows that status yet:
+wiring it into the reports and the `--json` output schemas comes with the
+first grant. With no predicate granted there is no vector to add, so
+`tests/test_051_unknown_claim.py` and `ts/verifier/test/claim.test.ts` test
+the helpers and the unchanged envelope check over the shared fixture
+`tests/data/unknown_claim_attestation.json`. The fixture holds a
+`tine-attest/1` and a `tine-attest/2` attestation that name an ungranted
+predicate. The first granted predicate brings its own `unchecked` case into
+the existing attestation family under condition (b).
 
 ### The pyz storage-family exclusion
 
