@@ -8,9 +8,13 @@
  * computed (passed through, labelled "local tine"), and the states this
  * browser computed itself by running the bundled TS verifier
  * (`tine-verifier.js`) over the artifact bytes: integrity (every envelope id,
- * the root and the annotation chain) and the `tine-sig/3` signatures. No key is
- * pinned in a browser, so a signature that holds under the key the file embeds
- * reads "unpinned", never "verified"; an HMAC signature reads "unchecked". When
+ * the root and the annotation chain) and the `tine-sig/3` signatures. Without a
+ * trust bundle no key is pinned in a browser, so a signature that holds under
+ * the key the file embeds reads "unpinned", never "verified"; an HMAC signature
+ * reads "unchecked". With one (0.51: `trust` names a same-origin, owner-signed
+ * bundle and the owner key the host page pins, SPEC 8.26) a signature by a key
+ * the bundle pins reads "verified" and one by any other key "failed"; a bundle
+ * that does not open is named in the detail and nothing is pinned. When
  * the bytes are withheld (the server's redaction scan found something) or the
  * check cannot run, the browser column reads "unchecked" and says why.
  *
@@ -24,6 +28,7 @@
 import {
   blobSource,
   isBundle,
+  openTrustBundle,
   OPENTINE_VERSION,
   recordKinds,
   verifyArtifact,
@@ -32,6 +37,7 @@ import {
   type BundleReport,
   type RecordCheck,
   type Report,
+  type TrustBundle,
 } from "./tine-verifier.js";
 
 export type State = "verified" | "failed" | "partial" | "unchecked" | "unpinned";
@@ -45,16 +51,29 @@ export interface Verification {
   assurance?: { claimed?: string; verified?: string } | null;
 }
 
+/** A trust bundle to pin signers with: where it is and the owner key it must carry. */
+export interface TrustRequest {
+  /** Same-origin URL of the bundle (a cacheable static file). */
+  url: string;
+  /** The owner's signed-note verifier key (`name+hash+key`), pinned by the host page. */
+  ownerVkey: string;
+  /** The highest serial this viewer accepted before; an older bundle is refused. */
+  minSerial?: number;
+}
+
 export interface Request {
   verification: Verification;
   /** Same-origin URL of the run's artifact bytes (`/api/run/RUN/artifact`). */
   artifact?: string;
+  trust?: TrustRequest;
 }
 
 export interface BrowserCheck {
   integrity: State;
   signature: State;
   detail: string;
+  /** The serial of the trust bundle whose pins applied, if one did. */
+  trustSerial?: number;
 }
 
 export interface Badge {
@@ -63,6 +82,8 @@ export interface Badge {
   rows: [string, State, string][];
   /** Why the browser column reads what it does (the verifier's reasons). */
   detail: string;
+  /** The serial of the trust bundle whose pins applied (the page may remember it). */
+  trustSerial?: number;
 }
 
 const STATES: State[] = ["verified", "failed", "partial", "unchecked", "unpinned"];
@@ -89,29 +110,50 @@ export function browserStates(report: Report | null, why = ""): BrowserCheck {
 export function badge(v: Verification, check?: BrowserCheck): Badge {
   const by = v.computed_by || "local tine";
   const mine = check ?? browserStates(null, "verifier not run");
+  const pinned = mine.trustSerial ? `${HERE}, signers pinned by trust bundle serial ${mine.trustSerial}` : HERE;
   const rows: [string, State, string][] = [
     ["Integrity digest", asState(v.integrity), by],
     ["Signature", asState(v.signature), by],
     ["Integrity (re-checked)", mine.integrity, HERE],
-    ["Signature (re-checked)", mine.signature, HERE],
+    ["Signature (re-checked)", mine.signature, pinned],
   ];
   const failed = mine.integrity === "failed" || mine.signature === "failed";
   const state = failed ? "failed" : asState(v.overall);
   const tier = v.assurance ? ` · assurance ${v.assurance.verified} (claimed ${v.assurance.claimed})` : "";
   const again = mine.integrity === "unchecked" ? "not re-checked in this browser" : `re-checked in this browser: integrity ${mine.integrity}, signature ${mine.signature}`;
-  return { state, label: `${state} by ${by}${tier}; ${again}`, rows, detail: mine.detail };
+  const out: Badge = { state, label: `${state} by ${by}${tier}; ${again}`, rows, detail: mine.detail };
+  if (mine.trustSerial) out.trustSerial = mine.trustSerial;
+  return out;
+}
+
+/** The trust bundle *trust* names, opened against its pinned owner key; never throws. */
+export async function loadTrust(trust?: TrustRequest): Promise<[TrustBundle | null, string]> {
+  if (!trust) return [null, ""];
+  try {
+    const res = await fetch(trust.url, { credentials: "same-origin" });
+    if (!res.ok) return [null, `trust bundle unavailable (${res.status}); no signer is pinned`];
+    const bundle = openTrustBundle(new Uint8Array(await res.arrayBuffer()), trust.ownerVkey, { minSerial: trust.minSerial });
+    return [bundle, ""];
+  } catch (exc) {
+    return [null, `${(exc as Error).message}; no signer is pinned`];
+  }
 }
 
 /** Fetch the artifact bytes and check them here; never throws. */
 export async function check(request: Request): Promise<BrowserCheck> {
   if (!request.artifact) return browserStates(null, "no artifact to check");
+  const [bundle, refused] = await loadTrust(request.trust);
   try {
     const res = await fetch(request.artifact, { credentials: "same-origin" });
     if (!res.ok) {
       const why = res.status === 403 ? "artifact withheld: the redaction scan found something" : `artifact unavailable (${res.status})`;
       return browserStates(null, why);
     }
-    return browserStates(await verifyArtifact(new Uint8Array(await res.arrayBuffer()), "artifact"));
+    const report = await verifyArtifact(new Uint8Array(await res.arrayBuffer()), "artifact", bundle);
+    const out = browserStates(report);
+    if (refused) out.detail = `${out.detail}; ${refused}`;
+    if (bundle && bundle.pins.size) out.trustSerial = bundle.serial;
+    return out;
   } catch (exc) {
     return browserStates(null, `check could not run: ${(exc as Error).message}`);
   }

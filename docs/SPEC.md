@@ -3737,7 +3737,45 @@ without signature>, "header": ...}`. `ok` needs both; an unsigned statement
 is never `ok`. Vectors: family 84 (the run's statement is given as
 `expected`).
 
+<a id="s-8.26"></a>
+## 8.26 Browser trust bundles (0.51, a profile, not a kind)
+
+A trust bundle is the trust configuration a viewer pins without a local
+`trust-policies.json`. It is a profile of existing formats and adds no object
+kind or wire format:
+
+- **Container.** A C2SP signed note (the checkpoint format of §8.10) signed by
+  the bundle owner's Ed25519 key. Its text is two lines: the owner's key name,
+  then the payload as canonical JSON (§0.2, one line). A signature line is
+  `— <name> <base64(key id || signature)>` with the signed-note key id; the
+  owner's verifier key is the signed-note `name+hash+key` form, pinned by the
+  reader out of band.
+- **Payload.** `{"trust_bundle": 1, "serial", "issued_at", ["expires_at"],
+  "trust_policy", ["witness_network"], ["log_keys"], ["admission_policies"]}`
+  and no other key. `serial` is a positive integer below 2^53; times are RFC
+  3339 with an offset, `expires_at` after `issued_at`. `trust_policy` is an
+  entry of `trust-policies.json` limited to its portable fields (`pin`,
+  `require_receipt`, `cert_identity`, `cert_oidc_issuer`, `require_sct`,
+  `key_lifecycle`), with `pin` spelled `sha256:` + 64 lowercase hex;
+  `witness_network` is an `opentine-witness-network/1` registry (§8.23);
+  `log_keys` are signed-note log verifier keys; `admission_policies` maps names
+  to `opentine.admission-policy` documents (§8.17). Each part is valid exactly
+  when its own format says so.
+- **Reading.** A reader MUST refuse a bundle that the pinned owner key did not
+  sign, whose first line is not that key's name, whose payload is not
+  canonical, that has expired, or whose serial is lower than the highest it
+  accepted before (rollback). A bundle is cacheable by the SHA-256 of its bytes.
+- **Pinning.** The `pin` fingerprints apply as `tine verify --pin` does
+  (`_signing_pins`): a signature that verifies under a pinned Ed25519 key is `verified`,
+  one under any other key `mismatch`. With no pin, nothing changes. A viewer
+  without a bundle, or whose bundle does not open, pins nothing and says so.
+
+`tine trust bundle create|verify` write and check bundles (Part 12,
+`tine-cli-trust-bundle-1`); the TS verifier's `openTrustBundle` reads them in a
+browser.
+
 <a id="part-9"></a>
+
 # Part 9 — Format v4 (0.26.0)
 
 **Status:** normative since 0.26.0. Format v4 unifies the portable `.tine`

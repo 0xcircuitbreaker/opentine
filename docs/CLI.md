@@ -551,6 +551,33 @@ band (for the Sigstore public-good instance, from
 compared against the signing ceremony). To start over, remove
 `$XDG_CONFIG_HOME/opentine/sigstore/tuf/`.
 
+## Browser trust bundles (0.51)
+
+```
+tine trust bundle create --key owner.key --name example.com/trust --serial 7 \
+    [--policy NAME | --pin sha256:HEX...] [--witnesses network.json] [--log-vkey VKEY]... \
+    [--admission NAME=policy.json]... [--expires 2027-06-01T00:00:00Z] [--out bundle.note] [--json]
+tine trust bundle verify bundle.note --owner-vkey VKEY [--min-serial N] [--json]
+```
+
+A trust bundle is the trust configuration a browser viewer (`tine ui`,
+opentine-web) pins, signed by its owner (SPEC 8.26). It holds only existing
+documents: a trust policy's portable fields (`pin` fingerprints,
+`require_receipt`, the keyless identity fields, `key_lifecycle`; a policy that
+names local files is refused), an `opentine-witness-network/1` registry, pinned
+signed-note log keys and `opentine.admission-policy` documents. `create` prints
+the owner's verifier key (`owner_vkey`), which viewers pin out of band; `verify`
+checks the signature against it, the expiry and, with `--min-serial`, that the
+bundle is not older than one already accepted, and exits 4 otherwise. `--json`
+writes `tine-cli-trust-bundle/1` (Part 12, `tine-cli-trust-bundle-1`).
+
+A viewer page names the bundle with `<meta name="opentine-trust-bundle"
+content="URL">` and the owner key with `<meta name="opentine-trust-owner"
+content="VKEY">`. The browser verifier then reads a signature by a pinned key as
+verified, and one by any other key as failed, exactly like `tine verify --pin`.
+It remembers the highest serial it accepted. The TS command line takes the same
+bundle: `opentine-verify FILE --trust-bundle bundle.note --owner-vkey VKEY`.
+
 ## Agent Trace export (0.19)
 
 ```

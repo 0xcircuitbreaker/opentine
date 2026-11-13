@@ -142,6 +142,39 @@ function renderFleet(host: HTMLElement, runs: Summary[]): void {
   host.replaceChildren(ul);
 }
 
+/**
+ * The trust bundle the host page pins (0.51, SPEC 8.26): `<meta
+ * name="opentine-trust-bundle" content="URL">` and `<meta
+ * name="opentine-trust-owner" content="VKEY">`. The highest serial accepted
+ * is remembered in this browser so an older bundle cannot be replayed.
+ */
+const TRUST_SERIAL = "opentine.trust-bundle.serial";
+
+function meta(name: string): string | null {
+  return document.querySelector(`meta[name="${name}"]`)?.getAttribute("content") || null;
+}
+
+function remember(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // storage may be unavailable (a private window); the bundle still applied
+  }
+}
+
+function trustRequest(): { url: string; ownerVkey: string; minSerial: number } | null {
+  const url = meta("opentine-trust-bundle");
+  const ownerVkey = meta("opentine-trust-owner");
+  if (!url || !ownerVkey) return null;
+  let minSerial = 0;
+  try {
+    minSerial = Number(localStorage.getItem(TRUST_SERIAL)) || 0;
+  } catch {
+    minSerial = 0;
+  }
+  return { url, ownerVkey, minSerial };
+}
+
 async function renderVerify(host: HTMLElement, runId: string): Promise<void> {
   const box = el("div", "Checking…");
   box.setAttribute("aria-live", "polite");
@@ -159,9 +192,12 @@ async function renderVerify(host: HTMLElement, runId: string): Promise<void> {
     box.replaceChildren(el("p", b.label, `state ${b.state}`), table);
     for (const r of v.reasons || []) box.append(el("p", r, "meta"));
     box.append(el("p", `this browser: ${b.detail}`, "meta"));
+    if (b.trustSerial) remember(TRUST_SERIAL, String(b.trustSerial));
     worker.terminate();
   };
-  worker.postMessage({ verification: v, artifact: `/api/run/${encodeURIComponent(runId)}/artifact` });
+  const trust = trustRequest();
+  const artifact = `/api/run/${encodeURIComponent(runId)}/artifact`;
+  worker.postMessage(trust ? { verification: v, artifact, trust } : { verification: v, artifact });
 }
 
 async function renderAttribution(host: HTMLElement, runId: string): Promise<void> {

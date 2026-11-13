@@ -154,6 +154,38 @@ function renderFleet(host, runs) {
         ul.append(el("li", `fleet ${id}: ${members.map((m) => m.id.slice(0, 12)).join(", ")}`));
     host.replaceChildren(ul);
 }
+/**
+ * The trust bundle the host page pins (0.51, SPEC 8.26): `<meta
+ * name="opentine-trust-bundle" content="URL">` and `<meta
+ * name="opentine-trust-owner" content="VKEY">`. The highest serial accepted
+ * is remembered in this browser so an older bundle cannot be replayed.
+ */
+const TRUST_SERIAL = "opentine.trust-bundle.serial";
+function meta(name) {
+    return document.querySelector(`meta[name="${name}"]`)?.getAttribute("content") || null;
+}
+function remember(key, value) {
+    try {
+        localStorage.setItem(key, value);
+    }
+    catch {
+        // storage may be unavailable (a private window); the bundle still applied
+    }
+}
+function trustRequest() {
+    const url = meta("opentine-trust-bundle");
+    const ownerVkey = meta("opentine-trust-owner");
+    if (!url || !ownerVkey)
+        return null;
+    let minSerial = 0;
+    try {
+        minSerial = Number(localStorage.getItem(TRUST_SERIAL)) || 0;
+    }
+    catch {
+        minSerial = 0;
+    }
+    return { url, ownerVkey, minSerial };
+}
 async function renderVerify(host, runId) {
     const box = el("div", "Checking…");
     box.setAttribute("aria-live", "polite");
@@ -172,9 +204,13 @@ async function renderVerify(host, runId) {
         for (const r of v.reasons || [])
             box.append(el("p", r, "meta"));
         box.append(el("p", `this browser: ${b.detail}`, "meta"));
+        if (b.trustSerial)
+            remember(TRUST_SERIAL, String(b.trustSerial));
         worker.terminate();
     };
-    worker.postMessage({ verification: v, artifact: `/api/run/${encodeURIComponent(runId)}/artifact` });
+    const trust = trustRequest();
+    const artifact = `/api/run/${encodeURIComponent(runId)}/artifact`;
+    worker.postMessage(trust ? { verification: v, artifact, trust } : { verification: v, artifact });
 }
 async function renderAttribution(host, runId) {
     const rows = await get(`/api/run/${encodeURIComponent(runId)}/attribution`);

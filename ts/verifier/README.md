@@ -12,7 +12,9 @@ C2SP `cosignature/v1` witness quorums (`src/tlog.ts`, SPEC 8.10-8.11), and
 (0.45.1) signed redaction reports (`src/redactreport.ts`, SPEC 4.13), and
 (0.51) `tine bundle` files (`src/bundle.ts`): a streaming port of
 `tine bundle verify` over a `ByteSource` (a browser `Blob`, a file, or bytes),
-with Python's refusal messages and `bundle.*` reason codes.
+with Python's refusal messages and `bundle.*` reason codes, and
+(0.51) codec-3 (zstd dictionary) pack blocks and owner-signed trust bundles
+(`src/trustbundle.ts`, SPEC 8.26).
 
 ```
 npm ci && npm test      # builds, then runs docs/conformance in-process
@@ -20,6 +22,7 @@ node dist/src/cli.js run.tine
 node dist/src/cli.js ev/verdicts.jsonl --pubkey key.pub   # a tine eval's verdicts
 node dist/src/cli.js runs.bundle                         # a tine bundle, streamed (0.51)
 node dist/src/cli.js --version                           # the OpenTine release this build is for
+node dist/src/cli.js run.tine --trust-bundle bundle.note --owner-vkey VKEY
 ```
 
 ## Bundles and browsers (0.51)
@@ -45,6 +48,15 @@ The browser build (`src/browser/entry.ts`, shipped as
 through it in Chromium, Firefox and WebKit and requires Node's verdicts.
 `docs/api/client-versions.json` names the release this build is for and the
 oldest browser verifier the release still supports.
+
+## Trust bundles (0.51)
+
+A trust bundle (`tine trust bundle create`) is a signed note over existing
+trust documents; `openTrustBundle(bytes, ownerVkey, {minSerial})` checks it
+against the owner key the caller pins, and its `pins` (Ed25519 key
+fingerprints) go into `VerifyKeys.pins`: a signature by a pinned key is
+`verified`, by any other key `mismatch`, as `tine verify --pin` does. The
+browser build exports both, and the run viewer applies a bundle its page names.
 
 ## Conformance
 

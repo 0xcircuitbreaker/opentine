@@ -3067,6 +3067,37 @@ ROWS: tuple[tuple, ...] = (
         },
     ),
     (
+        "plain:trust bundle create --key k --name n --serial 2 --pin p --out b",
+        "plain",
+        ["trust", "bundle", "create", "--key", "k", "--name", "n", "--serial", "2", "--pin", "p"]
+        + ["--out", "b"],
+        "opentine._cli_trust_bundle:cmd_trust_bundle",
+        False,
+        {
+            "command": "trust",
+            "bundle_command": "create",
+            "key": "k",
+            "name": "n",
+            "serial": 2,
+            "pin": ["p"],
+            "out": "b",
+        },
+    ),  # fmt: skip
+    (
+        "plain:trust bundle verify b --owner-vkey v --min-serial 2",
+        "plain",
+        ["trust", "bundle", "verify", "b", "--owner-vkey", "v", "--min-serial", "2"],
+        "opentine._cli_trust_bundle:cmd_trust_bundle",
+        False,
+        {
+            "command": "trust",
+            "bundle_command": "verify",
+            "bundle": "b",
+            "owner_vkey": "v",
+            "min_serial": 2,
+        },
+    ),  # fmt: skip
+    (
         "plain:verify r1 --attestation a.json --trusted-root tr.json",
         "plain",
         ["verify", "r1", "--attestation", "a.json", "--trusted-root", "tr.json"],

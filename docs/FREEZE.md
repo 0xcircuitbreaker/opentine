@@ -110,6 +110,13 @@ now decodes (`ts/verifier/src/zstddict.ts`). They carry `requires: ["zlib",
 "zstd"]`. The suite is 61 families and 1166 cases; the TS verifier answers
 1152, the 14 writer-side cases aside.
 
+Browser trust bundles (SPEC 8.26, `tine trust bundle create|verify`) are a
+profile, not a kind: a C2SP signed note (the checkpoint format of 8.10) over
+canonical JSON that carries only existing documents, a trust policy's portable
+fields, an `opentine-witness-network/1` registry, signed-note log keys and
+`opentine.admission-policy` documents. Only the CLI output schema
+`tine-cli-trust-bundle-1` was added.
+
 ## The 0.50 freeze review
 
 **Result: no disagreement and no unanswered case on the pinned suite, with

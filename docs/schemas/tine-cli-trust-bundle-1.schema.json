@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-trust-bundle-1.schema.json",
+  "title": "tine trust bundle --json",
+  "description": "A trust bundle `tine trust bundle create` signed or `verify` checked against the pinned owner key (SPEC 8.26): its digest, serial and times, the pinned signer fingerprints, log keys, the witness network's log and quorum, and the names of its admission policies. A bundle that does not verify is the error envelope (exit 4).",
+  "type": "object",
+  "required": [
+    "command",
+    "schema",
+    "ok",
+    "owner_vkey",
+    "digest",
+    "serial",
+    "issued_at",
+    "pins",
+    "log_keys",
+    "admission_policies"
+  ],
+  "properties": {
+    "command": {
+      "enum": [
+        "trust bundle create",
+        "trust bundle verify"
+      ]
+    },
+    "schema": {
+      "const": "tine-cli-trust-bundle/1"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "owner_vkey": {
+      "type": "string"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "serial": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "issued_at": {
+      "type": "string"
+    },
+    "expires_at": {
+      "type": "string"
+    },
+    "pins": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "log_keys": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "admission_policies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "path": {
+      "type": "string"
+    },
+    "witness_network": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "log",
+        "quorum"
+      ],
+      "properties": {
+        "log": {
+          "type": "string"
+        },
+        "quorum": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

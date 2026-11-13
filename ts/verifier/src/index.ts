@@ -22,3 +22,4 @@ export { inspectPack, type InspectedPack } from "./pack.js";
 export { webhookClass } from "./webhook.js";
 export { verifyReview, verifyReviewBundle, verifyReviewGate } from "./review.js";
 export { verifyMemory, verifyPrompt } from "./registry.js";
+export { keyFingerprint, openTrustBundle, parseVkey, type TrustBundle } from "./trustbundle.js";

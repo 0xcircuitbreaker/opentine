@@ -1,6 +1,11 @@
 #!/usr/bin/env node
 /**
  * opentine-verify FILE [--pubkey HEX|FILE] [--hmac-key-file FILE] [--trust-embedded]
+ *                       [--trust-bundle BUNDLE --owner-vkey VKEY]
+ *
+ * --trust-bundle (0.51) pins the signer fingerprints of an owner-signed trust
+ * bundle (`tine trust bundle create`, SPEC 8.26) checked against --owner-vkey;
+ * it implies --trust-embedded.
  *
  * FILE is a `.tine` artifact, (0.45) a `verdicts.jsonl` of `tine-eval-verdict/1`
  * objects, checked under --pubkey or, without it, each verdict's embedded key,
@@ -20,9 +25,11 @@ import { TineError } from "./errors.js";
 import type { VerifyKeys } from "./signature.js";
 import { verifyFile } from "./verify.js";
 import { verifyEvalFile } from "./evalverdict.js";
+import { openTrustBundle } from "./trustbundle.js";
 
 const USAGE =
   "usage: opentine-verify FILE [--pubkey HEX|FILE] [--hmac-key-file FILE] [--trust-embedded]\n" +
+  "                       [--trust-bundle BUNDLE --owner-vkey VKEY]\n" +
   "  Verifies a .tine format v4 artifact: every envelope id, the root, the\n" +
   "  annotation chain and its tine-sig/3 signatures. Exactly one key option.\n" +
   "  A FILE ending in .jsonl is a tine eval verdicts.jsonl (Ed25519 verdicts).\n" +
@@ -46,6 +53,8 @@ function hmacKeyFile(path: string): Uint8Array {
 async function main(argv: string[]): Promise<number> {
   const keys: VerifyKeys = {};
   let file: string | undefined;
+  let bundle: string | undefined;
+  let owner: string | undefined;
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "-h" || arg === "--help") {
@@ -59,14 +68,20 @@ async function main(argv: string[]): Promise<number> {
     if (arg === "--pubkey") keys.publicKey = keyMaterial(argv[++i] ?? "");
     else if (arg === "--hmac-key-file") keys.hmacKey = hmacKeyFile(argv[++i] ?? "");
     else if (arg === "--trust-embedded") keys.trustEmbedded = true;
+    else if (arg === "--trust-bundle") bundle = argv[++i] ?? "";
+    else if (arg === "--owner-vkey") owner = argv[++i] ?? "";
     else if (arg.startsWith("-") || file !== undefined) {
       process.stderr.write(USAGE);
       return 2;
     } else file = arg;
   }
-  if (file === undefined) {
+  if (file === undefined || (bundle === undefined) !== (owner === undefined)) {
     process.stderr.write(USAGE);
     return 2;
+  }
+  if (bundle !== undefined) {
+    keys.pins = openTrustBundle(readFileSync(bundle), owner as string).pins;
+    keys.trustEmbedded = keys.publicKey == null && keys.hmacKey == null;
   }
   if (file.endsWith(".jsonl")) {
     // 0.45: a verdicts.jsonl of tine-eval-verdict/1 objects (Ed25519 only).

@@ -21,8 +21,6 @@ export interface Report {
   signature: SignatureResult | null;
 }
 
-export function verifyArtifact(raw: Uint8Array, name?: string): Promise<Report>;
-
 /** 0.51: bundles, records and the release this build was made for. */
 export const OPENTINE_VERSION: string;
 
@@ -74,3 +72,25 @@ export function verifyBundle(source: ByteSource, keys?: BundleKeys): Promise<Bun
 export function verifyBundleBytes(data: Uint8Array, keys?: BundleKeys): Promise<BundleReport>;
 export function recordKinds(): string[];
 export function verifyRecordBytes(raw: Uint8Array): RecordCheck;
+/** An owner-signed trust bundle (SPEC 8.26), opened by `openTrustBundle`. */
+export interface TrustBundle {
+  owner: string;
+  serial: number;
+  issuedAt: string;
+  expiresAt: string | null;
+  pins: Set<string>;
+  logKeys: string[];
+  witnessNetwork: unknown;
+  admissionPolicies: string[];
+  digest: string;
+}
+
+export function openTrustBundle(
+  note: Uint8Array,
+  ownerVkey: string,
+  options?: { now?: number; minSerial?: number },
+): TrustBundle;
+
+export function keyFingerprint(hexKey: string): string;
+
+export function verifyArtifact(raw: Uint8Array, name?: string, trust?: TrustBundle | null): Promise<Report>;
