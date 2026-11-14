@@ -15,8 +15,35 @@ _HEX = frozenset("0123456789abcdef")
 MAX_TYPED_OBJECT_SCAN = 100_000
 
 
-def store_envelope(repo, envelope: ObjectEnvelope) -> str:
-    """Persist a caller-validated immutable envelope without rewalking its graph."""
+def present_links(repo, envelope: ObjectEnvelope) -> frozenset[str]:
+    """``validate_links`` against ``repo._link_exists``; return the links stored now.
+
+    Pass the result to :func:`store_envelope` as *present*: a link seen stored
+    here and gone at the write was deleted by a concurrent ``tine prune``.
+    """
+    from opentine.repository._write_batch import staged
+
+    present: set[str] = set()
+    batch = staged(repo)
+
+    def exists(oid: str) -> bool:
+        if repo.has(oid):
+            if batch is None or oid not in batch:  # staged: not on disk, not prunable
+                present.add(oid)
+            return True
+        return repo._link_exists(oid)
+
+    validate_links(envelope, exists)
+    return frozenset(present)
+
+
+def store_envelope(repo, envelope: ObjectEnvelope, present: frozenset[str] = frozenset()) -> str:
+    """Persist a caller-validated immutable envelope without rewalking its graph.
+
+    Links in *present* (seen stored by the caller's validation) must still be
+    stored; any other link may name an object not stored yet (a graph stored in
+    any order), unless a prune moved it.
+    """
     from opentine._format_v4 import v4_requested, warn_legacy
     from opentine.repository._link_touch import touch_links
     from opentine.repository._storage import write_object
@@ -27,7 +54,12 @@ def store_envelope(repo, envelope: ObjectEnvelope) -> str:
         mark_v4(repo)
     else:
         warn_legacy()
-    touch_links(repo, validate_links(envelope), strict=False)  # a link is a write, for tine prune
+    links = validate_links(envelope)
+    # A link is a write, for tine prune. A link the caller saw stored and prune
+    # deleted since (moved and finished, quarantine gone) must not be stored
+    # dangling: touch it strictly.
+    touch_links(repo, [oid for oid in links if oid in present])
+    touch_links(repo, [oid for oid in links if oid not in present], strict=False)
     raw = envelope.encode()
     write_object(repo, envelope.oid, raw)
     # An estimate of new loose objects for the auto-pack hook (_autopack.after_write).
