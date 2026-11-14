@@ -16,7 +16,7 @@ from opentine.repository._config import config_bytes, read_config, storage_codec
 from opentine.repository._discovery import find_repository
 from opentine.repository._external import known as external_pointer
 from opentine.repository._link_touch import touch_links
-from opentine.repository._objects import iter_object_oids, store_envelope
+from opentine.repository._objects import iter_object_oids, present_links, store_envelope
 from opentine.repository._paths import atomic_bytes as _atomic_bytes
 from opentine.repository._paths import ensure_layout, internal_path, linklike
 from opentine.repository._ref_store import commit_ref, list_all_refs, read_ref_oid
@@ -101,14 +101,14 @@ class Repo:
         else:
             stored_payload = guarded_redaction(payload, where=f"v3 {object_type!r}", redact=redact)
         envelope = ObjectEnvelope.create(object_type, stored_payload, schema)
-        validate_links(envelope, self._link_exists)
+        present = present_links(self, envelope)
         validate_annotation_chain(self, envelope)
         validate_event_metrics(envelope)
         validate_run_graph(self, envelope)
-        return self._store_envelope(envelope)
+        return self._store_envelope(envelope, present)
 
-    def _store_envelope(self, envelope: ObjectEnvelope) -> str:
-        return store_envelope(self, envelope)
+    def _store_envelope(self, envelope: ObjectEnvelope, present=frozenset()) -> str:
+        return store_envelope(self, envelope, present)
 
     def get(self, oid: str) -> ObjectEnvelope:
         envelope = ObjectEnvelope.decode(read_object(self, oid), oid)

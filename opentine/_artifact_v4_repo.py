@@ -29,6 +29,7 @@ from opentine.repository._annotations import (
     annotation_ref,
     validate_annotation_chain,
 )
+from opentine.repository._objects import present_links
 from opentine.repository._run_graph import validate_event_metrics, validate_run_graph
 from opentine.repository._sig_sidecar import add_signatures, signatures_for
 
@@ -118,11 +119,11 @@ def _post_order(objects: dict[str, ObjectEnvelope], root: str) -> list[ObjectEnv
 def _install(repo: Any, envelope: ObjectEnvelope) -> bool:
     if repo.has(envelope.oid):
         return False
-    validate_links(envelope, repo._link_exists)
+    present = present_links(repo, envelope)
     validate_annotation_chain(repo, envelope)
     validate_event_metrics(envelope)
     validate_run_graph(repo, envelope)
-    repo._store_envelope(envelope)  # the file's own bytes: the oid cannot move
+    repo._store_envelope(envelope, present)  # the file's own bytes: the oid cannot move
     return True
 
 
