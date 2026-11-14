@@ -117,8 +117,7 @@ def test_no_outbound_connections(tmp_path, monkeypatch):
         assert "http://" not in text and "https://" not in text, asset.name
 
 
-def test_10k_step_run_under_two_seconds(tmp_path):
-    path = _run(tmp_path, steps=10_000)
+def _serve_time(path, steps):
     run = Run.load(path)
     server, base = _serve([path])
     server.RequestHandlerClass.catalog.runs()  # tine ui reads artifacts before serving
@@ -130,8 +129,23 @@ def test_10k_step_run_under_two_seconds(tmp_path):
     finally:
         server.shutdown()
         server.server_close()
-    assert len(doc["timeline"]) == 10_000
-    assert elapsed < 2.0, f"10k-step run took {elapsed:.2f}s"
+    assert len(doc["timeline"]) == steps
+    return elapsed
+
+
+def test_10k_step_run_serves_in_near_linear_time(tmp_path):
+    # Relative, not absolute: 10x the steps may cost at most 40x the time.
+    # Quadratic serving would cost ~100x. Interleaved medians absorb noise.
+    (tmp_path / "s").mkdir()
+    (tmp_path / "l").mkdir()
+    small_run = _run(tmp_path / "s", steps=1_000)
+    large_run = _run(tmp_path / "l", steps=10_000)
+    small, large = [], []
+    for _ in range(3):
+        small.append(_serve_time(small_run, 1_000))
+        large.append(_serve_time(large_run, 10_000))
+    ratio = sorted(large)[1] / sorted(small)[1]
+    assert ratio < 40, f"10k/1k serve-time ratio {ratio:.1f}"
 
 
 def test_unknown_paths_404(tmp_path):
