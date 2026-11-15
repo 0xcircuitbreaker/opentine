@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opentine.com/schemas/tine-cli-merge-queue-1.schema.json",
   "title": "tine merge-queue ACTION --json",
-  "description": "Every `tine merge-queue` action: `queue` (the record's value) for init, add, claim, heartbeat and show; `result` for land (one landing) and verify (the record check); `results` for work; `record` for approve.",
+  "description": "Every `tine merge-queue` action: `queue` (the record's value) for init, add, claim, heartbeat and show; `result` for land (one landing) and verify (the record check); `results` for work; `record` for approve, and `ticket` when it was issued into a queue (0.52).",
   "type": "object",
   "required": [
     "command",
@@ -190,6 +190,58 @@
               }
             }
           }
+        },
+        "tickets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "nonce",
+              "approval",
+              "run",
+              "target",
+              "approver",
+              "expires_ms",
+              "spent_fencing"
+            ],
+            "properties": {
+              "nonce": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{32}$"
+              },
+              "approval": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "run": {
+                "type": "string",
+                "pattern": "^run:sha256:[0-9a-f]{64}$"
+              },
+              "target": {
+                "type": "string"
+              },
+              "approver": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "expires_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "spent_fencing": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
         }
       }
     },
@@ -299,6 +351,55 @@
     },
     "record": {
       "$ref": "opentine-merge-approval-1.schema.json"
+    },
+    "ticket": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "nonce",
+        "approval",
+        "run",
+        "target",
+        "approver",
+        "expires_ms",
+        "spent_fencing"
+      ],
+      "properties": {
+        "nonce": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{32}$"
+        },
+        "approval": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "run": {
+          "type": "string",
+          "pattern": "^run:sha256:[0-9a-f]{64}$"
+        },
+        "target": {
+          "type": "string"
+        },
+        "approver": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "expires_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "spent_fencing": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
     }
   }
 }

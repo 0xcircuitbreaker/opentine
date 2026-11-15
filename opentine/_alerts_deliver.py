@@ -38,6 +38,13 @@ def signing_key(state: Path) -> Any:
     return load_key(state)
 
 
+def existing_public_key(state: Path) -> dict[str, str] | None:
+    """The webhook key's public half, or ``None`` before one exists (never creates it)."""
+    from opentine.remote._webhooks import KEY_FILE
+
+    return public_key(signing_key(state)) if (state / KEY_FILE).is_file() else None
+
+
 def public_key(key: Any) -> dict[str, str]:
     raw = key.public_key().public_bytes_raw()
     return {"kid": _webhook_sig.key_id(raw), "alg": "ed25519",
@@ -117,18 +124,34 @@ def send_webhook(url: str, payload: dict[str, Any], key: Any, allow_private: boo
             "attempts": attempt, "delivery": payload["delivery"]}  # fmt: skip
 
 
+def post_otlp(url: str, body: bytes, allow_private: bool) -> tuple[int, str]:
+    """Resolve the collector once, check every address, then connect to that address.
+
+    The name is never looked up again, so a rebinding DNS answer cannot move the
+    request to a private or loopback address after the check.
+    """
+    from opentine._alerts import check_otlp
+    from opentine.remote._webhook_delivery import pinned_post
+    from opentine.remote._webhooks import resolve
+
+    address = resolve(*check_otlp(url, allow_private), allow_private)
+    headers = {"Content-Type": "application/json", "Accept-Encoding": "identity",
+               "User-Agent": "opentine-alerts/1"}  # fmt: skip
+    status, raw = pinned_post(url, address, body, headers)
+    detail = "" if 200 <= status < 300 else " ".join(raw.decode("utf-8", "replace").split())
+    return status, detail[:200]
+
+
 def send_otlp(endpoint: str, document: dict[str, Any], *, sender: Any = None,
               allow_private: bool = False) -> dict:  # fmt: skip
-    from opentine._alerts import check_otlp
-    from opentine.remote._webhooks import resolve
-    from opentine.trace._otlp_push import post
-
     url = logs_url(endpoint)
+    body = json.dumps(document).encode("utf-8")
     try:
-        if sender is None:  # every address the host resolves to is checked first
-            resolve(*check_otlp(endpoint, allow_private), allow_private)
-        status, detail = (sender or post)(url, json.dumps(document).encode("utf-8"))
-    except Exception as exc:  # noqa: BLE001 - httpx errors, deadline: one failed delivery
+        if sender is None:
+            status, detail = post_otlp(url, body, allow_private)
+        else:
+            status, detail = sender(url, body)
+    except Exception as exc:  # noqa: BLE001 - socket/TLS errors: one failed delivery
         status, detail = type(exc).__name__, ""
     ok = isinstance(status, int) and 200 <= status < 300
     row = {"sink": "otlp", "target": url, "status": status,
@@ -177,4 +200,13 @@ def deliver(
     return out
 
 
-__all__ = ["ATTEMPTS", "deliver", "logs_url", "otlp_logs", "public_key", "signing_key"]
+__all__ = [
+    "ATTEMPTS",
+    "deliver",
+    "existing_public_key",
+    "post_otlp",
+    "logs_url",
+    "otlp_logs",
+    "public_key",
+    "signing_key",
+]

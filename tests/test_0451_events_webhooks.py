@@ -122,7 +122,7 @@ def test_the_stream_carries_ref_run_and_checkpoint_events_and_resumes(tmp_path):
 def test_events_are_tenant_scoped_and_streams_are_bounded(tmp_path):
     app = _reference(tmp_path)
     status, _, _ = _call(app, "GET", "/v1/tenants/acme/events", token="other-token")
-    assert status == "403 Forbidden"
+    assert status == "404 Not Found"  # another tenant: the uniform 404 (0.52)
     _push(app, tmp_path, "one", "heads/main")
     _, _, body = _call(
         app,

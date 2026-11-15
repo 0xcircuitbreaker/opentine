@@ -25,7 +25,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "tsc -p tsconfig.json && node --test dist/test/client.test.js dist/test/verified.test.js"
+    "test": "tsc -p tsconfig.json && node --test dist/test/client.test.js dist/test/admin.test.js dist/test/verified.test.js"
   },
   "peerDependencies": {
     "@opentine/verify": "*"

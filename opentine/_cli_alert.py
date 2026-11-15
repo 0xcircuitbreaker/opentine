@@ -3,7 +3,8 @@
 ``add NAME --on TRIGGER [--threshold USD] [--webhook URL] [--otlp ENDPOINT]``
 stores a rule (:mod:`opentine._alerts`); ``list`` prints the rules and the
 Ed25519 key that signs their webhook deliveries (pin its ``kid`` and
-``public_key`` in the receiver, as for a remote's ``caps.webhooks.keys``);
+``public_key`` in the receiver, as for a remote's ``caps.webhooks.keys``) once
+the first delivery has created it -- listing never creates the key;
 ``remove NAME`` drops one. ``test [NAME] [--event FILE] [--always] [--dry-run]``
 evaluates the rules on one event -- FILE holds a ``tine-event/1`` object or a
 ``tine watch --json`` line; without it, the newest entry of the repository's op
@@ -115,9 +116,12 @@ def _act(args: argparse.Namespace) -> tuple[dict[str, Any], str, bool]:
         return {"rules": rules}, f"removed alert {args.name}", True
     if action == "list":
         rules = _alerts.load_rules(repo.path)
-        key = _alerts_deliver.public_key(_alerts_deliver.signing_key(_alerts.state_dir(repo.path)))
+        key = _alerts_deliver.existing_public_key(_alerts.state_dir(repo.path))
         lines = [f"{r['name']}\t{r['on']}\t{r.get('webhook') or '-'}\t{r.get('otlp') or '-'}"
                  for r in rules]  # fmt: skip
+        if key is None:  # listing never creates the key; the first webhook delivery does
+            lines.append("webhook key: none yet (created by the first webhook delivery)")
+            return {"rules": rules}, "\n".join(lines), True
         lines.append(f"webhook key {key['kid']} {key['public_key']}")
         return {"rules": rules, "webhook_key": key}, "\n".join(lines), True
     body, ok = run_test(args, repo)

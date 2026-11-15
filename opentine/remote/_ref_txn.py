@@ -21,6 +21,7 @@ from typing import Any
 from opentine.kernel import parse_oid
 from opentine.remote._ref_policy import FORCE, fast_forward_violation, ref_permission
 from opentine.remote._tenant_repo import TenantRepo, admit_annotation_ref
+from opentine.remote._token_scope import check_ref
 from opentine.repository._refs import normalize_ref, validate_ref_target
 
 #: At most this many refs move in one transaction.
@@ -38,6 +39,7 @@ def check_move(
 ) -> tuple[str, bool]:
     """``(normalized name, whether it is a forced rewrite)``; raises when refused."""
     name = normalize_ref(name)
+    check_ref(identity, name)  # a namespace-limited token (_token_scope)
     if name.startswith("project/"):  # 0.46: owner-signed, chained: only PUT project moves it
         raise ValueError("project/manifest moves only through the project route (caps.project)")
     extra = ref_permission(name, expected_old)
@@ -73,7 +75,7 @@ def supported(index: Any) -> bool:
 def update_refs(
     service: Any, identity: Any, tenant: str, updates: Any, *, force: bool = False
 ) -> bool:
-    service._authorize(identity, "update_ref", tenant)
+    service._authorize_scoped(identity, "update_ref", tenant)
     if not supported(service.index):
         raise ValueError("this server's index cannot apply ref transactions")
     if not isinstance(updates, list) or not 1 <= len(updates) <= MAX_TXN_UPDATES:

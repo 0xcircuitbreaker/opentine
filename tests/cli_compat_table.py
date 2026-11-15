@@ -4258,6 +4258,29 @@ ROWS: tuple[tuple, ...] = (
         {"command": "merge-queue", "queue_action": "approve", "run": "RUN", "reject": True},
     ),  # fmt: skip
     (
+        "plain:merge-queue approve RUN --target t --approver a --ed25519-key-file k"
+        " --queue q --expires 600",
+        "plain",
+        [
+            "merge-queue",
+            "approve",
+            "RUN",
+            "--target",
+            "t",
+            "--approver",
+            "a",
+            "--ed25519-key-file",
+            "k",
+            "--queue",
+            "q",
+            "--expires",
+            "600",
+        ],
+        "opentine._cli_merge_queue:cmd_merge_queue",
+        False,
+        {"command": "merge-queue", "queue_action": "approve", "queue": "q", "expires": 600.0},
+    ),  # fmt: skip
+    (
         "plain:merge-queue verify m.json --public-key K --run",
         "plain",
         ["merge-queue", "verify", "m.json", "--public-key", "K", "--run"],
@@ -5025,5 +5048,46 @@ ROWS: tuple[tuple, ...] = (
         "opentine._cli_tenant:cmd_tenant",
         False,
         {"command": "tenant", "tenant_action": "import", "source": "exp", "repo": "r"},
+    ),
+    (
+        "plain:serve token mint --tenant acme --ref heads/ci/ --access write --json",
+        "plain",
+        [
+            "serve",
+            "token",
+            "mint",
+            "--tenant",
+            "acme",
+            "--ref",
+            "heads/ci/",
+            "--access",
+            "write",
+            "--json",
+        ],
+        "opentine.cli:<lambda>",
+        False,
+        {
+            "command": "serve",
+            "admin_action": "token",
+            "token_action": "mint",
+            "refs": ["heads/ci/"],
+            "access": "write",
+        },
+    ),  # fmt: skip
+    (
+        "plain:serve token list --root r",
+        "plain",
+        ["serve", "token", "list", "--root", "r"],
+        "opentine.cli:<lambda>",
+        False,
+        {"command": "serve", "admin_action": "token", "token_action": "list", "root": "r"},
+    ),
+    (
+        "plain:serve token revoke 0123456789abcdef",
+        "plain",
+        ["serve", "token", "revoke", "0123456789abcdef"],
+        "opentine.cli:<lambda>",
+        False,
+        {"command": "serve", "admin_action": "token", "token_id": "0123456789abcdef"},
     ),
 )

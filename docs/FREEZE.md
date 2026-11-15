@@ -93,6 +93,17 @@ case.
 | Evidence folder (`MANIFEST.sha256`, `custody.jsonl`) and the audit kit | 8.4, 8.4.1 |
 | Published JSON Schemas and the `--json` envelope | 12 |
 
+## 0.52: scoped tokens, CI OIDC exchange and quotas
+
+No object kind, wire format, vector family or `docs/schemas` object schema was
+added, and no closed or signed schema changed. Scoped API tokens, the CI OIDC
+exchange and quotas (SPEC 8.27) are unsigned HTTP admin shapes in
+`docs/api/openapi-v1.yaml` (`Limits`, `AuthMethods`, `Usage`, `TokenRecord`,
+`TokenList`, `TokenRequest`, `MintedToken`, `OidcExchange`, `IssuedToken`);
+`GET /v1/capabilities` gains only the optional keys `scoped_tokens`, `limits`
+and `oidc_exchange`, emitted when served (SPEC 5.2). Only the CLI output schema
+`tine-cli-serve-token-1` (`tine serve token --json`) was added.
+
 ## 0.51: codec-3 vectors and trust bundles
 
 The owner's sign-off on the pyz storage-family exclusion (2026-11-13) is
@@ -233,6 +244,21 @@ the helpers and the unchanged envelope check over the shared fixture
 `tine-attest/1` and a `tine-attest/2` attestation that name an ungranted
 predicate. The first granted predicate brings its own `unchecked` case into
 the existing attestation family under condition (b).
+
+### Merge-approval nonces and expiry (0.52)
+
+**Read under the claim-schema ruling above: local queue state, 1.x for a
+signed form.** The 0.51-0.60 plan proposed carrying a merge approval's queue
+id, nonce and expiry as a plain JSON claim in an existing `attestation` over
+the approval, which `tine merge-queue land` would require. That claim has a
+fixed shape that `land` reads to reach a verdict, so it is an
+`attestation.claim` schema in the ruling's sense: it would need its own
+`unchecked` vector (condition b), a `KINDS` entry (d) and the owner's sign-off
+by name (e), and none is granted. `opentine-merge-approval-1` stays closed and
+unchanged; the queue id, nonce and expiry are kept in the queue's own
+`coord/merge-queue/<id>` record (`tickets`, SPEC 4.19), which is local state,
+not a wire format, and adds no object kind, schema file or vector family. A
+signed binding of nonce and expiry to the approval is a 1.x item.
 
 ### The pyz storage-family exclusion
 

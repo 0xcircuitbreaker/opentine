@@ -15,7 +15,8 @@ Definitions live in :mod:`opentine._schema_defs` (object kinds) and
 :mod:`opentine._schema_defs_audit_kit` (``tine audit-kit``, 0.49);
 :mod:`opentine._schema_defs_alerts` (``tine alert``, 0.49);
 :mod:`opentine._schema_defs_witness` (the witness network, 0.49; trust bundles,
-0.51); ``docs/schemas`` is their rendered copy (``scripts/gen_schemas.py``). A
+0.51); :mod:`opentine._schema_defs_auth` (``tine serve token``, 0.52);
+``docs/schemas`` is their rendered copy (``scripts/gen_schemas.py``). A
 schema's *name* is its file stem, e.g. ``tine-verify-report-2``; the tag a document carries
 (``tine-verify-report/2``) maps to it by spelling ``/`` as ``-``.
 """
@@ -31,6 +32,8 @@ from opentine._schema_defs_alerts import COMMAND_SCHEMAS as _ALERT_COMMANDS
 from opentine._schema_defs_alerts import SCHEMAS as _ALERTS
 from opentine._schema_defs_audit_kit import COMMAND_SCHEMAS as _AUDIT_KIT_COMMANDS
 from opentine._schema_defs_audit_kit import SCHEMAS as _AUDIT_KIT
+from opentine._schema_defs_auth import COMMAND_SCHEMAS as _AUTH_COMMANDS
+from opentine._schema_defs_auth import SCHEMAS as _AUTH
 from opentine._schema_defs_ci import KIND_SCHEMAS as _CI_KINDS
 from opentine._schema_defs_ci import SCHEMAS as _CI
 from opentine._schema_defs_cli import COMMAND_SCHEMAS as _CLI_COMMANDS
@@ -95,6 +98,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     **_PUBLISH,
     **_ALERTS,
     **_WITNESS,
+    **_AUTH,
 }
 COMMAND_SCHEMAS: dict[str, str] = {
     **_CLI_COMMANDS,
@@ -114,6 +118,7 @@ COMMAND_SCHEMAS: dict[str, str] = {
     **_PUBLISH_COMMANDS,
     **_ALERT_COMMANDS,
     **_WITNESS_COMMANDS,
+    **_AUTH_COMMANDS,
 }
 KIND_SCHEMAS: dict[str, str] = {
     **_REDACT_KINDS,

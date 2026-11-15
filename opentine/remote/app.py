@@ -8,19 +8,21 @@ from typing import Any
 from urllib.parse import unquote
 
 from opentine.kernel import OBJECT_TYPES, validate_json_shape
+from opentine.remote._admin_http import early_route
 from opentine.remote._app_uploads import UploadRoutes
 from opentine.remote._auth_throttle import AuthThrottle, internal_error
 from opentine.remote._events_http import extra_routes
-from opentine.remote._hosted_http import share_route
 from opentine.remote._quota import QuotaExceeded
 from opentine.remote._ref_txn import route as ref_txn_route
-from opentine.remote._request_audit import AuthorizationDenied, FailureAudit, request_action
+from opentine.remote._request_audit import AuthorizationDenied, FailureAudit, hidden, request_action
 from opentine.remote._uploads import UploadRegistry
 from opentine.remote._wsgi import json_response, request_headers, response
 from opentine.remote.interfaces import KeyProvider
 from opentine.remote.service import RemoteService
 from opentine.repository import _pack4, _pack_peer
 from opentine.repository.pack import MAX_PACK_BYTES, OMITTED_HEADER
+
+_SLOW = {"error": "too many failed authentications"}
 
 
 class ServerBusy(RuntimeError):
@@ -114,8 +116,8 @@ class RemoteApp(UploadRoutes):
         method = environ.get("REQUEST_METHOD", "GET").upper()
         try:
             path = environ.get("PATH_INFO", "/").rstrip("/") or "/"
-            if path.startswith("/v1/share/"):  # 0.46: public share links, no bearer
-                return share_route(self, path[10:], method, environ, start_response)
+            if (early := early_route(self, path, method, environ, start_response)) is not None:
+                return early  # 0.46 public share links; 0.52 admin surface (own auth)
             if method == "GET" and path == "/v1/capabilities":
                 return self._json_response(start_response, "200 OK", self.service.capabilities())
             prefix = "/v1/tenants/"
@@ -124,12 +126,8 @@ class RemoteApp(UploadRoutes):
             client = environ.get("REMOTE_ADDR") or "unknown"
             wait = self.auth_throttle.retry_after(client)
             if wait:
-                return self._json_response(
-                    start_response,
-                    "429 Too Many Requests",
-                    {"error": "too many failed authentications"},
-                    [("Retry-After", str(wait))],
-                )
+                retry = [("Retry-After", str(wait))]
+                return self._json_response(start_response, "429 Too Many Requests", _SLOW, retry)
             try:
                 identity = self.service.authenticate(self._headers(environ))
             except PermissionError as exc:
@@ -145,8 +143,9 @@ class RemoteApp(UploadRoutes):
             return self._dispatch(identity, tenant, resource, method, environ, start_response)
         except Exception as exc:
             if identity is not None and not isinstance(exc, AuthorizationDenied):
-                action = request_action(resource, method)
-                self._failures.failed(identity, tenant, action, exc)
+                self._failures.failed(identity, tenant, request_action(resource, method), exc)
+            if isinstance(exc, PermissionError) and hidden(self.service, identity, tenant):
+                exc = KeyError("hidden")  # 0.52: no tenant-existence oracle (uniform 404)
             for kind, status, message in _REFUSALS:
                 if isinstance(exc, kind):
                     extra = getattr(exc, "headers", ()) if kind is QuotaExceeded else ()
@@ -228,7 +227,7 @@ class RemoteApp(UploadRoutes):
         if resource == "packs" and method == "POST":
             content_type = self._headers(environ).get("content-type", "")
             if content_type.startswith("application/vnd.opentine.pack"):
-                self.service._authorize(identity, "upload", tenant)
+                self.service._authorize_scoped(identity, "upload", tenant)
                 data = self._body(environ)  # off the guard: a slow body must not hold it
                 with self._guarded(self._install_guard):
                     pack_id, count = self.service.install_pack(identity, tenant, data)

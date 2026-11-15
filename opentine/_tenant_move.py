@@ -16,7 +16,8 @@ formats were frozen at 0.48:
 * ``shares.json`` -- share-link metadata as ``GET shares`` returned it (ids,
   runs, expiry; never a token).
 
-Import reads the bundle, the Reviews and (into a remote) the project manifests.
+Import reads the bundle, the Reviews and (into a remote) the project manifests;
+into a remote it is all or nothing since 0.52 (``_tenant_import_remote``).
 The log stays the old server's signed history (a new server keeps its own
 log); share links are capabilities minted by the old server and are re-created
 on the new one by hand.
@@ -183,45 +184,12 @@ def import_local(source: Path, repo: Any) -> dict[str, Any]:
     return {"refs": refs, "reviews": reviews}
 
 
-def import_remote(
-    source: Path, base: str, tenant: str, token: str | None, *, allow_insecure: bool = False,
-    timeout: float = 120.0,
-) -> dict[str, Any]:  # fmt: skip
-    """Push an export to a ``tine serve`` tenant: refs, tombstones and Reviews."""
-    from opentine import _project as _project_record
-    from opentine import _review
-    from opentine.repository import Repo
-    from opentine.repository._http import client, request_json
-    from opentine.repository.client import push
+def import_remote(source: Path, base: str, tenant: str, token: str | None,
+                  **options: Any) -> dict[str, Any]:  # fmt: skip
+    """Import an export into a ``tine serve`` tenant, all or nothing (0.52)."""
+    from opentine._tenant_import_remote import import_remote as atomic
 
-    with tempfile.TemporaryDirectory(prefix="tine-leave-") as scratch:
-        repo = Repo.init(Path(scratch) / "repo")
-        refs = import_local(source, repo)["refs"]  # Reviews go over HTTP below
-        for name in sorted(refs, key=lambda n: (n.startswith("annotations/"), n)):
-            push(repo, base, tenant=tenant, token=token, ref=name, remote_ref=name,
-                 allow_insecure=allow_insecure, timeout=timeout)  # fmt: skip
-    prefix = f"/v1/tenants/{quote(tenant, safe='')}/reviews/"
-    reviews = []
-    with client(base, token, allow_insecure=allow_insecure, timeout=timeout) as http:
-        for value in _files(source):
-            review_id = value["versions"][0]["review_id"]
-            path = prefix + quote(review_id, safe="")
-            head = None
-            for version in value["versions"]:
-                request_json(http, "PUT", path, json={"expected_old": head, "version": version},
-                             max_seconds=timeout)  # fmt: skip
-                head = _review.digest(version)
-            for decision in value.get("decisions") or []:
-                request_json(http, "POST", path + "/decisions", json={"decision": decision},
-                             allowed=(201,), max_seconds=timeout)  # fmt: skip
-            reviews.append(review_id)
-        head = None
-        for manifest in _files(source, "project"):  # the manifest names its tenant
-            request_json(http, "PUT", f"/v1/tenants/{quote(tenant, safe='')}/project",
-                         json={"expected_old": head, "manifest": manifest},
-                         max_seconds=timeout)  # fmt: skip
-            head = _project_record.digest(manifest)
-    return {"refs": refs, "reviews": reviews}
+    return atomic(source, base, tenant, token, **options)
 
 
 __all__ = ["BUNDLE", "export", "import_local", "import_remote"]

@@ -23,3 +23,5 @@ export { webhookClass } from "./webhook.js";
 export { verifyReview, verifyReviewBundle, verifyReviewGate } from "./review.js";
 export { verifyMemory, verifyPrompt } from "./registry.js";
 export { keyFingerprint, openTrustBundle, parseVkey, type TrustBundle } from "./trustbundle.js";
+export { verifyTimestampToken, type Verdict as TimestampVerdict, type Window as TimestampWindow } from "./tsp.js";
+export { keylessSigningTime, keylessTokenTime, type TimestampAuthority } from "./keyless.js";

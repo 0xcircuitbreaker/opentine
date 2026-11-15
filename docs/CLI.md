@@ -102,6 +102,12 @@ New flags in 0.37 (no new subcommands):
   checked failed), and stderr says how far it got.
 - `gc` also removes staging files left by killed writers once they are an hour
   old (`reaped_temp` in `--json`); live writers' files are never touched.
+- `gc --sweep-expired [--state DIR] [--tenant T]...` (0.52) packs nothing: it
+  removes the expired orphan chunks of the object store `tine serve --root DIR`
+  opens (`TINE_REMOTE_OBJECT_STORE`). A chunk goes only when no object or
+  in-flight upload names it, its retention has ended and it has no legal hold;
+  the removal is fenced against concurrent uploads (docs/STORAGE.md).
+  `--json` writes `tine-cli-gc-1`.
 
 New in 0.38: `tine rewind` restores a workspace snapshot (a tree blob, SPEC
 §1.5.7) exactly. `tine rewind TREE_OID` takes the tree id directly;
@@ -163,6 +169,17 @@ rotated. After 5 consecutive failed authentications a client gets 429 with
 `Retry-After` for a delay that doubles per failure (up to 5 minutes), and a 500
 answers only `{"error":"internal","request_id":...}`, logging the exception.
 
+New in 0.52: `tine serve` implements the admin surface (SPEC 8.27; operations
+tagged `admin` in `docs/api/openapi-v1.yaml`): `GET`/`DELETE /v1/session`,
+tenants, members, invitations, settings, retention and holds. `serve
+--passkey-rp-id ID --passkey-origin https://ORIGIN` turns on passkey (WebAuthn)
+login, where the server keeps public keys only; `serve --insecure-dev
+--dev-login` lets a local developer sign in as any subject with no proof;
+`serve --open-signup` lets any signed-in subject create tenants (otherwise an
+admin bearer token registers its own tenant and invites people). No new verb;
+`scripts/check_api_contract.py ROUTES` lists a hosted deployment's `/api/*`
+routes the spec does not document.
+
 New in 0.44: `serve --quota-rate PER_SECOND [--quota-burst N]` gives every
 (tenant, subject) a token bucket; an upload or ref update over quota gets 429
 with `Retry-After`. At most `--quota-max-keys` buckets (10,000) are held, the
@@ -189,6 +206,31 @@ as `webhooks.keys`) and the policy URIs under `vsa.policies` for a CI gate to
 pin. The policy is operator configuration: nothing in a pushed repository
 selects one, and the server signs VSAs only with its own key, never as a user. CI
 integrations that gate on these VSAs are in [CI.md](CI.md).
+
+New in 0.52 (SPEC 8.28): scoped, expiring, revocable API tokens.
+`tine serve token mint --root R --tenant T --access read|write --ref NAMESPACE
+[--ref ...] [--ttl 90d] [--label TEXT]` prints a `tine_pat_` token once (only
+its SHA-256 is stored, in `R/auth.sqlite3`); a NAMESPACE is a ref
+(`heads/main`), a prefix ending in `/` (`heads/ci/`) or `*` (the default).
+`tine serve token list` shows the tenant's tokens without secrets and
+`tine serve token revoke ID` revokes one; a running server sees both at its
+next request. `--json` writes `tine-cli-serve-token-1`. A token limited to
+namespaces lists, fetches and (with `write`) moves only refs inside them and
+gets no other tenant route. `serve --ci-trust FILE` turns on the CI OIDC
+exchange (`POST /v1/auth/oidc-exchange`) for GitHub Actions, GitLab and
+Forgejo ID tokens: the JWT is checked against the JWKS FILE configures for its
+issuer (`jwks`, `jwks_file` or an `https` `jwks_uri`), and the first rule whose
+claims match, which must pin the repository, mints a `tine_ci_` token of at most
+an hour, and never past the ID token's own expiry. Quotas are off by default
+on a self-hosted server, so an upgrade never starts refusing it:
+`serve --limits fair-use` applies the published fair-use limits the hosted
+service uses (`GET /v1/limits` `fair_use`: 10 GiB stored, 20 GiB egress per
+UTC day, 2 GiB mirror, 2000 runner minutes per month, per tenant), and
+`serve --limits FILE` sets them (`{"base": "fair-use"|"unlimited",
+"defaults": {...}, "tenants": {"T": {...}}}`, `null` for unlimited).
+Over a limit a tenant's own caller gets `507` (storage) or `429` with
+`Retry-After` (egress); nothing is ever deleted. `GET /v1/tenants/T/usage`
+shows the tenant's use.
 
 ## Default output format
 
@@ -708,7 +750,11 @@ server holds, with tombstones and `tine-sig/3` sidecars), `reviews/ID.json`
 entries, as the API returned them) and `shares.json` (share-link ids, runs and
 expiry; never a token). `import` installs the bundle and the Reviews into a
 local repository under the same ref names, refusing to move a ref that already
-points elsewhere, or with `--remote` pushes them to another `tine serve` tenant.
+points elsewhere, or with `--remote` imports them into another `tine serve`
+tenant all or nothing (0.52): the objects are uploaded first, then one `POST
+import` (`caps.tenant_import`) creates every ref, Review and project version
+together, and an interrupted or refused import leaves the tenant unchanged (run
+it again to finish). A server without `caps.tenant_import` is refused.
 `tine verify . --offline --json` then prints the same bytes in either place.
 `--json` writes `tine-cli-tenant-1`. The walkthrough, and what cannot move, is
 [LEAVING.md](LEAVING.md).
@@ -730,14 +776,17 @@ repository and checked (an attestation whose signature does not verify, a
 `log.checkpoint` events are compared with the last checkpoint of the same
 origin (a rollback or fork is a `witness.disagreement`). A webhook delivery is
 a `tine-webhook/1` body (SPEC 8.13) whose `event` is the triggering event, with
-an `alert` member added, signed with `.tine/alerts/webhook-ed25519.key`; `list`
-prints its `kid` and `public_key` for the receiver to pin. Targets must be
+an `alert` member added, signed with `.tine/alerts/webhook-ed25519.key`
+(created by the first webhook delivery); `list` prints its `kid` and
+`public_key` for the receiver to pin once it exists, and never creates it. Targets must be
 `https://` global addresses unless `--allow-private`; 408/429/5xx are retried
 (3 attempts). An OTLP delivery POSTs one OTLP/JSON log record per alert to
 `ENDPOINT/v1/logs` (severity `ERROR` for verify and witness alerts, else
 `WARN`; `opentine.alert.*` attributes); it may be `http://` but, like a webhook,
 must not carry credentials or name (or resolve to) a private, loopback or
-reserved address unless `--allow-private`. Stored rules are re-checked when
+reserved address unless `--allow-private`. Both sinks resolve the host once,
+check every address and connect to the checked one, so a rebinding DNS answer
+cannot redirect the request (0.52). Stored rules are re-checked when
 read, so a hand-edited `rules.json` cannot bypass these checks. `test` evaluates the newest op-log entry
 (or `--event FILE`: an event or a `tine watch --json` line) and delivers what
 trips; `--always` also sends a `test: true` alert for each other rule. `--json`
@@ -1425,6 +1474,7 @@ tine merge-queue land QUEUE --holder H --fencing 1 --ed25519-key-file K [--evide
 tine merge-queue work QUEUE --holder H --ed25519-key-file K [--evidence FILE] [--ttl 60] [--max 2]
 tine merge-queue show QUEUE
 tine merge-queue approve RUN --target REF --approver NAME --ed25519-key-file K [--reject]
+    [--queue QUEUE [--expires 86400]]
 tine merge-queue verify FILE|BLOB_OID [--public-key HEX] [--run]
 ```
 
@@ -1455,7 +1505,17 @@ merge, one that adds nothing, or a failed gate moves the entry to `rejected`.
 eval verdicts (optionally from listed signers), and a number of approvals from
 listed Ed25519 keys. `--evidence FILE` holds `{"vsa": [...], "evals": [...],
 "approvals": [...]}`; `approve` signs an `opentine.merge-approval` (`--reject`
-signs a veto). `verify` checks an attestation (a file, or the blob oid a
+signs a veto). Since 0.52 a queue whose gates require approvals counts only
+approvals **issued** into it: `approve --queue QUEUE` also records a ticket in
+the queue record (a random nonce, the approval's digest and an expiry,
+`--expires` seconds, default one day, at most 30 days) and prints it as
+`ticket`. A landing rejects the entry when the evidence holds an approval that
+was not issued into this queue, has expired, or whose nonce an earlier landing
+already spent, and marks the nonces it used spent in the same compare-and-swap
+that lands it. A gated `land` or `work` without a signing key is refused
+(`no-key`). The binding is local queue state, not a signed field: the
+approval schema is closed, and a claim inside an attestation that `land` reads
+would be a new claim schema under FREEZE.md; a signed form is a 1.x item. `verify` checks an attestation (a file, or the blob oid a
 landing records; `--run` also checks the merged run here) or an approval and
 exits 4 when it fails; `python tine-verify.pyz FILE.json [--pubkey K]` checks
 either offline. `--json` follows `tine-cli-merge-1`, `tine-cli-pick-1` and

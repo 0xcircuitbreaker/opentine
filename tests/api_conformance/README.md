@@ -23,3 +23,7 @@ one webhook. Checks for a capability the server does not advertise in
 `GET /v1/capabilities` are skipped, never failed. The auth-throttle check
 (`429` with `Retry-After`) locks the client address out for a while, so against
 a remote it runs only with `TINE_API_THROTTLE=1`.
+
+The admin-surface checks (`test_api_admin.py`, 0.52) are read-only except one
+invitation, made and revoked, and only on a tenant registered on the admin
+surface.

@@ -6,8 +6,10 @@ token) and ``land``s the first entry with that token, which checks the gates,
 merges, signs an ``opentine.merge`` attestation with ``--ed25519-key-file`` and
 commits all of it in one compare-and-swap. ``work`` repeats claim and land
 until the queue is empty. ``approve`` writes a signed ``opentine.merge-approval``
-for a gate; ``verify`` checks an attestation or approval offline (exit 4 when
-it fails). ``--json`` output follows ``tine-cli-merge-queue-1``.
+for a gate (with ``--queue``, also issued into that queue with a nonce and an
+expiry, which gated landings require since 0.52); ``verify`` checks an
+attestation or approval offline (exit 4 when it fails). ``--json`` output
+follows ``tine-cli-merge-queue-1``.
 """
 
 from __future__ import annotations
@@ -63,6 +65,9 @@ def add_merge_queue_parser(sub: Any) -> None:
     approve.add_argument("--target", required=True)
     approve.add_argument("--approver", required=True)
     approve.add_argument("--reject", action="store_true")
+    approve.add_argument("--queue", help="Issue the approval into this queue (nonce and expiry)")
+    approve.add_argument("--expires", type=float, default=86400.0, metavar="SECONDS",
+                         help="With --queue: seconds until the approval expires")  # fmt: skip
     _key_args(approve, True)
     verify = actions.add_parser("verify", help="Check a merge attestation or approval offline")
     verify.add_argument("file", metavar="FILE", help="A record file, or an attestation oid")
@@ -130,8 +135,14 @@ def _act(args: argparse.Namespace) -> dict[str, Any]:
     if action == "approve":
         record = _merge_record.build_approval(args.run, args.target, args.approver,
                                               "reject" if args.reject else "approve")  # fmt: skip
-        return {"record": _merge_record.sign_approval(record, _key(args), algorithm="ed25519",
-                                                      key_id=args.approver)}  # fmt: skip
+        signed = _merge_record.sign_approval(record, _key(args), algorithm="ed25519",
+                                             key_id=args.approver)  # fmt: skip
+        if not args.queue:
+            return {"record": signed}
+        from opentine.coord._merge_tickets import issue
+
+        return {"record": signed, "ticket": issue(Repo.open(args.repo), args.queue, signed,
+                                                  args.expires)}  # fmt: skip
     repo = Repo.open(args.repo)
     if action == "verify":
         return _verify(repo, args)

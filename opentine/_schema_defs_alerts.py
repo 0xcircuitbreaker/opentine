@@ -1,4 +1,5 @@
-"""JSON Schema for ``tine alert ACTION --json`` (0.49).
+"""JSON Schema for ``tine alert ACTION --json`` (0.49) and ``tine gc --sweep-expired
+--json`` (0.52).
 
 Only the command's output: an alert delivery is a ``tine-webhook/1`` body (its
 ``alert`` member rides in that open envelope) or an OTLP log record, so this
@@ -14,6 +15,7 @@ from opentine._schema_defs import BOOL, STR, closed, doc, open_, opt
 _TRIGGER = {"enum": ["verify.failed", "policy.denied", "cost.threshold", "witness.disagreement"]}
 _NAME = {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"}
 _NUM = {"type": "number"}
+_COUNT = {"type": "integer", "minimum": 0}
 _RULE = closed(["name", "on", "threshold", "webhook", "otlp", "allow_private"], {
     "name": _NAME, "on": _TRIGGER, "threshold": opt(_NUM), "webhook": opt(STR),
     "otlp": opt(STR), "allow_private": BOOL})  # fmt: skip
@@ -39,7 +41,8 @@ _ALERT = closed(
 SCHEMAS: dict[str, dict[str, Any]] = {
     "tine-cli-alert-1": doc("tine-cli-alert-1", "tine alert ACTION --json",
         "Every `tine alert` action. `add`: the stored `rule`; `list`: `rules` and "
-        "`webhook_key` (kid, alg, public_key: pin it in the receiver); `remove`: the remaining "
+        "`webhook_key` (kid, alg, public_key: pin it in the receiver; absent until the first "
+        "webhook delivery creates the key, which `list` never does); `remove`: the remaining "
         "`rules`; `test`: the `event` evaluated (id, kind) and one `alerts` entry per rule it "
         "tripped (or, with --always, a `test: true` alert per other rule), each with its "
         "`deliveries`. `ok` is false, and the command exits 1, when a delivery failed.",
@@ -52,8 +55,20 @@ SCHEMAS: dict[str, dict[str, Any]] = {
                 "alg": {"const": "ed25519"}, "public_key": STR}),
             "event": open_(["id", "kind"], {"id": opt(STR), "kind": opt(STR)}),
             "alerts": {"type": "array", "items": _ALERT}})),
+    "tine-cli-gc-1": doc("tine-cli-gc-1", "tine gc --sweep-expired --json",
+        "`tine gc --sweep-expired`: the object `store` swept (`filesystem` keeps no chunks), "
+        "one `tenants` row per tenant (`chunks` stored, `swept` expired orphans removed, "
+        "`retained` orphans still inside retention or held, `live` orphans an upload claimed "
+        "while sweeping) and the total `swept`. Plain `tine gc --json` keeps its 0.11 shape.",
+        open_(["command", "action", "store", "tenants", "swept"], {
+            "command": {"const": "gc"}, "action": {"const": "sweep-expired"}, "store": STR,
+            "tenants": {"type": "array", "items": closed(
+                ["tenant", "chunks", "swept", "retained", "live"], {
+                    "tenant": STR, "chunks": _COUNT, "swept": _COUNT, "retained": _COUNT,
+                    "live": _COUNT})},
+            "swept": _COUNT})),
 }  # fmt: skip
 
-COMMAND_SCHEMAS: dict[str, str] = {"alert": "tine-cli-alert-1"}
+COMMAND_SCHEMAS: dict[str, str] = {"alert": "tine-cli-alert-1", "gc": "tine-cli-gc-1"}
 
 __all__ = ["COMMAND_SCHEMAS", "SCHEMAS"]

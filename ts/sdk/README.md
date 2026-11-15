@@ -25,6 +25,16 @@ Operations whose `OPERATIONS[id].status` is `planned` exist only on servers
 that advertise `OPERATIONS[id].cap` in `GET /v1/capabilities`; elsewhere they
 fail with a uniform `404` (`TineApiError`).
 
+## Admin surface (0.52)
+
+`new TineAdmin(client)` wraps the operations tagged `admin` (SPEC 8.27):
+`session()`/`logout()`, passkey login (`passkeyAssertionOptions()` then
+`passkeyLogin(assertion)` with the result of `navigator.credentials.get`;
+the bearer token is never sent on a login ceremony), tenants, members,
+invitations, settings, retention and holds. None of it carries signed data;
+a passkey's private key never leaves the authenticator. Admin errors carry
+`{"error", "code"}` in `TineApiError.body`.
+
 ## Develop
 
 ```sh

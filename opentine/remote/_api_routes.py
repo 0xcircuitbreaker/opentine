@@ -11,13 +11,16 @@ table, the spec and the dispatcher cannot drift apart.
 Rules every v1 implementation (``tine serve`` and the hosted service) keeps:
 tenant routes are private by default (no anonymous read), every read is
 authorized per tenant, an object the caller may not read answers exactly like
-one that does not exist (a uniform ``404``, no oid-existence oracle), and the
+one that does not exist (a uniform ``404``, no oid-existence oracle; since 0.52
+also for a caller who may not read the tenant at all), and the
 server never signs anything as a user: signed objects arrive client-signed.
 """
 
 from __future__ import annotations
 
 from typing import NamedTuple
+
+from opentine.remote._api_routes_admin import ADMIN_ROUTES
 
 API_VERSION = "1.0.0"
 PACK = "application/vnd.opentine.pack"
@@ -35,6 +38,7 @@ class Route(NamedTuple):
     permission: str | None  # the authorization action; None = unauthenticated
     request: str | None  # component schema name, a media type, or None
     responses: tuple[tuple[str, str], ...]  # (status code, schema name or media type)
+    tag: str = "protocol"  # 0.52: "admin" for the session/login/tenant surface (OpenAPI tags)
 
 
 T = "/tenants/{tenant}"
@@ -59,12 +63,13 @@ ROUTES: tuple[Route, ...] = (
           (("200", PACK), ("400", "Error"), ("503", "Error"), *_ERR)),
     Route("POST", T + "/packs", "uploadPack", "Install a pack, or declare a resumable upload",
           None, "stable", "upload", "UploadDeclaration",
-          (("201", "Installed"), ("400", "Error"), ("503", "Error"), *_ERR)),
+          (("201", "Installed"), ("400", "Error"), ("503", "Error"), ("507", "Error"), *_ERR)),
     Route("HEAD", T + "/packs/{upload_id}", "uploadOffset", "A resumable upload's offset",
           None, "stable", "upload", None, (("200", "Offset"), *_ERR)),
     Route("PATCH", T + "/packs/{upload_id}", "uploadChunk", "Append to a resumable upload",
           None, "stable", "upload", "application/offset+octet-stream",
-          (("200", "Offset"), ("201", "Installed"), ("409", "Offset"), ("400", "Error"), *_ERR)),
+          (("200", "Offset"), ("201", "Installed"), ("409", "Offset"), ("400", "Error"),
+           ("507", "Error"), *_ERR)),
     Route("POST", T + "/search", "search", "Object ids matching an index query",
           None, "stable", "search", "SearchQuery",
           (("200", "SearchResult"), ("400", "Error"), *_ERR)),
@@ -155,6 +160,30 @@ ROUTES: tuple[Route, ...] = (
           ("claim", "claimTask", "Take the lease by compare-and-swap; returns the fencing token"),
           ("heartbeat", "heartbeatTask", "Extend the lease (holder and current fencing token)"),
           ("done", "finishTask", "Close the task (holder and current fencing token)"))),
+    # 0.52 admin surface (SPEC 8.27): session, login, tenants -- no signed data.
+    *(Route(*row) for row in ADMIN_ROUTES),
+    # 0.52 caps.scoped_tokens and caps.limits (_gateway): unsigned admin shapes.
+    Route("GET", "/limits", "getLimits", "Published fair-use limits and quota policy",
+          "limits", "stable", None, None, (("200", "Limits"),)),
+    Route("GET", "/auth-methods", "getAuthMethods", "How a client may authenticate",
+          "limits", "stable", None, None, (("200", "AuthMethods"),)),
+    Route("POST", "/auth/oidc-exchange", "exchangeCiToken",
+          "A CI job's OIDC ID token for a short-lived scoped token", "oidc_exchange", "stable",
+          None, "OidcExchange", (("201", "IssuedToken"), ("401", "Error"), *_PUBLIC)),
+    Route("GET", T + "/usage", "getUsage", "The tenant's limits and metered use",
+          "limits", "stable", "read_ref", None, (("200", "Usage"), *_ERR)),
+    Route("GET", T + "/tokens", "listTokens", "The tenant's scoped tokens (never a secret)",
+          "scoped_tokens", "stable", "tokens", None, (("200", "TokenList"), *_ERR)),
+    Route("POST", T + "/tokens", "mintToken", "Mint a scoped, expiring token (shown once)",
+          "scoped_tokens", "stable", "tokens", "TokenRequest",
+          (("201", "MintedToken"), ("400", "Error"), *_ERR)),
+    Route("DELETE", T + "/tokens/{token_id}", "revokeToken", "Revoke a scoped token",
+          "scoped_tokens", "stable", "tokens", None, (("200", "TokenRecord"), *_ERR)),
+    # 0.52: tine tenant import --remote, all or nothing (_tenant_import_http).
+    Route("POST", T + "/import", "importTenant",
+          "Create an export's refs, Reviews and project chain together, or nothing",
+          "tenant_import", "stable", "update_ref", "TenantImport",
+          (("200", "TenantImported"), ("409", "TenantImported"), ("400", "Error"), *_ERR)),
 )  # fmt: skip
 
 

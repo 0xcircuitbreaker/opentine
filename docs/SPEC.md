@@ -1,7 +1,7 @@
 # The OpenTine Format Specification
 
-**Spec version:** 0.51.0 (draft until opentine 0.51.0 is tagged). **Previous
-version:** 0.50.0. Changes between versions are listed in
+**Spec version:** 0.52.0 (draft until opentine 0.52.0 is tagged). **Previous
+version:** 0.51.0. Changes between versions are listed in
 [Spec changelog](#spec-changelog); section anchors are stable (see
 [Stable anchors](#stable-anchors)).
 
@@ -24,8 +24,8 @@ documented rather than smoothed over; those places are marked **⚠ Hazard**.
 
 ## How to cite
 
-> *The OpenTine Format Specification*, opentine `docs/SPEC.md`, version 0.51.0.
-> https://github.com/0xcircuitbreaker/opentine/blob/v0.51.0/docs/SPEC.md
+> *The OpenTine Format Specification*, opentine `docs/SPEC.md`, version 0.52.0.
+> https://github.com/0xcircuitbreaker/opentine/blob/v0.52.0/docs/SPEC.md
 
 Cite a version, not `main`: the tagged URL is immutable, and a citation of a
 section should add its anchor (for example `#s-4.8` for `tine-actions/1`). The
@@ -2310,7 +2310,10 @@ over `opentine.merge-approval.v1:` + JCS of `{body, header}`. Reason codes
 `coord/merge-queue/<id>` (`kind: "merge-queue"`) owning one target ref, with
 `queue`, `target`, `gates` (an `opentine-merge-gates/1` policy or null),
 `head`, `entries`, `holder`, `fencing`, `lease_expires_ms`, `landed` (the last
-1,024 `{run, merge, fencing, attestation}`), `rejected` and `updated_ms`. A
+1,024 `{run, merge, fencing, attestation}`), `rejected`, `updated_ms` and,
+since 0.52, optional `tickets`: approvals issued into the queue, each
+`{nonce, approval, run, target, approver, expires_ms, spent_fencing}` with
+`approval` the SHA-256 of the approval's JCS. A
 worker claims the lease (fencing one higher, as 0.43 tasks) and lands the first
 entry: it checks the gates, merges the entry onto `head` (or fast-forwards an
 empty or contained `head`), signs an `opentine.merge` naming `target` and its
@@ -2328,7 +2331,17 @@ classifies `valid` (8.17) for the candidate under the pinned server key;
 at least `min` of them, by listed `signers` when given; **approvals**, at least
 `required` distinct listed keys signed `approve` for this run and target, and
 no listed key signed `reject`. Each piece that admitted the run is named in the
-attestation's `gates` by the SHA-256 of its JCS.
+attestation's `gates` by the SHA-256 of its JCS. Since 0.52, when `approvals`
+is set, every approval in the evidence must have an unexpired, unspent ticket
+in this queue, else the entry is rejected (`approval: not issued for merge
+queue Q`, `approval: nonce N expired`, `approval: replayed nonce N`); the
+landing CAS sets `spent_fencing` on the tickets it used; and a queue with gates
+refuses to land without a signing key (`no-key`), so every gated landing is
+attested. The queue id, nonce and expiry are local queue state, not signed
+fields: `opentine-merge-approval-1` is closed, and carrying them as an
+`attestation.claim` that `land` reads would be a new claim schema, which the
+FREEZE.md ruling allows only by name (none granted); a signed binding is a 1.x
+item.
 
 Vectors: `68-merge.json` (ops `merge.compute`, `merge.pick`, `merge.verify`,
 `merge-approval.verify`).
@@ -2801,7 +2814,7 @@ last: `opentine.forge-check` (§4.24, family 73), `opentine.review-finding`
 answered by the reference, the TS verifier and the pyz (through
 `tests/test_048_forge.py`, `tests/test_048_review_finding.py` and
 `tests/test_048_oms.py`). As of 0.48.0 the cutoff is in force: 0.49.0,
-0.50.0 and 0.51.0 add no object kind and no wire format.
+0.50.0, 0.51.0 and 0.52.0 add no object kind and no wire format.
 
 **The 0.50 freeze review** closed those lists without adding a kind or a
 format. The pyz now answers every reader and verifier case of every family
@@ -3340,7 +3353,12 @@ the tokens decoded (`hash_algorithm`, `message_imprint` hex, `gen_time`,
 `accuracy_us`, `tsa_valid_for`) beside `signature` (base64), `leaf`
 (`{start, end}`) and `receipt`, and returns `{signing_time, status}`
 (`status` `verified` or `unchecked`); the CMS layer is §8.6's. Vectors:
-`77-keyless-tsa.json`.
+`77-keyless-tsa.json`. Since 0.52 the TS verifier checks the CMS layer too
+(`keylessTokenTime`), with Python's `timestamp.*` reasons; real tokens are
+not conformance vectors (they are signed with fresh keys), so its fixture of
+tokens with the Python answers lives in `ts/verifier/test/fixtures/`. A token
+carrying embedded CRL or OCSP data fails closed there
+(`timestamp.revocation-unchecked`).
 
 <a id="s-8.13"></a>
 ## 8.13 Signed webhook payloads, `tine-webhook/1` (0.45.1)
@@ -3429,7 +3447,8 @@ the document, the table and the dispatcher disagree. Every operation carries
 `null` for the core protocol) and `x-opentine-status`: `stable` routes are
 served by this release, including every hosted-beta route of 8.14 and the
 `tombstones` routes of 4.14 and the `project` and `social_export` routes of
-8.18; a `planned` route (none remain) is a reserved shape, and a client calls
+8.18 and the admin surface of 8.27 (operations tagged `admin`); a `planned`
+route (none remain) is a reserved shape, and a client calls
 any capability-tagged route only when its cap is advertised.
 
 Rules every implementation keeps: tenant routes are private by default (no
@@ -3438,7 +3457,13 @@ per tenant; a request for an object the caller may not read answers exactly
 like one for an object that does not exist (a uniform `404`, or, for `fetch`,
 an empty pack), and a tenant-level refusal (`401`/`403`) never depends on the oid
 asked for or on whether the tenant exists, so no response is an oid- or
-tenant-existence oracle; repeated failed
+tenant-existence oracle. Since 0.52 a caller who may not read the tenant at all
+(another tenant's token, or one whose roles grant nothing there) gets that same
+uniform `404` from every tenant route, never `403`: a private, a nonexistent,
+an archived (revoked, removed or finished) and an out-of-scope object answer
+with identical status, headers and body (`tests/test_052_uniform_404.py`
+enumerates every route of the table); `403` is kept for a caller who can read
+the tenant but lacks a narrower permission; repeated failed
 authentication and exhausted quotas answer `429` with `Retry-After`; and the
 server never signs as a user: signed objects (runs, attestations, project
 manifests) arrive client-signed and are stored as received. A client verifies
@@ -3455,6 +3480,20 @@ replays them through the same routes (`packs`, `refs`, `tombstones`,
 `reviews`, `project`); a server's transparency log and share tokens are its
 own and are not moved. `docs/LEAVING.md` is the walkthrough. No byte format
 changed.
+
+Since 0.52 a remote import is all or nothing. A server that advertises
+`caps.tenant_import` serves `POST /v1/tenants/{tenant}/import` (`update_ref`)
+with `{"refs": {name: oid}, "reviews": [review bundles], "project":
+[manifests]}`, sent after the objects (and the tombstones their packs need)
+were uploaded with `packs`. The server MUST check every ref as `PUT refs`
+does, every Review chain and gate decision, and the project chain before it
+changes anything; a name that already holds other content answers `409
+{"imported": false, "conflict"}` with nothing changed, and content that already
+matches is skipped. It then makes the Reviews, project versions and refs
+visible together (the refs in one index transaction) or not at all, recovering
+any interrupted import before the next. `200 {"imported": true, "refs",
+"reviews", "project_versions"}` counts what was added. The request and reply
+are JSON shapes of existing records; no byte format changed.
 
 <a id="s-8.16"></a>
 ## 8.16 The agent hook protocol, `opentine-hook/1` (0.46)
@@ -3779,6 +3818,128 @@ kind or wire format:
 `tine trust bundle create|verify` write and check bundles (Part 12,
 `tine-cli-trust-bundle-1`); the TS verifier's `openTrustBundle` reads them in a
 browser.
+
+<a id="s-8.27"></a>
+## 8.27 The admin surface: session, login and tenants (0.52.0, HTTP only, not a kind)
+
+The operations tagged `admin` in [`docs/api/openapi-v1.yaml`](api/openapi-v1.yaml)
+are the session, login and tenant-management API the hosted web app needs
+(Tineyard maps its `/api/*` onto `/v1/*`) and that `tine serve` implements in
+full (self-host parity). They are advertised by two capabilities, `session`
+and `tenancy`. **No admin route carries signed data, and nothing here adds an
+object kind or wire format** (§5.5): runs, refs, Reviews and project manifests
+still travel only through the protocol routes, client-signed.
+
+- **Sessions.** `GET /v1/session` answers who is calling (`subject`,
+  `method` = `session:<authenticator>` or `bearer`, and the tenants the caller
+  can see with its role); `DELETE /v1/session` ends a session. A session
+  token (`tine_sess_...`) is a bearer secret, shown once, stored by the server
+  only as its SHA-256, and valid for at most `caps.tenancy.limits.session_seconds`.
+  A session reaches the protocol routes too, with the role its tenant
+  membership grants. Static tokens and OIDC bearers keep working everywhere.
+- **Login is a server concern.** An authenticator turns a ceremony into a
+  subject. *Passkeys* (WebAuthn Level 2) are the hosted login: the server
+  issues single-use challenges (5 minutes), and verifies, for ES256 and
+  Ed25519 credentials, the client data's type, challenge and origin (no
+  cross-origin), the RP id hash, the user-present and user-verified flags
+  (`userVerification: "required"`: the passkey is the only factor), the signature over
+  `authenticatorData || SHA-256(clientDataJSON)` and a non-decreasing
+  signature counter, recorded atomically so two logins cannot reuse one
+  counter value. Outstanding challenges are capped (`429 auth.challenge.limit`).
+  Attestation is requested as `none` and not evaluated: a
+  passkey proves possession of a key, not which hardware holds it. The server
+  stores credential *public* keys only; it never sees, holds or uses a user
+  signing key, and a passkey never signs OpenTine objects. A first passkey is
+  registered either by a signed-in caller or with an invitation token (the
+  server then mints a fresh `user:<hex>` subject, accepts the invitation and
+  opens a session). `tine serve` enables passkeys with `--passkey-rp-id` and
+  `--passkey-origin`; `--dev-login` (only with `--insecure-dev`) names a
+  subject with no proof, for local development. *Provider sign-in* (GitHub,
+  Google, an OIDC issuer) is identity linking only: it may attach a verified
+  provider identity to a subject and never mints a key or vouches for a
+  signature. `tine serve` implements none.
+- **Tenants.** `GET`/`POST /v1/tenants` list the caller's tenants and create
+  one (the creator is its admin). On `tine serve` creation is open to sessions
+  only with `--open-signup`; an admin bearer token may always register its own
+  tenant; a name whose tenant already holds data is never claimable by
+  anyone else, nor is one a configured static bearer token names
+  (`409 tenant.exists`). The tenant id is immutable (`PATCH`
+  changes the display name only: every URL and signed project manifest names
+  the id). `archive` makes the tenant read-only for every caller and every
+  route, deleting nothing (holds may still be placed, never released);
+  `unarchive` reverses it.
+- **Membership.** Roles are `reader`, `writer`, `admin` (the protocol
+  routes' roles). Members are listed to any role and changed by admins; the
+  last admin cannot be removed (`409 member.last_admin`). Invitations are
+  single-use tokens (`tine_invite_...`, at most 7 days, shown once, stored as
+  a digest); accepting one never lowers an existing role.
+- **Settings, retention, holds.** Settings are display metadata
+  (`description`, `homepage`, `default_ref`) plus the published fair-use
+  `limits`. A retention policy uses the fields of `retention.toml` (0.39:
+  `keep_days`, `refs`, `status`, `tier`); the server stores it and
+  never deletes on its own (`server_deletes: false`). Holds are the
+  `tine-holds/1` rows every object delete already refuses (`<root>/.holds/<tenant>`,
+  mirrored as cloud legal holds on a WORM store); only stored objects can be held.
+- **Errors.** One shape everywhere: `{"error": text, "code": "area.reason"}`,
+  the uniform `404` staying `{"error": "not found"}`. `400` a malformed
+  request or a ceremony that does not verify (`auth.passkey_invalid`); `401`
+  no valid session or token (`auth.required`); `403` a member without the role
+  (`tenant.forbidden`); `404` anything the caller may not see, including every
+  tenant route of a tenant it has no role in; `409` a state conflict; `429`
+  a published limit or repeated failed authentication, with nothing deleted to
+  make room.
+
+`scripts/check_api_contract.py` takes a hosted deployment's route dump and
+lists every `/api/*` route with no documented operation. No byte format changed.
+
+<a id="s-8.28"></a>
+## 8.28 Scoped tokens, CI OIDC exchange and quotas (0.52, admin shapes, not kinds)
+
+Three optional capabilities of a remote. Each is an unsigned HTTP shape in
+[`docs/api/openapi-v1.yaml`](api/openapi-v1.yaml); none is an object kind, and
+no signed or closed schema changed. `GET /v1/capabilities` names them only as
+new optional keys (§5.2: present when served), each pointing at its routes.
+
+- `scoped_tokens`: `GET|POST tokens` and `DELETE tokens/<id>` (admin) list,
+  mint and revoke tokens bound to **one tenant**, an **access** of `read` or
+  `write`, and **ref namespaces**: an exact ref (`heads/main`), a prefix ending
+  in `/` (`heads/ci/`), or `*` for every ref. A token is
+  `tine_pat_<16 hex>_<43 base64url>` (`tine_ci_` when the CI exchange issued
+  it); the secret is returned once, the server keeps only its SHA-256 and
+  compares in constant time, and every token expires (at most 366 days, a CI
+  token at most an hour). A revocation applies to the next request. A scoped
+  token is never `admin`. A token limited to namespaces other than `*` gets
+  only `GET refs` (the refs inside them), `POST negotiate` and `POST fetch`
+  (every `want` the target of such a ref; anything else is the uniform `404`),
+  and, with `write`, `PUT refs/<name>` and `POST ref-txn` inside them and pack
+  uploads; every other tenant route, the admin routes of 8.27 included, refuses it with the uniform 404. Namespaces confine refs, not
+  object confidentiality within a tenant: a `write` token that already knows
+  another object's id can point a ref of its own at it (or upload a pack that
+  links to it) and then fetch it, so give namespace-limited `write` tokens only
+  to callers trusted with the tenant's object ids. `tine serve token
+  mint|list|revoke` does the same offline on `--root` (Part 12,
+  `tine-cli-serve-token-1`).
+- `oidc_exchange`: `POST /v1/auth/oidc-exchange` `{"token": JWT, "tenant"?}`,
+  without a bearer, trades a GitHub Actions, GitLab or Forgejo ID token for a
+  CI token. The server verifies the JWT (RS256 or ES256, issuer, audience,
+  expiry) against the JWKS the operator configured for that issuer, never one
+  the token names, takes the first trust rule whose claims all match (exact,
+  or a prefix for a value ending in `*`), and refuses a rule that does not pin
+  the provider's repository claim exactly (or as `owner/*`). The JWT must carry
+  a `jti`, which is exchanged once, and the CI token never outlives the JWT's
+  `exp` (but lives at least a minute). Failures are
+  `401` and count against the client like failed logins. Without a configured
+  issuer the route is the uniform `404`.
+- `limits`: `GET /v1/limits` and `GET /v1/auth-methods` are public, unsigned
+  documents: the server's effective defaults (a self-hosted server is
+  unlimited unless its operator opts in, `serve --limits fair-use`), the
+  published fair-use limits (`fair_use`), their windows and refusal statuses,
+  and how a client may authenticate. `GET usage` gives a tenant's limits and use.
+  Storage (`storage_bytes`) and mirror size answer `507`, egress per UTC day
+  and runner minutes per UTC month `429` with `Retry-After`. A refusal is given
+  only to a caller authenticated for that tenant, and **no quota ever deletes,
+  expires or rewrites anything**. Every feature and all verification stay free;
+  the limits meter hosted use only (decision D3).
 
 <a id="part-9"></a>
 # Part 9 — Format v4 (0.26.0)
@@ -4331,6 +4492,7 @@ Versions are the opentine release that changed this document.
 
 | Spec version | Change |
 |---|---|
+| 0.52.0 | 8.27, the admin surface (`caps.session`, `caps.tenancy`; OpenAPI tag `admin`): sessions, passkey (WebAuthn) login with user verification required, tenants, members, invitations, settings, retention (stored only) and holds, one `{"error","code"}` error shape; 8.28, scoped API tokens, the CI OIDC exchange and published fair-use limits (`caps.scoped_tokens`, `caps.oidc_exchange`, `caps.limits`; self-hosted servers are unlimited unless the operator opts in; no quota ever deletes); 8.15, a caller who cannot read a tenant gets the uniform `404` on every tenant route, and `tine tenant import --remote` is all or nothing (`caps.tenant_import`); 4.19, gated merge approvals are issued into a queue as tickets with a nonce and an expiry (local queue state, not a signed field); Part 12 adds `tine-cli-serve-token-1` and `tine-cli-gc-1`, and `tine-cli-merge-queue-1` gains optional fields. All unsigned HTTP shapes or CLI output; no object kind, wire format or existing byte format changed. |
 | 0.51.0 | 2.8, a formatted zstd dictionary is required (a raw-content one is refused, so the Python and TS readers agree); 8.26, browser trust bundles: an owner-signed C2SP signed note over a trust policy's portable fields, an `opentine-witness-network/1` registry, log keys and admission policies, refused on rollback, applied as `tine verify --pin` (a profile, not a kind); Part 12 adds `tine-cli-trust-bundle-1`. The freeze ruling on predicates inside frozen envelopes is recorded in FREEZE.md (no predicate granted). No existing byte format changed. |
 | 0.50.0 | 2.3, codec byte 3 (zstd with a dictionary, local v3 packs only); 2.8, pack v3 dictionaries (`dicts/<sha256>.zdict`, `pack_dicts`, gc keeps the latest dictionary per kind, purge drops the old dictionaries), `min_reader` 0.50.0 and `_config.READER_VERSION` 0.50.0; 5.5, the 0.50 freeze review (Python, TS and pyz parity, families 79-84); 8.6, CRLs and OCSP responses embedded in an RFC 3161 token and the `timestamp.revoked` and `timestamp.revocation-invalid` codes; 8.24 `opentine-line-attribution/1` and 8.25 `tine-cost-statement/1` documented; Part 12 adds `tine-cli-tenant-1`. RFC 4998 evidence records are deferred past the freeze. No object kind or wire format was added. |
 | 0.49.0 | 8.4.1, the audit kit: its layout (`kit.json` as `tine-cli-audit-kit-build-1`, `tine-verify.pyz`, the offline `verify.html`, the evidence folder, Run Crates, the `replay/v1` attestation, the pinned witness set, the report, `ae/` and `SHA256SUMS`) and what a checker must refuse (changed or unlisted files, links and special files, run entries outside `runs/`, unsafe, linked, duplicate or oversized zip entries), and a SHOULD to check run signatures against a key from outside the kit; 8.23, the `opentine-witness-network/1` registry, a pinned configuration checked against the majority-of-three policy, not a kind; Part 12 adds `opentine-witness-network-1`, `tine-cli-audit-kit-build-1`, `tine-cli-audit-kit-verify-1`, `tine-cli-publish-1`, `tine-cli-alert-1` and `tine-cli-witness-doctor-1`. FastCDC chunk manifests in the object store are a stored form, and alerts reuse `tine-event/1` and `tine-webhook/1`. No object kind or wire format was added and no existing byte format changed. |

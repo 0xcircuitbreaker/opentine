@@ -26,7 +26,7 @@ def upload_owner(identity, tenant: str) -> str:
 
 class UploadRoutes:
     def _start_upload(self, identity, tenant, request, start_response):
-        self.service._authorize(identity, "upload", tenant)
+        self.service._authorize_scoped(identity, "upload", tenant)
         size = request.get("size")
         digest = str(request["sha256"])
         valid_size = type(size) is int and 0 < size <= self.max_upload_bytes
@@ -49,7 +49,7 @@ class UploadRoutes:
         )
 
     def _upload(self, identity, tenant, upload_id, method, environ, start_response):
-        self.service._authorize(identity, "upload", tenant)
+        self.service._authorize_scoped(identity, "upload", tenant)
         with self._uploads.locked(tenant, upload_id) as paths:
             try:
                 response, terminal = self._upload_locked(

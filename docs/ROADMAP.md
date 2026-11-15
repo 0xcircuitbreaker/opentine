@@ -303,8 +303,9 @@ The earlier draft built three separate append-only logs (op log, custody, tlog).
 | 0.49.0 | Delivered (operator kit and test paths; the public witness, independent operators and live MinIO/AWS/Azure runs outstanding) |
 | 0.50.0 | Delivered (freeze candidate; criterion 7 met; the audit engagement, 30 nightly green days, green CI runs of the parity, peer-compat, audit-kit and bench jobs, counsel sign-off and the 72 h fuzz outstanding) |
 | 0.51.0 | Delivered (§12; the browser verifier reads bundles and trust bundles, TS codec-3, gates produce evidence, D1 in force with no predicate granted; outstanding: tag-locked npm packages and the tineyard version-lag CI check, Firefox/WebKit harness runs, three consecutive green main runs, the audit engagement letter) |
+| 0.52.0 | Delivered (§12; the admin surface, scoped tokens, CI OIDC exchange and published fair-use limits are specified in OpenAPI and served by `tine serve`, the uniform-404 oracle covers every route, and the security debt is cleared; outstanding: the 24 h token fuzz, the live MinIO race run, a tineyard staging route dump through `check_api_contract.py`, the 200-seed import fault run, the audit engagement letter) |
 
-**Status:** 0.50.0 ended the §10 plan; §12 plans 0.51–0.60 toward 1.0, and 0.51.0 is its first release.
+**Status:** 0.50.0 ended the §10 plan; §12 plans 0.51–0.60 toward 1.0; 0.51.0 and 0.52.0 are delivered.
 
 ### 0.35.0: Security hardening (about 5 weeks)
 
@@ -913,7 +914,7 @@ A project is a run repository plus a read-only mirror of the code repository it 
 
 **Acceptance:** 0 undocumented `/api/*` routes against a tineyard staging route list; the 404 oracle passes on 100% of routes; 24 h of token fuzzing finds no escalation; 200 fault-injected imports leave the target unchanged or fully imported; no chunk loss in the MinIO race test; the sweep removes every expired orphan chunk in the fixture.
 
-**Freeze impact:** NOT_KINDS (HTTP admin shapes). The approval attestation is an existing `attestation` with a plain JSON claim and no new vectors; if that is read as a claim schema, nonce and expiry move to local queue state and become a 1.x item.
+**Freeze impact:** NOT_KINDS (HTTP admin shapes). The approval attestation is an existing `attestation` with a plain JSON claim and no new vectors; if that is read as a claim schema, nonce and expiry move to local queue state and become a 1.x item. **Settled in 0.52 (FREEZE.md, "Merge-approval nonces and expiry"): it is a claim schema, so they are local queue state.**
 
 ### 0.53.0: Reason-code parity, storage evidence, RFC 4998 recorded (about 4 weeks)
 

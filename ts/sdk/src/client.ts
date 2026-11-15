@@ -8,6 +8,12 @@ import { OPERATIONS, type OperationId } from "./operations.js";
 import type {
   AdminStats,
   AuditStatus,
+  AuthMethods,
+  IssuedToken,
+  Limits,
+  MintedToken,
+  TokenRecord,
+  Usage,
   Capabilities,
   Checkpoint,
   ClosureRequest,
@@ -33,6 +39,7 @@ import type {
   Share,
   SharedRun,
   SocialCounts,
+  TenantImported,
   TombstoneStored,
   Webhook,
   WebhookList,
@@ -320,6 +327,18 @@ export class TineClient {
     return this.json("decideReviewGate", { params: { review_id: reviewId }, json: { decision } });
   }
 
+  /**
+   * Create an export's refs, Reviews and project chain together or not at all
+   * (`caps.tenant_import`); upload the objects first. A conflict (409) changes nothing.
+   */
+  async importTenant(body: {
+    refs?: Record<string, Oid>;
+    reviews?: unknown[];
+    project?: unknown[];
+  }): Promise<TenantImported> {
+    return (await this.send("importTenant", { json: body, ok: [409] })).json() as Promise<TenantImported>;
+  }
+
   /** Every coordination task of the tenant (`caps.coord`). */
   async listTasks(): Promise<Task[]> {
     return (await this.json<{ tasks: Task[] }>("listTasks")).tasks;
@@ -345,6 +364,41 @@ export class TineClient {
 
   async finishTask(task: string, holder: string, fencing: number): Promise<Task> {
     return (await this.json<{ task: Task }>("finishTask", { params: { task }, json: { holder, fencing } })).task;
+  }
+
+  /** The server's published fair-use limits and quota policy (0.52, unsigned, public). */
+  limits(): Promise<Limits> {
+    return this.json("getLimits", { anonymous: true });
+  }
+
+  /** How a client may authenticate here (0.52, public). */
+  authMethods(): Promise<AuthMethods> {
+    return this.json("getAuthMethods", { anonymous: true });
+  }
+
+  /** Exchange a CI job's OIDC ID token for a short-lived scoped token (`caps.oidc_exchange`). */
+  exchangeCiToken(idToken: string, tenant?: string): Promise<IssuedToken> {
+    const json = tenant === undefined ? { token: idToken } : { token: idToken, tenant };
+    return this.json("exchangeCiToken", { json, anonymous: true });
+  }
+
+  /** The tenant's limits and metered use (`caps.limits`). */
+  usage(): Promise<Usage> {
+    return this.json("getUsage");
+  }
+
+  /** The tenant's scoped tokens, never their secrets (admin). */
+  async listTokens(): Promise<TokenRecord[]> {
+    return (await this.json<{ tokens: TokenRecord[] }>("listTokens")).tokens;
+  }
+
+  /** Mint a scoped token (admin); `token` in the reply is shown only this once. */
+  mintToken(request: { access: "read" | "write"; refs: string[]; ttl_seconds?: number; label?: string }): Promise<MintedToken> {
+    return this.json("mintToken", { json: request });
+  }
+
+  revokeToken(tokenId: string): Promise<TokenRecord> {
+    return this.json("revokeToken", { params: { token_id: tokenId } });
   }
 
   /** `tine-event/1` events until the server closes the stream or `signal` aborts. */

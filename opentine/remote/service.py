@@ -6,19 +6,17 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from opentine._version import __version__
 from opentine.remote._admission import AllowAdmission
 from opentine.remote._association_budget import admitted_associations
 from opentine.remote._audit_verify import audit_report
-from opentine.remote._events import capabilities as event_capabilities
-from opentine.remote._hosted_http import capabilities as hosted_capabilities
 from opentine.remote._hosted_reads import match_text
 from opentine.remote._install_fence import install_objects
 from opentine.remote._pack_ingest import verified_write_order
 from opentine.remote._ref_txn import check_move
-from opentine.remote._ref_txn import supported as ref_txn_supported
 from opentine.remote._request_audit import AuthorizationDenied, audit_tenant
+from opentine.remote._service_caps import service_capabilities
 from opentine.remote._tenant_repo import TenantRepo, validate_ref_listing
+from opentine.remote._token_scope import check_wants, scoped_action, visible_refs
 from opentine.remote._tombstone_store import tombstoned
 from opentine.remote.backend import MAX_CONTROL_RESULTS, valid_tenant
 from opentine.remote.interfaces import (
@@ -31,7 +29,6 @@ from opentine.remote.interfaces import (
     IndexBackend,
     ObjectStore,
 )
-from opentine.repository import _pack4, _pack_peer
 from opentine.repository._pack_fit import fitted_pack, typed_selection
 from opentine.repository._semantic_view import SemanticView
 from opentine.repository.pack import MAX_PACK_BODY_BYTES, inspect_pack, negotiate
@@ -62,24 +59,7 @@ class RemoteService:
             raise TypeError("remote service requires an AuditSink")
 
     def capabilities(self) -> dict[str, Any]:
-        return {
-            "authentication": ["bearer", "oidc"],
-            "filters": ["depth", "run", "object_type"],
-            "heads_fast_forward": bool(getattr(self, "fast_forward_heads", False)),
-            "negotiation": ["haves", "tips"],  # 0.37: fetch may send ref tips (_tips)
-            "object_format": "opentine-v3",
-            "pack_codecs": _pack4.local_codecs(),
-            "pack_format": "TINEPACK3",  # what 0.11 clients read; newer ones use pack_formats
-            "pack_formats": _pack_peer.local_formats(),
-            "protocol": "opentine-remote/1",
-            "ref_txn": ref_txn_supported(self.index),  # 0.43: POST ref-txn (_ref_txn)
-            "resumable_upload": True,
-            "tombstones": callable(getattr(self.objects, "tombstoned", None)),  # 0.46
-            "roles": ["reader", "writer", "admin"],
-            "version": __version__,  # 0.37: lets a client pick codec v2 frames (X13)
-            **event_capabilities(self),  # 0.45.1: events_sse, webhooks
-            **hosted_capabilities(self),  # 0.46: object_read_http, run_closure, list, ...
-        }
+        return service_capabilities(self)  # _service_caps
 
     def authenticate(self, headers: dict[str, str]) -> Identity:
         return self.identities.authenticate({key.lower(): value for key, value in headers.items()})
@@ -92,6 +72,10 @@ class RemoteService:
             where = audit_tenant(identity.tenant, tenant)
             self._audit(identity, where, action, "denied", {"requested_tenant": tenant})
             raise AuthorizationDenied(f"not authorized for {action} in {tenant}")
+
+    def _authorize_scoped(self, identity: Identity, action: str, tenant: str) -> None:
+        """A route a namespace-limited token may use (``_token_scope``)."""
+        self._authorize(identity, scoped_action(identity, action), tenant)
 
     def _audit(
         self,
@@ -116,8 +100,8 @@ class RemoteService:
             self.events.audited(tenant, self.audit)
 
     def list_refs(self, identity: Identity, tenant: str) -> dict[str, str]:
-        self._authorize(identity, "read_ref", tenant)
-        refs = self.index.list_refs(tenant)
+        self._authorize_scoped(identity, "read_ref", tenant)
+        refs = visible_refs(identity, self.index.list_refs(tenant))
         validate_ref_listing(tenant, self.objects, self.index, refs)
         self._audit(identity, tenant, "read_ref", "ok", {"refs": len(refs)})
         return refs
@@ -135,7 +119,8 @@ class RemoteService:
         *,
         depth: int | None = None,
     ) -> list[str]:
-        self._authorize(identity, "negotiate", tenant)
+        self._authorize_scoped(identity, "negotiate", tenant)
+        check_wants(self, identity, tenant, wants)
         missing = negotiate(TenantRepo(tenant, self.objects, self.index), wants, haves, depth=depth)
         self._audit(identity, tenant, "negotiate", "ok", {"missing": len(missing)})
         return missing
@@ -153,7 +138,8 @@ class RemoteService:
         tips: list[str] | None = None,
     ) -> bytes:
         """A pack for *wants*; runs whose associations did not fit go to *omitted*."""
-        self._authorize(identity, "fetch", tenant)
+        self._authorize_scoped(identity, "fetch", tenant)
+        check_wants(self, identity, tenant, wants)
         repo = SemanticView(
             TenantRepo(tenant, self.objects, self.index), max_source_bytes=MAX_PACK_BODY_BYTES
         )
@@ -180,7 +166,7 @@ class RemoteService:
         return self.objects.has(tenant, oid) or tombstoned(self.objects, tenant, oid)
 
     def install_pack(self, identity: Identity, tenant: str, data: bytes) -> tuple[str, int]:
-        self._authorize(identity, "upload", tenant)
+        self._authorize_scoped(identity, "upload", tenant)
         pack_id, packed, shallow = inspect_pack(data)
         unresolved = [oid for oid in shallow if not self._resolves(tenant, oid)]
         if unresolved:
@@ -216,7 +202,7 @@ class RemoteService:
         *,
         force: bool = False,
     ) -> bool:
-        self._authorize(identity, "update_ref", tenant)
+        self._authorize_scoped(identity, "update_ref", tenant)
         name, rewrite = check_move(self, identity, tenant, name, new_oid, expected_old, force)
         changed = self.index.update_ref(tenant, name, new_oid, expected_old)
         self._audit(

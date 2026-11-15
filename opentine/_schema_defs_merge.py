@@ -27,6 +27,12 @@ _GATE = closed(["gate", "digest"], {"gate": {"enum": ["vsa", "eval", "approval"]
 _CONFLICT = closed(["kind", "base", "ours", "theirs"], {
     "kind": {"enum": ["tree", "manifest"]}, "path": STR, "name": STR,
     "base": opt(STR), "ours": opt(STR), "theirs": opt(STR)})  # fmt: skip
+#: 0.52: an approval issued into a queue (``opentine.coord._merge_tickets``).
+_TICKET = closed(["nonce", "approval", "run", "target", "approver", "expires_ms",
+                  "spent_fencing"], {
+    "nonce": {"type": "string", "pattern": "^[0-9a-f]{32}$"}, "approval": FPR, "run": _RUN,
+    "target": STR, "approver": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "expires_ms": INT, "spent_fencing": opt(INT)})  # fmt: skip
 _QUEUE = closed(["queue", "target", "gates", "head", "entries", "holder", "fencing",
                  "lease_expires_ms", "landed", "rejected", "updated_ms"], {
     "queue": _ID, "target": STR, "gates": opt({"$ref": "opentine-merge-gates-1.schema.json"}),
@@ -37,7 +43,8 @@ _QUEUE = closed(["queue", "target", "gates", "head", "entries", "holder", "fenci
     "landed": {"type": "array", "items": closed(["run", "merge", "fencing", "attestation"], {
         "run": _RUN, "merge": _RUN, "fencing": INT, "attestation": opt(_BLOB)})},
     "rejected": {"type": "array", "items": closed(["run", "reason", "fencing"], {
-        "run": _RUN, "reason": STR, "fencing": INT})}})  # fmt: skip
+        "run": _RUN, "reason": STR, "fencing": INT})},
+    "tickets": {"type": "array", "items": _TICKET}})  # fmt: skip
 _LANDING = closed(["status", "run", "merge", "fencing", "attestation", "gates"], {
     "status": {"enum": ["landed", "rejected"]}, "run": _RUN, "merge": opt(_RUN),
     "parents": opt({"type": "array", "items": _RUN}), "fencing": INT,
@@ -98,14 +105,16 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     "tine-cli-merge-queue-1": doc("tine-cli-merge-queue-1", "tine merge-queue ACTION --json",
         "Every `tine merge-queue` action: `queue` (the record's value) for init, add, claim, "
         "heartbeat and show; `result` for land (one landing) and verify (the record check); "
-        "`results` for work; `record` for approve.",
+        "`results` for work; `record` for approve, and `ticket` when it was issued into a "
+        "queue (0.52).",
         open_(["command", "action", "ok"], {
             "command": {"const": "merge-queue"},
             "action": {"enum": ["init", "add", "claim", "heartbeat", "land", "work", "show",
                                 "approve", "verify"]},
             "ok": BOOL, "queue": _QUEUE, "result": OBJ, "total": INT,
             "results": {"type": "array", "items": _LANDING},
-            "record": {"$ref": "opentine-merge-approval-1.schema.json"}})),
+            "record": {"$ref": "opentine-merge-approval-1.schema.json"},
+            "ticket": _TICKET})),
 }  # fmt: skip
 
 COMMAND_SCHEMAS: dict[str, str] = {
