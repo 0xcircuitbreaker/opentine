@@ -102,23 +102,4 @@ class WormHoldsMixin:
         if not digests:
             return
         self.client.delete(self._key(tenant, oid, "chunked"))  # type: ignore[attr-defined]
-        shared = self._chunks_in_use(tenant)
-        for digest in set(digests) - shared:
-            chunk_key = self._chunk_key(tenant, digest)  # type: ignore[attr-defined]
-            try:
-                if not self.client.retention(chunk_key).locked():
-                    self.client.delete(chunk_key)
-            except (KeyError, PermissionError):
-                pass  # already gone, or the cloud keeps it: a later sweep's job
-            # a chunk still inside retention stays until a later sweep: the cloud
-            # would refuse, and its bytes are unreachable without a manifest.
-
-    def _chunks_in_use(self, tenant: str) -> set[str]:
-        base = f"{self.prefix}{tenant}/chunked/"  # type: ignore[attr-defined]
-        used: set[str] = set()
-        for key in self.client.keys(base):
-            object_type, _, digest = key[len(base) :].partition("/")
-            oid = f"{object_type}:sha256:{digest}"
-            if self.has(tenant, oid):  # type: ignore[attr-defined]
-                used.update(self._chunk_digests(tenant, oid))
-        return used
+        self.reap_chunks(tenant, digests)  # type: ignore[attr-defined]

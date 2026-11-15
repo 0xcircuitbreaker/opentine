@@ -86,8 +86,19 @@ a stored form, not a new object kind: the oid still names the envelope bytes.
 ```
 <prefix>/<tenant>/objects/<type>/<digest>   sealed object, or "TINECDCM" + sealed manifest
 <prefix>/<tenant>/chunks/<sha256>           a sealed chunk, shared by every object in the tenant
-<prefix>/<tenant>/chunked/<type>/<digest>   empty marker naming chunked objects
+<prefix>/<tenant>/chunked/<type>/<digest>   the object's chunk digests, one per line
+<prefix>/<tenant>/chunk-fences/<sha256>/<t> a chunk removal in progress (0.52)
 ```
+
+Since 0.52 the `chunked/` record lists the object's chunk digests and is
+written before any chunk is checked or uploaded (0.49-0.51 wrote it empty and
+last; such records are still honoured through the object's manifest). A chunk
+removal writes a fence, then reads every record, deletes only chunks no record
+names, and removes its fence; an upload waits while a chunk is fenced and then
+re-checks it. So a delete racing an upload that reuses a chunk never loses it,
+with or without a retention mode. `tine gc --sweep-expired` removes the
+leftovers a delete could not (chunks still inside retention then, or left by a
+crashed upload) once their retention has ended.
 
 The manifest is `TINECDC1`, the total size (u64), the chunk count (u32) and,
 for each chunk, its SHA-256 and size (u32), all big-endian. Readers fetch
@@ -99,7 +110,7 @@ compliance when either side asks for it) so it lasts as long as the newest
 object that needs it (`s3:PutObjectRetention`, or Azure
 `set_immutability_policy`). Deleting a chunked object deletes
 its chunks that no other object uses; a chunk still inside retention stays
-until its date passes. Tombstones and holds stay in the server's state
+until its date passes and `tine gc --sweep-expired` removes it. Tombstones and holds stay in the server's state
 directory (`<root>/objects/.tombstones`, `<root>/objects/.holds`). `tine serve
 admin purge` defers every unreferenced object on this store (object storage
 gives it no age to check), and `admin reseal` refuses it. Numbers are in `docs/bench/0.49-fastcdc-store.md`.
@@ -110,7 +121,8 @@ learns when two objects in a tenant share a chunk. The chunk bytes are sealed.
 ## Testing against real services
 
 `tests/test_049_worm_integration.py` runs the same scenario (write, read, a
-lazy range read, refused deletes, legal hold) against each service that is
+lazy range read, refused deletes, legal hold; since 0.52 also a threaded delete
+racing an upload that reuses its chunks) against each service that is
 available, and skips the others with the reason:
 
 * moto (installed with the `dev` extra): in-process S3 with Object Lock;

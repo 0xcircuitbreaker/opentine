@@ -4,7 +4,8 @@ Keys, under the configured prefix::
 
     <tenant>/objects/<type>/<digest>   the sealed object, or MARKER + sealed manifest
     <tenant>/chunks/<sha256>           a sealed FastCDC chunk (shared within the tenant)
-    <tenant>/chunked/<type>/<digest>   empty: names the chunked objects, for deletes
+    <tenant>/chunked/<type>/<digest>   the object's chunk digests, written first
+    <tenant>/chunk-fences/<sha256>/<t> a delete in progress (``_worm_fence``)
 
 Objects are sealed exactly as on the filesystem store. A payload of
 ``CHUNK_THRESHOLD`` bytes or more is stored as FastCDC chunks plus a manifest;
@@ -23,6 +24,7 @@ from opentine.remote._chunk_manifest import MARKER, Manifest, verified
 from opentine.remote._fastcdc import CHUNK_THRESHOLD, DEFAULT_PARAMS, ChunkParams, chunks
 from opentine.remote._sealed import OBJECT, seal, seal_object, storage_codec, unseal
 from opentine.remote._worm import BlobClient, WormPolicy, stronger
+from opentine.remote._worm_fence import WormFenceMixin, record_body
 from opentine.remote._worm_holds import WormHoldsMixin
 from opentine.remote.backend import valid_tenant
 from opentine.remote.interfaces import KeyProvider, RetentionHook
@@ -30,7 +32,7 @@ from opentine.remote.interfaces import KeyProvider, RetentionHook
 CHUNK = "cdc-chunk"
 
 
-class WormObjectStore(WormHoldsMixin):
+class WormObjectStore(WormHoldsMixin, WormFenceMixin):
     def __init__(
         self,
         client: BlobClient,
@@ -90,8 +92,12 @@ class WormObjectStore(WormHoldsMixin):
         pieces = list(chunks(data, self.chunk_params))
         manifest = Manifest.of(pieces)
         until = self.policy.until()
+        record = self._key(tenant, oid, "chunked")
+        if not self.client.exists(record):  # first: a reaper reads it before deleting
+            self._write(record, record_body(d for d, _ in manifest.chunks))
         for (digest, _), piece in zip(manifest.chunks, pieces, strict=True):
             key = self._chunk_key(tenant, digest)
+            self.await_unfenced(tenant, digest)  # a delete in flight finishes first
             if not self.client.exists(key):  # chunks are shared: write each once
                 self._write(key, self._seal_chunk(tenant, digest, piece))
             elif self.policy.mode and until is not None:
@@ -99,7 +105,6 @@ class WormObjectStore(WormHoldsMixin):
                 mode = stronger(self.client.retention(key), self.policy.mode, until)
                 if mode is not None:
                     self.client.extend(key, mode, until)
-        self._write(self._key(tenant, oid, "chunked"), b"")
         sealed = seal(self.keys, OBJECT, tenant, oid, manifest.encode())
         self._write(self._key(tenant, oid), MARKER + sealed)  # last: readers never see half
 

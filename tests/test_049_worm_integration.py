@@ -58,6 +58,31 @@ def _scenario(client, tmp_path) -> None:
     store.client.set_legal_hold(key, False)
 
 
+def _race(client, rounds: int = 8) -> None:
+    """0.52: a delete racing an upload that reuses its chunks (real threads, no
+    retention so nothing blocks the delete) never loses a chunk."""
+    import threading
+
+    prefix = f"opentine-race-{uuid.uuid4().hex[:8]}"
+    store = WormObjectStore(client, KEYS, None, prefix=prefix, chunk_threshold=4096,
+                            chunk_params=ChunkParams(64, 256, 1024))  # fmt: skip
+    for round_ in range(rounds):
+        base = random.Random(round_).randbytes(20_000)
+        first = ObjectEnvelope.create("blob", base)
+        second = ObjectEnvelope.create("blob", base + b"tail")
+        store.put("acme", first.oid, first.encode())
+        jobs = [threading.Thread(target=store.delete, args=("acme", first.oid)),
+                threading.Thread(target=store.put,
+                                 args=("acme", second.oid, second.encode()))]  # fmt: skip
+        for job in jobs:
+            job.start()
+        for job in jobs:
+            job.join()
+        assert store.get("acme", second.oid) == second.encode()
+        store.delete("acme", second.oid)
+    assert store.sweep_expired("acme")["swept"] == 0
+
+
 def _moto_client():
     if importlib.util.find_spec("moto") is None or importlib.util.find_spec("boto3") is None:
         pytest.skip("moto[s3] is not installed (pip install 'moto[s3]')")
@@ -78,6 +103,7 @@ def test_moto_object_lock(tmp_path, monkeypatch):
         s3 = boto3.client("s3", region_name="us-east-1")
         s3.create_bucket(Bucket="locked", ObjectLockEnabledForBucket=True)
         _scenario(S3BlobClient("locked", client=s3), tmp_path)
+        _race(S3BlobClient("locked", client=s3))
 
 
 def test_minio_object_lock(tmp_path):
@@ -94,6 +120,7 @@ def test_minio_object_lock(tmp_path):
     bucket = f"opentine-{uuid.uuid4().hex[:12]}"
     s3.create_bucket(Bucket=bucket, ObjectLockEnabledForBucket=True)
     _scenario(S3BlobClient(bucket, client=s3), tmp_path)
+    _race(S3BlobClient(bucket, client=s3))
 
 
 def test_aws_object_lock(tmp_path):

@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-gc-1.schema.json",
+  "title": "tine gc --sweep-expired --json",
+  "description": "`tine gc --sweep-expired`: the object `store` swept (`filesystem` keeps no chunks), one `tenants` row per tenant (`chunks` stored, `swept` expired orphans removed, `retained` orphans still inside retention or held, `live` orphans an upload claimed while sweeping) and the total `swept`. Plain `tine gc --json` keeps its 0.11 shape.",
+  "type": "object",
+  "required": [
+    "command",
+    "action",
+    "store",
+    "tenants",
+    "swept"
+  ],
+  "properties": {
+    "command": {
+      "const": "gc"
+    },
+    "action": {
+      "const": "sweep-expired"
+    },
+    "store": {
+      "type": "string"
+    },
+    "tenants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenant",
+          "chunks",
+          "swept",
+          "retained",
+          "live"
+        ],
+        "properties": {
+          "tenant": {
+            "type": "string"
+          },
+          "chunks": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "swept": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "retained": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "live": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "swept": {
+      "type": "integer",
+      "minimum": 0
+    }
+  }
+}

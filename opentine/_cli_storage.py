@@ -9,6 +9,7 @@ from pathlib import Path
 from opentine._cli_archive import add_archive_parsers, cmd_archive
 from opentine._cli_common import BRAND, _terminal, console
 from opentine._cli_du import DU_COMMANDS
+from opentine._cli_gc_sweep import add_sweep_flags, cmd_sweep
 from opentine._cli_hold import HOLD_COMMANDS
 from opentine._cli_op import OP_COMMANDS
 from opentine._cli_retention import RETENTION_COMMANDS
@@ -99,6 +100,8 @@ def add_storage_parsers(sub: argparse._SubParsersAction) -> None:
             "--unpack-refs", action="store_true", help="Write every ref loose again (0.36 reads)"
         )
         add_pack_form_flags(command)
+        if name == "gc":
+            add_sweep_flags(command)
     add_archive_parsers(sub, _CODECS)
     compress = sub.add_parser(
         "compress", help="Rewrite .tine files compressed (or plain with --decompress)"
@@ -125,6 +128,8 @@ def _refuse(exc: Exception) -> None:
 def cmd_gc(args: argparse.Namespace) -> None:
     from opentine.repository._gc import gc
 
+    if getattr(args, "sweep_expired", False):
+        return cmd_sweep(args)
     try:
         # Prune first: packing re-dates what it packs, so nothing would look old after.
         pruned = None if args.prune == "never" else _prune_now(args)

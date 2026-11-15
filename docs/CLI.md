@@ -102,6 +102,12 @@ New flags in 0.37 (no new subcommands):
   checked failed), and stderr says how far it got.
 - `gc` also removes staging files left by killed writers once they are an hour
   old (`reaped_temp` in `--json`); live writers' files are never touched.
+- `gc --sweep-expired [--state DIR] [--tenant T]...` (0.52) packs nothing: it
+  removes the expired orphan chunks of the object store `tine serve --root DIR`
+  opens (`TINE_REMOTE_OBJECT_STORE`). A chunk goes only when no object or
+  in-flight upload names it, its retention has ended and it has no legal hold;
+  the removal is fenced against concurrent uploads (docs/STORAGE.md).
+  `--json` writes `tine-cli-gc-1`.
 
 New in 0.38: `tine rewind` restores a workspace snapshot (a tree blob, SPEC
 §1.5.7) exactly. `tine rewind TREE_OID` takes the tree id directly;
