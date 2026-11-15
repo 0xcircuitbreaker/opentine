@@ -13,8 +13,12 @@ limit                  window      exceeded
 =====================  ==========  ===========================================
 
 A refusal changes nothing that is stored: no quota ever deletes, expires or
-rewrites an object or a ref. ``GET /v1/limits`` publishes the defaults (and the
-policy), ``GET /v1/tenants/{tenant}/usage`` a tenant's limits and use. Storage
+rewrites an object or a ref. A self-hosted ``tine serve`` is **unlimited by
+default**, so an upgrade never starts refusing an existing server; the operator
+opts in with ``"base": "fair-use"`` (``serve --limits fair-use``), which applies
+the published :data:`FAIR_USE` numbers the hosted service uses. ``GET /v1/limits``
+publishes the effective defaults, the fair-use numbers and the policy,
+``GET /v1/tenants/{tenant}/usage`` a tenant's limits and use. Storage
 is metered from the bytes of packs this server accepted since the ledger
 (``<root>/usage.sqlite3``) was created: an upper bound, since deduplicated
 objects count again. ``--limits FILE`` overrides the defaults, for every
@@ -41,6 +45,8 @@ FAIR_USE: dict[str, int | None] = {
     "mirror_bytes": 2 * GIB,
     "runner_minutes": 2000,
 }
+UNLIMITED: dict[str, int | None] = dict.fromkeys(FAIR_USE)
+BASES = {"unlimited": UNLIMITED, "fair-use": FAIR_USE}
 WINDOWS = {"storage_bytes": "total", "egress_bytes": "day", "mirror_bytes": "total",
            "runner_minutes": "month"}  # fmt: skip
 STATUS = {"storage_bytes": 507, "egress_bytes": 429, "mirror_bytes": 507, "runner_minutes": 429}
@@ -72,9 +78,12 @@ class Limits:
     def __init__(self, root: str | Path, config: dict[str, Any] | None = None, *,
                  now: Callable[[], float] = time.time):  # fmt: skip
         config = config or {}
-        if set(config) - {"defaults", "tenants"}:
-            raise ValueError("a limits file has defaults and tenants")
-        self.defaults = {**FAIR_USE, **_limits(config.get("defaults", {}), "defaults")}
+        if set(config) - {"base", "defaults", "tenants"}:
+            raise ValueError("a limits file has base, defaults and tenants")
+        base = config.get("base", "unlimited")
+        if base not in BASES:
+            raise ValueError(f"base is one of {', '.join(BASES)}")
+        self.defaults = {**BASES[base], **_limits(config.get("defaults", {}), "defaults")}
         tenants = config.get("tenants", {})
         if not isinstance(tenants, dict):
             raise ValueError("tenants maps a tenant to its limits")
@@ -140,6 +149,7 @@ class Limits:
     def document(self) -> dict[str, Any]:
         """``GET /v1/limits``: unsigned, the server's defaults and policy."""
         return {"policy": POLICY, "never_deletes": True, "defaults": dict(self.defaults),
+                "fair_use": dict(FAIR_USE),
                 "windows": dict(WINDOWS), "status": dict(STATUS)}  # fmt: skip
 
     def usage(self, tenant: str) -> dict[str, Any]:
@@ -151,4 +161,4 @@ class Limits:
         return {"tenant": tenant, "usage": metrics}
 
 
-__all__ = ["FAIR_USE", "LimitExceeded", "Limits", "POLICY"]
+__all__ = ["BASES", "FAIR_USE", "UNLIMITED", "LimitExceeded", "Limits", "POLICY"]

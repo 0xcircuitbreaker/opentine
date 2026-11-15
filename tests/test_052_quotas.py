@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 
 from opentine import _jsonschema
-from opentine.remote._limits import FAIR_USE, LimitExceeded, Limits
+from opentine.remote._limits import FAIR_USE, UNLIMITED, LimitExceeded, Limits
 from opentine.remote._openapi import build
 from tests._auth_helpers import call, local_run, make_app, push
 
@@ -21,7 +21,11 @@ def test_limits_and_auth_methods_are_public_unsigned_documents(tmp_path):
     app = make_app(tmp_path / "remote")
     status, _, body = call(app, "GET", "/v1/limits", token=None)
     limits = json.loads(body)
-    assert status == 200 and limits["defaults"] == FAIR_USE and limits["never_deletes"] is True
+    assert status == 200 and limits["never_deletes"] is True
+    # A self-hosted server is unlimited unless the operator opts in; fair use is published.
+    assert limits["defaults"] == UNLIMITED and limits["fair_use"] == FAIR_USE
+    opted = make_app(tmp_path / "opted", limits={"base": "fair-use"})
+    assert json.loads(call(opted, "GET", "/v1/limits", token=None)[2])["defaults"] == FAIR_USE
     assert limits["status"] == {"storage_bytes": 507, "egress_bytes": 429, "mirror_bytes": 507,
                                 "runner_minutes": 429}  # fmt: skip
     assert _valid("Limits", limits) == []
@@ -74,7 +78,7 @@ def test_egress_over_the_daily_limit_is_429_with_retry_after(tmp_path):
 
 
 def test_null_is_unlimited_and_bad_limit_files_are_refused(tmp_path):
-    limits = Limits(tmp_path, {"defaults": {"storage_bytes": None}})
+    limits = Limits(tmp_path, {"base": "fair-use", "defaults": {"storage_bytes": None}})
     limits.charge("acme", "storage_bytes", 10**15)
     limits.check("acme", "storage_bytes", 10**15)
     limits.check("acme", "runner_minutes", 5)
@@ -86,7 +90,8 @@ def test_null_is_unlimited_and_bad_limit_files_are_refused(tmp_path):
     else:  # pragma: no cover
         raise AssertionError("runner minutes over the limit must refuse")
     for bad in ({"defaults": {"disk": 1}}, {"defaults": {"storage_bytes": -1}},
-                {"defaults": {"storage_bytes": True}}, {"other": {}}, {"tenants": []}):  # fmt: skip
+                {"defaults": {"storage_bytes": True}}, {"other": {}}, {"tenants": []},
+                {"base": "hosted"}):  # fmt: skip
         try:
             Limits(tmp_path / "x", bad)
         except ValueError:

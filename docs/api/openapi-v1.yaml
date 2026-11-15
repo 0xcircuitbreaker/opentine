@@ -444,6 +444,34 @@ components:
             - "runner_minutes"
             - "storage_bytes"
           type: "object"
+        fair_use:
+          properties:
+            egress_bytes:
+              anyOf:
+                - minimum: 0
+                  type: "integer"
+                - type: "null"
+            mirror_bytes:
+              anyOf:
+                - minimum: 0
+                  type: "integer"
+                - type: "null"
+            runner_minutes:
+              anyOf:
+                - minimum: 0
+                  type: "integer"
+                - type: "null"
+            storage_bytes:
+              anyOf:
+                - minimum: 0
+                  type: "integer"
+                - type: "null"
+          required:
+            - "egress_bytes"
+            - "mirror_bytes"
+            - "runner_minutes"
+            - "storage_bytes"
+          type: "object"
         never_deletes:
           const: true
         policy:
@@ -490,6 +518,7 @@ components:
           type: "object"
       required:
         - "defaults"
+        - "fair_use"
         - "never_deletes"
         - "policy"
         - "status"

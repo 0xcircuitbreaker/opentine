@@ -215,10 +215,13 @@ exchange (`POST /v1/auth/oidc-exchange`) for GitHub Actions, GitLab and
 Forgejo ID tokens: the JWT is checked against the JWKS FILE configures for its
 issuer (`jwks`, `jwks_file` or an `https` `jwks_uri`), and the first rule whose
 claims match, which must pin the repository, mints a `tine_ci_` token of at most
-an hour. Quotas are on by default at the published fair-use limits
-(`GET /v1/limits`: 10 GiB stored, 20 GiB egress per UTC day, 2 GiB mirror,
-2000 runner minutes per month, per tenant); `serve --limits FILE` overrides
-them (`{"defaults": {...}, "tenants": {"T": {...}}}`, `null` for unlimited).
+an hour, and never past the ID token's own expiry. Quotas are off by default
+on a self-hosted server, so an upgrade never starts refusing it:
+`serve --limits fair-use` applies the published fair-use limits the hosted
+service uses (`GET /v1/limits` `fair_use`: 10 GiB stored, 20 GiB egress per
+UTC day, 2 GiB mirror, 2000 runner minutes per month, per tenant), and
+`serve --limits FILE` sets them (`{"base": "fair-use"|"unlimited",
+"defaults": {...}, "tenants": {"T": {...}}}`, `null` for unlimited).
 Over a limit a tenant's own caller gets `507` (storage) or `429` with
 `Retry-After` (egress); nothing is ever deleted. `GET /v1/tenants/T/usage`
 shows the tenant's use.

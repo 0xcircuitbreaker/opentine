@@ -35,6 +35,7 @@ SCHEMAS_052_TOKENS: dict[str, Any] = {
             "policy": _str,
             "never_deletes": {"const": True},
             "defaults": _obj({name: _limit for name in _METRICS}),
+            "fair_use": _obj({name: _limit for name in _METRICS}),
             "windows": _obj({name: _str for name in _METRICS}),
             "status": _obj({name: {"enum": [429, 507]} for name in _METRICS}),
         }

@@ -9,6 +9,7 @@ from __future__ import annotations
 import base64
 import json
 import time
+import uuid
 
 import pytest
 from cryptography.hazmat.primitives import hashes
@@ -49,7 +50,8 @@ class _Key:
     def token(self, iss: str, **claims) -> str:
         header = {"alg": self.alg, "kid": self.kid, "typ": "JWT"}
         payload = {"iss": iss, "aud": AUD, "sub": "repo:acme/app", "exp": time.time() + 300,
-                   "iat": time.time(), **claims}  # fmt: skip
+                   "iat": time.time(), "jti": uuid.uuid4().hex, **claims}  # fmt: skip
+        payload = {key: value for key, value in payload.items() if value is not None}
         signing = f"{_b64(json.dumps(header).encode())}.{_b64(json.dumps(payload).encode())}"
         if self.alg == "RS256":
             sig = self.key.sign(signing.encode(), padding.PKCS1v15(), hashes.SHA256())
@@ -145,6 +147,40 @@ def test_a_jti_is_exchanged_once(tmp_path, keys, trust):
     assert call(app, "POST", "/v1/auth/oidc-exchange", {"token": gh}, None)[0] == 401
 
 
+def test_a_token_needs_a_jti_and_never_outlives_the_id_token(tmp_path, keys, trust):
+    app = make_app(tmp_path / "remote", ci_trust=trust)
+    gh = keys["github"]
+    bare = gh.token(GITHUB, repository="acme/app", ref="refs/heads/main", jti=None)
+    assert call(app, "POST", "/v1/auth/oidc-exchange", {"token": bare}, None)[0] == 401
+    short = gh.token(GITHUB, repository="acme/app", ref="refs/heads/main",
+                     exp=app.tokens.now() + 120)  # fmt: skip
+    status, _, body = call(app, "POST", "/v1/auth/oidc-exchange", {"token": short}, None)
+    assert status == 201
+    issued = json.loads(body)
+    record = app.tokens.get(issued["token_id"])
+    lifetime = _seconds(record["expires_at"]) - _seconds(record["created_at"])
+    assert 60 <= lifetime <= 121
+
+
+def _seconds(stamp: str) -> float:
+    from datetime import datetime
+
+    return datetime.strptime(stamp, "%Y-%m-%dT%H:%M:%SZ").timestamp()
+
+
+def test_an_owner_wildcard_pins_the_owner(tmp_path, keys):
+    rule = {"claims": {"repository": "acme/*"}, "tenant": "acme", "access": "read",
+            "refs": ["*"]}  # fmt: skip
+    config = {"issuers": [{"name": "gh", "provider": "github", "audience": AUD,
+                           "jwks": keys["github"].jwks(), "rules": [rule]}]}  # fmt: skip
+    path = tmp_path / "t.json"
+    path.write_text(json.dumps(config), "utf-8")
+    exchange = CIExchange.load(path, TokenStore(tmp_path / "auth.sqlite3"))
+    assert exchange.exchange(keys["github"].token(GITHUB, repository="acme/app"))["refs"] == ["*"]
+    with pytest.raises(PermissionError):
+        exchange.exchange(keys["github"].token(GITHUB, repository="acme-evil/app"))
+
+
 def test_without_a_trust_config_the_route_is_the_uniform_404(tmp_path):
     app = make_app(tmp_path / "remote")
     status, _, body = call(app, "POST", "/v1/auth/oidc-exchange", {"token": "a.b.c"}, None)
@@ -156,6 +192,8 @@ def test_without_a_trust_config_the_route_is_the_uniform_404(tmp_path):
     [
         {"claims": {"ref": "refs/heads/main"}, "tenant": "acme", "access": "read", "refs": ["*"]},
         {"claims": {"repository": "*"}, "tenant": "acme", "access": "read", "refs": ["*"]},
+        {"claims": {"repository": "acme*"}, "tenant": "acme", "access": "read", "refs": ["*"]},
+        {"claims": {"repository_owner": "ac*"}, "tenant": "acme", "access": "read", "refs": ["*"]},
         {"claims": {}, "tenant": "acme", "access": "read", "refs": ["*"]},
         {"claims": {"repository": "a/b"}, "tenant": "acme", "access": "admin", "refs": ["*"]},
         {

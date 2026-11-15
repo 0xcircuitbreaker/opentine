@@ -102,7 +102,7 @@ def add_limits_arguments(parser: argparse.ArgumentParser) -> None:
     """0.52: CI OIDC exchange and quotas (``_ci_exchange``, ``_limits``)."""
     parser.add_argument("--ci-trust", metavar="FILE", help="CI OIDC exchange trust config (JSON)")
     parser.add_argument(
-        "--limits", metavar="FILE", help="Quota overrides (JSON); default: the fair-use limits"
+        "--limits", metavar="FILE", help="Quotas: 'fair-use' or a JSON file; default: unlimited"
     )
 
 
@@ -111,6 +111,8 @@ def limits_config(args: argparse.Namespace) -> dict[str, Any] | None:
 
     if not getattr(args, "limits", None):
         return None
+    if args.limits == "fair-use":
+        return {"base": "fair-use"}
     try:
         with open(args.limits, encoding="utf-8") as handle:
             config = json.load(handle)

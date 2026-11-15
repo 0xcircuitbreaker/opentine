@@ -15,8 +15,9 @@ namespaces:
 - ``POST negotiate`` and ``POST fetch`` serve only closures whose every
   ``want`` is the target of such a ref (anything else is the uniform 404);
 - with ``write`` access, ``PUT refs/<name>`` and ``POST ref-txn`` move only
-  refs inside them, and packs may be uploaded (objects are content-addressed
-  and unreadable except through a visible ref).
+  refs inside them, and packs may be uploaded. Objects are content-addressed:
+  one is readable only through a visible ref, but a writer that knows an id
+  can point its own ref at it, so namespaces confine refs, not object ids.
 
 Every other route (events, search, object reads, reviews, coordination, shares,
 webhooks, tombstones...) authorizes a tenant-wide action, which a namespace

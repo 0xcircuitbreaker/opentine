@@ -19,7 +19,8 @@ for a value ending in ``*`` a prefix. Each rule must pin the provider's
 identifying claim (``repository`` or ``repository_owner`` on GitHub and Forgejo,
 ``project_path`` or ``namespace_path`` on GitLab), so no rule can admit every
 repository of a public CI service. A matched rule mints a ``tine_ci_`` token
-(``_token_store``) of at most an hour; a JWT ``jti`` is exchanged once.
+(``_token_store``) of at most an hour and never past the JWT's ``exp`` (but at
+least a minute); a JWT must carry a ``jti`` and each is exchanged once.
 """
 
 from __future__ import annotations
@@ -49,8 +50,8 @@ def _rule(raw: Any, identifying: tuple[str, ...]) -> dict[str, Any]:
         raise ValueError("a rule must match at least one claim")
     if not all(isinstance(k, str) and isinstance(v, str) and v for k, v in claims.items()):
         raise ValueError("rule claims map claim names to non-empty strings")
-    if not any(name in claims and claims[name] != "*" for name in identifying):
-        raise ValueError(f"a rule must pin one of {', '.join(identifying)}")
+    if not any(_pins(claims.get(name)) for name in identifying):
+        raise ValueError(f"a rule must pin one of {', '.join(identifying)} exactly (or 'owner/*')")
     if raw.get("access") not in ACCESS:
         raise ValueError("rule access is read or write")
     ttl = raw.get("ttl_seconds", DEFAULT_CI_TTL)
@@ -62,6 +63,17 @@ def _rule(raw: Any, identifying: tuple[str, ...]) -> dict[str, Any]:
     refs = check_namespaces(raw.get("refs"))
     return {"claims": claims, "tenant": raw["tenant"], "access": raw["access"], "refs": refs,
             "ttl": ttl}  # fmt: skip
+
+
+def _pins(value: Any) -> bool:
+    """An exact identifying value, or ``owner/*``: never a bare prefix like ``acme*``,
+    which would admit an attacker's ``acme-evil/app`` on a public CI service."""
+    if not isinstance(value, str) or not value:
+        return False
+    if not value.endswith("*"):
+        return True
+    owner = value[:-1]
+    return owner.endswith("/") and len(owner) > 1 and "*" not in owner
 
 
 def _matches(rule: dict[str, Any], claims: dict[str, Any]) -> bool:
@@ -155,14 +167,18 @@ class CIExchange:
                 break
         else:
             raise OIDCError("no trust rule matches this token")
-        jti = claims.get("jti")
-        if isinstance(jti, str) and jti:
-            until = float(claims.get("exp", 0)) + 120
-            if not self.store.first_use(chosen.issuer, jti, until):
-                raise OIDCError("this CI token was already exchanged")
+        jti, exp = claims.get("jti"), claims.get("exp")
+        if not isinstance(jti, str) or not jti or len(jti) > 256:
+            raise OIDCError("a CI ID token without a jti cannot be exchanged once")
+        if isinstance(exp, bool) or not isinstance(exp, (int, float)):
+            raise OIDCError("a CI ID token needs an expiry")
+        # Never outlive the ID token: at most the rule's lifetime, at least a minute.
+        ttl = max(60, min(rule["ttl"], int(exp - self.store.now())))
+        if not self.store.first_use(chosen.issuer, jti, float(exp) + 120):
+            raise OIDCError("this CI token was already exchanged")
         subject = f"ci:{chosen.name}:{claims.get('sub', '')}"[:512]
         secret, record = self.store.mint(
-            rule["tenant"], rule["access"], rule["refs"], ttl=rule["ttl"], kind="ci",
+            rule["tenant"], rule["access"], rule["refs"], ttl=ttl, kind="ci",
             label=chosen.name, subject=subject,
         )  # fmt: skip
         return {"token": secret, "token_id": record["id"], "tenant": record["tenant"],

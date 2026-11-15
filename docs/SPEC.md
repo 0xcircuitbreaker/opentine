@@ -3874,7 +3874,11 @@ new optional keys (§5.2: present when served), each pointing at its routes.
   only `GET refs` (the refs inside them), `POST negotiate` and `POST fetch`
   (every `want` the target of such a ref; anything else is the uniform `404`),
   and, with `write`, `PUT refs/<name>` and `POST ref-txn` inside them and pack
-  uploads; every other tenant route refuses it. `tine serve token
+  uploads; every other tenant route refuses it. Namespaces confine refs, not
+  object confidentiality within a tenant: a `write` token that already knows
+  another object's id can point a ref of its own at it (or upload a pack that
+  links to it) and then fetch it, so give namespace-limited `write` tokens only
+  to callers trusted with the tenant's object ids. `tine serve token
   mint|list|revoke` does the same offline on `--root` (Part 12,
   `tine-cli-serve-token-1`).
 - `oidc_exchange`: `POST /v1/auth/oidc-exchange` `{"token": JWT, "tenant"?}`,
@@ -3883,12 +3887,16 @@ new optional keys (§5.2: present when served), each pointing at its routes.
   expiry) against the JWKS the operator configured for that issuer, never one
   the token names, takes the first trust rule whose claims all match (exact,
   or a prefix for a value ending in `*`), and refuses a rule that does not pin
-  the provider's repository claim. A `jti` is exchanged once. Failures are
+  the provider's repository claim exactly (or as `owner/*`). The JWT must carry
+  a `jti`, which is exchanged once, and the CI token never outlives the JWT's
+  `exp` (but lives at least a minute). Failures are
   `401` and count against the client like failed logins. Without a configured
   issuer the route is the uniform `404`.
 - `limits`: `GET /v1/limits` and `GET /v1/auth-methods` are public, unsigned
-  documents: the fair-use defaults, their windows and refusal statuses, and
-  how a client may authenticate. `GET usage` gives a tenant's limits and use.
+  documents: the server's effective defaults (a self-hosted server is
+  unlimited unless its operator opts in, `serve --limits fair-use`), the
+  published fair-use limits (`fair_use`), their windows and refusal statuses,
+  and how a client may authenticate. `GET usage` gives a tenant's limits and use.
   Storage (`storage_bytes`) and mirror size answer `507`, egress per UTC day
   and runner minutes per UTC month `429` with `Retry-After`. A refusal is given
   only to a caller authenticated for that tenant, and **no quota ever deletes,

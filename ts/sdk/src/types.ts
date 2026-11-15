@@ -42,7 +42,10 @@ export type QuotaMetric = "storage_bytes" | "egress_bytes" | "mirror_bytes" | "r
 export interface Limits {
   policy: string;
   never_deletes: true;
+  /** Effective defaults; a self-hosted server is unlimited unless the operator opts in. */
   defaults: Record<QuotaMetric, number | null>;
+  /** The published fair-use limits of hosted use. */
+  fair_use: Record<QuotaMetric, number | null>;
   windows: Record<QuotaMetric, string>;
   status: Record<QuotaMetric, 429 | 507>;
 }
