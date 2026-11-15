@@ -20,7 +20,8 @@ def app(tmp_path):
 def test_only_the_digest_is_stored_and_a_wrong_secret_is_refused(app, tmp_path):
     secret = mint(app, "read", ["*"])
     raw = (tmp_path / "remote" / "auth.sqlite3").read_bytes()
-    assert secret.rsplit("_", 1)[-1].encode() not in raw
+    # The secret part is base64url and may itself contain "_": check it whole.
+    assert secret.encode() not in raw
     assert secret.split("_", 3)[3].encode() not in raw
     assert call(app, "GET", "/v1/tenants/acme/refs", token=secret)[0] == 200
     forged = secret[:-4] + ("AAAA" if not secret.endswith("AAAA") else "BBBB")
