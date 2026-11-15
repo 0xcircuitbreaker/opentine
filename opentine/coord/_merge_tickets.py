@@ -48,7 +48,10 @@ def issue(repo: Any, queue: str, record: Any, ttl: float) -> dict[str, Any]:
         if found["target"] != value["target"]:
             raise LeaseError("target", f"the approval is for {found['target']}, not "
                              f"{value['target']} (queue {queue})")  # fmt: skip
-        live = [t for t in value.get("tickets") or [] if t["expires_ms"] > moment]
+        # Spent tickets are kept past expiry: pruning one would let the same
+        # signed approval be issued again under a fresh nonce and replayed.
+        live = [t for t in value.get("tickets") or []
+                if t["expires_ms"] > moment or t["spent_fencing"] is not None]  # fmt: skip
         if any(t["approval"] == ticket["approval"] for t in live):
             raise LeaseError("exists", f"this approval is already issued into {queue}")
         if len(live) >= MAX_TICKETS:

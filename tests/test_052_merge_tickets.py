@@ -83,6 +83,21 @@ def test_an_expired_approval_is_refused(tmp_path, monkeypatch):
     assert f"nonce {ticket['nonce']} expired" in out["reason"]
 
 
+def test_a_spent_approval_cannot_be_issued_again_after_it_expires(tmp_path, monkeypatch):
+    clock = [1_000_000_000]
+    monkeypatch.setattr("opentine.coord._tasks.now_ms", lambda: clock[0])
+    monkeypatch.setattr("opentine.coord._merge_queue.now_ms", lambda: clock[0])
+    repo, runs = _queue(tmp_path, count=2)
+    approval = _approval(runs[0])
+    issue(repo, "main", approval, 60)
+    assert _land(repo, "main", {"approvals": [approval]})["status"] == "landed"
+    clock[0] += 120_000  # the spent ticket is past its expiry, but is kept
+    with pytest.raises(LeaseError) as again:
+        issue(repo, "main", approval, 60)
+    assert again.value.code == "exists"
+    assert queue.get(repo, "main")["tickets"][0]["spent_fencing"] is not None
+
+
 def test_issuing_checks_the_signature_target_and_expiry(tmp_path):
     repo, runs = _queue(tmp_path)
     with pytest.raises(LeaseError) as wrong:
