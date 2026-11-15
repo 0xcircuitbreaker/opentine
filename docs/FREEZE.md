@@ -245,6 +245,21 @@ the helpers and the unchanged envelope check over the shared fixture
 predicate. The first granted predicate brings its own `unchecked` case into
 the existing attestation family under condition (b).
 
+### Merge-approval nonces and expiry (0.52)
+
+**Read under the claim-schema ruling above: local queue state, 1.x for a
+signed form.** The 0.51-0.60 plan proposed carrying a merge approval's queue
+id, nonce and expiry as a plain JSON claim in an existing `attestation` over
+the approval, which `tine merge-queue land` would require. That claim has a
+fixed shape that `land` reads to reach a verdict, so it is an
+`attestation.claim` schema in the ruling's sense: it would need its own
+`unchecked` vector (condition b), a `KINDS` entry (d) and the owner's sign-off
+by name (e), and none is granted. `opentine-merge-approval-1` stays closed and
+unchanged; the queue id, nonce and expiry are kept in the queue's own
+`coord/merge-queue/<id>` record (`tickets`, SPEC 4.19), which is local state,
+not a wire format, and adds no object kind, schema file or vector family. A
+signed binding of nonce and expiry to the approval is a 1.x item.
+
 ### The pyz storage-family exclusion
 
 **Signed off by the owner on 2026-11-13.** Criterion 2 ("the Python, TS and

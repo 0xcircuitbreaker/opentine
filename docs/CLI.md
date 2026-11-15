@@ -1474,6 +1474,7 @@ tine merge-queue land QUEUE --holder H --fencing 1 --ed25519-key-file K [--evide
 tine merge-queue work QUEUE --holder H --ed25519-key-file K [--evidence FILE] [--ttl 60] [--max 2]
 tine merge-queue show QUEUE
 tine merge-queue approve RUN --target REF --approver NAME --ed25519-key-file K [--reject]
+    [--queue QUEUE [--expires 86400]]
 tine merge-queue verify FILE|BLOB_OID [--public-key HEX] [--run]
 ```
 
@@ -1504,7 +1505,17 @@ merge, one that adds nothing, or a failed gate moves the entry to `rejected`.
 eval verdicts (optionally from listed signers), and a number of approvals from
 listed Ed25519 keys. `--evidence FILE` holds `{"vsa": [...], "evals": [...],
 "approvals": [...]}`; `approve` signs an `opentine.merge-approval` (`--reject`
-signs a veto). `verify` checks an attestation (a file, or the blob oid a
+signs a veto). Since 0.52 a queue whose gates require approvals counts only
+approvals **issued** into it: `approve --queue QUEUE` also records a ticket in
+the queue record (a random nonce, the approval's digest and an expiry,
+`--expires` seconds, default one day, at most 30 days) and prints it as
+`ticket`. A landing rejects the entry when the evidence holds an approval that
+was not issued into this queue, has expired, or whose nonce an earlier landing
+already spent, and marks the nonces it used spent in the same compare-and-swap
+that lands it. A gated `land` or `work` without a signing key is refused
+(`no-key`). The binding is local queue state, not a signed field: the
+approval schema is closed, and a claim inside an attestation that `land` reads
+would be a new claim schema under FREEZE.md; a signed form is a 1.x item. `verify` checks an attestation (a file, or the blob oid a
 landing records; `--run` also checks the merged run here) or an approval and
 exits 4 when it fails; `python tine-verify.pyz FILE.json [--pubkey K]` checks
 either offline. `--json` follows `tine-cli-merge-1`, `tine-cli-pick-1` and

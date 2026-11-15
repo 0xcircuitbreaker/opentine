@@ -7,7 +7,8 @@ merge into it. Its value is::
      "head": RUN | null, "entries": [{"run", "by", "enqueued_ms"}],
      "holder": NAME | null, "fencing": N, "lease_expires_ms": MS | null,
      "landed": [{"run", "merge", "fencing", "attestation"}],
-     "rejected": [{"run", "reason", "fencing"}], "updated_ms": MS}
+     "rejected": [{"run", "reason", "fencing"}], "updated_ms": MS,
+     "tickets": [...]}  # 0.52, optional: issued approvals (``_merge_tickets``)
 
 A worker **claims** the queue (a lease with a fencing token one higher, as
 :mod:`opentine.coord._tasks`), then **lands** the first entry: gates checked,
@@ -137,6 +138,7 @@ def land(
 ) -> dict[str, Any]:  # fmt: skip
     """Land the first entry; ``{"status": "landed"|"rejected", "run", "merge", ...}``."""
     from opentine.coord._merge_land import prepare
+    from opentine.coord._merge_tickets import spend
 
     sync_target(repo, queue)
     name = ref_name(queue)
@@ -150,6 +152,8 @@ def land(
                              "the queue; it is not overwritten")  # fmt: skip
         if not value["entries"]:
             raise LeaseError("empty", f"merge queue {queue} is empty")
+        if value.get("gates") and key is None:  # 0.52: a gated landing is always attested
+            raise LeaseError("no-key", f"merge queue {queue} has gates: landing needs a key")
         outcome = prepare(repo, value, evidence, key=key, algorithm=algorithm, actor=holder,
                           merged_at=merged_at)  # fmt: skip
         new = {**value, "entries": value["entries"][1:], "holder": None,
@@ -157,6 +161,8 @@ def land(
         if outcome["status"] == "landed":
             row = {k: outcome[k] for k in ("run", "merge", "fencing", "attestation")}
             new.update(head=outcome["merge"], landed=[*value["landed"], row][-MAX_LANDED:])
+            if value.get("tickets"):
+                new["tickets"] = spend(value, outcome["gates"], fencing)
         else:
             row = {"run": outcome["run"], "reason": outcome["reason"], "fencing": fencing}
             new["rejected"] = [*value["rejected"], row][-MAX_LANDED:]

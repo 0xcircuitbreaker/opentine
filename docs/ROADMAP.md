@@ -913,7 +913,7 @@ A project is a run repository plus a read-only mirror of the code repository it 
 
 **Acceptance:** 0 undocumented `/api/*` routes against a tineyard staging route list; the 404 oracle passes on 100% of routes; 24 h of token fuzzing finds no escalation; 200 fault-injected imports leave the target unchanged or fully imported; no chunk loss in the MinIO race test; the sweep removes every expired orphan chunk in the fixture.
 
-**Freeze impact:** NOT_KINDS (HTTP admin shapes). The approval attestation is an existing `attestation` with a plain JSON claim and no new vectors; if that is read as a claim schema, nonce and expiry move to local queue state and become a 1.x item.
+**Freeze impact:** NOT_KINDS (HTTP admin shapes). The approval attestation is an existing `attestation` with a plain JSON claim and no new vectors; if that is read as a claim schema, nonce and expiry move to local queue state and become a 1.x item. **Settled in 0.52 (FREEZE.md, "Merge-approval nonces and expiry"): it is a claim schema, so they are local queue state.**
 
 ### 0.53.0: Reason-code parity, storage evidence, RFC 4998 recorded (about 4 weeks)
 

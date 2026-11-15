@@ -22,6 +22,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from opentine import _merge_record, _schemas, cli
 from opentine.coord import _merge_queue as queue
+from opentine.coord._merge_tickets import issue
 from opentine.coord._tasks import LeaseError
 from opentine.kernel import canonical_json
 from opentine.repository import Repo
@@ -132,6 +133,7 @@ def test_a_failed_gate_rejects_the_entry_and_the_queue_moves_on(tmp_path):
     approval = _merge_record.sign_approval(
         _merge_record.build_approval(runs[1], "heads/main", "alice"), alice, algorithm="ed25519"
     )
+    issue(repo, "main", approval, 3600)  # 0.52: gated approvals are issued into the queue
     evidence = {"approvals": [approval]}
     token = queue.claim(repo, "main", "w", 30)["fencing"]
     out = queue.land(repo, "main", "w", token, evidence=evidence, key=_key())

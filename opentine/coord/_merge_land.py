@@ -41,6 +41,12 @@ def prepare(
     run, head, fencing = value["entries"][0]["run"], value["head"], value["fencing"]
     gates: list[dict[str, str]] = []
     if value.get("gates"):
+        from opentine.coord._merge_tickets import screen
+        from opentine.coord._tasks import now_ms
+
+        refused = screen(value, evidence, now_ms())  # 0.52: queue id, nonce and expiry
+        if refused:
+            return _rejected(run, "gates: " + "; ".join(refused), fencing)
         verdict = evaluate(value["gates"], evidence, run, value["target"])
         if not verdict["ok"]:
             return _rejected(run, "gates: " + "; ".join(verdict["failures"]), fencing)

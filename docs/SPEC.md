@@ -2310,7 +2310,10 @@ over `opentine.merge-approval.v1:` + JCS of `{body, header}`. Reason codes
 `coord/merge-queue/<id>` (`kind: "merge-queue"`) owning one target ref, with
 `queue`, `target`, `gates` (an `opentine-merge-gates/1` policy or null),
 `head`, `entries`, `holder`, `fencing`, `lease_expires_ms`, `landed` (the last
-1,024 `{run, merge, fencing, attestation}`), `rejected` and `updated_ms`. A
+1,024 `{run, merge, fencing, attestation}`), `rejected`, `updated_ms` and,
+since 0.52, optional `tickets`: approvals issued into the queue, each
+`{nonce, approval, run, target, approver, expires_ms, spent_fencing}` with
+`approval` the SHA-256 of the approval's JCS. A
 worker claims the lease (fencing one higher, as 0.43 tasks) and lands the first
 entry: it checks the gates, merges the entry onto `head` (or fast-forwards an
 empty or contained `head`), signs an `opentine.merge` naming `target` and its
@@ -2328,7 +2331,17 @@ classifies `valid` (8.17) for the candidate under the pinned server key;
 at least `min` of them, by listed `signers` when given; **approvals**, at least
 `required` distinct listed keys signed `approve` for this run and target, and
 no listed key signed `reject`. Each piece that admitted the run is named in the
-attestation's `gates` by the SHA-256 of its JCS.
+attestation's `gates` by the SHA-256 of its JCS. Since 0.52, when `approvals`
+is set, every approval in the evidence must have an unexpired, unspent ticket
+in this queue, else the entry is rejected (`approval: not issued for merge
+queue Q`, `approval: nonce N expired`, `approval: replayed nonce N`); the
+landing CAS sets `spent_fencing` on the tickets it used; and a queue with gates
+refuses to land without a signing key (`no-key`), so every gated landing is
+attested. The queue id, nonce and expiry are local queue state, not signed
+fields: `opentine-merge-approval-1` is closed, and carrying them as an
+`attestation.claim` that `land` reads would be a new claim schema, which the
+FREEZE.md ruling allows only by name (none granted); a signed binding is a 1.x
+item.
 
 Vectors: `68-merge.json` (ops `merge.compute`, `merge.pick`, `merge.verify`,
 `merge-approval.verify`).
