@@ -55,7 +55,7 @@ def test_a_full_tenant_gets_507_and_keeps_everything(tmp_path):
     # Another tenant's caller learns nothing about acme's quota: the usual refusal.
     other = call(app, "POST", "/v1/tenants/acme/packs", raw=big, content_type=PACK,
                  token="other-token")  # fmt: skip
-    assert other[0] == 403
+    assert other[0] == 404  # 0.52 uniform 404: not its tenant
 
 
 def test_egress_over_the_daily_limit_is_429_with_retry_after(tmp_path):

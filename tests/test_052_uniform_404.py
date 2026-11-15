@@ -30,6 +30,10 @@ GHOST_OID = "run:sha256:" + "0" * 64
 IGNORED_HEADERS: frozenset[str] = frozenset()
 #: Routes that are not about any object: nothing to hide.
 EXEMPT = {"getCapabilities"}
+#: 0.52: tenant-less admin, login and public limit documents (caller's own session,
+#: ceremonies, published limits) are about no tenant's object; tests/test_052_admin_*.
+EXEMPT |= {r.operation for r in ROUTES if "{tenant}" not in r.path
+           and not r.path.startswith("/share/")}  # fmt: skip
 #: operation -> request body that gets the route past parsing to authorization.
 BODIES = {
     "updateRef": lambda ids: {"new": ids["oid"], "expected_old": None},
@@ -129,13 +133,15 @@ def world(tmp_path_factory):
     lease = post("/coord/tasks/done/claim", {"holder": "h"}, "200")["task"]
     post("/coord/tasks/done/done", {"holder": "h", "fencing": lease["fencing"]}, "200")
     upload = post("/packs", {"sha256": "0" * 64, "size": 10})
-    base = {"oid": oid, "ref": "heads%2Fone", "review_id": "auth-rework", "task": "live"}
+    base = {"oid": oid, "ref": "heads%2Fone", "review_id": "auth-rework", "task": "live",
+            "subject": "root", "invitation_id": "inv_x", "token_id": "0" * 16}  # fmt: skip
     private = {**base, "tenant": "acme", "share_id": share["id"], "token": share["token"],
                "webhook_id": hook["id"], "upload_id": upload["upload_id"],
                "outside": outside}  # fmt: skip
     missing = {"tenant": "ghost", "oid": GHOST_OID, "ref": "heads%2Fnone", "share_id": "s_none",
                "token": "tine_share_" + "A" * 43, "webhook_id": "wh_none",
-               "upload_id": "1" * 32, "review_id": "no-such-review", "task": "none"}  # fmt: skip
+               "upload_id": "1" * 32, "review_id": "no-such-review", "task": "none",
+               "subject": "nobody", "invitation_id": "inv_none", "token_id": "1" * 16}  # fmt: skip
     archived = {**private, "share_id": old["id"], "token": old["token"],
                 "webhook_id": gone["id"], "task": "done"}  # fmt: skip
     return app, {"private": private, "nonexistent": missing, "archived": archived}

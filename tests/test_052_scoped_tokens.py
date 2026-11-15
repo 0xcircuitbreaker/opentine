@@ -93,15 +93,15 @@ def test_a_namespace_limited_writer_moves_only_its_refs(app, tmp_path):
     assert ok[0] == 200
     out = call(app, "PUT", "/v1/tenants/acme/refs/heads%2Fmain", {"new": run_id,
                "expected_old": run_id, "force": True}, token)  # fmt: skip
-    assert out[0] == 403
+    assert out[0] == 404  # outside its namespaces: the uniform 404
     txn = {"updates": [{"name": "heads/ci/y", "new": run_id, "expected_old": None},
                        {"name": "heads/other", "new": run_id, "expected_old": None}]}  # fmt: skip
-    assert call(app, "POST", "/v1/tenants/acme/ref-txn", txn, token)[0] == 403
+    assert call(app, "POST", "/v1/tenants/acme/ref-txn", txn, token)[0] == 404
     refs = app.service.index.list_refs("acme")
     assert "heads/ci/y" not in refs and "heads/other" not in refs  # all or nothing
     reader = mint(app, "read", ["heads/ci/"])
     moved = call(app, "PUT", "/v1/tenants/acme/refs/heads%2Fci%2Fz", {"new": run_id}, reader)
-    assert moved[0] == 403
+    assert moved[0] == 404
 
 
 def test_a_whole_tenant_token_is_a_reader_or_writer_and_never_crosses_tenants(app, tmp_path):

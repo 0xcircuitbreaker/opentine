@@ -156,7 +156,7 @@ def configured_tenants(provider) -> set[str]:
     names: set[str] = set()
     while provider is not None:
         names.update(i.tenant for i in getattr(provider, "_tokens", {}).values())
-        provider = getattr(provider, "inner", None)
+        provider = getattr(provider, "inner", None) or getattr(provider, "fallback", None)
     return names
 
 

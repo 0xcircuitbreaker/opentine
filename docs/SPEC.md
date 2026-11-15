@@ -3912,7 +3912,7 @@ new optional keys (§5.2: present when served), each pointing at its routes.
   only `GET refs` (the refs inside them), `POST negotiate` and `POST fetch`
   (every `want` the target of such a ref; anything else is the uniform `404`),
   and, with `write`, `PUT refs/<name>` and `POST ref-txn` inside them and pack
-  uploads; every other tenant route refuses it. Namespaces confine refs, not
+  uploads; every other tenant route, the admin routes of 8.27 included, refuses it with the uniform 404. Namespaces confine refs, not
   object confidentiality within a tenant: a `write` token that already knows
   another object's id can point a ref of its own at it (or upload a pack that
   links to it) and then fetch it, so give namespace-limited `write` tokens only

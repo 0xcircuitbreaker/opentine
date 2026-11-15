@@ -104,7 +104,7 @@ def test_each_provider_exchanges_for_a_scoped_short_lived_token(tmp_path, keys, 
     ci = issued["token"]
     assert call(app, "PUT", "/v1/tenants/acme/refs/heads%2Fci%2Fa", {"new": run_id}, ci)[0] == 200
     assert call(app, "PUT", "/v1/tenants/acme/refs/heads%2Fmain", {"new": run_id,
-                "expected_old": run_id}, ci)[0] == 403  # fmt: skip
+                "expected_old": run_id}, ci)[0] == 404  # fmt: skip
     gl = keys["gitlab"].token(GITLAB, project_path="acme/app")
     gl_reply = json.loads(call(app, "POST", "/v1/auth/oidc-exchange", {"token": gl}, None)[2])
     assert gl_reply["access"] == "read" and gl_reply["refs"] == ["*"]

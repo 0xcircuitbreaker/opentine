@@ -16,6 +16,7 @@ from typing import Any
 
 from opentine.remote._admin_store import SESSION_PREFIX, AdminStore, role_rank
 from opentine.remote._authn import DevAuthenticator, PasskeyAuthenticator
+from opentine.remote._token_scope import namespaces
 from opentine.remote.interfaces import Identity
 
 #: Actions an archived tenant still allows.
@@ -83,7 +84,8 @@ class AdminSurface:
         """The caller's strongest role in *tenant*: membership, or a bearer token's own roles."""
         best = self.store.role(tenant, caller.subject)
         identity = caller.identity
-        if identity is not None and identity.tenant == tenant:
+        # A namespace-limited scoped token (SPEC 8.28) reaches no admin route.
+        if identity is not None and identity.tenant == tenant and namespaces(identity) is None:
             for role in identity.roles:
                 if role_rank(role) > role_rank(best):
                     best = role

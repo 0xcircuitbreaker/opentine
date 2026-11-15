@@ -36,10 +36,11 @@ SCOPES = [["*"], ["heads/ci/"], ["heads/main"], ["heads/ci/", "tags/v1"], ["head
 REFS = ["heads/main", "heads/ci/a", "heads/ci/b", "heads/ci", "heads/cix", "tags/v1",
         "promotions/prod", "heads/new", "heads/ci/new", "refs/heads/ci/c"]  # fmt: skip
 #: Routes a namespace-limited token may get a 2xx from (``_token_scope``).
+#: 0.52 admin: a caller may always describe or end its own session (no tenant data).
 LIMITED_OK = {"getCapabilities", "listRefs", "updateRef", "updateRefs", "negotiate",
               "fetchPack", "uploadPack", "uploadOffset", "uploadChunk", "getLimits",
-              "getAuthMethods"}  # fmt: skip
-READ_ONLY_POSTS = {"negotiate", "fetchPack", "search", "runClosure", "sharedClosure"}
+              "getAuthMethods", "getSession", "endSession", "listTenants"}  # fmt: skip
+READ_ONLY_POSTS = {"negotiate", "fetchPack", "search", "runClosure", "sharedClosure", "endSession"}
 PUBLIC = {"getCapabilities", "getLimits", "getAuthMethods", "exchangeCiToken"}
 PACK = "application/vnd.opentine.pack"
 TENANTS = ("acme", "other")
@@ -66,7 +67,7 @@ def _request(rng: random.Random, route, oids: list[str], extra, own: str, near: 
               "oid": quote(rng.choice(oids + ["run:sha256:" + "e" * 64]), safe=""),
               "upload_id": "0" * 32, "webhook_id": "wh_x", "share_id": "s1",
               "token": "tine_share_" + "x" * 43, "review_id": "r1", "task": "t1",
-              "token_id": "0" * 16}  # fmt: skip
+              "token_id": "0" * 16, "subject": "bob", "invitation_id": "inv_x"}  # fmt: skip
     path = "/v1" + route.path.format(**values)
     pool = near if near and rng.random() < 0.5 else oids  # often the token's own targets
     wants = rng.sample(pool, min(len(pool), rng.randint(1, 2)))
