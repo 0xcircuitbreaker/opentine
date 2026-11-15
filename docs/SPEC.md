@@ -3803,9 +3803,12 @@ still travel only through the protocol routes, client-signed.
   subject. *Passkeys* (WebAuthn Level 2) are the hosted login: the server
   issues single-use challenges (5 minutes), and verifies, for ES256 and
   Ed25519 credentials, the client data's type, challenge and origin (no
-  cross-origin), the RP id hash, the user-present flag, the signature over
+  cross-origin), the RP id hash, the user-present and user-verified flags
+  (`userVerification: "required"`: the passkey is the only factor), the signature over
   `authenticatorData || SHA-256(clientDataJSON)` and a non-decreasing
-  signature counter. Attestation is requested as `none` and not evaluated: a
+  signature counter, recorded atomically so two logins cannot reuse one
+  counter value. Outstanding challenges are capped (`429 auth.challenge.limit`).
+  Attestation is requested as `none` and not evaluated: a
   passkey proves possession of a key, not which hardware holds it. The server
   stores credential *public* keys only; it never sees, holds or uses a user
   signing key, and a passkey never signs OpenTine objects. A first passkey is
@@ -3821,10 +3824,12 @@ still travel only through the protocol routes, client-signed.
   one (the creator is its admin). On `tine serve` creation is open to sessions
   only with `--open-signup`; an admin bearer token may always register its own
   tenant; a name whose tenant already holds data is never claimable by
-  anyone else (`409 tenant.exists`). The tenant id is immutable (`PATCH`
+  anyone else, nor is one a configured static bearer token names
+  (`409 tenant.exists`). The tenant id is immutable (`PATCH`
   changes the display name only: every URL and signed project manifest names
   the id). `archive` makes the tenant read-only for every caller and every
-  route, deleting nothing; `unarchive` reverses it.
+  route, deleting nothing (holds may still be placed, never released);
+  `unarchive` reverses it.
 - **Membership.** Roles are `reader`, `writer`, `admin` (the protocol
   routes' roles). Members are listed to any role and changed by admins; the
   last admin cannot be removed (`409 member.last_admin`). Invitations are

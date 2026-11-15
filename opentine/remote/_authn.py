@@ -21,9 +21,10 @@ import secrets
 import threading
 import time
 from typing import Any, Protocol
+from urllib.parse import urlsplit
 
 from opentine.remote import _webauthn
-from opentine.remote._admin_store import AdminStore, check_text
+from opentine.remote._admin_store import AdminStore, Conflict, check_text
 
 CHALLENGE_TTL = 300.0
 MAX_CHALLENGES = 10_000
@@ -57,7 +58,7 @@ class _Challenges:
         with self._lock:
             self._rows = {k: v for k, v in self._rows.items() if v[2] > now}
             if len(self._rows) >= MAX_CHALLENGES:
-                raise PermissionError("too many outstanding challenges")
+                raise Conflict("too many outstanding challenges", "auth.challenge.limit")
             self._rows[challenge] = (purpose, subject, now + CHALLENGE_TTL)
         return challenge
 
@@ -78,11 +79,24 @@ class _Challenges:
         return row[1]
 
 
+def _origin_ok(origin: str) -> bool:
+    """An ``https://host[:port]`` origin, or plain http on a loopback host only."""
+    try:
+        parts = urlsplit(origin)
+        parts.port  # noqa: B018 -- raises on a malformed port
+    except ValueError:
+        return False
+    if parts.path or parts.query or parts.fragment or parts.username or not parts.hostname:
+        return False
+    loopback = parts.hostname in ("localhost", "127.0.0.1", "::1")
+    return parts.scheme == "https" or (parts.scheme == "http" and loopback)
+
+
 class PasskeyAuthenticator:
     name = "passkey"
 
     def __init__(self, store: AdminStore, *, rp_id: str, origin: str, rp_name: str = "OpenTine"):
-        if not rp_id or not origin.startswith(("https://", "http://localhost", "http://127.")):
+        if not rp_id or not _origin_ok(origin):
             raise ValueError("passkeys need an RP id and an https (or localhost) origin")
         self.store, self.rp_id, self.origin, self.rp_name = store, rp_id, origin, rp_name
         self.challenges = _Challenges()
@@ -103,7 +117,7 @@ class PasskeyAuthenticator:
             "attestation": "none",
             "timeout": int(CHALLENGE_TTL * 1000),
             "authenticatorSelection": {"residentKey": "required",
-                                       "userVerification": "preferred"},
+                                       "userVerification": "required"},
         }  # fmt: skip
 
     def register(self, subject: str, request: dict[str, Any]) -> dict[str, Any]:
@@ -119,7 +133,7 @@ class PasskeyAuthenticator:
 
     def assertion_options(self) -> dict[str, Any]:
         return {"challenge": self.challenges.issue("login", ""), "rpId": self.rp_id,
-                "allowCredentials": [], "userVerification": "preferred",
+                "allowCredentials": [], "userVerification": "required",
                 "timeout": int(CHALLENGE_TTL * 1000)}  # fmt: skip
 
     def login(self, request: dict[str, Any]) -> str:
@@ -131,7 +145,10 @@ class PasskeyAuthenticator:
         counter = _webauthn.verify_assertion(
             request, credential, request["challenge"], rp_id=self.rp_id, origin=self.origin
         )
-        self.store.bump_counter(credential_id, counter)
+        try:
+            self.store.bump_counter(credential_id, counter)
+        except ValueError as exc:
+            raise _webauthn.WebAuthnError(str(exc)) from exc
         return credential["subject"]
 
 

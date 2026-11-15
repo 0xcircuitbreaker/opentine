@@ -114,6 +114,8 @@ def check_rp(auth: AuthData, rp_id: str) -> None:
         raise WebAuthnError("RP id hash does not match")
     if not auth.flags & FLAG_UP:
         raise WebAuthnError("user presence flag is not set")
+    if not auth.flags & FLAG_UV:  # a passkey is the only factor: it must verify the user
+        raise WebAuthnError("user verification flag is not set")
 
 
 def verify_registration(

@@ -26,8 +26,7 @@ from opentine.repository._paths import atomic_bytes
 ROLES = ("reader", "writer", "admin")
 SESSION_PREFIX = "tine_sess_"
 INVITE_PREFIX = "tine_invite_"
-SESSION_TTL = 7 * 24 * 3600
-INVITE_TTL = 7 * 24 * 3600
+SESSION_TTL = INVITE_TTL = 7 * 24 * 3600
 MAX_TENANTS_PER_SUBJECT = 100
 MAX_MEMBERS = 1000
 MAX_INVITES = 200
@@ -128,7 +127,10 @@ class AdminStore:
 
     def bump_counter(self, credential_id: str, counter: int) -> None:
         with self.edit() as state:
-            state["credentials"][credential_id]["sign_count"] = counter
+            row = state["credentials"][credential_id]  # a racing login may have moved it on:
+            if int(row.get("sign_count", 0)) and counter <= int(row["sign_count"]):
+                raise ValueError("signature counter is stale (a concurrent login?)")
+            row["sign_count"] = counter
 
     # -- tenants ----------------------------------------------------------------
     def tenant(self, name: str) -> dict[str, Any] | None:

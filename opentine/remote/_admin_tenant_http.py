@@ -100,6 +100,8 @@ def tenant_route(app, surface, caller, tenant, resource, method, environ, sr):
         body = {"policy": row["retention"], "server_deletes": False}
         return ok(sr, "200 OK", body) if read else done("retention_update", body)
     if head == "holds":
+        if method == "DELETE" and store.tenant(tenant):  # releasing a hold is a change
+            _row(surface, tenant, writable=True)
         return _holds(app, tenant, rest, method, environ, sr, done)
     raise KeyError(resource)
 

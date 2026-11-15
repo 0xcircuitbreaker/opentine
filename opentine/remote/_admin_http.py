@@ -144,11 +144,20 @@ def _create(app, surface, caller, environ):
                       "tenant.signup_closed")  # fmt: skip
     service = app.service
     in_use = service.index.list_refs(name) or service.objects.list(name, limit=1)
-    if in_use and not own_token_tenant:
+    if (in_use or name in configured_tenants(service.identities)) and not own_token_tenant:
         raise Conflict("tenant already exists", "tenant.exists")
     created = surface.store.create_tenant(name, display, caller.subject)
     audit(service, caller, name, "admin.tenant_create", {})
     return created
+
+
+def configured_tenants(provider) -> set[str]:
+    """Tenants the server's static bearer tokens already name: never claimable by signup."""
+    names: set[str] = set()
+    while provider is not None:
+        names.update(i.tenant for i in getattr(provider, "_tokens", {}).values())
+        provider = getattr(provider, "inner", None)
+    return names
 
 
 def _auth(app, surface, rest, method, environ, sr, client):
