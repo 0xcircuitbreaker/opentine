@@ -3444,7 +3444,13 @@ per tenant; a request for an object the caller may not read answers exactly
 like one for an object that does not exist (a uniform `404`, or, for `fetch`,
 an empty pack), and a tenant-level refusal (`401`/`403`) never depends on the oid
 asked for or on whether the tenant exists, so no response is an oid- or
-tenant-existence oracle; repeated failed
+tenant-existence oracle. Since 0.52 a caller who may not read the tenant at all
+(another tenant's token, or one whose roles grant nothing there) gets that same
+uniform `404` from every tenant route, never `403`: a private, a nonexistent,
+an archived (revoked, removed or finished) and an out-of-scope object answer
+with identical status, headers and body (`tests/test_052_uniform_404.py`
+enumerates every route of the table); `403` is kept for a caller who can read
+the tenant but lacks a narrower permission; repeated failed
 authentication and exhausted quotas answer `429` with `Retry-After`; and the
 server never signs as a user: signed objects (runs, attestations, project
 manifests) arrive client-signed and are stored as received. A client verifies

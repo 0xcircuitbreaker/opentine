@@ -53,6 +53,21 @@ class AuthorizationDenied(PermissionError):
     """A denial the service has already audited."""
 
 
+def hidden(service: Any, identity: Any, tenant: str) -> bool:
+    """Whether a refusal must be the uniform ``404`` (0.52): the caller cannot read *tenant*.
+
+    A ``403`` would tell another tenant's caller (or a token scoped to nothing
+    here) that the tenant exists; only a caller who can already list its refs
+    may learn that it lacks a narrower permission.
+    """
+    if identity is None:
+        return True
+    try:
+        return not service.authorization.authorize(identity, "read_ref", tenant)
+    except Exception:  # an invalid tenant name or a policy failure: hide it
+        return True
+
+
 def audit_tenant(*candidates: str | None) -> str:
     """The first candidate that is a valid tenant, else the server's own."""
     for candidate in candidates:

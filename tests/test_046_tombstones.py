@@ -235,7 +235,7 @@ def test_a_remote_purge_needs_the_purge_permission_and_answers_a_uniform_404(
     record = _tomb(blob)
     assert http("t").put(path, json=record).status_code == 403  # a writer cannot purge
     assert service.objects.has("acme", blob)
-    assert http("o").put(path, json=record).status_code == 403  # another tenant's admin
+    assert http("o").put(path, json=record).status_code == 404  # another tenant: uniform
     missing = http("t").get(path)
     unknown = http("t").get("/v1/tenants/acme/tombstones/blob:sha256:" + "7" * 64)
     garbage = http("t").get("/v1/tenants/acme/tombstones/not-an-oid")
@@ -245,7 +245,7 @@ def test_a_remote_purge_needs_the_purge_permission_and_answers_a_uniform_404(
     assert done.status_code == 201 and done.json() == {"stored": True, "purged": True}
     assert not service.objects.has("acme", blob)
     assert http("t").get(path).json()["tombstone"] == record
-    assert http("o").get(f"/v1/tenants/acme/tombstones/{blob}").status_code == 403
+    assert http("o").get(f"/v1/tenants/acme/tombstones/{blob}").status_code == 404  # 0.52: uniform
     local = Repo.init(tmp_path / "local")
     repository_client.fetch(local, "https://remote", tenant="acme", token="t")
     assert local.has(run) and local.fsck().content_unavailable == (blob,)

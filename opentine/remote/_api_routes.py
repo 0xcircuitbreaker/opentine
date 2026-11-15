@@ -11,7 +11,8 @@ table, the spec and the dispatcher cannot drift apart.
 Rules every v1 implementation (``tine serve`` and the hosted service) keeps:
 tenant routes are private by default (no anonymous read), every read is
 authorized per tenant, an object the caller may not read answers exactly like
-one that does not exist (a uniform ``404``, no oid-existence oracle), and the
+one that does not exist (a uniform ``404``, no oid-existence oracle; since 0.52
+also for a caller who may not read the tenant at all), and the
 server never signs anything as a user: signed objects arrive client-signed.
 """
 

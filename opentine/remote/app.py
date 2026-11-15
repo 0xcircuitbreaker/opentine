@@ -14,13 +14,15 @@ from opentine.remote._auth_throttle import AuthThrottle, internal_error
 from opentine.remote._events_http import extra_routes
 from opentine.remote._quota import QuotaExceeded
 from opentine.remote._ref_txn import route as ref_txn_route
-from opentine.remote._request_audit import AuthorizationDenied, FailureAudit, request_action
+from opentine.remote._request_audit import AuthorizationDenied, FailureAudit, hidden, request_action
 from opentine.remote._uploads import UploadRegistry
 from opentine.remote._wsgi import json_response, request_headers, response
 from opentine.remote.interfaces import KeyProvider
 from opentine.remote.service import RemoteService
 from opentine.repository import _pack4, _pack_peer
 from opentine.repository.pack import MAX_PACK_BYTES, OMITTED_HEADER
+
+_SLOW = {"error": "too many failed authentications"}
 
 
 class ServerBusy(RuntimeError):
@@ -124,12 +126,8 @@ class RemoteApp(UploadRoutes):
             client = environ.get("REMOTE_ADDR") or "unknown"
             wait = self.auth_throttle.retry_after(client)
             if wait:
-                return self._json_response(
-                    start_response,
-                    "429 Too Many Requests",
-                    {"error": "too many failed authentications"},
-                    [("Retry-After", str(wait))],
-                )
+                retry = [("Retry-After", str(wait))]
+                return self._json_response(start_response, "429 Too Many Requests", _SLOW, retry)
             try:
                 identity = self.service.authenticate(self._headers(environ))
             except PermissionError as exc:
@@ -145,8 +143,9 @@ class RemoteApp(UploadRoutes):
             return self._dispatch(identity, tenant, resource, method, environ, start_response)
         except Exception as exc:
             if identity is not None and not isinstance(exc, AuthorizationDenied):
-                action = request_action(resource, method)
-                self._failures.failed(identity, tenant, action, exc)
+                self._failures.failed(identity, tenant, request_action(resource, method), exc)
+            if isinstance(exc, PermissionError) and hidden(self.service, identity, tenant):
+                exc = KeyError("hidden")  # 0.52: no tenant-existence oracle (uniform 404)
             for kind, status, message in _REFUSALS:
                 if isinstance(exc, kind):
                     extra = getattr(exc, "headers", ()) if kind is QuotaExceeded else ()
