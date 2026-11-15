@@ -39,7 +39,8 @@ _ALERT = closed(
 SCHEMAS: dict[str, dict[str, Any]] = {
     "tine-cli-alert-1": doc("tine-cli-alert-1", "tine alert ACTION --json",
         "Every `tine alert` action. `add`: the stored `rule`; `list`: `rules` and "
-        "`webhook_key` (kid, alg, public_key: pin it in the receiver); `remove`: the remaining "
+        "`webhook_key` (kid, alg, public_key: pin it in the receiver; absent until the first "
+        "webhook delivery creates the key, which `list` never does); `remove`: the remaining "
         "`rules`; `test`: the `event` evaluated (id, kind) and one `alerts` entry per rule it "
         "tripped (or, with --always, a `test: true` alert per other rule), each with its "
         "`deliveries`. `ok` is false, and the command exits 1, when a delivery failed.",

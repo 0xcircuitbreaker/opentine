@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opentine.com/schemas/tine-cli-alert-1.schema.json",
   "title": "tine alert ACTION --json",
-  "description": "Every `tine alert` action. `add`: the stored `rule`; `list`: `rules` and `webhook_key` (kid, alg, public_key: pin it in the receiver); `remove`: the remaining `rules`; `test`: the `event` evaluated (id, kind) and one `alerts` entry per rule it tripped (or, with --always, a `test: true` alert per other rule), each with its `deliveries`. `ok` is false, and the command exits 1, when a delivery failed.",
+  "description": "Every `tine alert` action. `add`: the stored `rule`; `list`: `rules` and `webhook_key` (kid, alg, public_key: pin it in the receiver; absent until the first webhook delivery creates the key, which `list` never does); `remove`: the remaining `rules`; `test`: the `event` evaluated (id, kind) and one `alerts` entry per rule it tripped (or, with --always, a `test: true` alert per other rule), each with its `deliveries`. `ok` is false, and the command exits 1, when a delivery failed.",
   "type": "object",
   "required": [
     "command",

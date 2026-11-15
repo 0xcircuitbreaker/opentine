@@ -45,25 +45,30 @@ class _Pinned(http.client.HTTPSConnection):
         self.sock = self._context.wrap_socket(sock, server_hostname=self.host)
 
 
-def post(url: str, body: bytes, headers: dict[str, str], allow_private: bool) -> int:
-    scheme, host, port = check_url(url, allow_private)
-    address = resolve(host, port, allow_private)
+def pinned_post(url: str, address: str, body: bytes, headers: dict[str, str],
+                timeout: float = TIMEOUT) -> tuple[int, bytes]:  # fmt: skip
+    """POST to the already-checked *address*; certificate and SNI still name the host."""
     parts = urlsplit(url)
+    host, port = parts.hostname or "", parts.port or (443 if parts.scheme == "https" else 80)
     target = (parts.path or "/") + (f"?{parts.query}" if parts.query else "")
-    if scheme == "https":
+    if parts.scheme == "https":
         context = ssl.create_default_context()
         conn: http.client.HTTPConnection = _Pinned(
-            host, port, address, timeout=TIMEOUT, context=context
+            host, port, address, timeout=timeout, context=context
         )
     else:
-        conn = http.client.HTTPConnection(address, port, timeout=TIMEOUT)
+        conn = http.client.HTTPConnection(address, port, timeout=timeout)
     try:
         conn.request("POST", target, body=body, headers={"Host": parts.netloc, **headers})
         response = conn.getresponse()
-        response.read(4096)
-        return response.status
+        return response.status, response.read(4096)
     finally:
         conn.close()
+
+
+def post(url: str, body: bytes, headers: dict[str, str], allow_private: bool) -> int:
+    _, host, port = check_url(url, allow_private)
+    return pinned_post(url, resolve(host, port, allow_private), body, headers)[0]
 
 
 class Dispatcher:

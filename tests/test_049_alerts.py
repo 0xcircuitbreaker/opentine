@@ -104,7 +104,8 @@ def test_rules_are_checked_and_stored(monkeypatch, capsys, repo):
     listed = json.loads(out)
     assert _schemas.validate(listed, "tine-cli-alert-1")[1] == []
     assert [r["name"] for r in listed["rules"]] == ["cost"]
-    assert listed["webhook_key"]["kid"].startswith("ed25519:")
+    assert "webhook_key" not in listed  # listing never creates the signing key
+    assert not (_alerts.state_dir(repo) / "webhook-ed25519.key").exists()
     assert _tine(monkeypatch, capsys, "alert", "remove", "cost", "--json")[0] == 0
     assert _tine(monkeypatch, capsys, "alert", "remove", "cost")[0] == 1
 
@@ -114,8 +115,6 @@ def test_test_delivers_a_signed_webhook_and_an_otlp_log_record(monkeypatch, caps
     assert _tine(monkeypatch, capsys, "alert", "add", "deny", "--on", "policy.denied",
                  "--webhook", receiver.url + "/hook", "--allow-private",
                  "--otlp", receiver.url)[0] == 0  # fmt: skip
-    _, out = _tine(monkeypatch, capsys, "alert", "list", "--json")
-    keys = _webhook_sig.public_keys([json.loads(out)["webhook_key"]])
     code, out = _tine(monkeypatch, capsys, "alert", "test", "--json")
     assert code == 0 and json.loads(out)["alerts"] == []  # the run has no policy denial
     code, out = _tine(monkeypatch, capsys, "alert", "test", "deny", "--always", "--json")
@@ -124,6 +123,8 @@ def test_test_delivers_a_signed_webhook_and_an_otlp_log_record(monkeypatch, caps
     assert _schemas.validate(doc, "tine-cli-alert-1")[1] == []
     outcomes = [(r["sink"], r["outcome"]) for r in doc["alerts"][0]["deliveries"]]
     assert outcomes == [("webhook", "delivered"), ("otlp", "delivered")]
+    _, out = _tine(monkeypatch, capsys, "alert", "list", "--json")
+    keys = _webhook_sig.public_keys([json.loads(out)["webhook_key"]])
     hook = next(p for p in receiver.posts if p[0] == "/hook")
     otlp = next(p for p in receiver.posts if p[0] == "/v1/logs")
     payload = _webhook_sig.verify(hook[2], hook[1][_webhook_sig.HEADER], keys)
@@ -275,3 +276,46 @@ def test_hand_edited_rules_are_rechecked(repo):
     path.write_text(json.dumps({"rules": [rule]}), encoding="utf-8")
     with pytest.raises(ValueError, match="rules.json"):
         _alerts.load_rules(repo)
+
+
+def test_send_otlp_connects_to_the_address_it_checked(monkeypatch, receiver):
+    """DNS rebinding: one lookup, checked, then the socket goes to that address."""
+    import socket
+
+    from opentine.remote import _webhooks
+
+    port = int(receiver.url.rsplit(":", 1)[1])
+    answers = iter([[(0, 0, 0, "", ("127.0.0.1", port))]])
+    lookups = []
+
+    def resolver(host, *args, **kwargs):  # a second lookup would raise StopIteration
+        lookups.append(host)
+        return next(answers)
+
+    real = _webhooks.resolve
+    monkeypatch.setattr(_webhooks, "resolve", lambda h, p, a: real(h, p, a, resolver))
+    system = socket.getaddrinfo
+
+    def rebound(host, *args, **kwargs):  # any later lookup of the name gets another address
+        if host == "collector.example":
+            return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("10.9.9.9", port))]
+        return system(host, *args, **kwargs)
+
+    monkeypatch.setattr(socket, "getaddrinfo", rebound)
+    row = _alerts_deliver.send_otlp(f"http://collector.example:{port}", {"resourceLogs": []},
+                                    allow_private=True)  # fmt: skip
+    assert row["outcome"] == "delivered" and lookups == ["collector.example"]
+    path, headers, _ = receiver.posts[-1]
+    assert path == "/v1/logs" and headers["Host"] == f"collector.example:{port}"
+
+
+def test_send_otlp_refuses_a_name_that_resolves_to_loopback(monkeypatch, receiver):
+    from opentine.remote import _webhooks
+
+    port = int(receiver.url.rsplit(":", 1)[1])
+    real = _webhooks.resolve
+    loop = [(0, 0, 0, "", ("127.0.0.1", port))]
+    monkeypatch.setattr(_webhooks, "resolve", lambda h, p, a: real(h, p, a, lambda *x, **k: loop))
+    row = _alerts_deliver.send_otlp(f"http://collector.example:{port}", {"resourceLogs": []})
+    assert row["outcome"] == "failed" and row["status"] == "ValueError"
+    assert receiver.posts == []

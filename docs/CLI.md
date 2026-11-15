@@ -766,14 +766,17 @@ repository and checked (an attestation whose signature does not verify, a
 `log.checkpoint` events are compared with the last checkpoint of the same
 origin (a rollback or fork is a `witness.disagreement`). A webhook delivery is
 a `tine-webhook/1` body (SPEC 8.13) whose `event` is the triggering event, with
-an `alert` member added, signed with `.tine/alerts/webhook-ed25519.key`; `list`
-prints its `kid` and `public_key` for the receiver to pin. Targets must be
+an `alert` member added, signed with `.tine/alerts/webhook-ed25519.key`
+(created by the first webhook delivery); `list` prints its `kid` and
+`public_key` for the receiver to pin once it exists, and never creates it. Targets must be
 `https://` global addresses unless `--allow-private`; 408/429/5xx are retried
 (3 attempts). An OTLP delivery POSTs one OTLP/JSON log record per alert to
 `ENDPOINT/v1/logs` (severity `ERROR` for verify and witness alerts, else
 `WARN`; `opentine.alert.*` attributes); it may be `http://` but, like a webhook,
 must not carry credentials or name (or resolve to) a private, loopback or
-reserved address unless `--allow-private`. Stored rules are re-checked when
+reserved address unless `--allow-private`. Both sinks resolve the host once,
+check every address and connect to the checked one, so a rebinding DNS answer
+cannot redirect the request (0.52). Stored rules are re-checked when
 read, so a hand-edited `rules.json` cannot bypass these checks. `test` evaluates the newest op-log entry
 (or `--event FILE`: an event or a `tine watch --json` line) and delivers what
 trips; `--always` also sends a `test: true` alert for each other rule. `--json`
