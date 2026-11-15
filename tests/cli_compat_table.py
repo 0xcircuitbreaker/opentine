@@ -4258,7 +4258,7 @@ ROWS: tuple[tuple, ...] = (
         {"command": "merge-queue", "queue_action": "approve", "run": "RUN", "reject": True},
     ),  # fmt: skip
     (
-        "plain:merge-queue approve RUN --target t --approver a --ed25519-key-file k --queue q",
+        "plain:merge-queue approve RUN --target t --approver a --ed25519-key-file k --queue q --expires 600",
         "plain",
         [
             "merge-queue",
