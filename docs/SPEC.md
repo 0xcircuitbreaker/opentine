@@ -3340,7 +3340,12 @@ the tokens decoded (`hash_algorithm`, `message_imprint` hex, `gen_time`,
 `accuracy_us`, `tsa_valid_for`) beside `signature` (base64), `leaf`
 (`{start, end}`) and `receipt`, and returns `{signing_time, status}`
 (`status` `verified` or `unchecked`); the CMS layer is §8.6's. Vectors:
-`77-keyless-tsa.json`.
+`77-keyless-tsa.json`. Since 0.52 the TS verifier checks the CMS layer too
+(`keylessTokenTime`), with Python's `timestamp.*` reasons; real tokens are
+not conformance vectors (they are signed with fresh keys), so its fixture of
+tokens with the Python answers lives in `ts/verifier/test/fixtures/`. A token
+carrying embedded CRL or OCSP data fails closed there
+(`timestamp.revocation-unchecked`).
 
 <a id="s-8.13"></a>
 ## 8.13 Signed webhook payloads, `tine-webhook/1` (0.45.1)
