@@ -39,6 +39,7 @@ import type {
   Share,
   SharedRun,
   SocialCounts,
+  TenantImported,
   TombstoneStored,
   Webhook,
   WebhookList,
@@ -324,6 +325,18 @@ export class TineClient {
   /** Store a reviewer-signed gate decision; the server checks it and never signs one. */
   decideReviewGate(reviewId: string, decision: ReviewGate): Promise<ReviewDecided> {
     return this.json("decideReviewGate", { params: { review_id: reviewId }, json: { decision } });
+  }
+
+  /**
+   * Create an export's refs, Reviews and project chain together or not at all
+   * (`caps.tenant_import`); upload the objects first. A conflict (409) changes nothing.
+   */
+  async importTenant(body: {
+    refs?: Record<string, Oid>;
+    reviews?: unknown[];
+    project?: unknown[];
+  }): Promise<TenantImported> {
+    return (await this.send("importTenant", { json: body, ok: [409] })).json() as Promise<TenantImported>;
   }
 
   /** Every coordination task of the tenant (`caps.coord`). */

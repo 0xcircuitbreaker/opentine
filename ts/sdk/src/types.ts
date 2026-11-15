@@ -278,6 +278,15 @@ export interface ReviewDecided {
   digest: Oid;
 }
 
+/** `POST import` (`caps.tenant_import`, 0.52): what an all-or-nothing import added, or why none. */
+export interface TenantImported {
+  imported: boolean;
+  refs?: number;
+  reviews?: number;
+  project_versions?: number;
+  conflict?: string;
+}
+
 /** An `opentine-coord/1` task (`caps.coord`, SPEC 8.22); leases run on the server's clock. */
 export interface Task {
   task: string;

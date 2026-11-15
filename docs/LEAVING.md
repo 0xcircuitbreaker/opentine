@@ -57,8 +57,14 @@ opentine installed.
 - **Tombstones** move with the bundle. A purged blob stays purged on the new
   side, and `fsck` still reports its content as unavailable. A run whose blob
   was purged fails `verify` in the same way in every copy.
-- **Reviews and project manifests** are replayed through the new server's
-  `reviews` and `project` routes. The new server checks each record again. A
+- **Reviews and project manifests** go to the new server in the same
+  all-or-nothing `POST import` as the refs (0.52, `caps.tenant_import`): the
+  objects are uploaded first, where no ref reaches them, then the server checks
+  every ref, Review and project version and makes them visible together, or
+  changes nothing. A ref, Review or project that already exists there with
+  other content refuses the whole import; an interrupted import leaves the
+  tenant as it was, and running it again finishes it. The new server checks
+  each record again. A
   project manifest names its tenant, so it can only be imported into a tenant
   with the same name. `tenant import --repo` installs Reviews locally but not
   the project chain, because `tine project` keeps its own chain in the

@@ -158,6 +158,10 @@ def extra_routes(app: Any, identity, tenant: str, resource: str, method: str, en
         found = project_routes(app, identity, tenant, resource, method, environ, sr)
         if found is not None:
             return found
+    if resource == "import" and method == "POST":  # 0.52 (``_tenant_import_http``)
+        from opentine.remote._tenant_import_http import route
+
+        return route(app, identity, tenant, environ, sr)
     if resource == "reviews" or resource.startswith("reviews/"):  # 0.47 (``_review_http``)
         from opentine.remote._review_http import review_routes
 

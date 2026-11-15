@@ -178,6 +178,11 @@ ROUTES: tuple[Route, ...] = (
           (("201", "MintedToken"), ("400", "Error"), *_ERR)),
     Route("DELETE", T + "/tokens/{token_id}", "revokeToken", "Revoke a scoped token",
           "scoped_tokens", "stable", "tokens", None, (("200", "TokenRecord"), *_ERR)),
+    # 0.52: tine tenant import --remote, all or nothing (_tenant_import_http).
+    Route("POST", T + "/import", "importTenant",
+          "Create an export's refs, Reviews and project chain together, or nothing",
+          "tenant_import", "stable", "update_ref", "TenantImport",
+          (("200", "TenantImported"), ("409", "TenantImported"), ("400", "Error"), *_ERR)),
 )  # fmt: skip
 
 

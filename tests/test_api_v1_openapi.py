@@ -33,6 +33,7 @@ BODIES = {
     "addTask": {"task": "t1"},
     "exchangeCiToken": {"token": "a.b.c"},  # 0.52
     "mintToken": {"access": "read", "refs": ["*"]},
+    "importTenant": {"refs": {}},
     **{op: {"holder": "h", "fencing": 1} for op in ("claimTask", "heartbeatTask", "finishTask")},
 }
 VALUES = {"tenant": "acme", "ref": "heads%2Fmain", "upload_id": "0" * 32, "webhook_id": "wh_x"}

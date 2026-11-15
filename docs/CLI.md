@@ -750,7 +750,11 @@ server holds, with tombstones and `tine-sig/3` sidecars), `reviews/ID.json`
 entries, as the API returned them) and `shares.json` (share-link ids, runs and
 expiry; never a token). `import` installs the bundle and the Reviews into a
 local repository under the same ref names, refusing to move a ref that already
-points elsewhere, or with `--remote` pushes them to another `tine serve` tenant.
+points elsewhere, or with `--remote` imports them into another `tine serve`
+tenant all or nothing (0.52): the objects are uploaded first, then one `POST
+import` (`caps.tenant_import`) creates every ref, Review and project version
+together, and an interrupted or refused import leaves the tenant unchanged (run
+it again to finish). A server without `caps.tenant_import` is refused.
 `tine verify . --offline --json` then prints the same bytes in either place.
 `--json` writes `tine-cli-tenant-1`. The walkthrough, and what cannot move, is
 [LEAVING.md](LEAVING.md).

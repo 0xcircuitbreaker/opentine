@@ -1,4 +1,5 @@
-"""OpenAPI v1 component schemas added in 0.47: Reviews (``caps.reviews``) and coord tasks.
+"""OpenAPI v1 component schemas added in 0.47: Reviews (``caps.reviews``) and coord tasks;
+and in 0.52 the all-or-nothing tenant import (``caps.tenant_import``).
 
 Split from :mod:`opentine.remote._openapi_schemas` (module size budget);
 :mod:`opentine.remote._openapi` merges both into one ``components.schemas``.
@@ -77,6 +78,22 @@ SCHEMAS_047: dict[str, Any] = {
     ),
     "LeaseRefusal": _obj(
         {"error": _str, "code": {"enum": ["exists", "held", "done", "stale", "contended"]}},
+        extra=False,
+    ),
+    # 0.52 (caps.tenant_import): one all-or-nothing import of an export's refs,
+    # Reviews and project chain, after its objects were uploaded with POST packs.
+    "TenantImport": _obj(
+        {},
+        {
+            "refs": {"type": "object", "additionalProperties": _str},
+            "reviews": {"type": "array", "items": {"type": "object"}},
+            "project": {"type": "array", "items": {"type": "object"}},
+        },
+        extra=False,
+    ),
+    "TenantImported": _obj(
+        {"imported": {"type": "boolean"}},
+        {"refs": _int, "reviews": _int, "project_versions": _int, "conflict": _str},
         extra=False,
     ),
 }

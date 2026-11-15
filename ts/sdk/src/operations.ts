@@ -95,6 +95,7 @@ export const OPERATIONS = {
   listTokens: { method: "GET", path: "/v1/tenants/{tenant}/tokens", cap: "scoped_tokens", status: "stable" },
   mintToken: { method: "POST", path: "/v1/tenants/{tenant}/tokens", cap: "scoped_tokens", status: "stable" },
   revokeToken: { method: "DELETE", path: "/v1/tenants/{tenant}/tokens/{token_id}", cap: "scoped_tokens", status: "stable" },
+  importTenant: { method: "POST", path: "/v1/tenants/{tenant}/import", cap: "tenant_import", status: "stable" },
 } as const satisfies Record<string, Operation>;
 
 export type OperationId = keyof typeof OPERATIONS;

@@ -36,6 +36,7 @@ _ACTIONS = {
     ("refs", "GET"): "read_ref",
     ("refs/", "PUT"): "update_ref",
     ("ref-txn", "POST"): "update_ref",
+    ("import", "POST"): "update_ref",
     ("negotiate", "POST"): "negotiate",
     ("fetch", "POST"): "fetch",
     ("packs", "POST"): "upload",

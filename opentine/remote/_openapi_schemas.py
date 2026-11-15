@@ -67,6 +67,7 @@ SCHEMAS: dict[str, Any] = {
             "scoped_tokens": {"type": "object"},
             "limits": {"type": "object"},
             "oidc_exchange": {"type": "object"},
+            "tenant_import": {"type": "object"},
         },
     ),
     "RefList": _obj({"refs": {"type": "object", "additionalProperties": _oid}}, extra=False),

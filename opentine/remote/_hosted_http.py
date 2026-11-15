@@ -51,11 +51,13 @@ def capabilities(service: Any) -> dict[str, Any]:
     from opentine.remote._coord_http import capabilities as coord_caps
     from opentine.remote._project_http import capabilities as project_caps
     from opentine.remote._review_http import capabilities as review_caps
+    from opentine.remote._tenant_import_http import capabilities as import_caps
 
     if getattr(service, "admin", None) is not None:  # 0.52: session, tenancy
         caps.update(service.admin.capabilities())
-    # 0.46.1: project, social_export; 0.47: reviews, coord
-    return {**caps, **project_caps(service), **review_caps(service), **coord_caps(service)}
+    # 0.46.1: project, social_export; 0.47: reviews, coord; 0.52: tenant_import
+    return {**caps, **project_caps(service), **review_caps(service), **coord_caps(service),
+            **import_caps(service)}  # fmt: skip
 
 
 def _query(environ) -> dict[str, str]:

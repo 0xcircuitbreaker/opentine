@@ -3457,6 +3457,20 @@ replays them through the same routes (`packs`, `refs`, `tombstones`,
 own and are not moved. `docs/LEAVING.md` is the walkthrough. No byte format
 changed.
 
+Since 0.52 a remote import is all or nothing. A server that advertises
+`caps.tenant_import` serves `POST /v1/tenants/{tenant}/import` (`update_ref`)
+with `{"refs": {name: oid}, "reviews": [review bundles], "project":
+[manifests]}`, sent after the objects (and the tombstones their packs need)
+were uploaded with `packs`. The server MUST check every ref as `PUT refs`
+does, every Review chain and gate decision, and the project chain before it
+changes anything; a name that already holds other content answers `409
+{"imported": false, "conflict"}` with nothing changed, and content that already
+matches is skipped. It then makes the Reviews, project versions and refs
+visible together (the refs in one index transaction) or not at all, recovering
+any interrupted import before the next. `200 {"imported": true, "refs",
+"reviews", "project_versions"}` counts what was added. The request and reply
+are JSON shapes of existing records; no byte format changed.
+
 <a id="s-8.16"></a>
 ## 8.16 The agent hook protocol, `opentine-hook/1` (0.46)
 

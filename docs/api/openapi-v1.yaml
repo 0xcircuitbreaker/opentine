@@ -103,6 +103,8 @@ components:
           type: "object"
         tenancy:
           type: "object"
+        tenant_import:
+          type: "object"
         tombstones:
           type: "boolean"
         version:
@@ -1398,6 +1400,42 @@ components:
           type: "string"
       required:
         - "name"
+      type: "object"
+    TenantImport:
+      additionalProperties: false
+      properties:
+        project:
+          items:
+            type: "object"
+          type: "array"
+        refs:
+          additionalProperties:
+            type: "string"
+          type: "object"
+        reviews:
+          items:
+            type: "object"
+          type: "array"
+      required: []
+      type: "object"
+    TenantImported:
+      additionalProperties: false
+      properties:
+        conflict:
+          type: "string"
+        imported:
+          type: "boolean"
+        project_versions:
+          minimum: 0
+          type: "integer"
+        refs:
+          minimum: 0
+          type: "integer"
+        reviews:
+          minimum: 0
+          type: "integer"
+      required:
+        - "imported"
       type: "object"
     TenantList:
       additionalProperties: false
@@ -3358,6 +3396,71 @@ paths:
         - "admin"
       x-opentine-cap: "tenancy"
       x-opentine-permission: "tenant_admin"
+      x-opentine-status: "stable"
+  "/v1/tenants/{tenant}/import":
+    post:
+      operationId: "importTenant"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/TenantImport"
+        required: true
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/TenantImported"
+          description: "OK"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "409":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/TenantImported"
+          description: "Conflict"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Create an export's refs, Reviews and project chain together, or nothing"
+      tags:
+        - "protocol"
+      x-opentine-cap: "tenant_import"
+      x-opentine-permission: "update_ref"
       x-opentine-status: "stable"
   "/v1/tenants/{tenant}/invitations":
     get:
