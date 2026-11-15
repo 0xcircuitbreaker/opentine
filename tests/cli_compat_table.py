@@ -5029,12 +5029,27 @@ ROWS: tuple[tuple, ...] = (
     (
         "plain:serve token mint --tenant acme --ref heads/ci/ --access write --json",
         "plain",
-        ["serve", "token", "mint", "--tenant", "acme", "--ref", "heads/ci/", "--access", "write",
-         "--json"],
+        [
+            "serve",
+            "token",
+            "mint",
+            "--tenant",
+            "acme",
+            "--ref",
+            "heads/ci/",
+            "--access",
+            "write",
+            "--json",
+        ],
         "opentine.cli:<lambda>",
         False,
-        {"command": "serve", "admin_action": "token", "token_action": "mint",
-         "refs": ["heads/ci/"], "access": "write"},
+        {
+            "command": "serve",
+            "admin_action": "token",
+            "token_action": "mint",
+            "refs": ["heads/ci/"],
+            "access": "write",
+        },
     ),  # fmt: skip
     (
         "plain:serve token list --root r",
