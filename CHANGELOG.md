@@ -1,5 +1,187 @@
 # Changelog
 
+## 0.52.0 — Web contract (2026-11-15)
+
+0.52 puts rule 4 into the API: everything the hosted web app needs is
+specified in `docs/api/openapi-v1.yaml` and served by `tine serve`. That
+covers sessions, passkey login, tenants, scoped tokens, the CI OIDC exchange
+and published fair-use limits. It also clears the security debt before the
+audit reads the code. Nothing here is signed data, and no object kind or wire
+format was added.
+
+### Behaviour changes
+
+- Every tenant route answers a caller who cannot read the tenant with the same
+  uniform `404` that a missing object gets. That covers another tenant's
+  token, a token whose roles grant nothing there, and a namespace-limited
+  scoped token outside its namespaces. Before, some routes answered `403`, which
+  showed that the tenant exists. `403` is kept for a caller who can read the
+  tenant but lacks a narrower permission.
+- With approval gates on, `tine land` refuses an approval that was not issued
+  into this queue, has expired, or reuses a spent nonce. A gated landing
+  with no signing key is refused (`no-key`).
+- `tine tenant import --remote` is all or nothing. Objects are uploaded first,
+  then one staged import makes refs, Reviews and project versions visible
+  together.
+- `tine alert list` no longer creates the webhook signing key.
+- A self-hosted `tine serve` has no quotas unless the operator sets
+  `--limits fair-use` or `--limits FILE`, so an upgrade never starts refusing
+  a running server.
+
+### Added
+
+- Admin API v1 (SPEC 8.27; OpenAPI tag `admin`; capabilities `session` and
+  `tenancy`):
+  - whoami and logout;
+  - passkey (WebAuthn) registration and login: ES256 and Ed25519, user
+    verification required, single-use challenges with a cap, an atomic
+    signature counter, and public keys only on the server;
+  - tenants: create, rename, archive and unarchive, members and roles,
+    invitations, settings, retention (stored only) and holds.
+
+  It carries no signed data and adds no kind or wire format.
+- `tine serve --passkey-rp-id/--passkey-origin` (https, or http on loopback
+  only), `--insecure-dev --dev-login` and `--open-signup`. Sessions reach data
+  routes through tenant membership. Archived tenants are read-only
+  everywhere, and their holds cannot be released. Signup cannot claim a
+  tenant that already holds data or that a configured token names.
+- Scoped API tokens (SPEC 8.28): per tenant, read or write, limited to ref
+  namespaces, expiring and revocable. Only a digest of each token is stored.
+  Use `tine serve token mint|list|revoke [--json]` (`tine-cli-serve-token-1`)
+  or `/v1/tenants/{t}/tokens`. A namespace-limited token reaches no other
+  tenant route, the admin routes included. Namespaces confine refs, not
+  object ids a writer already knows.
+- CI OIDC exchange (`serve --ci-trust FILE`, `POST /v1/auth/oidc-exchange`):
+  GitHub Actions, GitLab and Forgejo ID tokens are checked against keys the
+  operator configured. A matching rule must pin the repository exactly or as
+  `owner/*`. The ID token must carry a `jti`, which can be exchanged once. The
+  CI token lasts at most one hour and never past the ID token's expiry.
+- Quotas: `/v1/limits` publishes the fair-use limits (`fair_use`; every
+  feature and all verification stay free forever, decision D3) and the
+  server's effective defaults. `/v1/tenants/{t}/usage` shows a tenant's use.
+  Over a limit, the tenant's own caller gets `507` (storage) or `429` with
+  `Retry-After` (egress), and nothing is ever deleted.
+- `/v1/capabilities` adds the optional keys `session`, `tenancy`,
+  `scoped_tokens`, `limits`, `oidc_exchange` and `tenant_import`.
+  `/v1/auth-methods` lists how a client may authenticate. OpenAPI,
+  `@opentine/sdk` (a new `TineAdmin` client and admin types) and the
+  api_conformance suite cover every new operation.
+- One error shape on the admin surface, `{"error","code"}`. Published limits
+  and too many outstanding challenges answer `429`.
+- `scripts/check_api_contract.py` lists the `/api/*` routes of a hosted
+  deployment that the OpenAPI document does not cover.
+- `tine merge-queue approve --queue Q [--expires SECONDS]` (default 86400, at
+  most 30 days) issues a signed approval into a queue as a ticket. The ticket
+  holds a random nonce, the approval's digest and an expiry.
+  `tine-cli-merge-queue-1` gains an optional `queue.tickets` array and a
+  `ticket` field on `approve`.
+- New `tine gc --sweep-expired` (`tine-cli-gc-1`) removes orphan chunks from a
+  `tine serve` object store once their retention has ended, unless they
+  carry a legal hold.
+- `@opentine/verify` adds `verifyTimestampToken` and `keylessTokenTime`.
+  They check an RFC 3161 token's CMS signature, ESS signing-certificate
+  binding, EKU, validity and chain to the trusted timestamp authorities, and
+  match Python on a shared 31-case fixture. Tokens with embedded revocation
+  data fail closed. The `keyless.signing-time` op still takes decoded tokens
+  and does not run this check yet.
+- A uniform-404 oracle test covers every route in the route table and fails
+  when a new route has no coverage. A seeded token-scope fuzzer checks that
+  no scoped token reaches outside its tenant, access or namespaces.
+- The suite is now **1166 conformance vectors**; 509 of the 1166 refuse input, and the adapter contract still has one entry point: 75 ops.
+
+### Security
+
+- Passkey login requires user verification. Origins are parsed strictly
+  (https, or http only on loopback). The signature counter is checked and
+  written under one lock, and challenge flooding answers
+  `429 auth.challenge.limit`.
+- A CI trust rule can no longer pin the repository with a bare prefix such as
+  `acme*`, which also admitted `acme-evil/app`. An ID token without a `jti`
+  can no longer be exchanged repeatedly.
+- A namespace-limited scoped token gets no role on the admin surface, so it
+  cannot list a tenant's members, holds, settings or invitations.
+- OTLP alert sinks resolve the collector once and refuse private and
+  loopback addresses unless allowed. They connect to the checked address with
+  SNI and certificate checks for the host. This closes a DNS-rebinding gap,
+  using the same path as webhooks.
+- S3/Object Lock storage fences chunk deletes against concurrent uploads, so
+  a chunk reused by an upload in flight is not lost. Chunked records now list
+  their chunk digests. Empty records from 0.49–0.51 are still honoured
+  through the object's manifest.
+- An interrupted `tenant import --remote` is rolled forward or back from a
+  journal before the next one starts.
+- Spent merge tickets are kept past their expiry, so a spent approval cannot
+  be issued again and replayed. Nonces are spent in the same compare-and-swap
+  that lands the entry.
+- TS DER reader: GeneralizedTime years below 100 are kept as written and year
+  0 is refused, matching Python.
+
+### Compatibility
+
+- No object kind or wire format was added (the 0.48 cutoff holds;
+  `tests/freeze_inventory.py` allow-lists are empty). No vector family and no
+  object-kind schema were added. The new schemas are the CLI output schemas
+  `tine-cli-serve-token-1` and `tine-cli-gc-1`. Every admin, token, limit and
+  import route is an unsigned HTTP shape.
+- Merge-approval nonces and expiry are local queue state, not a signed field
+  (FREEZE.md: the approval schema is a closed claim schema). The signed form
+  is a 1.x item.
+- The narrow freeze ruling (D1) stays in force with no predicate granted. The
+  owner's sign-off on the pyz excluding the repository storage families is
+  recorded in FREEZE.md.
+- SPEC 0.52.0: 8.27 is the admin surface; 8.28 covers scoped tokens, the CI
+  exchange and limits; 8.15 covers the uniform 404 and the tenant import;
+  4.19 covers merge tickets. Part 12 adds `tine-cli-serve-token-1` and
+  `tine-cli-gc-1`.
+- `docs/api/client-versions.json`: the ts/ clients are built for 0.52.0, and
+  the minimum supported browser verifier stays 0.51.0.
+- `_config.READER_VERSION` stays 0.50.0; repositories and transfers are
+  unchanged for 0.34–0.51 clients. Bearer tokens and OIDC bearers keep
+  working everywhere.
+
+### Deferred
+
+- Passkey attestation and AAGUID are not evaluated. There is no endpoint to
+  list or delete passkeys or to revoke other sessions. Provider sign-in is
+  specified but not implemented.
+- The retention policy is stored but not enforced. Admin state is one JSON
+  file, so it works in a single process only.
+- Mirror and runner-minute limits are published but not enforced until 0.54.
+  Storage metering does not count data stored before the upgrade and counts
+  deduplicated objects again.
+- Namespace confinement covers refs, not object ids a writer already knows.
+- No TS verify path calls `keylessTokenTime` yet, and TS keyless does not
+  check revocation.
+- A concurrent reader can briefly see a partial tenant import, and a crash
+  rollback can undo a concurrent Review write. The chunk fence relies on
+  wall-clock time across hosts.
+- `tine gc --sweep-expired` reports any internal error as a missing
+  `TINE_KMS_KEY`.
+- Spent merge tickets are capped at 4096 and not yet pruned.
+- E1 is decided at 0.56 and E2/E3 at the end of 0.55 (D8).
+- **For humans:** the 24 h token fuzz run; the live MinIO race run; the
+  200-seed import fault run; a tineyard staging route dump checked with
+  `scripts/check_api_contract.py`; Firefox and WebKit runs of the browser
+  harness; engaging and funding the third-party audit firm; 30 consecutive
+  green nightly days; three consecutive green main runs of parity,
+  peer-compat, bench and audit-kit; counsel sign-off on the compliance
+  profiles; the 72 h fuzz run.
+
+### 1.0 criteria status
+
+1. All P0/P1 items closed and a third-party audit done: **not met** (the
+   0.52 security debt is closed in code; the audit engagement letter is a
+   human step).
+2. Formats frozen and Python, TS and pyz pass the same vectors: **not met
+   yet** (the `parity` CI job has not run green).
+3. The 0.34 peer compatibility job green for every release: **not met yet**
+   (no green streak recorded).
+4. The pyz air-gap-tested on Linux, macOS and Windows: **met**.
+5. Nightly stress green for 30 days: **not met** (the streak stands at 0).
+6. Compression bench within 5% of 0.40: **not met yet** (needs a green run
+   on the pinned runner).
+7. The deprecation policy published: **met** (`docs/DEPRECATION.md`).
+
 ## 0.51.0 — Trust anchor (2026-11-13)
 
 0.51 is the first release of the 0.51–0.60 plan (ROADMAP §12). It moves the
