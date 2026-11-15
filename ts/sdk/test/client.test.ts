@@ -134,3 +134,23 @@ test("runClosure POSTs its negotiation body", async () => {
   assert.equal(seen[0].init.method, "POST");
   assert.equal(seen[0].init.body, JSON.stringify({ lazy_blobs: true }));
 });
+
+test("0.52: limits and the CI exchange go anonymous; token calls are the tenant's", async () => {
+  const { fetch, seen } = fake(() => json(200, { tokens: [], methods: [] }));
+  const client = new TineClient({ baseUrl: "https://t", tenant: "acme", token: "admin", fetch });
+  await client.limits();
+  await client.exchangeCiToken("h.p.s", "acme");
+  await client.mintToken({ access: "read", refs: ["heads/ci/"] });
+  await client.revokeToken("0123456789abcdef");
+  const auth = (i: number) => (seen[i].init.headers as Record<string, string>).authorization;
+  assert.equal(seen[0].url, "https://t/v1/limits");
+  assert.equal(auth(0), undefined);
+  assert.equal(seen[1].url, "https://t/v1/auth/oidc-exchange");
+  assert.equal(auth(1), undefined);
+  assert.deepEqual(JSON.parse(String(seen[1].init.body)), { token: "h.p.s", tenant: "acme" });
+  assert.equal(seen[2].url, "https://t/v1/tenants/acme/tokens");
+  assert.equal(seen[2].init.method, "POST");
+  assert.equal(auth(2), "Bearer admin");
+  assert.equal(seen[3].url, "https://t/v1/tenants/acme/tokens/0123456789abcdef");
+  assert.equal(seen[3].init.method, "DELETE");
+});

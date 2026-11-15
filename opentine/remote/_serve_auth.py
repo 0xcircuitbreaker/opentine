@@ -33,6 +33,7 @@ def add_auth_arguments(parser: argparse.ArgumentParser) -> None:
     )
     parser.add_argument("--oidc-tenant-claim", default="tenant", help="Claim naming the tenant")
     parser.add_argument("--oidc-roles-claim", default="roles", help="Claim listing the roles")
+    add_limits_arguments(parser)
 
 
 def check_static_token(token: str | None, env: str, *, allow_weak: bool) -> str:
@@ -95,3 +96,26 @@ def serve_identities(args: argparse.Namespace, fetch: Any = None) -> IdentityPro
         os.environ.get(args.token_env), args.token_env, allow_weak=args.allow_weak_tokens
     )
     return StaticTokenIdentityProvider({token: Identity("development", args.tenant, (args.role,))})
+
+
+def add_limits_arguments(parser: argparse.ArgumentParser) -> None:
+    """0.52: CI OIDC exchange and quotas (``_ci_exchange``, ``_limits``)."""
+    parser.add_argument("--ci-trust", metavar="FILE", help="CI OIDC exchange trust config (JSON)")
+    parser.add_argument(
+        "--limits", metavar="FILE", help="Quota overrides (JSON); default: the fair-use limits"
+    )
+
+
+def limits_config(args: argparse.Namespace) -> dict[str, Any] | None:
+    import json
+
+    if not getattr(args, "limits", None):
+        return None
+    try:
+        with open(args.limits, encoding="utf-8") as handle:
+            config = json.load(handle)
+    except (OSError, ValueError) as exc:
+        raise SystemExit(f"--limits: {exc}") from exc
+    if not isinstance(config, dict):
+        raise SystemExit("--limits: the file holds a JSON object")
+    return config

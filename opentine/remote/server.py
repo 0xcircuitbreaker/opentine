@@ -12,10 +12,15 @@ from wsgiref.simple_server import make_server
 
 from opentine.remote._admin_cli import add_admin_parsers, cmd_serve_admin
 from opentine.remote._admin_surface import add_admin_surface_arguments, admin_options, attach_admin
+from opentine.remote._ci_exchange import CIExchange
 from opentine.remote._events_setup import attach_events
+from opentine.remote._gateway import GatewayApp
 from opentine.remote._http_server import ThreadingWSGIServer, TimeoutRequestHandler
+from opentine.remote._limits import Limits
 from opentine.remote._serve_admission import add_admission_arguments, serve_admission
-from opentine.remote._serve_auth import add_auth_arguments, serve_identities
+from opentine.remote._serve_auth import add_auth_arguments, limits_config, serve_identities
+from opentine.remote._token_scope import ScopedPolicy
+from opentine.remote._token_store import TokenIdentityProvider, TokenStore
 from opentine.remote._worm_config import object_store_from_env
 from opentine.remote.app import RemoteApp
 from opentine.remote.backend import FilesystemObjectStore, SQLiteBackend
@@ -49,8 +54,13 @@ def reference_app(
     uncompressed_tenants: tuple[str, ...] = (),
     webhooks_allow_private: bool = False,
     admin: dict[str, Any] | None = None,
+    limits: dict | None = None,
+    ci_trust: str | Path | None = None,
 ) -> RemoteApp:
+    """0.52: scoped tokens (``_token_store``), quotas and CI exchange (``_gateway``)."""
     state = Path(root).resolve()
+    tokens = TokenStore.at(state)
+    identities = TokenIdentityProvider(tokens, identities)
     key_provider = keys or LocalKeyProvider.from_env()
     objects = object_store_from_env(
         state, key_provider, uncompressed_tenants=frozenset(uncompressed_tenants)
@@ -73,15 +83,19 @@ def reference_app(
         objects,
         index,
         identities,
-        authorization or RoleAuthorizationPolicy(),
+        ScopedPolicy(authorization or RoleAuthorizationPolicy()),
         admission=admission,
         fast_forward_heads=fast_forward_heads,
     )
     attach_events(service, state, allow_private=webhooks_allow_private)
     attach_admin(service, state, **(admin or {}))  # 0.52: session, login, tenants
-    return RemoteApp(
+    exchange = CIExchange.load(ci_trust, tokens) if ci_trust else None
+    return GatewayApp(
         service,
         state,
+        tokens=tokens,
+        limits=Limits(state, limits),
+        exchange=exchange,
         max_request_bytes=max_request_bytes,
         max_upload_bytes=max_upload_bytes,
     )
@@ -199,6 +213,8 @@ def cmd_serve(args: argparse.Namespace, console: Any) -> None:
         uncompressed_tenants=tuple(args.uncompressed_tenant),
         webhooks_allow_private=args.webhooks_allow_private,
         admin=admin_options(args),
+        limits=limits_config(args),
+        ci_trust=args.ci_trust,
     )
     handler_limits = {"timeout": args.timeout, "header_timeout": args.header_timeout}
     handler = type("_Handler", (TimeoutRequestHandler,), handler_limits)

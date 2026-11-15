@@ -3854,6 +3854,47 @@ still travel only through the protocol routes, client-signed.
 `scripts/check_api_contract.py` takes a hosted deployment's route dump and
 lists every `/api/*` route with no documented operation. No byte format changed.
 
+<a id="s-8.28"></a>
+## 8.28 Scoped tokens, CI OIDC exchange and quotas (0.52, admin shapes, not kinds)
+
+Three optional capabilities of a remote. Each is an unsigned HTTP shape in
+[`docs/api/openapi-v1.yaml`](api/openapi-v1.yaml); none is an object kind, and
+no signed or closed schema changed. `GET /v1/capabilities` names them only as
+new optional keys (§5.2: present when served), each pointing at its routes.
+
+- `scoped_tokens`: `GET|POST tokens` and `DELETE tokens/<id>` (admin) list,
+  mint and revoke tokens bound to **one tenant**, an **access** of `read` or
+  `write`, and **ref namespaces**: an exact ref (`heads/main`), a prefix ending
+  in `/` (`heads/ci/`), or `*` for every ref. A token is
+  `tine_pat_<16 hex>_<43 base64url>` (`tine_ci_` when the CI exchange issued
+  it); the secret is returned once, the server keeps only its SHA-256 and
+  compares in constant time, and every token expires (at most 366 days, a CI
+  token at most an hour). A revocation applies to the next request. A scoped
+  token is never `admin`. A token limited to namespaces other than `*` gets
+  only `GET refs` (the refs inside them), `POST negotiate` and `POST fetch`
+  (every `want` the target of such a ref; anything else is the uniform `404`),
+  and, with `write`, `PUT refs/<name>` and `POST ref-txn` inside them and pack
+  uploads; every other tenant route refuses it. `tine serve token
+  mint|list|revoke` does the same offline on `--root` (Part 12,
+  `tine-cli-serve-token-1`).
+- `oidc_exchange`: `POST /v1/auth/oidc-exchange` `{"token": JWT, "tenant"?}`,
+  without a bearer, trades a GitHub Actions, GitLab or Forgejo ID token for a
+  CI token. The server verifies the JWT (RS256 or ES256, issuer, audience,
+  expiry) against the JWKS the operator configured for that issuer, never one
+  the token names, takes the first trust rule whose claims all match (exact,
+  or a prefix for a value ending in `*`), and refuses a rule that does not pin
+  the provider's repository claim. A `jti` is exchanged once. Failures are
+  `401` and count against the client like failed logins. Without a configured
+  issuer the route is the uniform `404`.
+- `limits`: `GET /v1/limits` and `GET /v1/auth-methods` are public, unsigned
+  documents: the fair-use defaults, their windows and refusal statuses, and
+  how a client may authenticate. `GET usage` gives a tenant's limits and use.
+  Storage (`storage_bytes`) and mirror size answer `507`, egress per UTC day
+  and runner minutes per UTC month `429` with `Retry-After`. A refusal is given
+  only to a caller authenticated for that tenant, and **no quota ever deletes,
+  expires or rewrites anything**. Every feature and all verification stay free;
+  the limits meter hosted use only (decision D3).
+
 <a id="part-9"></a>
 # Part 9 — Format v4 (0.26.0)
 

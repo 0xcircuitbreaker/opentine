@@ -88,6 +88,13 @@ export const OPERATIONS = {
   listHolds: { method: "GET", path: "/v1/tenants/{tenant}/holds", cap: "tenancy", status: "stable" },
   addHold: { method: "POST", path: "/v1/tenants/{tenant}/holds", cap: "tenancy", status: "stable" },
   releaseHold: { method: "DELETE", path: "/v1/tenants/{tenant}/holds/{oid}", cap: "tenancy", status: "stable" },
+  getLimits: { method: "GET", path: "/v1/limits", cap: "limits", status: "stable" },
+  getAuthMethods: { method: "GET", path: "/v1/auth-methods", cap: "limits", status: "stable" },
+  exchangeCiToken: { method: "POST", path: "/v1/auth/oidc-exchange", cap: "oidc_exchange", status: "stable" },
+  getUsage: { method: "GET", path: "/v1/tenants/{tenant}/usage", cap: "limits", status: "stable" },
+  listTokens: { method: "GET", path: "/v1/tenants/{tenant}/tokens", cap: "scoped_tokens", status: "stable" },
+  mintToken: { method: "POST", path: "/v1/tenants/{tenant}/tokens", cap: "scoped_tokens", status: "stable" },
+  revokeToken: { method: "DELETE", path: "/v1/tenants/{tenant}/tokens/{token_id}", cap: "scoped_tokens", status: "stable" },
 } as const satisfies Record<string, Operation>;
 
 export type OperationId = keyof typeof OPERATIONS;

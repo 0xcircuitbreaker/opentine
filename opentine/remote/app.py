@@ -228,7 +228,7 @@ class RemoteApp(UploadRoutes):
         if resource == "packs" and method == "POST":
             content_type = self._headers(environ).get("content-type", "")
             if content_type.startswith("application/vnd.opentine.pack"):
-                self.service._authorize(identity, "upload", tenant)
+                self.service._authorize_scoped(identity, "upload", tenant)
                 data = self._body(environ)  # off the guard: a slow body must not hold it
                 with self._guarded(self._install_guard):
                     pack_id, count = self.service.install_pack(identity, tenant, data)

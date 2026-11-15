@@ -13,7 +13,7 @@ import sys
 from dataclasses import asdict
 from typing import Any
 
-ACTIONS = ("refs", "delete-ref", "associations", "delete-objects", "purge", "reseal")
+ACTIONS = ("refs", "delete-ref", "associations", "delete-objects", "purge", "reseal", "token")
 
 
 def _scoped(parser: argparse.ArgumentParser) -> None:
@@ -68,6 +68,9 @@ def add_admin_parsers(serve: argparse.ArgumentParser) -> None:
         parser.add_argument("--dry-run", action="store_true", help="Report without changing")
     for parser in (refs, delete_ref, associations, delete_objects, purge, reseal):
         _scoped(parser)
+    from opentine.remote._token_cli import add_token_parser
+
+    add_token_parser(actions)  # 0.52: scoped API tokens
 
 
 #: Below this, ``purge`` needs ``--force``: a concurrent push may lose objects.
@@ -87,6 +90,10 @@ def cmd_serve_admin(args: argparse.Namespace, console: Any) -> None:
     from opentine.remote._admin import RemoteAdmin
 
     action = args.admin_action
+    if action == "token":  # 0.52: no KMS key needed (_token_cli)
+        from opentine.remote._token_cli import cmd_token
+
+        return cmd_token(args, console)
     # An install reuses old orphaned objects; with no grace a purge can remove
     # them between that install and its ref update (the fence cannot help).
     if action == "purge" and args.grace_seconds < MIN_SAFE_GRACE:

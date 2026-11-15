@@ -262,6 +262,12 @@ DRIVEN = (
         + ("--serial", "1", "--pin", "ab" * 32, "--out", "bundle.note", "--json"),
         "tine-cli-trust-bundle-1",
     ),  # 0.51
+    (
+        ("serve", "token", "mint", "--root", "remote", "--tenant", "acme", "--ref", "heads/ci/")
+        + ("--access", "write", "--ttl", "1h", "--json"),
+        "tine-cli-serve-token-1",
+    ),  # 0.52
+    (("serve", "token", "list", "--root", "remote", "--json"), "tine-cli-serve-token-1"),
 )
 
 

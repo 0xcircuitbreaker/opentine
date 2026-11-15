@@ -27,7 +27,67 @@ export interface Capabilities {
   project?: Record<string, unknown>;
   social_export?: Record<string, unknown>;
   reviews?: Record<string, unknown>;
+  /** 0.52: scoped API tokens (`GET|POST tokens`, `DELETE tokens/{id}`). */
+  scoped_tokens?: { path?: string; access?: string[]; prefixes?: string[]; max_ttl_seconds?: number };
+  /** 0.52: `GET /v1/limits`, `GET usage`, `GET /v1/auth-methods`. */
+  limits?: { path?: string; usage?: string; auth_methods?: string };
+  /** 0.52: only when the server trusts a CI issuer (`POST /v1/auth/oidc-exchange`). */
+  oidc_exchange?: { path?: string; providers?: AuthIssuer[] };
   [key: string]: unknown;
+}
+
+/** 0.52: a metered quota; `limit` null is unlimited. */
+export type QuotaMetric = "storage_bytes" | "egress_bytes" | "mirror_bytes" | "runner_minutes";
+
+export interface Limits {
+  policy: string;
+  never_deletes: true;
+  defaults: Record<QuotaMetric, number | null>;
+  windows: Record<QuotaMetric, string>;
+  status: Record<QuotaMetric, 429 | 507>;
+}
+
+export interface Usage {
+  tenant: string;
+  usage: Record<QuotaMetric, { limit: number | null; used: number; window: string }>;
+}
+
+export interface AuthIssuer {
+  name: string;
+  provider: "github" | "gitlab" | "forgejo";
+  issuer: string;
+}
+
+export interface AuthMethods {
+  methods: Array<{ type: string; [key: string]: unknown }>;
+}
+
+export interface TokenRecord {
+  id: string;
+  kind: "pat" | "ci";
+  tenant: string;
+  access: "read" | "write";
+  refs: string[];
+  state: "active" | "expired" | "revoked";
+  created_at: string;
+  expires_at: string;
+  revoked_at?: string;
+  label?: string;
+}
+
+export interface MintedToken extends TokenRecord {
+  /** The secret: shown once, never listed again. */
+  token: string;
+}
+
+export interface IssuedToken {
+  token: string;
+  token_id: string;
+  tenant: string;
+  access: "read" | "write";
+  refs: string[];
+  expires_at: string;
+  issued_at: string;
 }
 
 export interface RefList {

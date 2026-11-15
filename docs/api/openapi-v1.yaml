@@ -33,6 +33,20 @@ components:
         - "status"
         - "warnings"
       type: "object"
+    AuthMethods:
+      properties:
+        methods:
+          items:
+            properties:
+              type:
+                type: "string"
+            required:
+              - "type"
+            type: "object"
+          type: "array"
+      required:
+        - "methods"
+      type: "object"
     Capabilities:
       properties:
         admin:
@@ -43,6 +57,8 @@ components:
           type: "array"
         events_sse:
           type: "object"
+        limits:
+          type: "object"
         list:
           type: "object"
         log_http:
@@ -50,6 +66,8 @@ components:
         object_format:
           type: "string"
         object_read_http:
+          type: "object"
+        oidc_exchange:
           type: "object"
         pack_format:
           type: "string"
@@ -72,6 +90,8 @@ components:
             type: "string"
           type: "array"
         run_closure:
+          type: "object"
+        scoped_tokens:
           type: "object"
         search:
           type: "object"
@@ -348,6 +368,36 @@ components:
       required:
         - "revoked"
       type: "object"
+    IssuedToken:
+      properties:
+        access:
+          enum:
+            - "read"
+            - "write"
+        expires_at:
+          type: "string"
+        issued_at:
+          type: "string"
+        refs:
+          items:
+            type: "string"
+          type: "array"
+        tenant:
+          type: "string"
+        token:
+          pattern: "^tine_(pat|ci)_[0-9a-f]{16}_[A-Za-z0-9_-]{43}$"
+          type: "string"
+        token_id:
+          type: "string"
+      required:
+        - "access"
+        - "expires_at"
+        - "issued_at"
+        - "refs"
+        - "tenant"
+        - "token"
+        - "token_id"
+      type: "object"
     LeaseRefusal:
       additionalProperties: false
       properties:
@@ -363,6 +413,87 @@ components:
       required:
         - "code"
         - "error"
+      type: "object"
+    Limits:
+      properties:
+        defaults:
+          properties:
+            egress_bytes:
+              anyOf:
+                - minimum: 0
+                  type: "integer"
+                - type: "null"
+            mirror_bytes:
+              anyOf:
+                - minimum: 0
+                  type: "integer"
+                - type: "null"
+            runner_minutes:
+              anyOf:
+                - minimum: 0
+                  type: "integer"
+                - type: "null"
+            storage_bytes:
+              anyOf:
+                - minimum: 0
+                  type: "integer"
+                - type: "null"
+          required:
+            - "egress_bytes"
+            - "mirror_bytes"
+            - "runner_minutes"
+            - "storage_bytes"
+          type: "object"
+        never_deletes:
+          const: true
+        policy:
+          type: "string"
+        status:
+          properties:
+            egress_bytes:
+              enum:
+                - 429
+                - 507
+            mirror_bytes:
+              enum:
+                - 429
+                - 507
+            runner_minutes:
+              enum:
+                - 429
+                - 507
+            storage_bytes:
+              enum:
+                - 429
+                - 507
+          required:
+            - "egress_bytes"
+            - "mirror_bytes"
+            - "runner_minutes"
+            - "storage_bytes"
+          type: "object"
+        windows:
+          properties:
+            egress_bytes:
+              type: "string"
+            mirror_bytes:
+              type: "string"
+            runner_minutes:
+              type: "string"
+            storage_bytes:
+              type: "string"
+          required:
+            - "egress_bytes"
+            - "mirror_bytes"
+            - "runner_minutes"
+            - "storage_bytes"
+          type: "object"
+      required:
+        - "defaults"
+        - "never_deletes"
+        - "policy"
+        - "status"
+        - "windows"
       type: "object"
     ListPage:
       properties:
@@ -412,6 +543,56 @@ components:
       required:
         - "role"
       type: "object"
+    MintedToken:
+      allOf:
+        - properties:
+            access:
+              enum:
+                - "read"
+                - "write"
+            created_at:
+              type: "string"
+            expires_at:
+              type: "string"
+            id:
+              pattern: "^[0-9a-f]{16}$"
+              type: "string"
+            kind:
+              enum:
+                - "pat"
+                - "ci"
+            label:
+              type: "string"
+            refs:
+              items:
+                type: "string"
+              type: "array"
+            revoked_at:
+              type: "string"
+            state:
+              enum:
+                - "active"
+                - "expired"
+                - "revoked"
+            tenant:
+              type: "string"
+          required:
+            - "access"
+            - "created_at"
+            - "expires_at"
+            - "id"
+            - "kind"
+            - "refs"
+            - "state"
+            - "tenant"
+          type: "object"
+        - properties:
+            token:
+              pattern: "^tine_(pat|ci)_[0-9a-f]{16}_[A-Za-z0-9_-]{43}$"
+              type: "string"
+          required:
+            - "token"
+          type: "object"
     Missing:
       additionalProperties: false
       properties:
@@ -452,6 +633,16 @@ components:
           type: "integer"
       required:
         - "offset"
+      type: "object"
+    OidcExchange:
+      additionalProperties: false
+      properties:
+        tenant:
+          type: "string"
+        token:
+          type: "string"
+      required:
+        - "token"
       type: "object"
     PasskeyAssertion:
       additionalProperties: false
@@ -1246,6 +1437,117 @@ components:
         - "limits"
         - "settings"
       type: "object"
+    TokenList:
+      properties:
+        tokens:
+          items:
+            properties:
+              access:
+                enum:
+                  - "read"
+                  - "write"
+              created_at:
+                type: "string"
+              expires_at:
+                type: "string"
+              id:
+                pattern: "^[0-9a-f]{16}$"
+                type: "string"
+              kind:
+                enum:
+                  - "pat"
+                  - "ci"
+              label:
+                type: "string"
+              refs:
+                items:
+                  type: "string"
+                type: "array"
+              revoked_at:
+                type: "string"
+              state:
+                enum:
+                  - "active"
+                  - "expired"
+                  - "revoked"
+              tenant:
+                type: "string"
+            required:
+              - "access"
+              - "created_at"
+              - "expires_at"
+              - "id"
+              - "kind"
+              - "refs"
+              - "state"
+              - "tenant"
+            type: "object"
+          type: "array"
+      required:
+        - "tokens"
+      type: "object"
+    TokenRecord:
+      properties:
+        access:
+          enum:
+            - "read"
+            - "write"
+        created_at:
+          type: "string"
+        expires_at:
+          type: "string"
+        id:
+          pattern: "^[0-9a-f]{16}$"
+          type: "string"
+        kind:
+          enum:
+            - "pat"
+            - "ci"
+        label:
+          type: "string"
+        refs:
+          items:
+            type: "string"
+          type: "array"
+        revoked_at:
+          type: "string"
+        state:
+          enum:
+            - "active"
+            - "expired"
+            - "revoked"
+        tenant:
+          type: "string"
+      required:
+        - "access"
+        - "created_at"
+        - "expires_at"
+        - "id"
+        - "kind"
+        - "refs"
+        - "state"
+        - "tenant"
+      type: "object"
+    TokenRequest:
+      additionalProperties: false
+      properties:
+        access:
+          enum:
+            - "read"
+            - "write"
+        label:
+          type: "string"
+        refs:
+          items:
+            type: "string"
+          type: "array"
+        ttl_seconds:
+          minimum: 1
+          type: "integer"
+      required:
+        - "access"
+        - "refs"
+      type: "object"
     Tombstone:
       properties:
         kind:
@@ -1299,6 +1601,90 @@ components:
       required:
         - "sha256"
         - "size"
+      type: "object"
+    Usage:
+      properties:
+        tenant:
+          type: "string"
+        usage:
+          properties:
+            egress_bytes:
+              properties:
+                limit:
+                  anyOf:
+                    - minimum: 0
+                      type: "integer"
+                    - type: "null"
+                used:
+                  minimum: 0
+                  type: "integer"
+                window:
+                  type: "string"
+              required:
+                - "limit"
+                - "used"
+                - "window"
+              type: "object"
+            mirror_bytes:
+              properties:
+                limit:
+                  anyOf:
+                    - minimum: 0
+                      type: "integer"
+                    - type: "null"
+                used:
+                  minimum: 0
+                  type: "integer"
+                window:
+                  type: "string"
+              required:
+                - "limit"
+                - "used"
+                - "window"
+              type: "object"
+            runner_minutes:
+              properties:
+                limit:
+                  anyOf:
+                    - minimum: 0
+                      type: "integer"
+                    - type: "null"
+                used:
+                  minimum: 0
+                  type: "integer"
+                window:
+                  type: "string"
+              required:
+                - "limit"
+                - "used"
+                - "window"
+              type: "object"
+            storage_bytes:
+              properties:
+                limit:
+                  anyOf:
+                    - minimum: 0
+                      type: "integer"
+                    - type: "null"
+                used:
+                  minimum: 0
+                  type: "integer"
+                window:
+                  type: "string"
+              required:
+                - "limit"
+                - "used"
+                - "window"
+              type: "object"
+          required:
+            - "egress_bytes"
+            - "mirror_bytes"
+            - "runner_minutes"
+            - "storage_bytes"
+          type: "object"
+      required:
+        - "tenant"
+        - "usage"
       type: "object"
     Webhook:
       properties:
@@ -1359,6 +1745,23 @@ info:
 jsonSchemaDialect: "https://json-schema.org/draft/2020-12/schema"
 openapi: "3.1.0"
 paths:
+  "/v1/auth-methods":
+    get:
+      operationId: "getAuthMethods"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/AuthMethods"
+          description: "OK"
+      security: []
+      summary: "How a client may authenticate"
+      tags:
+        - "protocol"
+      x-opentine-cap: "limits"
+      x-opentine-permission: null
+      x-opentine-status: "stable"
   "/v1/auth/dev/login":
     post:
       operationId: "devLogin"
@@ -1398,6 +1801,47 @@ paths:
       tags:
         - "admin"
       x-opentine-cap: "session"
+      x-opentine-permission: null
+      x-opentine-status: "stable"
+  "/v1/auth/oidc-exchange":
+    post:
+      operationId: "exchangeCiToken"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/OidcExchange"
+        required: true
+      responses:
+        "201":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/IssuedToken"
+          description: "Created"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      security: []
+      summary: "A CI job's OIDC ID token for a short-lived scoped token"
+      tags:
+        - "protocol"
+      x-opentine-cap: "oidc_exchange"
       x-opentine-permission: null
       x-opentine-status: "stable"
   "/v1/auth/passkey/assertion":
@@ -1632,6 +2076,23 @@ paths:
         - "admin"
       x-opentine-cap: "tenancy"
       x-opentine-permission: "session"
+      x-opentine-status: "stable"
+  "/v1/limits":
+    get:
+      operationId: "getLimits"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Limits"
+          description: "OK"
+      security: []
+      summary: "Published fair-use limits and quota policy"
+      tags:
+        - "protocol"
+      x-opentine-cap: "limits"
+      x-opentine-permission: null
       x-opentine-status: "stable"
   "/v1/session":
     delete:
@@ -3625,6 +4086,12 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
           description: "Busy; retry later"
+        "507":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Storage quota exceeded; nothing was deleted"
       summary: "Install a pack, or declare a resumable upload"
       tags:
         - "protocol"
@@ -3751,6 +4218,12 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
+        "507":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Storage quota exceeded; nothing was deleted"
       summary: "Append to a resumable upload"
       tags:
         - "protocol"
@@ -4921,6 +5394,164 @@ paths:
       x-opentine-cap: "social_export"
       x-opentine-permission: "read_ref"
       x-opentine-status: "stable"
+  "/v1/tenants/{tenant}/tokens":
+    get:
+      operationId: "listTokens"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/TokenList"
+          description: "OK"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "The tenant's scoped tokens (never a secret)"
+      tags:
+        - "protocol"
+      x-opentine-cap: "scoped_tokens"
+      x-opentine-permission: "tokens"
+      x-opentine-status: "stable"
+    post:
+      operationId: "mintToken"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/TokenRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/MintedToken"
+          description: "Created"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Mint a scoped, expiring token (shown once)"
+      tags:
+        - "protocol"
+      x-opentine-cap: "scoped_tokens"
+      x-opentine-permission: "tokens"
+      x-opentine-status: "stable"
+  "/v1/tenants/{tenant}/tokens/{token_id}":
+    delete:
+      operationId: "revokeToken"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+        - description: "Scoped token id (16 hex digits)."
+          in: "path"
+          name: "token_id"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/TokenRecord"
+          description: "OK"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Revoke a scoped token"
+      tags:
+        - "protocol"
+      x-opentine-cap: "scoped_tokens"
+      x-opentine-permission: "tokens"
+      x-opentine-status: "stable"
   "/v1/tenants/{tenant}/tombstones/{oid}":
     get:
       operationId: "getTombstone"
@@ -5261,6 +5892,53 @@ paths:
         - "admin"
       x-opentine-cap: "tenancy"
       x-opentine-permission: "tenant_admin"
+      x-opentine-status: "stable"
+  "/v1/tenants/{tenant}/usage":
+    get:
+      operationId: "getUsage"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Usage"
+          description: "OK"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "The tenant's limits and metered use"
+      tags:
+        - "protocol"
+      x-opentine-cap: "limits"
+      x-opentine-permission: "read_ref"
       x-opentine-status: "stable"
   "/v1/tenants/{tenant}/webhooks":
     get:

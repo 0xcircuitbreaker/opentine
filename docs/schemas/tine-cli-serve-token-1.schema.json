@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-serve-token-1.schema.json",
+  "title": "tine serve token --json",
+  "description": "Scoped API tokens of a `tine serve` root: per tenant, read or write, limited to ref namespaces (`*` for all), expiring and revocable. `mint` adds `token`, the secret, shown only once; the root stores only its SHA-256 digest.",
+  "type": "object",
+  "required": [
+    "command",
+    "schema",
+    "ok",
+    "tokens"
+  ],
+  "properties": {
+    "command": {
+      "enum": [
+        "serve token mint",
+        "serve token list",
+        "serve token revoke"
+      ]
+    },
+    "schema": {
+      "const": "tine-cli-serve-token/1"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "tokens": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "kind",
+          "tenant",
+          "access",
+          "refs",
+          "state",
+          "created_at",
+          "expires_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{16}$"
+          },
+          "kind": {
+            "enum": [
+              "pat",
+              "ci"
+            ]
+          },
+          "tenant": {
+            "type": "string"
+          },
+          "access": {
+            "enum": [
+              "read",
+              "write"
+            ]
+          },
+          "refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "state": {
+            "enum": [
+              "active",
+              "expired",
+              "revoked"
+            ]
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "string"
+          },
+          "revoked_at": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "token": {
+      "type": "string",
+      "pattern": "^tine_(pat|ci)_[0-9a-f]{16}_"
+    }
+  }
+}

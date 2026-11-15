@@ -201,6 +201,28 @@ pin. The policy is operator configuration: nothing in a pushed repository
 selects one, and the server signs VSAs only with its own key, never as a user. CI
 integrations that gate on these VSAs are in [CI.md](CI.md).
 
+New in 0.52 (SPEC 8.28): scoped, expiring, revocable API tokens.
+`tine serve token mint --root R --tenant T --access read|write --ref NAMESPACE
+[--ref ...] [--ttl 90d] [--label TEXT]` prints a `tine_pat_` token once (only
+its SHA-256 is stored, in `R/auth.sqlite3`); a NAMESPACE is a ref
+(`heads/main`), a prefix ending in `/` (`heads/ci/`) or `*` (the default).
+`tine serve token list` shows the tenant's tokens without secrets and
+`tine serve token revoke ID` revokes one; a running server sees both at its
+next request. `--json` writes `tine-cli-serve-token-1`. A token limited to
+namespaces lists, fetches and (with `write`) moves only refs inside them and
+gets no other tenant route. `serve --ci-trust FILE` turns on the CI OIDC
+exchange (`POST /v1/auth/oidc-exchange`) for GitHub Actions, GitLab and
+Forgejo ID tokens: the JWT is checked against the JWKS FILE configures for its
+issuer (`jwks`, `jwks_file` or an `https` `jwks_uri`), and the first rule whose
+claims match, which must pin the repository, mints a `tine_ci_` token of at most
+an hour. Quotas are on by default at the published fair-use limits
+(`GET /v1/limits`: 10 GiB stored, 20 GiB egress per UTC day, 2 GiB mirror,
+2000 runner minutes per month, per tenant); `serve --limits FILE` overrides
+them (`{"defaults": {...}, "tenants": {"T": {...}}}`, `null` for unlimited).
+Over a limit a tenant's own caller gets `507` (storage) or `429` with
+`Retry-After` (egress); nothing is ever deleted. `GET /v1/tenants/T/usage`
+shows the tenant's use.
+
 ## Default output format
 
 ```

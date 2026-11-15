@@ -93,6 +93,17 @@ case.
 | Evidence folder (`MANIFEST.sha256`, `custody.jsonl`) and the audit kit | 8.4, 8.4.1 |
 | Published JSON Schemas and the `--json` envelope | 12 |
 
+## 0.52: scoped tokens, CI OIDC exchange and quotas
+
+No object kind, wire format, vector family or `docs/schemas` object schema was
+added, and no closed or signed schema changed. Scoped API tokens, the CI OIDC
+exchange and quotas (SPEC 8.27) are unsigned HTTP admin shapes in
+`docs/api/openapi-v1.yaml` (`Limits`, `AuthMethods`, `Usage`, `TokenRecord`,
+`TokenList`, `TokenRequest`, `MintedToken`, `OidcExchange`, `IssuedToken`);
+`GET /v1/capabilities` gains only the optional keys `scoped_tokens`, `limits`
+and `oidc_exchange`, emitted when served (SPEC 5.2). Only the CLI output schema
+`tine-cli-serve-token-1` (`tine serve token --json`) was added.
+
 ## 0.51: codec-3 vectors and trust bundles
 
 The owner's sign-off on the pyz storage-family exclusion (2026-11-13) is

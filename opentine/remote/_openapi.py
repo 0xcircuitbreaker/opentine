@@ -17,8 +17,9 @@ from opentine.remote._api_routes import API_VERSION, ROUTES, Route
 from opentine.remote._openapi_schemas import SCHEMAS as _SCHEMAS_BASE
 from opentine.remote._openapi_schemas_047 import SCHEMAS_047
 from opentine.remote._openapi_schemas_052 import SCHEMAS_052
+from opentine.remote._openapi_schemas_052_tokens import SCHEMAS_052_TOKENS
 
-SCHEMAS = {**_SCHEMAS_BASE, **SCHEMAS_047, **SCHEMAS_052}
+SCHEMAS = {**_SCHEMAS_BASE, **SCHEMAS_047, **SCHEMAS_052, **SCHEMAS_052_TOKENS}
 
 _PARAM = re.compile(r"\{([a-z_]+)\}")
 _PLAIN_KEY = re.compile(r"^[A-Za-z_$][A-Za-z0-9_.$-]*$")
@@ -28,6 +29,7 @@ _REASONS = {
     "403": "Forbidden", "404": "Not found (uniform: also when not visible to the caller)",
     "409": "Conflict", "429": "Quota or throttle exceeded; honour Retry-After",
     "503": "Busy; retry later",
+    "507": "Storage quota exceeded; nothing was deleted",
 }  # fmt: skip
 _PARAM_DOCS = {
     "tenant": "Tenant name.",
@@ -41,6 +43,7 @@ _PARAM_DOCS = {
     "task": "Task id ([a-z0-9][a-z0-9._-]{0,63}).",
     "subject": "A member's subject, percent-encoded.",
     "invitation_id": "Invitation id (inv_...).",
+    "token_id": "Scoped token id (16 hex digits).",
 }
 _PAGE = [("cursor", "Opaque cursor from next_cursor."), ("limit", "Page size, 1-500.")]
 _QUERY = {
