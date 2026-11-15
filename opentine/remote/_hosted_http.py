@@ -52,6 +52,8 @@ def capabilities(service: Any) -> dict[str, Any]:
     from opentine.remote._project_http import capabilities as project_caps
     from opentine.remote._review_http import capabilities as review_caps
 
+    if getattr(service, "admin", None) is not None:  # 0.52: session, tenancy
+        caps.update(service.admin.capabilities())
     # 0.46.1: project, social_export; 0.47: reviews, coord
     return {**caps, **project_caps(service), **review_caps(service), **coord_caps(service)}
 

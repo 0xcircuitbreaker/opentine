@@ -3429,7 +3429,8 @@ the document, the table and the dispatcher disagree. Every operation carries
 `null` for the core protocol) and `x-opentine-status`: `stable` routes are
 served by this release, including every hosted-beta route of 8.14 and the
 `tombstones` routes of 4.14 and the `project` and `social_export` routes of
-8.18; a `planned` route (none remain) is a reserved shape, and a client calls
+8.18 and the admin surface of 8.27 (operations tagged `admin`); a `planned`
+route (none remain) is a reserved shape, and a client calls
 any capability-tagged route only when its cap is advertised.
 
 Rules every implementation keeps: tenant routes are private by default (no
@@ -3779,6 +3780,74 @@ kind or wire format:
 `tine trust bundle create|verify` write and check bundles (Part 12,
 `tine-cli-trust-bundle-1`); the TS verifier's `openTrustBundle` reads them in a
 browser.
+
+<a id="s-8.27"></a>
+## 8.27 The admin surface: session, login and tenants (0.52.0, HTTP only, not a kind)
+
+The operations tagged `admin` in [`docs/api/openapi-v1.yaml`](api/openapi-v1.yaml)
+are the session, login and tenant-management API the hosted web app needs
+(Tineyard maps its `/api/*` onto `/v1/*`) and that `tine serve` implements in
+full (self-host parity). They are advertised by two capabilities, `session`
+and `tenancy`. **No admin route carries signed data, and nothing here adds an
+object kind or wire format** (§5.5): runs, refs, Reviews and project manifests
+still travel only through the protocol routes, client-signed.
+
+- **Sessions.** `GET /v1/session` answers who is calling (`subject`,
+  `method` = `session:<authenticator>` or `bearer`, and the tenants the caller
+  can see with its role); `DELETE /v1/session` ends a session. A session
+  token (`tine_sess_...`) is a bearer secret, shown once, stored by the server
+  only as its SHA-256, and valid for at most `caps.tenancy.limits.session_seconds`.
+  A session reaches the protocol routes too, with the role its tenant
+  membership grants. Static tokens and OIDC bearers keep working everywhere.
+- **Login is a server concern.** An authenticator turns a ceremony into a
+  subject. *Passkeys* (WebAuthn Level 2) are the hosted login: the server
+  issues single-use challenges (5 minutes), and verifies, for ES256 and
+  Ed25519 credentials, the client data's type, challenge and origin (no
+  cross-origin), the RP id hash, the user-present flag, the signature over
+  `authenticatorData || SHA-256(clientDataJSON)` and a non-decreasing
+  signature counter. Attestation is requested as `none` and not evaluated: a
+  passkey proves possession of a key, not which hardware holds it. The server
+  stores credential *public* keys only; it never sees, holds or uses a user
+  signing key, and a passkey never signs OpenTine objects. A first passkey is
+  registered either by a signed-in caller or with an invitation token (the
+  server then mints a fresh `user:<hex>` subject, accepts the invitation and
+  opens a session). `tine serve` enables passkeys with `--passkey-rp-id` and
+  `--passkey-origin`; `--dev-login` (only with `--insecure-dev`) names a
+  subject with no proof, for local development. *Provider sign-in* (GitHub,
+  Google, an OIDC issuer) is identity linking only: it may attach a verified
+  provider identity to a subject and never mints a key or vouches for a
+  signature. `tine serve` implements none.
+- **Tenants.** `GET`/`POST /v1/tenants` list the caller's tenants and create
+  one (the creator is its admin). On `tine serve` creation is open to sessions
+  only with `--open-signup`; an admin bearer token may always register its own
+  tenant; a name whose tenant already holds data is never claimable by
+  anyone else (`409 tenant.exists`). The tenant id is immutable (`PATCH`
+  changes the display name only: every URL and signed project manifest names
+  the id). `archive` makes the tenant read-only for every caller and every
+  route, deleting nothing; `unarchive` reverses it.
+- **Membership.** Roles are `reader`, `writer`, `admin` (the protocol
+  routes' roles). Members are listed to any role and changed by admins; the
+  last admin cannot be removed (`409 member.last_admin`). Invitations are
+  single-use tokens (`tine_invite_...`, at most 7 days, shown once, stored as
+  a digest); accepting one never lowers an existing role.
+- **Settings, retention, holds.** Settings are display metadata
+  (`description`, `homepage`, `default_ref`) plus the published fair-use
+  `limits`. A retention policy uses the fields of `retention.toml` (0.39:
+  `keep_days`, `refs`, `status`, `tier`); the server stores it and
+  never deletes on its own (`server_deletes: false`). Holds are the
+  `tine-holds/1` rows every object delete already refuses (`<root>/.holds/<tenant>`,
+  mirrored as cloud legal holds on a WORM store); only stored objects can be held.
+- **Errors.** One shape everywhere: `{"error": text, "code": "area.reason"}`,
+  the uniform `404` staying `{"error": "not found"}`. `400` a malformed
+  request or a ceremony that does not verify (`auth.passkey_invalid`); `401`
+  no valid session or token (`auth.required`); `403` a member without the role
+  (`tenant.forbidden`); `404` anything the caller may not see, including every
+  tenant route of a tenant it has no role in; `409` a state conflict; `429`
+  a published limit or repeated failed authentication, with nothing deleted to
+  make room.
+
+`scripts/check_api_contract.py` takes a hosted deployment's route dump and
+lists every `/api/*` route with no documented operation. No byte format changed.
 
 <a id="part-9"></a>
 # Part 9 — Format v4 (0.26.0)

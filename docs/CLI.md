@@ -163,6 +163,17 @@ rotated. After 5 consecutive failed authentications a client gets 429 with
 `Retry-After` for a delay that doubles per failure (up to 5 minutes), and a 500
 answers only `{"error":"internal","request_id":...}`, logging the exception.
 
+New in 0.52: `tine serve` implements the admin surface (SPEC 8.27; operations
+tagged `admin` in `docs/api/openapi-v1.yaml`): `GET`/`DELETE /v1/session`,
+tenants, members, invitations, settings, retention and holds. `serve
+--passkey-rp-id ID --passkey-origin https://ORIGIN` turns on passkey (WebAuthn)
+login, where the server keeps public keys only; `serve --insecure-dev
+--dev-login` lets a local developer sign in as any subject with no proof;
+`serve --open-signup` lets any signed-in subject create tenants (otherwise an
+admin bearer token registers its own tenant and invites people). No new verb;
+`scripts/check_api_contract.py ROUTES` lists a hosted deployment's `/api/*`
+routes the spec does not document.
+
 New in 0.44: `serve --quota-rate PER_SECOND [--quota-burst N]` gives every
 (tenant, subject) a token bucket; an upload or ref update over quota gets 429
 with `Retry-After`. At most `--quota-max-keys` buckets (10,000) are held, the

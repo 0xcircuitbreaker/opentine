@@ -11,6 +11,7 @@ from typing import Any
 from wsgiref.simple_server import make_server
 
 from opentine.remote._admin_cli import add_admin_parsers, cmd_serve_admin
+from opentine.remote._admin_surface import add_admin_surface_arguments, admin_options, attach_admin
 from opentine.remote._events_setup import attach_events
 from opentine.remote._http_server import ThreadingWSGIServer, TimeoutRequestHandler
 from opentine.remote._serve_admission import add_admission_arguments, serve_admission
@@ -47,6 +48,7 @@ def reference_app(
     fast_forward_heads: bool = False,
     uncompressed_tenants: tuple[str, ...] = (),
     webhooks_allow_private: bool = False,
+    admin: dict[str, Any] | None = None,
 ) -> RemoteApp:
     state = Path(root).resolve()
     key_provider = keys or LocalKeyProvider.from_env()
@@ -76,6 +78,7 @@ def reference_app(
         fast_forward_heads=fast_forward_heads,
     )
     attach_events(service, state, allow_private=webhooks_allow_private)
+    attach_admin(service, state, **(admin or {}))  # 0.52: session, login, tenants
     return RemoteApp(
         service,
         state,
@@ -158,6 +161,7 @@ def add_serve_parser(subparsers: argparse._SubParsersAction) -> None:
 
     add_otlp_grpc_args(parser)
     add_auth_arguments(parser)
+    add_admin_surface_arguments(parser)
     add_admission_arguments(parser)
     add_admin_parsers(parser)
 
@@ -194,6 +198,7 @@ def cmd_serve(args: argparse.Namespace, console: Any) -> None:
         fast_forward_heads=args.fast_forward_heads,
         uncompressed_tenants=tuple(args.uncompressed_tenant),
         webhooks_allow_private=args.webhooks_allow_private,
+        admin=admin_options(args),
     )
     handler_limits = {"timeout": args.timeout, "header_timeout": args.header_timeout}
     handler = type("_Handler", (TimeoutRequestHandler,), handler_limits)

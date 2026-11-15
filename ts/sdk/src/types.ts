@@ -225,3 +225,102 @@ export interface Task {
   lease_expires_ms: number | null;
   updated_ms: number;
 }
+
+// 0.52 admin surface (tag admin, SPEC 8.27). None of these carries signed data.
+
+export type Role = "reader" | "writer" | "admin";
+
+export interface Tenant {
+  name: string;
+  display_name: string;
+  archived: boolean;
+  /** null for a tenant only a bearer token names (not registered on the admin surface). */
+  created_at: number | null;
+  role: Role | null;
+}
+
+export interface Session {
+  subject: string;
+  /** `session:passkey`, `session:dev` or `bearer`. */
+  method: string;
+  expires_at: number | null;
+  tenants: Tenant[];
+}
+
+/** A new session; `token` is a bearer secret (`tine_sess_...`) shown once. */
+export interface SessionOpened {
+  token: string;
+  subject: string;
+  method: string;
+  expires_at: number;
+}
+
+export interface Member {
+  subject: string;
+  role: Role;
+}
+
+export interface Invitation {
+  id: string;
+  tenant: string;
+  role: Role;
+  invited_by: string;
+  expires_at: number;
+}
+
+/** The answer to createInvitation: the single-use `token` is shown only here. */
+export interface InvitationCreated extends Invitation {
+  token: string;
+}
+
+export interface TenantSettings {
+  settings: { description?: string; homepage?: string; default_ref?: string };
+  /** Published fair-use limits; exceeding one is a 429, and nothing is deleted. */
+  limits: Record<string, number>;
+}
+
+export interface RetentionPolicy {
+  keep_days: number;
+  refs?: Record<string, number>;
+  status?: Record<string, number>;
+  tier?: Record<string, number>;
+}
+
+export interface Retention {
+  policy: RetentionPolicy | null;
+  /** Always false: the server stores the policy and never deletes on its own. */
+  server_deletes: false;
+}
+
+export interface Hold {
+  oid: Oid;
+  target: string;
+}
+
+/** WebAuthn JSON (binary fields base64url) as `navigator.credentials` takes and returns it. */
+export type PasskeyOptions = Record<string, unknown> & { challenge: string };
+
+export interface PasskeyRegistration {
+  challenge: string;
+  clientDataJSON: string;
+  attestationObject: string;
+  transports?: string[];
+  invitation?: string;
+}
+
+export interface PasskeyAssertion {
+  challenge: string;
+  credential_id: string;
+  clientDataJSON: string;
+  authenticatorData: string;
+  signature: string;
+  userHandle?: string | null;
+}
+
+export interface PasskeyRegistered {
+  credential_id: string;
+  subject: string;
+  alg: -7 | -8;
+  tenant?: Tenant;
+  session?: SessionOpened;
+}

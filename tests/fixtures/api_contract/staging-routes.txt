@@ -1,0 +1,18 @@
+# A made-up route dump in the shape a hosted staging deployment prints (0.52).
+GET /api/session
+DELETE /api/session
+POST /api/auth/passkey/assertion/options
+POST /api/auth/passkey/assertion
+GET /api/tenants
+POST /api/tenants
+GET /api/tenants/:tenant
+PATCH /api/tenants/[tenant]
+GET /api/tenants/{tenant}/members
+PUT /api/tenants/:tenant/members/:subject
+GET /api/tenants/:tenant/refs
+HEAD /api/tenants/:tenant/list/runs
+GET /api/tenants/:tenant/billing
+POST /api/tenants/:tenant/members/:subject
+GET /api/tenants/:tenant/settings?view=full
+GET /healthz
+GET /assets/app.js

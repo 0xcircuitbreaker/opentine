@@ -75,9 +75,13 @@ components:
           type: "object"
         search:
           type: "object"
+        session:
+          type: "object"
         share:
           type: "object"
         social_export:
+          type: "object"
+        tenancy:
           type: "object"
         tombstones:
           type: "boolean"
@@ -158,9 +162,19 @@ components:
         - "size"
         - "vkey"
       type: "object"
+    DevLogin:
+      additionalProperties: false
+      properties:
+        subject:
+          type: "string"
+      required:
+        - "subject"
+      type: "object"
     Error:
       additionalProperties: false
       properties:
+        code:
+          type: "string"
         error:
           type: "string"
       required:
@@ -200,6 +214,33 @@ components:
       required:
         - "wants"
       type: "object"
+    HoldList:
+      additionalProperties: false
+      properties:
+        holds:
+          items:
+            additionalProperties: false
+            properties:
+              oid:
+                type: "string"
+              target:
+                type: "string"
+            required:
+              - "oid"
+              - "target"
+            type: "object"
+          type: "array"
+      required:
+        - "holds"
+      type: "object"
+    HoldRequest:
+      additionalProperties: false
+      properties:
+        oid:
+          type: "string"
+      required:
+        - "oid"
+      type: "object"
     Installed:
       additionalProperties: false
       properties:
@@ -215,6 +256,97 @@ components:
           pattern: "^[0-9a-f]{32}$"
           type: "string"
       required: []
+      type: "object"
+    Invitation:
+      additionalProperties: false
+      properties:
+        expires_at:
+          minimum: 0
+          type: "integer"
+        id:
+          type: "string"
+        invited_by:
+          type: "string"
+        role:
+          enum:
+            - "reader"
+            - "writer"
+            - "admin"
+        tenant:
+          type: "string"
+      required:
+        - "expires_at"
+        - "id"
+        - "invited_by"
+        - "role"
+        - "tenant"
+      type: "object"
+    InvitationAccept:
+      additionalProperties: false
+      properties:
+        token:
+          type: "string"
+      required:
+        - "token"
+      type: "object"
+    InvitationCreate:
+      additionalProperties: false
+      properties:
+        role:
+          enum:
+            - "reader"
+            - "writer"
+            - "admin"
+        ttl_seconds:
+          minimum: 0
+          type: "integer"
+      required: []
+      type: "object"
+    InvitationCreated:
+      additionalProperties: false
+      properties:
+        expires_at:
+          minimum: 0
+          type: "integer"
+        id:
+          type: "string"
+        invited_by:
+          type: "string"
+        role:
+          enum:
+            - "reader"
+            - "writer"
+            - "admin"
+        tenant:
+          type: "string"
+        token:
+          pattern: "^tine_invite_"
+          type: "string"
+      required:
+        - "expires_at"
+        - "id"
+        - "invited_by"
+        - "role"
+        - "tenant"
+        - "token"
+      type: "object"
+    InvitationList:
+      additionalProperties: false
+      properties:
+        invitations:
+          items:
+            $ref: "#/components/schemas/Invitation"
+          type: "array"
+      required:
+        - "invitations"
+      type: "object"
+    InvitationRevoked:
+      additionalProperties: false
+      properties:
+        revoked:
+          type: "string"
+      required:
+        - "revoked"
       type: "object"
     LeaseRefusal:
       additionalProperties: false
@@ -246,6 +378,39 @@ components:
       required:
         - "items"
         - "next_cursor"
+      type: "object"
+    MemberList:
+      additionalProperties: false
+      properties:
+        members:
+          items:
+            additionalProperties: false
+            properties:
+              role:
+                enum:
+                  - "reader"
+                  - "writer"
+                  - "admin"
+              subject:
+                type: "string"
+            required:
+              - "role"
+              - "subject"
+            type: "object"
+          type: "array"
+      required:
+        - "members"
+      type: "object"
+    MemberRole:
+      additionalProperties: false
+      properties:
+        role:
+          enum:
+            - "reader"
+            - "writer"
+            - "admin"
+      required:
+        - "role"
       type: "object"
     Missing:
       additionalProperties: false
@@ -287,6 +452,118 @@ components:
           type: "integer"
       required:
         - "offset"
+      type: "object"
+    PasskeyAssertion:
+      additionalProperties: false
+      properties:
+        authenticatorData:
+          pattern: "^[A-Za-z0-9_-]+$"
+          type: "string"
+        challenge:
+          pattern: "^[A-Za-z0-9_-]+$"
+          type: "string"
+        clientDataJSON:
+          pattern: "^[A-Za-z0-9_-]+$"
+          type: "string"
+        credential_id:
+          pattern: "^[A-Za-z0-9_-]+$"
+          type: "string"
+        signature:
+          pattern: "^[A-Za-z0-9_-]+$"
+          type: "string"
+        userHandle:
+          anyOf:
+            - pattern: "^[A-Za-z0-9_-]+$"
+              type: "string"
+            - type: "null"
+      required:
+        - "authenticatorData"
+        - "challenge"
+        - "clientDataJSON"
+        - "credential_id"
+        - "signature"
+      type: "object"
+    PasskeyCreationOptions:
+      properties:
+        attestation:
+          const: "none"
+        challenge:
+          pattern: "^[A-Za-z0-9_-]+$"
+          type: "string"
+        pubKeyCredParams:
+          type: "array"
+        rp:
+          type: "object"
+        user:
+          type: "object"
+      required:
+        - "attestation"
+        - "challenge"
+        - "pubKeyCredParams"
+        - "rp"
+        - "user"
+      type: "object"
+    PasskeyRegistered:
+      additionalProperties: false
+      properties:
+        alg:
+          enum:
+            - -7
+            - -8
+        credential_id:
+          pattern: "^[A-Za-z0-9_-]+$"
+          type: "string"
+        session:
+          $ref: "#/components/schemas/SessionOpened"
+        subject:
+          type: "string"
+        tenant:
+          $ref: "#/components/schemas/Tenant"
+      required:
+        - "alg"
+        - "credential_id"
+        - "subject"
+      type: "object"
+    PasskeyRegistration:
+      additionalProperties: false
+      properties:
+        attestationObject:
+          pattern: "^[A-Za-z0-9_-]+$"
+          type: "string"
+        challenge:
+          pattern: "^[A-Za-z0-9_-]+$"
+          type: "string"
+        clientDataJSON:
+          pattern: "^[A-Za-z0-9_-]+$"
+          type: "string"
+        invitation:
+          type: "string"
+        transports:
+          items:
+            type: "string"
+          type: "array"
+      required:
+        - "attestationObject"
+        - "challenge"
+        - "clientDataJSON"
+      type: "object"
+    PasskeyRegistrationStart:
+      additionalProperties: false
+      properties:
+        invitation:
+          type: "string"
+      required: []
+      type: "object"
+    PasskeyRequestOptions:
+      properties:
+        challenge:
+          pattern: "^[A-Za-z0-9_-]+$"
+          type: "string"
+        rpId:
+          type: "string"
+      required:
+        - "challenge"
+        - "rpId"
       type: "object"
     Project:
       additionalProperties: false
@@ -412,6 +689,65 @@ components:
           type: "string"
       required:
         - "removed"
+      type: "object"
+    Retention:
+      additionalProperties: false
+      properties:
+        policy:
+          anyOf:
+            - additionalProperties: false
+              properties:
+                keep_days:
+                  minimum: 0
+                  type: "number"
+                refs:
+                  additionalProperties:
+                    minimum: 0
+                    type: "number"
+                  type: "object"
+                status:
+                  additionalProperties:
+                    minimum: 0
+                    type: "number"
+                  type: "object"
+                tier:
+                  additionalProperties:
+                    minimum: 0
+                    type: "number"
+                  type: "object"
+              required:
+                - "keep_days"
+              type: "object"
+            - type: "null"
+        server_deletes:
+          const: false
+      required:
+        - "policy"
+        - "server_deletes"
+      type: "object"
+    RetentionPolicy:
+      additionalProperties: false
+      properties:
+        keep_days:
+          minimum: 0
+          type: "number"
+        refs:
+          additionalProperties:
+            minimum: 0
+            type: "number"
+          type: "object"
+        status:
+          additionalProperties:
+            minimum: 0
+            type: "number"
+          type: "object"
+        tier:
+          additionalProperties:
+            minimum: 0
+            type: "number"
+          type: "object"
+      required:
+        - "keep_days"
       type: "object"
     Review:
       additionalProperties: false
@@ -568,6 +904,72 @@ components:
       required:
         - "objects"
         - "truncated"
+      type: "object"
+    Session:
+      additionalProperties: false
+      properties:
+        expires_at:
+          anyOf:
+            - minimum: 0
+              type: "integer"
+            - type: "null"
+        method:
+          type: "string"
+        subject:
+          type: "string"
+        tenants:
+          items:
+            $ref: "#/components/schemas/Tenant"
+          type: "array"
+      required:
+        - "expires_at"
+        - "method"
+        - "subject"
+        - "tenants"
+      type: "object"
+    SessionEnded:
+      additionalProperties: false
+      properties:
+        ended:
+          type: "boolean"
+      required:
+        - "ended"
+      type: "object"
+    SessionOpened:
+      additionalProperties: false
+      properties:
+        expires_at:
+          minimum: 0
+          type: "integer"
+        method:
+          type: "string"
+        subject:
+          type: "string"
+        token:
+          pattern: "^tine_sess_"
+          type: "string"
+      required:
+        - "expires_at"
+        - "method"
+        - "subject"
+        - "token"
+      type: "object"
+    SettingsUpdate:
+      additionalProperties: false
+      properties:
+        default_ref:
+          anyOf:
+            - type: "string"
+            - type: "null"
+        description:
+          anyOf:
+            - type: "string"
+            - type: "null"
+        homepage:
+          anyOf:
+            - type: "string"
+            - type: "null"
+      required: []
       type: "object"
     Share:
       properties:
@@ -739,6 +1141,111 @@ components:
       required:
         - "task"
       type: "object"
+    Tenant:
+      additionalProperties: false
+      properties:
+        archived:
+          type: "boolean"
+        created_at:
+          anyOf:
+            - minimum: 0
+              type: "integer"
+            - type: "null"
+        display_name:
+          type: "string"
+        name:
+          type: "string"
+        role:
+          anyOf:
+            - enum:
+                - "reader"
+                - "writer"
+                - "admin"
+            - type: "null"
+      required:
+        - "archived"
+        - "created_at"
+        - "display_name"
+        - "name"
+        - "role"
+      type: "object"
+    TenantCreate:
+      additionalProperties: false
+      properties:
+        display_name:
+          type: "string"
+        name:
+          type: "string"
+      required:
+        - "name"
+      type: "object"
+    TenantList:
+      additionalProperties: false
+      properties:
+        tenants:
+          items:
+            additionalProperties: false
+            properties:
+              archived:
+                type: "boolean"
+              created_at:
+                anyOf:
+                  - minimum: 0
+                    type: "integer"
+                  - type: "null"
+              display_name:
+                type: "string"
+              name:
+                type: "string"
+              role:
+                anyOf:
+                  - enum:
+                      - "reader"
+                      - "writer"
+                      - "admin"
+                  - type: "null"
+            required:
+              - "archived"
+              - "created_at"
+              - "display_name"
+              - "name"
+              - "role"
+            type: "object"
+          type: "array"
+      required:
+        - "tenants"
+      type: "object"
+    TenantRename:
+      additionalProperties: false
+      properties:
+        display_name:
+          type: "string"
+      required:
+        - "display_name"
+      type: "object"
+    TenantSettings:
+      additionalProperties: false
+      properties:
+        limits:
+          additionalProperties:
+            minimum: 0
+            type: "integer"
+          type: "object"
+        settings:
+          additionalProperties: false
+          properties:
+            default_ref:
+              type: "string"
+            description:
+              type: "string"
+            homepage:
+              type: "string"
+          required: []
+          type: "object"
+      required:
+        - "limits"
+        - "settings"
+      type: "object"
     Tombstone:
       properties:
         kind:
@@ -852,6 +1359,205 @@ info:
 jsonSchemaDialect: "https://json-schema.org/draft/2020-12/schema"
 openapi: "3.1.0"
 paths:
+  "/v1/auth/dev/login":
+    post:
+      operationId: "devLogin"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/DevLogin"
+        required: true
+      responses:
+        "201":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/SessionOpened"
+          description: "Created"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      security: []
+      summary: "Development login with no proof (opt-in)"
+      tags:
+        - "admin"
+      x-opentine-cap: "session"
+      x-opentine-permission: null
+      x-opentine-status: "stable"
+  "/v1/auth/passkey/assertion":
+    post:
+      operationId: "passkeyLogin"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/PasskeyAssertion"
+        required: true
+      responses:
+        "201":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/SessionOpened"
+          description: "Created"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      security: []
+      summary: "Verify a passkey assertion; a session"
+      tags:
+        - "admin"
+      x-opentine-cap: "session"
+      x-opentine-permission: null
+      x-opentine-status: "stable"
+  "/v1/auth/passkey/assertion/options":
+    post:
+      operationId: "passkeyAssertionOptions"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/PasskeyRequestOptions"
+          description: "OK"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      security: []
+      summary: "WebAuthn request options for login"
+      tags:
+        - "admin"
+      x-opentine-cap: "session"
+      x-opentine-permission: null
+      x-opentine-status: "stable"
+  "/v1/auth/passkey/registration":
+    post:
+      operationId: "registerPasskey"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/PasskeyRegistration"
+        required: true
+      responses:
+        "201":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/PasskeyRegistered"
+          description: "Created"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      security: []
+      summary: "Store a passkey's public key (never a private key)"
+      tags:
+        - "admin"
+      x-opentine-cap: "session"
+      x-opentine-permission: null
+      x-opentine-status: "stable"
+  "/v1/auth/passkey/registration/options":
+    post:
+      operationId: "passkeyRegistrationOptions"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/PasskeyRegistrationStart"
+        required: true
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/PasskeyCreationOptions"
+          description: "OK"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      security: []
+      summary: "WebAuthn creation options (signed in, or with an invitation)"
+      tags:
+        - "admin"
+      x-opentine-cap: "session"
+      x-opentine-permission: null
+      x-opentine-status: "stable"
   "/v1/capabilities":
     get:
       operationId: "getCapabilities"
@@ -864,8 +1570,123 @@ paths:
           description: "OK"
       security: []
       summary: "What this server speaks"
+      tags:
+        - "protocol"
       x-opentine-cap: null
       x-opentine-permission: null
+      x-opentine-status: "stable"
+  "/v1/invitations/accept":
+    post:
+      operationId: "acceptInvitation"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/InvitationAccept"
+        required: true
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Tenant"
+          description: "OK"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "409":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Conflict"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Join a tenant with an invitation"
+      tags:
+        - "admin"
+      x-opentine-cap: "tenancy"
+      x-opentine-permission: "session"
+      x-opentine-status: "stable"
+  "/v1/session":
+    delete:
+      operationId: "endSession"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/SessionEnded"
+          description: "OK"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Log out: end this session"
+      tags:
+        - "admin"
+      x-opentine-cap: "session"
+      x-opentine-permission: "session"
+      x-opentine-status: "stable"
+    get:
+      operationId: "getSession"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Session"
+          description: "OK"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Who is calling, and their tenants"
+      tags:
+        - "admin"
+      x-opentine-cap: "session"
+      x-opentine-permission: "session"
       x-opentine-status: "stable"
   "/v1/share/{token}":
     get:
@@ -898,6 +1719,8 @@ paths:
           description: "Quota or throttle exceeded; honour Retry-After"
       security: []
       summary: "The run a share token reads"
+      tags:
+        - "protocol"
       x-opentine-cap: "share"
       x-opentine-permission: null
       x-opentine-status: "stable"
@@ -939,6 +1762,8 @@ paths:
           description: "Quota or throttle exceeded; honour Retry-After"
       security: []
       summary: "A pack of the shared run's closure"
+      tags:
+        - "protocol"
       x-opentine-cap: "share"
       x-opentine-permission: null
       x-opentine-status: "stable"
@@ -987,8 +1812,218 @@ paths:
           description: "Quota or throttle exceeded; honour Retry-After"
       security: []
       summary: "One object of the closure"
+      tags:
+        - "protocol"
       x-opentine-cap: "share"
       x-opentine-permission: null
+      x-opentine-status: "stable"
+  "/v1/tenants":
+    get:
+      operationId: "listTenants"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/TenantList"
+          description: "OK"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "The caller's tenants and roles"
+      tags:
+        - "admin"
+      x-opentine-cap: "tenancy"
+      x-opentine-permission: "session"
+      x-opentine-status: "stable"
+    post:
+      operationId: "createTenant"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/TenantCreate"
+        required: true
+      responses:
+        "201":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Tenant"
+          description: "Created"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "409":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Conflict"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Create (or register) a tenant; the caller is admin"
+      tags:
+        - "admin"
+      x-opentine-cap: "tenancy"
+      x-opentine-permission: "session"
+      x-opentine-status: "stable"
+  "/v1/tenants/{tenant}":
+    get:
+      operationId: "getTenant"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Tenant"
+          description: "OK"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "409":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Conflict"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "The tenant's name, display name and state"
+      tags:
+        - "admin"
+      x-opentine-cap: "tenancy"
+      x-opentine-permission: "tenant_read"
+      x-opentine-status: "stable"
+    patch:
+      operationId: "renameTenant"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/TenantRename"
+        required: true
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Tenant"
+          description: "OK"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "409":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Conflict"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Change the display name (the tenant id never changes)"
+      tags:
+        - "admin"
+      x-opentine-cap: "tenancy"
+      x-opentine-permission: "tenant_admin"
       x-opentine-status: "stable"
   "/v1/tenants/{tenant}/admin/stats":
     get:
@@ -1032,8 +2067,69 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "Objects by type, refs and active shares"
+      tags:
+        - "protocol"
       x-opentine-cap: "admin"
       x-opentine-permission: "admin"
+      x-opentine-status: "stable"
+  "/v1/tenants/{tenant}/archive":
+    post:
+      operationId: "archiveTenant"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Tenant"
+          description: "OK"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "409":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Conflict"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Make the tenant read-only (nothing is deleted)"
+      tags:
+        - "admin"
+      x-opentine-cap: "tenancy"
+      x-opentine-permission: "tenant_admin"
       x-opentine-status: "stable"
   "/v1/tenants/{tenant}/audit/verify":
     get:
@@ -1077,6 +2173,8 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "The server-keyed audit chain status"
+      tags:
+        - "protocol"
       x-opentine-cap: null
       x-opentine-permission: "audit"
       x-opentine-status: "stable"
@@ -1122,6 +2220,8 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "Every coordination task of the tenant"
+      tags:
+        - "protocol"
       x-opentine-cap: "coord"
       x-opentine-permission: "read_ref"
       x-opentine-status: "stable"
@@ -1184,6 +2284,8 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "Create an open task"
+      tags:
+        - "protocol"
       x-opentine-cap: "coord"
       x-opentine-permission: "update_ref"
       x-opentine-status: "stable"
@@ -1235,6 +2337,8 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "One task and its lease"
+      tags:
+        - "protocol"
       x-opentine-cap: "coord"
       x-opentine-permission: "read_ref"
       x-opentine-status: "stable"
@@ -1304,6 +2408,8 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "Take the lease by compare-and-swap; returns the fencing token"
+      tags:
+        - "protocol"
       x-opentine-cap: "coord"
       x-opentine-permission: "update_ref"
       x-opentine-status: "stable"
@@ -1373,6 +2479,8 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "Close the task (holder and current fencing token)"
+      tags:
+        - "protocol"
       x-opentine-cap: "coord"
       x-opentine-permission: "update_ref"
       x-opentine-status: "stable"
@@ -1442,6 +2550,8 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "Extend the lease (holder and current fencing token)"
+      tags:
+        - "protocol"
       x-opentine-cap: "coord"
       x-opentine-permission: "update_ref"
       x-opentine-status: "stable"
@@ -1500,6 +2610,8 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Busy; retry later"
       summary: "tine-event/1 Server-Sent Events"
+      tags:
+        - "protocol"
       x-opentine-cap: "events_sse"
       x-opentine-permission: "read_ref"
       x-opentine-status: "stable"
@@ -1564,8 +2676,386 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Busy; retry later"
       summary: "A pack of the wanted closure"
+      tags:
+        - "protocol"
       x-opentine-cap: null
       x-opentine-permission: "fetch"
+      x-opentine-status: "stable"
+  "/v1/tenants/{tenant}/holds":
+    get:
+      operationId: "listHolds"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/HoldList"
+          description: "OK"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "409":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Conflict"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Held objects (tine-holds/1 rows)"
+      tags:
+        - "admin"
+      x-opentine-cap: "tenancy"
+      x-opentine-permission: "tenant_read"
+      x-opentine-status: "stable"
+    post:
+      operationId: "addHold"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/HoldRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/HoldList"
+          description: "Created"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "409":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Conflict"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Hold a stored object: every delete refuses it"
+      tags:
+        - "admin"
+      x-opentine-cap: "tenancy"
+      x-opentine-permission: "tenant_admin"
+      x-opentine-status: "stable"
+  "/v1/tenants/{tenant}/holds/{oid}":
+    delete:
+      operationId: "releaseHold"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+        - description: "Typed object id (TYPE:sha256:HEX), percent-encoded."
+          in: "path"
+          name: "oid"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/HoldList"
+          description: "OK"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "409":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Conflict"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Release a hold"
+      tags:
+        - "admin"
+      x-opentine-cap: "tenancy"
+      x-opentine-permission: "tenant_admin"
+      x-opentine-status: "stable"
+  "/v1/tenants/{tenant}/invitations":
+    get:
+      operationId: "listInvitations"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/InvitationList"
+          description: "OK"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "409":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Conflict"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Open invitations (never a token)"
+      tags:
+        - "admin"
+      x-opentine-cap: "tenancy"
+      x-opentine-permission: "tenant_admin"
+      x-opentine-status: "stable"
+    post:
+      operationId: "createInvitation"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/InvitationCreate"
+        required: true
+      responses:
+        "201":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/InvitationCreated"
+          description: "Created"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "409":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Conflict"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "A single-use invitation token"
+      tags:
+        - "admin"
+      x-opentine-cap: "tenancy"
+      x-opentine-permission: "tenant_admin"
+      x-opentine-status: "stable"
+  "/v1/tenants/{tenant}/invitations/{invitation_id}":
+    delete:
+      operationId: "revokeInvitation"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+        - description: "Invitation id (inv_...)."
+          in: "path"
+          name: "invitation_id"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/InvitationRevoked"
+          description: "OK"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "409":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Conflict"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Revoke an invitation"
+      tags:
+        - "admin"
+      x-opentine-cap: "tenancy"
+      x-opentine-permission: "tenant_admin"
       x-opentine-status: "stable"
   "/v1/tenants/{tenant}/list/refs":
     get:
@@ -1627,6 +3117,8 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "Refs of the tenant in name order, paged"
+      tags:
+        - "protocol"
       x-opentine-cap: "list"
       x-opentine-permission: "read_ref"
       x-opentine-status: "stable"
@@ -1690,6 +3182,8 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "Run oids of the tenant in oid order, paged"
+      tags:
+        - "protocol"
       x-opentine-cap: "list"
       x-opentine-permission: "read_ref"
       x-opentine-status: "stable"
@@ -1753,8 +3247,204 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "The tenant's transparency-log entries"
+      tags:
+        - "protocol"
       x-opentine-cap: "log_http"
       x-opentine-permission: "read_ref"
+      x-opentine-status: "stable"
+  "/v1/tenants/{tenant}/members":
+    get:
+      operationId: "listMembers"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/MemberList"
+          description: "OK"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "409":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Conflict"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Members and their roles"
+      tags:
+        - "admin"
+      x-opentine-cap: "tenancy"
+      x-opentine-permission: "tenant_read"
+      x-opentine-status: "stable"
+  "/v1/tenants/{tenant}/members/{subject}":
+    delete:
+      operationId: "removeMember"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+        - description: "A member's subject, percent-encoded."
+          in: "path"
+          name: "subject"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/MemberList"
+          description: "OK"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "409":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Conflict"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Remove a member (never the last admin)"
+      tags:
+        - "admin"
+      x-opentine-cap: "tenancy"
+      x-opentine-permission: "tenant_admin"
+      x-opentine-status: "stable"
+    put:
+      operationId: "setMember"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+        - description: "A member's subject, percent-encoded."
+          in: "path"
+          name: "subject"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/MemberRole"
+        required: true
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/MemberList"
+          description: "OK"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "409":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Conflict"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Add a member or change a role"
+      tags:
+        - "admin"
+      x-opentine-cap: "tenancy"
+      x-opentine-permission: "tenant_admin"
       x-opentine-status: "stable"
   "/v1/tenants/{tenant}/negotiate":
     post:
@@ -1810,6 +3500,8 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "Which wanted objects the client lacks"
+      tags:
+        - "protocol"
       x-opentine-cap: null
       x-opentine-permission: "negotiate"
       x-opentine-status: "stable"
@@ -1869,6 +3561,8 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "One stored object envelope"
+      tags:
+        - "protocol"
       x-opentine-cap: "object_read_http"
       x-opentine-permission: "fetch"
       x-opentine-status: "stable"
@@ -1932,6 +3626,8 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Busy; retry later"
       summary: "Install a pack, or declare a resumable upload"
+      tags:
+        - "protocol"
       x-opentine-cap: null
       x-opentine-permission: "upload"
       x-opentine-status: "stable"
@@ -1979,6 +3675,8 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "A resumable upload's offset"
+      tags:
+        - "protocol"
       x-opentine-cap: null
       x-opentine-permission: "upload"
       x-opentine-status: "stable"
@@ -2054,6 +3752,8 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "Append to a resumable upload"
+      tags:
+        - "protocol"
       x-opentine-cap: null
       x-opentine-permission: "upload"
       x-opentine-status: "stable"
@@ -2099,6 +3799,8 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "The current opentine.project manifest"
+      tags:
+        - "protocol"
       x-opentine-cap: "project"
       x-opentine-permission: "read_ref"
       x-opentine-status: "stable"
@@ -2161,6 +3863,8 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "CAS project/manifest to a client-signed version"
+      tags:
+        - "protocol"
       x-opentine-cap: "project"
       x-opentine-permission: "update_ref"
       x-opentine-status: "stable"
@@ -2212,6 +3916,8 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "Manifest versions, oldest first, paged"
+      tags:
+        - "protocol"
       x-opentine-cap: "project"
       x-opentine-permission: "read_ref"
       x-opentine-status: "stable"
@@ -2275,6 +3981,8 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "All-or-nothing ref transaction"
+      tags:
+        - "protocol"
       x-opentine-cap: "ref_txn"
       x-opentine-permission: "update_ref"
       x-opentine-status: "stable"
@@ -2320,6 +4028,8 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "Every ref of the tenant"
+      tags:
+        - "protocol"
       x-opentine-cap: null
       x-opentine-permission: "read_ref"
       x-opentine-status: "stable"
@@ -2389,8 +4099,133 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "Compare-and-swap one ref"
+      tags:
+        - "protocol"
       x-opentine-cap: null
       x-opentine-permission: "update_ref"
+      x-opentine-status: "stable"
+  "/v1/tenants/{tenant}/retention":
+    get:
+      operationId: "getRetention"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Retention"
+          description: "OK"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "409":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Conflict"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "The stored retention policy"
+      tags:
+        - "admin"
+      x-opentine-cap: "tenancy"
+      x-opentine-permission: "tenant_read"
+      x-opentine-status: "stable"
+    put:
+      operationId: "setRetention"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/RetentionPolicy"
+        required: true
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Retention"
+          description: "OK"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "409":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Conflict"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Store a retention policy (the server never deletes on its own)"
+      tags:
+        - "admin"
+      x-opentine-cap: "tenancy"
+      x-opentine-permission: "tenant_admin"
       x-opentine-status: "stable"
   "/v1/tenants/{tenant}/reviews":
     get:
@@ -2434,6 +4269,8 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "Every Review of the tenant, with its head"
+      tags:
+        - "protocol"
       x-opentine-cap: "reviews"
       x-opentine-permission: "read_ref"
       x-opentine-status: "stable"
@@ -2485,6 +4322,8 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "A Review as a verifiable bundle"
+      tags:
+        - "protocol"
       x-opentine-cap: "reviews"
       x-opentine-permission: "read_ref"
       x-opentine-status: "stable"
@@ -2553,6 +4392,8 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "CAS a Review to its next client-signed version"
+      tags:
+        - "protocol"
       x-opentine-cap: "reviews"
       x-opentine-permission: "update_ref"
       x-opentine-status: "stable"
@@ -2616,6 +4457,8 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "Store a client-signed gate decision"
+      tags:
+        - "protocol"
       x-opentine-cap: "reviews"
       x-opentine-permission: "update_ref"
       x-opentine-status: "stable"
@@ -2680,6 +4523,8 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "A pack of one run's closure"
+      tags:
+        - "protocol"
       x-opentine-cap: "run_closure"
       x-opentine-permission: "fetch"
       x-opentine-status: "stable"
@@ -2737,8 +4582,133 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "Object ids matching an index query"
+      tags:
+        - "protocol"
       x-opentine-cap: null
       x-opentine-permission: "search"
+      x-opentine-status: "stable"
+  "/v1/tenants/{tenant}/settings":
+    get:
+      operationId: "getSettings"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/TenantSettings"
+          description: "OK"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "409":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Conflict"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Tenant settings and the published limits"
+      tags:
+        - "admin"
+      x-opentine-cap: "tenancy"
+      x-opentine-permission: "tenant_read"
+      x-opentine-status: "stable"
+    patch:
+      operationId: "updateSettings"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/SettingsUpdate"
+        required: true
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/TenantSettings"
+          description: "OK"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "409":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Conflict"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Merge settings (null removes a key)"
+      tags:
+        - "admin"
+      x-opentine-cap: "tenancy"
+      x-opentine-permission: "tenant_admin"
       x-opentine-status: "stable"
   "/v1/tenants/{tenant}/shares":
     get:
@@ -2788,6 +4758,8 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "The tenant's share links (never a token)"
+      tags:
+        - "protocol"
       x-opentine-cap: "share"
       x-opentine-permission: "share"
       x-opentine-status: "stable"
@@ -2844,6 +4816,8 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "A read-only capability link to one run"
+      tags:
+        - "protocol"
       x-opentine-cap: "share"
       x-opentine-permission: "share"
       x-opentine-status: "stable"
@@ -2895,6 +4869,8 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "Revoke a share link"
+      tags:
+        - "protocol"
       x-opentine-cap: "share"
       x-opentine-permission: "share"
       x-opentine-status: "stable"
@@ -2940,6 +4916,8 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "Count-only stars and watches (self-host parity)"
+      tags:
+        - "protocol"
       x-opentine-cap: "social_export"
       x-opentine-permission: "read_ref"
       x-opentine-status: "stable"
@@ -2991,6 +4969,8 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "The signed tombstone of a purged blob"
+      tags:
+        - "protocol"
       x-opentine-cap: "tombstones"
       x-opentine-permission: "fetch"
       x-opentine-status: "stable"
@@ -3053,6 +5033,8 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "Store a client-signed tombstone; for a held blob, purge it (admin)"
+      tags:
+        - "protocol"
       x-opentine-cap: "tombstones"
       x-opentine-permission: "upload"
       x-opentine-status: "stable"
@@ -3098,6 +5080,8 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "The signed log checkpoint"
+      tags:
+        - "protocol"
       x-opentine-cap: null
       x-opentine-permission: "read_ref"
       x-opentine-status: "stable"
@@ -3155,6 +5139,8 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "A consistency proof"
+      tags:
+        - "protocol"
       x-opentine-cap: null
       x-opentine-permission: "read_ref"
       x-opentine-status: "stable"
@@ -3212,8 +5198,69 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "An inclusion receipt for a ref move"
+      tags:
+        - "protocol"
       x-opentine-cap: null
       x-opentine-permission: "read_ref"
+      x-opentine-status: "stable"
+  "/v1/tenants/{tenant}/unarchive":
+    post:
+      operationId: "unarchiveTenant"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Tenant"
+          description: "OK"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "409":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Conflict"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Make an archived tenant writable again"
+      tags:
+        - "admin"
+      x-opentine-cap: "tenancy"
+      x-opentine-permission: "tenant_admin"
       x-opentine-status: "stable"
   "/v1/tenants/{tenant}/webhooks":
     get:
@@ -3257,6 +5304,8 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "Webhooks and recent deliveries"
+      tags:
+        - "protocol"
       x-opentine-cap: "webhooks"
       x-opentine-permission: "webhooks"
       x-opentine-status: "stable"
@@ -3313,6 +5362,8 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "Register a signed webhook"
+      tags:
+        - "protocol"
       x-opentine-cap: "webhooks"
       x-opentine-permission: "webhooks"
       x-opentine-status: "stable"
@@ -3364,6 +5415,8 @@ paths:
                 $ref: "#/components/schemas/Error"
           description: "Quota or throttle exceeded; honour Retry-After"
       summary: "Remove a webhook"
+      tags:
+        - "protocol"
       x-opentine-cap: "webhooks"
       x-opentine-permission: "webhooks"
       x-opentine-status: "stable"
@@ -3372,3 +5425,8 @@ security:
 servers:
   - description: "Your remote's base URL"
     url: "https://tine.example"
+tags:
+  - description: "Runs, refs, packs and signed objects."
+    name: "protocol"
+  - description: "Session, login and tenant management (0.52). Carries no signed data; passkey private keys never leave the user's authenticator, and provider sign-in is identity linking only."
+    name: "admin"

@@ -19,6 +19,8 @@ from __future__ import annotations
 
 from typing import NamedTuple
 
+from opentine.remote._api_routes_admin import ADMIN_ROUTES
+
 API_VERSION = "1.0.0"
 PACK = "application/vnd.opentine.pack"
 OBJECT = "application/vnd.opentine.object"
@@ -35,6 +37,7 @@ class Route(NamedTuple):
     permission: str | None  # the authorization action; None = unauthenticated
     request: str | None  # component schema name, a media type, or None
     responses: tuple[tuple[str, str], ...]  # (status code, schema name or media type)
+    tag: str = "protocol"  # 0.52: "admin" for the session/login/tenant surface (OpenAPI tags)
 
 
 T = "/tenants/{tenant}"
@@ -155,6 +158,8 @@ ROUTES: tuple[Route, ...] = (
           ("claim", "claimTask", "Take the lease by compare-and-swap; returns the fencing token"),
           ("heartbeat", "heartbeatTask", "Extend the lease (holder and current fencing token)"),
           ("done", "finishTask", "Close the task (holder and current fencing token)"))),
+    # 0.52 admin surface (SPEC 8.27): session, login, tenants -- no signed data.
+    *(Route(*row) for row in ADMIN_ROUTES),
 )  # fmt: skip
 
 

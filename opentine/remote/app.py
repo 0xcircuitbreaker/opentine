@@ -8,10 +8,10 @@ from typing import Any
 from urllib.parse import unquote
 
 from opentine.kernel import OBJECT_TYPES, validate_json_shape
+from opentine.remote._admin_http import early_route
 from opentine.remote._app_uploads import UploadRoutes
 from opentine.remote._auth_throttle import AuthThrottle, internal_error
 from opentine.remote._events_http import extra_routes
-from opentine.remote._hosted_http import share_route
 from opentine.remote._quota import QuotaExceeded
 from opentine.remote._ref_txn import route as ref_txn_route
 from opentine.remote._request_audit import AuthorizationDenied, FailureAudit, request_action
@@ -114,8 +114,8 @@ class RemoteApp(UploadRoutes):
         method = environ.get("REQUEST_METHOD", "GET").upper()
         try:
             path = environ.get("PATH_INFO", "/").rstrip("/") or "/"
-            if path.startswith("/v1/share/"):  # 0.46: public share links, no bearer
-                return share_route(self, path[10:], method, environ, start_response)
+            if (early := early_route(self, path, method, environ, start_response)) is not None:
+                return early  # 0.46 public share links; 0.52 admin surface (own auth)
             if method == "GET" and path == "/v1/capabilities":
                 return self._json_response(start_response, "200 OK", self.service.capabilities())
             prefix = "/v1/tenants/"

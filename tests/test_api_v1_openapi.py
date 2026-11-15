@@ -35,7 +35,12 @@ BODIES = {
 }
 VALUES = {"tenant": "acme", "ref": "heads%2Fmain", "upload_id": "0" * 32, "webhook_id": "wh_x"}
 VALUES |= {"oid": OID, "share_id": "s1", "token": "tine_share_" + "x" * 43, "task": "t1"}
-VALUES |= {"review_id": "auth-rework"}
+VALUES |= {"review_id": "auth-rework", "subject": "bob", "invitation_id": "inv_x"}
+#: 0.52 admin surface, called as another tenant's admin token with no body: what
+#: is not the caller's is the uniform 404 (also dev login and passkeys, both off
+#: by default); session reads answer; a write with no body is a 400.
+ADMIN_STATUS = {"getSession": "200", "endSession": "200", "listTenants": "200",
+                "createTenant": "400", "acceptInvitation": "400"}  # fmt: skip
 
 
 @pytest.fixture
@@ -104,7 +109,10 @@ def test_the_server_dispatches_exactly_the_stable_routes(app, route):
     caps = app.service.capabilities()
     if route.status == "stable":
         assert route.cap is None or route.cap in caps, route
-    if route.path.startswith("/share/"):
+    if route.tag == "admin":  # 0.52: its own checks (tests/test_052_admin_api.py)
+        assert status == ADMIN_STATUS.get(route.operation, "404"), (route, status)
+        assert status in {code for code, _ in route.responses}, route
+    elif route.path.startswith("/share/"):
         assert (status, json.loads(body)) == ("404", {"error": "not found"})
     elif route.permission is None:
         assert status == "200"

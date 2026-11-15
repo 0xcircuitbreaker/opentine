@@ -33,7 +33,8 @@ def _ref(name: str) -> dict[str, str]:
 
 
 SCHEMAS: dict[str, Any] = {
-    "Error": _obj({"error": _str}, extra=False),
+    # 0.52: an optional machine-readable "area.reason" code (the admin surface sets it)
+    "Error": _obj({"error": _str}, {"code": _str}, extra=False),
     "Capabilities": _obj(
         {
             "protocol": {"const": "opentine-remote/1"},
@@ -61,6 +62,8 @@ SCHEMAS: dict[str, Any] = {
             "project": {"type": "object"},
             "social_export": {"type": "object"},
             "reviews": {"type": "object"},
+            "session": {"type": "object"},
+            "tenancy": {"type": "object"},
         },
     ),
     "RefList": _obj({"refs": {"type": "object", "additionalProperties": _oid}}, extra=False),
