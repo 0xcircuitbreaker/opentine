@@ -108,9 +108,11 @@ function digits(text: string): boolean {
 }
 
 function micros(y: number, mo: number, d: number, h: number, mi: number, s: number): bigint {
-  const ms = Date.UTC(y, mo - 1, d, h, mi, s);
-  const back = new Date(ms);
-  if (back.getUTCMonth() !== mo - 1 || back.getUTCDate() !== d || h > 23 || mi > 59 || s > 59) {
+  // Date.UTC maps years 0-99 to 1900-1999; setUTCFullYear keeps the year as written (as Python does).
+  const back = new Date(Date.UTC(2000, 0, 1, h, mi, s));
+  back.setUTCFullYear(y, mo - 1, d);
+  const ms = back.getTime();
+  if (y < 1 || back.getUTCFullYear() !== y || back.getUTCMonth() !== mo - 1 || back.getUTCDate() !== d || h > 23 || mi > 59 || s > 59) {
     throw new DerError("not a calendar time");
   }
   return BigInt(ms) * 1000n;

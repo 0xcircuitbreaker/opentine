@@ -165,3 +165,41 @@ def test_an_old_server_without_the_capability_is_refused(services, tmp_path, mon
     with pytest.raises(ValueError, match="caps.tenant_import"):
         _import(tmp_path / "out", services["new"])
     assert services["new_app"].service.index.list_refs("acme") == {}
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"reviews": [{"versions": "x"}]},
+        {"reviews": ["x"]},
+        {"reviews": [{"versions": [1]}]},
+        {"reviews": {"a": 1}},
+        {"project": "x"},
+        {"project": [1]},
+        {"refs": ["x"]},
+        {"refs": {"heads/a": 1}},
+    ],
+)
+def test_a_malformed_import_request_is_a_400_with_nothing_changed(services, body):
+    app = services["new_app"]
+    before = _state(app)
+    response = httpx.post(services["new"] + "/v1/tenants/acme/import", json=body,
+                          headers={"Authorization": f"Bearer {TOKEN}"})  # fmt: skip
+    assert response.status_code == 400, response.text
+    assert _state(app) == before
+
+
+def test_a_malformed_review_decision_list_is_a_400(services, tmp_path, monkeypatch, capsys):
+    _seed_tenant(services, tmp_path, monkeypatch, capsys)
+    _export(monkeypatch, capsys, services, "old", tmp_path / "out")
+    reviews = _tenant_move._files(tmp_path / "out")
+    assert reviews
+    app = services["new_app"]
+    before = _state(app)
+    for decisions in ("abc", [1], [{"x": 1}], {"a": 1}):
+        bad = [{**reviews[0], "decisions": decisions}]
+        response = httpx.post(services["new"] + "/v1/tenants/acme/import",
+                              json={"reviews": bad},
+                              headers={"Authorization": f"Bearer {TOKEN}"})  # fmt: skip
+        assert response.status_code == 400, (decisions, response.text)
+    assert _state(app) == before

@@ -13,6 +13,7 @@ import { fileURLToPath } from "node:url";
 import { TineError } from "../src/errors.js";
 import { keylessTokenTime } from "../src/keyless.js";
 import { verifyTimestampToken } from "../src/tsp.js";
+import { asGenTime, read } from "../src/der.js";
 
 interface Case {
   id: string;
@@ -62,4 +63,13 @@ test("every truncation of a valid token fails cleanly as malformed or a bad sign
     const verdict = verifyTimestampToken(raw.subarray(0, cut), b(good.bound as string), (good.roots ?? []).map(b));
     assert.equal(verdict.ok, false);
   }
+});
+
+test("GeneralizedTime keeps two-digit years as written and refuses year 0, as Python does", () => {
+  const der = (text: string) => read(Uint8Array.from([0x18, text.length, ...new TextEncoder().encode(text)]));
+  const year50 = new Date(0);
+  year50.setUTCFullYear(50, 0, 1);
+  assert.equal(asGenTime(der("00500101000000Z")), BigInt(year50.getTime()) * 1000n);
+  assert.throws(() => asGenTime(der("00000101000000Z")));
+  assert.equal(asGenTime(der("19700101000001Z")), 1000000n);
 });
