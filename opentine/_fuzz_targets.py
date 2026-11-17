@@ -59,7 +59,10 @@ def _tine(parts: tuple[bytes, ...]) -> None:
     except _REFUSALS:
         data = None
     if isinstance(data, dict):
-        result = verify_integrity(data)  # answers ok or a reason; raising is a crash
+        try:  # answers ok or a reason; raising anything, even ValueError, is a crash
+            result = verify_integrity(data)
+        except BaseException as exc:
+            raise AssertionError(f"verify_integrity raised {exc!r}") from exc
         if not isinstance(result.ok, bool):
             raise AssertionError("verify_integrity answered no verdict")
     read_v4(parts[0])
@@ -111,13 +114,39 @@ def _dsse(parts: tuple[bytes, ...]) -> None:
 
     envelope = json.loads(parts[0])
     public = Ed25519PrivateKey.from_private_bytes(DSSE_SEED_KEY).public_key()
-    for result in (
-        intoto.verify_envelope(envelope, public_key=public),
-        intoto.verify_envelope(envelope, trust_embedded=True),
-    ):
+    try:  # fail-closed verifiers answer a result; raising anything is a crash
+        pinned = intoto.verify_envelope(envelope, public_key=public)
+        tofu = intoto.verify_envelope(envelope, trust_embedded=True)
+    except BaseException as exc:
+        raise AssertionError(f"intoto.verify_envelope raised {exc!r}") from exc
+    for result in (pinned, tofu):
         if not isinstance(result, intoto.EnvelopeResult):
             raise AssertionError("verify_envelope answered no result")
-    _intoto_replay.verify_envelope(envelope, public)
+    if pinned.ok and not _signed(envelope, public):
+        raise AssertionError("in-toto verifier accepted an envelope the key did not sign")
+    try:
+        _intoto_replay.verify_envelope(envelope, public)
+    except _REFUSALS:
+        return
+    if not _signed(envelope, public):
+        raise AssertionError("replay/v1 verifier accepted an envelope the key did not sign")
+
+
+def _signed(envelope: object, public: object) -> bool:
+    """An independent DSSE check: some signature covers PAE(payloadType, payload)."""
+    try:
+        kind = envelope["payloadType"].encode()  # type: ignore[index]
+        body = base64.b64decode(envelope["payload"], validate=True)  # type: ignore[index]
+        pae = b"DSSEv1 %d %s %d %s" % (len(kind), kind, len(body), body)
+        for entry in envelope["signatures"]:  # type: ignore[index]
+            try:
+                public.verify(base64.b64decode(entry["sig"], validate=True), pae)  # type: ignore[attr-defined]
+                return True
+            except Exception:  # noqa: BLE001,S112 - any other signature may still match
+                continue
+    except Exception:  # noqa: BLE001 - malformed: not signed
+        return False
+    return False
 
 
 TARGETS: dict[str, Target] = {

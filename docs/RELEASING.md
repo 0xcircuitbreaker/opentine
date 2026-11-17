@@ -191,7 +191,12 @@ the conformance vectors (`docs/conformance/vectors`), the `.tine` fixtures,
 TINEPACK4/5 re-spellings of the vector packs and the triaged regressions. The
 oracle: an input reads, or is refused with the reader's documented error
 (`ValueError` and kin, `RecursionError`); any other exception, or an input
-slower than 5 s, is a crash.
+slower than 5 s, is a crash. The verifiers that answer a result
+(`verify_integrity`, the in-toto `verify_envelope`) must not raise at all, and
+a DSSE envelope either verifier accepts must carry a signature that an
+independent PAE check confirms. An input still running after 120 s is saved
+as a `hang` by a watchdog and the run exits 1 (a hung reader cannot be
+interrupted, so the run stops there).
 
 - **CI (bounded).** The `fuzz-otlp` job in `ci.yml` runs
   `scripts/fuzz.py --iterations 20000` (per target, seeded by the run id)
@@ -212,7 +217,7 @@ slower than 5 s, is a crash.
   the full 72 hours; keep the log and the seed with the release evidence.
 - **Crash triage.** Each crash is `fuzz-crashes/<target>/<sha256[:16]>.bin`
   (a multi-part `localpack` input is framed, `TINEFUZZ1`) with the traceback
-  (or `slow`) in the `.txt` beside it. Reproduce with
+  (or `slow`, or `hang`) in the `.txt` beside it. Reproduce with
   `python scripts/fuzz.py --reproduce fuzz-crashes/<target>/<name>.bin`, fix the
   reader so the input is refused with its documented error, and commit the
   `.bin` under `tests/fuzz_regressions/<target>/`: the suite replays every

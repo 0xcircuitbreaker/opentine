@@ -13,8 +13,10 @@ equal share of a 72-hour run and a log line per turn.
 
 Crash-triage convention: each crash is written to
 ``<crashes>/<target>/<sha256[:16]>.bin`` (the input; a multi-part input is
-framed, see ``opentine._fuzz.frame``) with ``.txt`` beside it (the traceback, or
-``slow``). Triage: ``--reproduce`` it, fix the reader so it refuses with its
+framed, see ``opentine._fuzz.frame``) with ``.txt`` beside it (the traceback,
+``slow``, or ``hang``: an input still running after ``HANG_SECONDS`` is
+saved by a watchdog and the run exits 1, since a hung reader cannot be
+interrupted). Triage: ``--reproduce`` it, fix the reader so it refuses with its
 documented error, then move the ``.bin`` to ``tests/fuzz_regressions/<target>/``,
 where the suite replays it and the fuzzer seeds from it. The exit status is 1
 on any crash or slow input.
@@ -26,6 +28,7 @@ import argparse
 import hashlib
 import os
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -36,6 +39,22 @@ from opentine import _fuzz, _fuzz_corpus  # noqa: E402
 from opentine._fuzz_targets import TARGETS  # noqa: E402
 
 HOURS_ENV = "OPENTINE_FUZZ_HOURS"
+HANG_SECONDS = 120.0  # an input still running after this is saved as "hang" and the run exits 1
+
+
+def watchdog(watch: list[object], keep, name_of, limit: float = HANG_SECONDS) -> None:
+    """Save the input a hung reader is stuck on, then end the run (exit 1)."""
+
+    def loop() -> None:
+        while True:
+            time.sleep(min(limit / 4, 5.0))
+            started, parts = watch[0], watch[1]
+            if started is not None and time.monotonic() - started > limit:
+                keep(name_of(), parts, f"hang: still running after {limit:.0f}s")
+                print(f"fuzz: {name_of()}: an input hung; saved, exiting 1", flush=True)
+                os._exit(1)
+
+    threading.Thread(target=loop, daemon=True).start()
 
 
 def reproduce(path: Path, target: str | None) -> int:
@@ -83,18 +102,23 @@ def main(argv: list[str] | None = None) -> int:
     failed = dict.fromkeys(targets, 0)
     deadline = time.monotonic() + args.hours * 3600 if args.hours is not None else None
     turn = 0
+    watch: list[object] = [None, None]
+    current = [targets[0]]
+    watchdog(watch, keep, lambda: current[0])
     while True:
         live = [t for t in targets if args.iterations is None or done[t] < args.iterations]
         if not live or (deadline is not None and time.monotonic() >= deadline):
             break
         name = live[turn % len(live)]
+        current[0] = name
         turn += 1
         budget = args.report_every
         if deadline is not None:
             budget = min(budget, max(0.0, deadline - time.monotonic()))
         left = None if args.iterations is None else args.iterations - done[name]
-        report = _fuzz.fuzz(name, seeds[name], seed=args.seed + turn * 1_000_003 + done[name],
-                            iterations=left, seconds=budget, on_crash=keep)  # fmt: skip
+        seed = args.seed + turn * 1_000_003 + done[name]
+        report = _fuzz.fuzz(name, seeds[name], seed=seed, iterations=left, seconds=budget,
+                            on_crash=keep, watch=watch)  # fmt: skip
         for found in report.slow:
             keep(name, _fuzz.unframe(bytes.fromhex(found["input"])), "slow")
         done[name] += report.iterations

@@ -131,7 +131,30 @@ def _dsse(root: Path) -> list[Parts]:
     }
     key = Ed25519PrivateKey.from_private_bytes(DSSE_SEED_KEY)
     out.append((json.dumps(intoto.sign_statement(statement, key)).encode(),))
+    out.append((json.dumps(_replay_envelope(key)).encode(),))
     return out
+
+
+def _replay_envelope(key: Any) -> dict[str, Any]:
+    """A ``replay/v1`` envelope that verifies, so the fuzzer gets past its signature."""
+    from opentine import _intoto_replay as replay
+
+    result = dict.fromkeys(replay._RESULT_BOOLS, True)
+    predicate = {
+        "verifier": {"id": "https://opentine.dev/tine", "version": "0"},
+        "mode": "cache",
+        "replay": {"replay_id": "r2", "second_id": None, "fork_point": None},
+        "result": {**result, "slice_ok": None, "structural_drift": [], "accounting_drift": []},
+        "fidelity": {},
+        "verified_at": "2026-01-01T00:00:00Z",
+    }
+    statement = {
+        "_type": replay.STATEMENT_TYPE,
+        "subject": [{"name": "r", "digest": {"sha256": "ab" * 32}}],
+        "predicateType": replay.PREDICATE_TYPE,
+        "predicate": predicate,
+    }
+    return replay.sign_statement(statement, key)
 
 
 def regressions(target: str, root: Path) -> list[Parts]:

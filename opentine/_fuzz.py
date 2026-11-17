@@ -47,12 +47,16 @@ def unframe(data: bytes) -> Parts:
     while at < len(data):
         size, shift = 0, 0
         while True:
+            if at >= len(data):
+                raise ValueError("truncated fuzz frame")
             byte = data[at]
             at += 1
             size |= (byte & 0x7F) << shift
             shift += 7
             if not byte & 0x80:
                 break
+        if at + size > len(data):
+            raise ValueError("truncated fuzz frame")
         parts.append(data[at : at + size])
         at += size
     return tuple(parts)
@@ -158,8 +162,14 @@ def check(run: Callable[[Parts], None], refusals: tuple[type[BaseException], ...
 def fuzz(
     target: str, seeds: list[Parts], *, seed: int, iterations: int | None = None,
     seconds: float | None = None, on_crash: Callable[[str, Parts, str], None] | None = None,
+    watch: list[object] | None = None,
 ) -> Report:  # fmt: skip
-    """Mutate *seeds* through *target* until *iterations* or *seconds* run out."""
+    """Mutate *seeds* through *target* until *iterations* or *seconds* run out.
+
+    *watch*, when given, holds ``[started, parts]`` while an input runs (and
+    ``[None, None]`` between inputs) so a watchdog thread can save an input that
+    hangs; a hung reader cannot be interrupted from Python, only reported.
+    """
     from opentine._fuzz_targets import TARGETS
 
     spec = TARGETS[target]
@@ -176,8 +186,12 @@ def fuzz(
             return report
         parts = mutate(rng, rng.choice(seeds), pools)
         started = time.perf_counter()
+        if watch is not None:
+            watch[:] = [time.monotonic(), parts]
         trace = check(spec.run, spec.refusals, parts)
         elapsed = time.perf_counter() - started
+        if watch is not None:
+            watch[:] = [None, None]
         if trace is not None:
             report.crashes.append({"input": frame(parts).hex(), "trace": trace})
             if on_crash:
