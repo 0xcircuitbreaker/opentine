@@ -55,6 +55,9 @@ def test_the_nightly_workflow_is_scheduled_and_runs_every_stress_suite():
         "test_047_merge_queue.py::test_kill_9_workers_never_double_merge",
         "OPENTINE_STRESS_MQ_ENTRIES",
         "OPENTINE_STRESS_PRUNE_ROUNDS",
+        "OPENTINE_STRESS_GC_ROUNDS",
+        "tests/test_049_lock_nlink.py",
+        "tests/test_pack_race_0_17_1.py",
         "--junitxml",
     ):
         assert needle in stress, needle

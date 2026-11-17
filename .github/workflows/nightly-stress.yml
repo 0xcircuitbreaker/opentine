@@ -20,7 +20,9 @@ permissions:
 jobs:
   stress:
     # Concurrent ref writers, kill -9 writers, gc/prune under load (1,000 rounds),
-    # ref retry, and the merge-queue kill -9 chaos test at 64 entries.
+    # ref retry, the merge-queue kill -9 chaos test at 64 entries, and the gc/lock
+    # contention test (tests/stress/test_gc_lock_contention.py) with the Windows
+    # gc/lock regression tests, on every OS including Windows.
     name: Stress (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 150  # the 1,000-round prune race alone takes ~11 min on Linux
@@ -37,6 +39,8 @@ jobs:
       OPENTINE_STRESS_MQ_ENTRIES: "64"
       OPENTINE_STRESS_WORM_RACE_SEEDS: "1000"
       OPENTINE_STRESS_IMPORT_SEEDS: "200"
+      OPENTINE_STRESS_GC_WORKERS: "8"
+      OPENTINE_STRESS_GC_ROUNDS: "200"
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
@@ -60,6 +64,7 @@ jobs:
           uv run --locked pytest tests/stress tests/test_036_ref_retry.py
           tests/test_052_worm_race.py tests/test_052_tenant_import_atomic.py
           "tests/test_047_merge_queue.py::test_kill_9_workers_never_double_merge"
+          tests/test_049_lock_nlink.py tests/test_pack_race_0_17_1.py tests/test_winretry_0_13.py
           -v --durations=10 --junitxml "results/stress-${{ matrix.os }}.xml"
 
       - name: Keep results
