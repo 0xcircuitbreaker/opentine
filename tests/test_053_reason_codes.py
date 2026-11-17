@@ -80,3 +80,9 @@ def test_a_refusal_is_named_by_operation_and_message(op: str, message: str, code
 
 def test_an_unknown_refusal_stays_unnamed_rather_than_guessed() -> None:
     assert reason_for("envelope.decode", ValueError("something new")) is None
+
+
+@pytest.mark.parametrize("exc", [TypeError("x"), KeyError("fleet_id"), AttributeError("y")])
+def test_a_programming_error_is_never_named_as_a_refusal(exc: BaseException) -> None:
+    assert reason_for("fleet.verify", exc) is None
+    assert getattr(name_refusal("fleet.verify", exc), "code", None) is None

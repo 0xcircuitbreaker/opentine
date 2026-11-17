@@ -131,6 +131,17 @@ _RULES: tuple[tuple[str, str, str], ...] = (
     ("sealed6.", r"", "sealed6.malformed"),
 )
 
+#: Exception types that signal a bug in the reader, not a refusal of the input.
+_BUGS = (
+    TypeError,
+    KeyError,
+    AttributeError,
+    IndexError,
+    AssertionError,
+    RecursionError,
+    MemoryError,
+)
+
 _COMPILED = tuple((prefix, re.compile(pattern), code) for prefix, pattern, code in _RULES)
 
 
@@ -139,6 +150,8 @@ def reason_for(op: str, exc: BaseException) -> str | None:
     code = getattr(exc, "code", None)
     if isinstance(code, str):
         return code
+    if isinstance(exc, _BUGS) and not isinstance(exc, ValueError):
+        return None  # a programming error is never a refusal, so never named as one
     message = str(exc)
     for prefix, pattern, candidate in _COMPILED:
         if op.startswith(prefix) and pattern.search(message):

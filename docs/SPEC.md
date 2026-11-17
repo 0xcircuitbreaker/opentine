@@ -3008,9 +3008,11 @@ is not importable — `unavailable-offline`, never a pass),
 `dataset.run` (one per run of a dataset or evidence folder).
 
 **Every refusal names its code (0.53).** A refusal of a reader or verifier
-operation carries the reason code the conformance suite pins for it: the
-Python reference attaches it as `exc.code` (`opentine/_refusal_codes.py` names
-the refusals of the frozen kernel by operation and message), and where the
+operation carries the reason code the conformance suite pins for it. The
+Python reference names it with `opentine/_refusal_codes.py` (by operation and
+message, since the frozen kernel's messages are terse); the conformance adapter
+attaches it as `exc.code`, and a programming error (`TypeError`, `KeyError`,
+...) is never named as a refusal. Where the
 reference cannot tell two rules apart the code is a member of the published
 alias group. `scripts/check_parity.py --reasons` fails on any unnamed Python
 refusal across the pinned set.
