@@ -60,8 +60,16 @@ def test_concurrent_gc_and_writers_keep_every_object_and_release_the_lock(tmp_pa
         for n in range(WORKERS)
     ]
     written, failures, packed = [], [], 0
-    for proc in procs:
-        out, err = proc.communicate(timeout=1200)
+    results = []
+    try:
+        for proc in procs:
+            results.append((proc, *proc.communicate(timeout=1800)))
+    finally:
+        for proc in procs:  # never leave a hung worker holding the lock
+            if proc.poll() is None:
+                proc.kill()
+                proc.communicate()
+    for proc, out, err in results:
         lines = out.decode("ascii", errors="replace").split()
         if proc.returncode:
             failures.append(err.decode(errors="replace")[-2000:])

@@ -82,7 +82,11 @@ def render(report: dict) -> str:
         best = min(rows, key=lambda k: rows[k]["bytes"])
         full = rows.get("full", rows[best])["bytes"]
         size = rows[best]["bytes"]
-        out.append(f"- {label}: `{best}` ({size:,} bytes, {full / size:.2f}x smaller than `full`)")
+        if best == "full":
+            out.append(f"- {label}: `full` ({size:,} bytes); no delta or CDC form is smaller")
+        else:
+            ratio = f"{full / size:.2f}x smaller than `full`"
+            out.append(f"- {label}: `{best}` ({size:,} bytes, {ratio})")
     out += [
         "",
         "The 0.40 corpus caveat still applies: no consented real-user corpus exists, so the",

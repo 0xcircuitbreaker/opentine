@@ -58,6 +58,8 @@ def test_the_nightly_workflow_is_scheduled_and_runs_every_stress_suite():
         "OPENTINE_STRESS_GC_ROUNDS",
         "tests/test_049_lock_nlink.py",
         "tests/test_pack_race_0_17_1.py",
+        "tests/test_winretry_0_13.py",
+        "OPENTINE_STRESS_GC_WORKERS",
         "--junitxml",
     ):
         assert needle in stress, needle
