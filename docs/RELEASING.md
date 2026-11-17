@@ -180,6 +180,44 @@ upload different bytes under the same version.
   the criterion asks only that it be published, so it counts as met; maintainer
   and counsel review of its wording is still advisable before 1.0.
 
+## The 72-hour fuzz run (0.53, criterion 1)
+
+`scripts/fuzz.py` fuzzes every reader that takes untrusted bytes, one target
+each: `otlp-spans` and `otlp-logs` (OTLP protobuf ingest), `tine` (`.tine`
+v4/v5, plain or TINEZ1, then `verify_integrity`), `pack` (TINEPACK3/4/5 wire
+packs), `localpack` (storage-v3 `.tidx`/`.tpk` with codec-3 dictionaries) and
+`dsse` (the in-toto run attestation and `replay/v1` DSSE verifiers). Seeds are
+the conformance vectors (`docs/conformance/vectors`), the `.tine` fixtures,
+TINEPACK4/5 re-spellings of the vector packs and the triaged regressions. The
+oracle: an input reads, or is refused with the reader's documented error
+(`ValueError` and kin, `RecursionError`); any other exception, or an input
+slower than 5 s, is a crash.
+
+- **CI (bounded).** The `fuzz-otlp` job in `ci.yml` runs
+  `scripts/fuzz.py --iterations 20000` (per target, seeded by the run id)
+  after the OTLP run, inside the job's `timeout-minutes: 30`; the suite runs
+  a few hundred inputs per target (`tests/test_053_fuzz_harness.py`).
+- **The human run (72 h).** On a dedicated machine, from a clean checkout of
+  the release candidate:
+
+  ```bash
+  uv sync --locked --all-extras
+  OPENTINE_FUZZ_HOURS=72 uv run python scripts/fuzz.py --seed "$(date +%s)" \
+      --report-every 600 --crashes fuzz-crashes 2>&1 | tee fuzz-72h.log
+  uv run python scripts/fuzz_otlp.py --atheris --hours 72  # optional: coverage-guided OTLP, if atheris is installed
+  ```
+
+  The targets take turns of `--report-every` seconds, so each gets an equal
+  share and the log has a line per turn. The run passes when it exits 0 after
+  the full 72 hours; keep the log and the seed with the release evidence.
+- **Crash triage.** Each crash is `fuzz-crashes/<target>/<sha256[:16]>.bin`
+  (a multi-part `localpack` input is framed, `TINEFUZZ1`) with the traceback
+  (or `slow`) in the `.txt` beside it. Reproduce with
+  `python scripts/fuzz.py --reproduce fuzz-crashes/<target>/<name>.bin`, fix the
+  reader so the input is refused with its documented error, and commit the
+  `.bin` under `tests/fuzz_regressions/<target>/`: the suite replays every
+  file there and the fuzzer seeds from it.
+
 ## Standing release gates (0.51)
 
 Every push to `main` produces evidence for each standing 1.0 gate:
