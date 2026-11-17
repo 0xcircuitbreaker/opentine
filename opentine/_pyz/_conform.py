@@ -164,8 +164,8 @@ def answer(
 ) -> dict:
     """The pyz's answer to one case; ``KeyError`` for an op it does not answer here.
 
-        *keys* maps the names of ``docs/conformance/keys.json`` to key bytes, for
-        the ``sig.*`` ops a case names a key in. A refusal carries its reason code
+    *keys* maps the names of ``docs/conformance/keys.json`` to key bytes, for
+    the ``sig.*`` ops a case names a key in. A refusal carries its reason code
     as ``exc.code`` (:mod:`._reasons`).
     """
     handler = KEYED.get(op)

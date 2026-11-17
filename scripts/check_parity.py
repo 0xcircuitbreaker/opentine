@@ -21,6 +21,7 @@ disagreement.
     python scripts/check_parity.py            # python + pyz (+ ts when built)
     python scripts/check_parity.py --require-ts
     python scripts/check_parity.py --require-ts --reasons   # every refusal names its pinned code
+    python scripts/check_parity.py --require-ts --reasons=pyz,ts   # only those columns
 
 Exits 1 on any disagreement or gap, 2 when ``--require-ts`` is given and the
 TS build is missing. Offline; needs node only for the TS column.
@@ -124,7 +125,7 @@ def _ts_rows() -> dict[str, dict] | None:
     return {row["id"]: row for row in rows}
 
 
-def run(require_ts: bool = False, reasons: bool = False) -> int:
+def run(require_ts: bool = False, reasons: bool | frozenset = False) -> int:
     records, groups, keys = _records(), _alias_groups(), _keys()
     ts = _ts_rows()
     if ts is None and require_ts:
@@ -133,7 +134,7 @@ def run(require_ts: bool = False, reasons: bool = False) -> int:
     storage = set(inventory.STORAGE)
     tally: dict[str, Counter] = {}
     problems: list[str] = []
-    why = ReasonTally()
+    why = ReasonTally(reasons if isinstance(reasons, frozenset) else None)
     with _built_pyz() as conform:
         for family in families():
             name = family.filename.removesuffix(".json")
@@ -207,6 +208,7 @@ def run(require_ts: bool = False, reasons: bool = False) -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(
-        run(require_ts="--require-ts" in sys.argv[1:], reasons="--reasons" in sys.argv[1:])
-    )
+    argv = sys.argv[1:]
+    picked = [a.split("=", 1)[1] for a in argv if a.startswith("--reasons=")]
+    want: bool | frozenset = frozenset(",".join(picked).split(",")) if picked else False
+    raise SystemExit(run(require_ts="--require-ts" in argv, reasons=want or "--reasons" in argv))

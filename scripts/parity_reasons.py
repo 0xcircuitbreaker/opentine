@@ -4,7 +4,8 @@ Verdict parity lets a refusal that names no code pass. With ``--reasons`` every
 refusal of a pinned ``reject`` case must name a reason code, in each of the
 python reference, the built pyz and the TS verifier, and that code must be the
 pinned one (or a member of its alias group). An unnamed refusal and a
-mismatched code are both problems.
+mismatched code are both problems; ``--reasons=pyz,ts`` counts only those
+columns (the others are still tallied).
 """
 
 from __future__ import annotations
@@ -23,7 +24,9 @@ def allowed(record: dict, groups) -> set[str]:
 class ReasonTally:
     """Counts unnamed refusals and reason mismatches per implementation."""
 
-    def __init__(self) -> None:
+    def __init__(self, only=None) -> None:
+        #: the implementations whose problems count (``None``: all three)
+        self.only = only
         self.unnamed: Counter = Counter()
         self.mismatch: Counter = Counter()
         self.checked: Counter = Counter()
@@ -35,11 +38,15 @@ class ReasonTally:
         self.checked[impl] += 1
         if not code:
             self.unnamed[impl] += 1
-            self.problems.append(f"{impl} unnamed refusal: {record['id']}")
+            self._problem(impl, f"{impl} unnamed refusal: {record['id']}")
         elif code not in allowed(record, groups):
             self.mismatch[impl] += 1
             want = record.get("reason") or record.get("reason_any")
-            self.problems.append(f"{impl} reason mismatch: {record['id']}: {code} != {want}")
+            self._problem(impl, f"{impl} reason mismatch: {record['id']}: {code} != {want}")
+
+    def _problem(self, impl: str, text: str) -> None:
+        if self.only is None or impl in self.only:
+            self.problems.append(text)
 
     def summary(self) -> str:
         parts = [
