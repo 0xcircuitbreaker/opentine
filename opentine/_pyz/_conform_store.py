@@ -25,9 +25,11 @@ _MAX_SAFE_INTEGER = 2**53 - 1
 
 
 def _meter(value: Any, label: str, *, nonnegative: bool = True) -> None:
+    if isinstance(value, str) and len(value) > 128:
+        refusal = kernel.KernelError(f"{label} must be finite and non-negative")
+        refusal.code = "metrics.meter-too-long"  # type: ignore[attr-defined]
+        raise refusal
     try:
-        if isinstance(value, str) and len(value) > 128:
-            raise InvalidOperation
         number = Decimal(str(value))
     except (InvalidOperation, ValueError) as exc:
         raise kernel.KernelError(f"{label} must be finite and non-negative") from exc

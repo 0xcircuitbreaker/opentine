@@ -20,7 +20,7 @@ disagreement.
 
     python scripts/check_parity.py            # python + pyz (+ ts when built)
     python scripts/check_parity.py --require-ts
-    python scripts/check_parity.py --reasons  # a Python refusal must name its code (0.53)
+    python scripts/check_parity.py --require-ts --reasons   # every refusal names its pinned code
 
 Exits 1 on any disagreement or gap, 2 when ``--require-ts`` is given and the
 TS build is missing. Offline; needs node only for the TS column.
@@ -46,6 +46,9 @@ from opentine._pyz_build import build_bytes  # noqa: E402
 from tests import freeze_inventory as inventory  # noqa: E402
 from tests.conformance.engine import canonical_output, observe, op_input  # noqa: E402
 from tests.conformance.generate import families  # noqa: E402
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from parity_reasons import ReasonTally  # noqa: E402
 
 SUITE = ROOT / "docs" / "conformance"
 TS_PARITY = ROOT / "ts" / "verifier" / "dist" / "src" / "parity.js"
@@ -130,6 +133,7 @@ def run(require_ts: bool = False, reasons: bool = False) -> int:
     storage = set(inventory.STORAGE)
     tally: dict[str, Counter] = {}
     problems: list[str] = []
+    why = ReasonTally()
     with _built_pyz() as conform:
         for family in families():
             name = family.filename.removesuffix(".json")
@@ -143,10 +147,9 @@ def run(require_ts: bool = False, reasons: bool = False) -> int:
                     record, seen.disposition != "reject", seen.output, code, groups
                 )
                 counts["python"] += ok
+                why.see("python", record, groups, seen.disposition == "reject", code)
                 if not ok:
                     problems.append(f"python disagrees: {case.id}")
-                elif reasons and record["expect"] == "reject" and code is None:
-                    problems.append(f"python unnamed refusal: {case.id}")
                 answers = case.op in conform.OPS or case.op in conform.KEYED
                 if case.profile != "writer" and name not in storage:
                     if not answers:
@@ -158,8 +161,10 @@ def run(require_ts: bool = False, reasons: bool = False) -> int:
                                 case.op, payload.raw, payload.value, case.args, keys
                             )
                             ok = _agrees(record, True, out, None, groups)
+                            why.see("pyz", record, groups, False, None)
                         except Exception as exc:  # noqa: BLE001 -- a refusal is the answer
                             code = getattr(exc, "code", None)
+                            why.see("pyz", record, groups, True, code)
                             ok = not isinstance(exc, CRASHES) and _agrees(
                                 record, False, None, code, groups
                             )
@@ -174,6 +179,8 @@ def run(require_ts: bool = False, reasons: bool = False) -> int:
                         problems.append(f"ts gap: {case.id} ({case.op})")
                     elif row["status"] != "skip":
                         good = row["status"] == "pass"
+                        refused = row.get("refused", good and record["expect"] == "reject")
+                        why.see("ts", record, groups, refused, row["reason"])
                         if good and record["expect"] == "reject" and row["reason"]:
                             good = _agrees(record, False, None, row["reason"], groups)
                         counts["ts"] += good
@@ -190,6 +197,9 @@ def run(require_ts: bool = False, reasons: bool = False) -> int:
     ts_total = f"{total['ts']}/{total['ts_cases']}" if ts is not None else "not built"
     print(f"total: {total['cases']} cases  python {total['python']}  "
           f"pyz {total['pyz']}/{total['pyz_cases']}  ts {ts_total}")  # fmt: skip
+    if reasons:
+        print(why.summary())
+        problems.extend(why.problems)
     for line in problems:
         print(line, file=sys.stderr)
     print(f"parity: {'FAIL' if problems else 'ok'} ({len(problems)} disagreement(s) or gap(s))")
@@ -197,5 +207,6 @@ def run(require_ts: bool = False, reasons: bool = False) -> int:
 
 
 if __name__ == "__main__":
-    flags = sys.argv[1:]
-    raise SystemExit(run(require_ts="--require-ts" in flags, reasons="--reasons" in flags))
+    raise SystemExit(
+        run(require_ts="--require-ts" in sys.argv[1:], reasons="--reasons" in sys.argv[1:])
+    )

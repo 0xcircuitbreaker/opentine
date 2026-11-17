@@ -160,6 +160,13 @@ What the review changed (no kind and no format was added):
   and `tine-cost-statement/1`. SPEC 8.24 and 8.25 now document the last two.
 - `scripts/check_parity.py` and the CI job `parity` fail on any disagreement or
   any unanswered case between the three implementations.
+- 0.53: `scripts/check_parity.py --reasons` (also run by the `parity` job)
+  fails on any refusal of a pinned reject case that names no reason code, or
+  names one outside the pinned code's alias group, in any of the three. The
+  pyz names the code of a refusal raised by a module it vendors verbatim
+  (`kernel`, `_agent_identity`) through `_pyz/_reasons.py`, without changing
+  that module; the browser verifier refuses a wrapped file with the CLI's
+  reason text and carries its code as `integrity.code`.
 
 What the vectors do not cover, recorded rather than hidden:
 

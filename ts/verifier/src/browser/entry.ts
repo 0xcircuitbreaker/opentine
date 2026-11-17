@@ -9,13 +9,16 @@
  * (`verified-tofu`) and an HMAC one cannot be checked (`no-key`). With one
  * (0.51, `openTrustBundle`, SPEC 8.26) its pinned fingerprints apply: a pinned
  * key reads `verified`, any other `mismatch`, as `tine verify --pin` does. A zlib-wrapped file is inflated here first, with
- * `DecompressionStream`, under the same declared-length rule as the reader.
+ * `DecompressionStream`, under the reader's header, ratio and declared-length
+ * rules; since 0.53 a refusal reads the CLI's reason text and carries its
+ * reason code (`integrity.code`).
  * Since 0.51 `verifyBundle(blobSource(file))` checks a `tine bundle` file as
  * `tine bundle verify` does, streamed with `Blob.slice`, and `verifyRecord`
  * checks one signed record by its kind.
  */
 
-import { isWrapped, MAGIC, MAX_TINE_ARTIFACT_BYTES, readUvarint } from "../codec.js";
+import { isWrapped, MAGIC, wrapHeader } from "../codec.js";
+import { TineError } from "../errors.js";
 import type { TrustBundle } from "../trustbundle.js";
 import { verifyBytes, type Report } from "../verify.js";
 
@@ -39,31 +42,38 @@ interface Streams {
   };
 }
 
-/** The inflated body of a codec-1 (zlib) wrapped file; `null` when *raw* is not one. */
+/**
+ * The inflated body of a codec-1 (zlib) wrapped file; `null` when *raw* is not one.
+ * Every refusal is the CLI's (`unwrap`): the same message and reason code.
+ */
 async function inflated(raw: Uint8Array): Promise<Uint8Array | null> {
   if (!isWrapped(raw) || raw.length <= MAGIC.length || raw[MAGIC.length] !== 1) return null;
-  const [size, offset] = readUvarint(raw, MAGIC.length + 1);
-  if (size > MAX_TINE_ARTIFACT_BYTES) throw new Error("compressed body declares more bytes than the reader allows");
+  const { size, frame } = wrapHeader(raw);
   const Stream = (globalThis as unknown as Streams).DecompressionStream;
-  if (!Stream) throw new Error("this browser cannot inflate zlib");
+  if (!Stream) throw new TineError("this browser cannot inflate zlib", "codec.unsupported");
   const stream = new Stream("deflate");
   const writer = stream.writable.getWriter();
-  void writer.write(raw.subarray(offset)).then(() => writer.close()).catch(() => undefined);
+  void writer.write(frame).then(() => writer.close()).catch(() => undefined);
   const out = new Uint8Array(size);
   let at = 0;
   const reader = stream.readable.getReader();
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    if (at + value.length > size) {
-      await reader.cancel();
-      throw new Error("compressed body does not match its declared length");
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (at + value.length > size) {
+        await reader.cancel();
+        throw new TineError("compressed body is corrupt", "codec.corrupt");
+      }
+      out.set(value, at);
+      at += value.length;
     }
-    out.set(value, at);
-    at += value.length;
+  } catch (exc) {
+    if (exc instanceof TineError) throw exc;
+    throw new TineError("compressed body is corrupt", "codec.corrupt");
   }
-  if (at !== size) throw new Error("compressed body does not match its declared length");
-  if (isWrapped(out)) throw new Error("nested compression is not allowed");
+  if (at !== size) throw new TineError("compressed body does not match its declared length", "codec.corrupt");
+  if (isWrapped(out)) throw new TineError("nested compression is not allowed", "codec.malformed");
   return out;
 }
 
@@ -80,7 +90,7 @@ export async function verifyArtifact(raw: Uint8Array, name = "artifact", trust?:
       ok: false,
       format: null,
       root: null,
-      integrity: { ok: false, reason: (exc as Error).message },
+      integrity: { ok: false, reason: (exc as Error).message, ...(exc instanceof TineError ? { code: exc.code } : {}) },
       signature: null,
     };
   }

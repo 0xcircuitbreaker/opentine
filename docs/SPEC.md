@@ -2827,8 +2827,9 @@ storage set that remains outside the pyz is refs, reflogs, shallow files, the
 repository layout and config, and packs (families 16, 22, 24, 26-29, 99):
 repository internals a verifier of exported files never opens; the TS
 verifier answers them. `scripts/check_parity.py` runs the reference, the TS
-verifier and the built pyz on every case and fails on any disagreement. The
-frozen list and the review result are `docs/FREEZE.md`.
+verifier and the built pyz on every case and fails on any disagreement; with
+`--reasons` (0.53) it also fails on a refusal that names no reason code or the
+wrong one. The frozen list and the review result are `docs/FREEZE.md`.
 
 ---
 

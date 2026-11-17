@@ -156,6 +156,10 @@ jobs:
       - name: Compare every case across the three implementations
         run: uv run python scripts/check_parity.py --require-ts
 
+      # 0.53: every refusal names its pinned reason code in all three, and the codes agree.
+      - name: Compare the reason code of every refusal
+        run: uv run python scripts/check_parity.py --require-ts --reasons
+
   leave-service:
     # 0.50 (ROADMAP "leave the hosted service"): export a tenant from one tine serve,
     # import it into a fresh one and into a local repository, and get the same
