@@ -57,6 +57,7 @@ def _otlp(route: str) -> list[Parts]:
 
 def _tine(root: Path) -> list[Parts]:
     from opentine import _codec
+    from opentine._artifact_io import parse_artifact_json
     from opentine._format_v4 import is_v4_artifact
     from opentine._tine_v5 import to_v5
     from opentine.kernel import canonical_json
@@ -67,8 +68,8 @@ def _tine(root: Path) -> list[Parts]:
             continue
         raw = path.read_bytes()
         try:
-            data = json.loads(raw)
-        except ValueError:
+            data = parse_artifact_json(raw)
+        except (ValueError, RecursionError):
             continue
         if is_v4_artifact(data):
             out += [(raw,), (canonical_json(to_v5(data)),)]
