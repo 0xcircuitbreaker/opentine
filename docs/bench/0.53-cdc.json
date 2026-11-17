@@ -1,0 +1,210 @@
+{
+  "autopack_gate": {
+    "p95_ratio": 1.18,
+    "passes": true,
+    "with": {
+      "calls": 10,
+      "p50_s": 0.103,
+      "p95_s": 1.711,
+      "pack_bytes": 897553
+    },
+    "without": {
+      "calls": 10,
+      "p50_s": 0.091,
+      "p95_s": 1.453,
+      "pack_bytes": 894798
+    }
+  },
+  "block_mib": 16,
+  "command": "uv run python scripts/bench/cdc_bakeoff.py",
+  "corpora": {
+    "fixtures": {
+      "bpd+cdc-8k": {
+        "access_p50_ms": 0.123,
+        "access_p95_ms": 0.217,
+        "bytes": 17806,
+        "encode_cpu_s": 0.029,
+        "ratio": 9.91
+      },
+      "bpd-middle": {
+        "access_p50_ms": 0.121,
+        "access_p95_ms": 0.206,
+        "bytes": 11162,
+        "encode_cpu_s": 0.029,
+        "ratio": 15.81
+      },
+      "bpd-patchfrom": {
+        "access_p50_ms": 0.129,
+        "access_p95_ms": 0.73,
+        "bytes": 18335,
+        "encode_cpu_s": 0.03,
+        "ratio": 9.63
+      },
+      "cdc-2k": {
+        "access_p50_ms": 0.111,
+        "access_p95_ms": 0.154,
+        "bytes": 15643,
+        "encode_cpu_s": 0.037,
+        "ratio": 11.28
+      },
+      "cdc-64k": {
+        "access_p50_ms": 0.114,
+        "access_p95_ms": 0.16,
+        "bytes": 14140,
+        "encode_cpu_s": 0.026,
+        "ratio": 12.48
+      },
+      "cdc-8k": {
+        "access_p50_ms": 0.116,
+        "access_p95_ms": 0.161,
+        "bytes": 14140,
+        "encode_cpu_s": 0.03,
+        "ratio": 12.48
+      },
+      "full": {
+        "access_p50_ms": 0.113,
+        "access_p95_ms": 0.14,
+        "bytes": 7496,
+        "encode_cpu_s": 0.025,
+        "ratio": 23.55
+      },
+      "logical_bytes": 176521,
+      "objects": 151
+    },
+    "growth": {
+      "bpd+cdc-8k": {
+        "access_p50_ms": 1.679,
+        "access_p95_ms": 3.012,
+        "bytes": 344717,
+        "encode_cpu_s": 4.276,
+        "ratio": 394.2
+      },
+      "bpd-middle": {
+        "access_p50_ms": 3.129,
+        "access_p95_ms": 4.656,
+        "bytes": 273248,
+        "encode_cpu_s": 3.36,
+        "ratio": 497.31
+      },
+      "bpd-patchfrom": {
+        "access_p50_ms": 1.044,
+        "access_p95_ms": 2.804,
+        "bytes": 1338025,
+        "encode_cpu_s": 20.085,
+        "ratio": 101.56
+      },
+      "cdc-2k": {
+        "access_p50_ms": 1.702,
+        "access_p95_ms": 2.002,
+        "bytes": 2350480,
+        "encode_cpu_s": 16.588,
+        "ratio": 57.81
+      },
+      "cdc-64k": {
+        "access_p50_ms": 4.618,
+        "access_p95_ms": 6.952,
+        "bytes": 498186,
+        "encode_cpu_s": 15.6,
+        "ratio": 272.77
+      },
+      "cdc-8k": {
+        "access_p50_ms": 2.644,
+        "access_p95_ms": 2.998,
+        "bytes": 787440,
+        "encode_cpu_s": 15.738,
+        "ratio": 172.57
+      },
+      "full": {
+        "access_p50_ms": 3.89,
+        "access_p95_ms": 4.801,
+        "bytes": 999069,
+        "encode_cpu_s": 3.161,
+        "ratio": 136.01
+      },
+      "logical_bytes": 135887809,
+      "objects": 1000
+    },
+    "synthetic": {
+      "bpd+cdc-8k": {
+        "access_p50_ms": 3.361,
+        "access_p95_ms": 3.88,
+        "bytes": 932128,
+        "encode_cpu_s": 13.971,
+        "ratio": 161.66
+      },
+      "bpd-middle": {
+        "access_p50_ms": 4.817,
+        "access_p95_ms": 6.274,
+        "bytes": 1860072,
+        "encode_cpu_s": 7.953,
+        "ratio": 81.01
+      },
+      "bpd-patchfrom": {
+        "access_p50_ms": 4.74,
+        "access_p95_ms": 6.394,
+        "bytes": 2890720,
+        "encode_cpu_s": 15.883,
+        "ratio": 52.13
+      },
+      "cdc-2k": {
+        "access_p50_ms": 2.311,
+        "access_p95_ms": 2.879,
+        "bytes": 2782914,
+        "encode_cpu_s": 19.919,
+        "ratio": 54.15
+      },
+      "cdc-64k": {
+        "access_p50_ms": 4.941,
+        "access_p95_ms": 18.71,
+        "bytes": 797422,
+        "encode_cpu_s": 18.295,
+        "ratio": 188.97
+      },
+      "cdc-8k": {
+        "access_p50_ms": 3.634,
+        "access_p95_ms": 4.774,
+        "bytes": 1063656,
+        "encode_cpu_s": 19.123,
+        "ratio": 141.67
+      },
+      "full": {
+        "access_p50_ms": 4.486,
+        "access_p95_ms": 4.818,
+        "bytes": 2363249,
+        "encode_cpu_s": 8.972,
+        "ratio": 63.76
+      },
+      "logical_bytes": 150688472,
+      "objects": 3479
+    }
+  },
+  "gc": {
+    "v1 (0.37 default)": {
+      "bytes": 15176365,
+      "ratio": 9.93,
+      "seconds": 32.09
+    },
+    "v3 (gc --upgrade)": {
+      "bytes": 2537536,
+      "ratio": 59.38,
+      "seconds": 11.03
+    },
+    "v3 + blob deltas": {
+      "bytes": 2034297,
+      "ratio": 74.07,
+      "seconds": 9.49
+    }
+  },
+  "gear_sha256": "1f8fd7bab0797d2d650fce4ab055238029c165d106ee274328f87dbb32f88cfa",
+  "level": 19,
+  "pinned": {
+    "block_mib": 16,
+    "level": 19,
+    "runs": 40,
+    "samples": 200,
+    "seed": 37,
+    "steps": 24
+  },
+  "python": "3.13.18",
+  "schema": "opentine-cdc-bakeoff/2"
+}

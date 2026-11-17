@@ -1,8 +1,15 @@
-"""The 0.40 CDC bake-off: BLOB_PREFIX_DELTA against FastCDC against both (ROADMAP §4).
+"""The CDC bake-off: BLOB_PREFIX_DELTA against FastCDC against both (ROADMAP §4).
 
 Usage::
 
-    uv run python scripts/bench/cdc_bakeoff.py [--runs 40] [--steps 24] [--out report.json]
+    uv run python scripts/bench/cdc_bakeoff.py [--out cdc.json] [--markdown docs/bench/0.53-cdc.md]
+
+0.53: the FastCDC rows use the gear table stored data uses
+(``opentine.remote._fastcdc._GEAR``), pinned by ``GEAR_SHA256``. The 0.40 script
+drew every entry from a fresh ``random.Random(40)``, so all 256 were equal and
+its ``cdc-*`` rows were void. Every input (seed, runs, steps, level, block size,
+samples) defaults to the pinned value, and ``--markdown`` renders the page from
+the report (``cdc_report.py``) so no number is edited by hand.
 
 Corpora:
 
@@ -35,6 +42,7 @@ import argparse
 import hashlib
 import json
 import os
+import platform
 import random
 import sys
 import tempfile
@@ -46,6 +54,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from opentine._codec import _zstd  # noqa: E402
 from opentine.kernel import canonical_json  # noqa: E402
+from opentine.remote._fastcdc import _GEAR  # noqa: E402
 from opentine.repository import Repo  # noqa: E402
 from opentine.repository import _blob_delta as bd  # noqa: E402
 from opentine.repository._pack_v3 import stored_forms  # noqa: E402
@@ -53,8 +62,20 @@ from opentine.repository._run_delta import split  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 REF_BYTES = 36  # sha256 + u32 length per chunk reference in a recipe
-_GEAR = [random.Random(40).getrandbits(64) for _ in range(256)]
 _M64 = (1 << 64) - 1
+#: SHA-256 of the gear table as 256 big-endian u64: one ``random.Random(49)``.
+GEAR_SHA256 = "1f8fd7bab0797d2d650fce4ab055238029c165d106ee274328f87dbb32f88cfa"
+PINNED = {"seed": 37, "runs": 40, "steps": 24, "level": 19, "block_mib": 16, "samples": 200}
+
+
+def gear_digest(gear=_GEAR) -> str:
+    return hashlib.sha256(b"".join(g.to_bytes(8, "big") for g in gear)).hexdigest()
+
+
+def check_gear() -> None:
+    """Refuse to bench with a gear table other than the one stored data uses."""
+    if len(set(_GEAR)) != 256 or gear_digest() != GEAR_SHA256:
+        raise SystemExit("gear table does not match the pinned digest; refusing to bench")
 
 
 # --- FastCDC ----------------------------------------------------------------
@@ -316,9 +337,11 @@ def synthetic(work: Path, args) -> tuple[list[tuple[str, bytes]], list[tuple[str
 
 
 def _all_oids(repo: Repo) -> list[str]:
-    from opentine.repository._gc import _loose_oids
+    """Every object, loose and packed (0.53: ``put_run`` writes packs since 0.4x,
+    so the 0.40 loose-only listing silently dropped every run object)."""
+    from opentine.repository._objects import iter_object_oids
 
-    return _loose_oids(repo)
+    return iter_object_oids(repo.path)
 
 
 def fixtures(work: Path) -> list[tuple[str, bytes]]:
@@ -407,15 +430,13 @@ def autopack_gate(work: Path, args) -> dict:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--seed", type=int, default=37)
-    parser.add_argument("--runs", type=int, default=40)
-    parser.add_argument("--steps", type=int, default=24)
-    parser.add_argument("--level", type=int, default=19)
-    parser.add_argument("--block-mib", type=int, default=16)
-    parser.add_argument("--samples", type=int, default=200)
+    for key, value in PINNED.items():
+        parser.add_argument("--" + key.replace("_", "-"), type=int, default=value)
     parser.add_argument("--only", nargs="*", choices=sorted(OPTIONS))
     parser.add_argument("--out", type=Path)
+    parser.add_argument("--markdown", type=Path, help="also render the report page here")
     args = parser.parse_args(argv)
+    check_gear()
     args.block = args.block_mib << 20
     os.environ["OPENTINE_AUTO_PACK"] = "off"
     with tempfile.TemporaryDirectory() as tmp:
@@ -425,9 +446,13 @@ def main(argv: list[str] | None = None) -> int:
         print("gc", json.dumps(gc_rows), file=sys.stderr, flush=True)
         gate = autopack_gate(Path(tmp), args)
         print("autopack", json.dumps(gate), file=sys.stderr, flush=True)
-    report: dict = {"schema": "opentine-cdc-bakeoff/1", "level": args.level,
-                    "block_mib": args.block_mib, "corpora": {}, "gc": gc_rows,
-                    "autopack_gate": gate}  # fmt: skip
+    pinned = {key: getattr(args, key) for key in PINNED}
+    flags = "".join(f" --{k.replace('_', '-')} {v}" for k, v in pinned.items() if v != PINNED[k])
+    report: dict = {"schema": "opentine-cdc-bakeoff/2", "level": args.level,
+                    "block_mib": args.block_mib, "pinned": pinned, "gear_sha256": gear_digest(),
+                    "python": platform.python_version(),
+                    "command": "uv run python scripts/bench/cdc_bakeoff.py" + flags,
+                    "corpora": {}, "gc": gc_rows, "autopack_gate": gate}  # fmt: skip
     for label, objects in corpora.items():
         logical = sum(len(raw) for _, raw in objects)
         rows = {name: measure(name, objects, args) for name in args.only or OPTIONS}
@@ -436,6 +461,10 @@ def main(argv: list[str] | None = None) -> int:
     text = json.dumps(report, indent=2, sort_keys=True)
     if args.out:
         args.out.write_text(text + "\n", encoding="utf-8")
+    if args.markdown:
+        from cdc_report import render
+
+        args.markdown.write_text(render(report), encoding="utf-8", newline="\n")
     print(text)
     return 0
 
