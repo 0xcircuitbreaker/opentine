@@ -20,6 +20,7 @@ disagreement.
 
     python scripts/check_parity.py            # python + pyz (+ ts when built)
     python scripts/check_parity.py --require-ts
+    python scripts/check_parity.py --reasons  # a Python refusal must name its code (0.53)
 
 Exits 1 on any disagreement or gap, 2 when ``--require-ts`` is given and the
 TS build is missing. Offline; needs node only for the TS column.
@@ -120,7 +121,7 @@ def _ts_rows() -> dict[str, dict] | None:
     return {row["id"]: row for row in rows}
 
 
-def run(require_ts: bool = False) -> int:
+def run(require_ts: bool = False, reasons: bool = False) -> int:
     records, groups, keys = _records(), _alias_groups(), _keys()
     ts = _ts_rows()
     if ts is None and require_ts:
@@ -144,6 +145,8 @@ def run(require_ts: bool = False) -> int:
                 counts["python"] += ok
                 if not ok:
                     problems.append(f"python disagrees: {case.id}")
+                elif reasons and record["expect"] == "reject" and code is None:
+                    problems.append(f"python unnamed refusal: {case.id}")
                 answers = case.op in conform.OPS or case.op in conform.KEYED
                 if case.profile != "writer" and name not in storage:
                     if not answers:
@@ -194,4 +197,5 @@ def run(require_ts: bool = False) -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(run(require_ts="--require-ts" in sys.argv[1:]))
+    flags = sys.argv[1:]
+    raise SystemExit(run(require_ts="--require-ts" in flags, reasons="--reasons" in flags))

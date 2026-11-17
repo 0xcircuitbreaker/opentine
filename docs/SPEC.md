@@ -2997,6 +2997,7 @@ Reason codes are dotted `area.detail` strings matching
 | timestamp (§8.6) | `timestamp.verified`, `timestamp.absent`, `timestamp.integrity-failed`, `timestamp.malformed`, `timestamp.bound-mismatch`, `timestamp.imprint-mismatch`, `timestamp.bad-signature`, `timestamp.unsupported-algorithm`, `timestamp.missing-eku`, `timestamp.outside-validity`, `timestamp.no-roots` (`unavailable-offline`), `timestamp.untrusted-root`, `timestamp.roots-unreadable`, `timestamp.revoked`, `timestamp.revocation-invalid` (0.50) |
 | delegation (§4.10) | `delegation.verified`, `delegation.unsigned`, and the chain codes of §4.10 |
 | offline | `offline.network-refused` — a check tried to open a connection and was refused; the run fails |
+| shape (§0.2) | `shape.not-utf8` (0.53) — a JSON body holding a NUL byte, so not UTF-8 text (a UTF-16/32 body); the TS verifier already named it |
 
 The minimal verifier adds codes for what only it reports:
 `signature.crypto-unavailable` (Ed25519 needs the `cryptography` package and it
@@ -3005,6 +3006,14 @@ is not importable — `unavailable-offline`, never a pass),
 `evidence.manifest-unreadable`, `evidence.custody-linked`,
 `evidence.custody-manifest-mismatch`, `evidence.custody-unreadable`, and
 `dataset.run` (one per run of a dataset or evidence folder).
+
+**Every refusal names its code (0.53).** A refusal of a reader or verifier
+operation carries the reason code the conformance suite pins for it: the
+Python reference attaches it as `exc.code` (`opentine/_refusal_codes.py` names
+the refusals of the frozen kernel by operation and message), and where the
+reference cannot tell two rules apart the code is a member of the published
+alias group. `scripts/check_parity.py --reasons` fails on any unnamed Python
+refusal across the pinned set.
 
 <a id="s-8.3"></a>
 ## 8.3 Datasets and the Merkle root

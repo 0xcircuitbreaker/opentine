@@ -33,6 +33,7 @@ from opentine._attest_view import signed_message as attest_message
 from opentine._canon import _canonical_bytes, _integrity_digest
 from opentine._graph_serde import verify_integrity
 from opentine._hash_tag import parse_oid as parse_hash_tagged
+from opentine._refusal_codes import name_refusal
 from opentine._signing_v4 import artifact_message as v4_artifact_message
 from opentine._signing_v4 import verify_artifact_v4
 from opentine._signing_verify import verify_block
@@ -306,3 +307,19 @@ OPS = {
     **keyless_ops.OPS,
     **docs_ops.OPS,
 }
+
+
+def _named(op: str, answer: Any) -> Any:
+    """``answer``, with every refusal it raises labelled with its pinned reason code."""
+
+    def run(inp: OpInput, args: dict[str, Any]) -> dict[str, Any]:
+        try:
+            return answer(inp, args)
+        except Exception as exc:
+            name_refusal(op, exc)
+            raise
+
+    return run
+
+
+OPS = {op: _named(op, answer) for op, answer in OPS.items()}
