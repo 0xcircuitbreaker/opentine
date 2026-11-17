@@ -281,6 +281,7 @@ may only shrink.
 
 **Deferred to 1.1 (decision D2, 2026-11-13).** No RFC 4998 bound form is added
 before 1.0: it would be a new bound form and would reopen the freeze while the
-audit is reading it. The caveat, which every compliance profile repeats:
-long-term timestamp renewal before 1.1 covers **up to 16 root-bound tokens; it
-is not a hash-tree renewal; it does not survive a SHA-256 break.**
+audit is reading it. The caveat on long-term timestamp renewal before 1.1,
+which every compliance profile under `docs/compliance/` repeats word for word:
+
+> up to 16 root-bound tokens; not a hash-tree renewal; does not survive a SHA-256 break.

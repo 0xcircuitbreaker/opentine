@@ -35,5 +35,11 @@ Also outstanding: the point numbers of definitions inserted into Art. 3 of
 have not been re-checked against the consolidated EUR-Lex text; counsel review
 should confirm them.
 
+**Long-term timestamps (RFC 4998 deferred to 1.1, decision D2).** No RFC 4998
+evidence record is produced before 1.1. Every profile here carries the caveat
+on timestamp renewal: up to 16 root-bound tokens; not a hash-tree renewal; does not survive a SHA-256 break. A requirement
+evidenced by `timestamp` or by six-month retention relies on the RFC 3161
+tokens and SHA-256 digests as they are; see FREEZE.md, "RFC 4998 evidence records".
+
 To record a counsel review: the reviewer's name, date and scope go in this
 file, and each reviewed profile's `counsel_review` becomes `recorded`.

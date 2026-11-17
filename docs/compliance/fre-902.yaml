@@ -1,6 +1,8 @@
 # OpenTine compliance profile: US Federal Rules of Evidence 902(13) and 902(14).
 # Draft, not legal advice, pending counsel review. Written in YAML's
 # JSON-compatible flow style so the standard library reads it (SPEC 12.5).
+# Long-term timestamp renewal before 1.1 (RFC 4998 deferred, decision D2):
+# up to 16 root-bound tokens; not a hash-tree renewal; does not survive a SHA-256 break.
 {
   "profile": "fre-902",
   "profile_version": 1,
@@ -38,7 +40,7 @@
       "text": "Evidence describing the process or system and showing that it produces an accurate result (corroboration of the capture path).",
       "scope": "in",
       "evidence": ["capture.independent", "timestamp"],
-      "note": "Assurance tier T2 or higher (a proxy witnessed the capture) and an RFC 3161 token corroborate when and how the record was made."
+      "note": "Assurance tier T2 or higher (a proxy witnessed the capture) and an RFC 3161 token corroborate when and how the record was made. Long-term timestamp renewal before 1.1 (RFC 4998 deferred to 1.1): up to 16 root-bound tokens; not a hash-tree renewal; does not survive a SHA-256 break."
     },
     {
       "id": "902-14.digital-identification",

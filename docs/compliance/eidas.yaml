@@ -1,6 +1,8 @@
 # OpenTine compliance profile: eIDAS electronic signatures, seals, time stamps, ledgers, archiving.
 # Draft, not legal advice, pending counsel review. Written in YAML's
 # JSON-compatible flow style so the standard library reads it (SPEC 12.5).
+# Long-term timestamp renewal before 1.1 (RFC 4998 deferred, decision D2):
+# up to 16 root-bound tokens; not a hash-tree renewal; does not survive a SHA-256 break.
 {
   "profile": "eidas",
   "profile_version": 1,
@@ -67,7 +69,7 @@
       "text": "An electronic time stamp shall not be denied legal effect and admissibility as evidence solely because it is electronic.",
       "scope": "in",
       "evidence": ["timestamp"],
-      "note": "An RFC 3161 token over the run, verified against --tsa-roots."
+      "note": "An RFC 3161 token over the run, verified against --tsa-roots. Long-term timestamp renewal before 1.1 (RFC 4998 deferred to 1.1): up to 16 root-bound tokens; not a hash-tree renewal; does not survive a SHA-256 break."
     },
     {
       "id": "art45k.1.electronic-ledger",
