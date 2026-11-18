@@ -114,7 +114,7 @@ def test_release_on_green_runs_only_after_ci_on_main_with_least_privilege():
     (job,) = data["jobs"].values()
     assert job["permissions"] == {"contents": "write", "actions": "write"}
     condition = job["if"]
-    assert "vars.AUTO_RELEASE == 'true'" in condition
+    assert "vars.AUTO_RELEASE != 'false'" in condition
     assert "github.event.workflow_run.conclusion == 'success'" in condition
     assert "github.event.workflow_run.event == 'push'" in condition
     assert "head_repository.full_name == github.repository" in condition
