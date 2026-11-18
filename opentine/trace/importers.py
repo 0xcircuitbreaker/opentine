@@ -22,7 +22,7 @@ from opentine.trace._import_helpers import mapping as _mapping
 from opentine.trace._import_helpers import timestamp as _timestamp
 from opentine.trace._otel_span_import import otel_genai_events as otel_genai_events
 from opentine.trace._provider_alias import canonical_provider
-from opentine.trace.schema import TraceEvent
+from opentine.trace.schema import TRACE_KINDS, TraceEvent
 
 MAX_TRACE_EVENTS = 100_000
 MAX_JSONL_LINE_BYTES = 16 * 1024 * 1024
@@ -51,6 +51,8 @@ def native_events(run) -> list[TraceEvent]:
             raise ValueError("trace import exceeds maximum event count")
         total = _consume(total, (step.inputs, step.outputs, step.usage, step.billing))
         kind = step.kind.value if step.kind.value in ("tool", "error") else "model"
+        if step.attributes and step.v3_kind in TRACE_KINDS:
+            kind = step.v3_kind  # an imported event exports as the kind it came in as
         events.append(
             TraceEvent(
                 kind=kind,
@@ -73,7 +75,12 @@ def native_events(run) -> list[TraceEvent]:
                 outputs=_exact(step.outputs),
                 usage=_exact(step.usage),
                 billing=_exact(step.billing),
-                attributes={"index": index, "legacy_kind": step.kind.value},
+                # An imported step's own attributes win over the two below.
+                attributes={
+                    "index": index,
+                    "legacy_kind": step.kind.value,
+                    **_exact(step.attributes),
+                },
             )
         )
     return events
