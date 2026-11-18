@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Signed promotion and eval statistics
+## 0.57.0 — Signed promotion and eval statistics (2026-11-18)
 
 - `tine eval compare A B --ci paired-bootstrap|permutation [--alpha] [--seed]
   [--resamples]` adds per-metric statistics (`score`, `pass_rate`): both means,
