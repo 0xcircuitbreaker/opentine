@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Measuring-stick integrity
+## 0.59.0 — Measuring-stick integrity (2026-11-18)
 
 - `.tine/protected.toml` names the protected surfaces of a self-improving
   agent loop (graders, tests, holdout manifests, sandbox policy, scorer code)
