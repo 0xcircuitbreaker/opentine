@@ -14,7 +14,8 @@ Evidence is ``{"vsa": [DSSE envelopes], "evals": [verdicts], "approvals":
 * **vsa** -- at least one envelope classifies ``valid`` for the candidate run
   under the pinned server key (:func:`opentine._vsa_verify.classify`).
 * **evals** -- every verdict about the candidate verifies, none failed, at
-  least ``min`` passed, each signed by a listed signer when ``signers`` is set.
+  least ``min`` passed, each signed by a listed signer when ``signers`` is set
+  (an empty list trusts no signer, so removing the last key never widens it).
 * **approvals** -- at least ``required`` distinct listed keys signed an
   ``approve`` for this run and target; one ``reject`` from a listed key blocks.
 
@@ -84,14 +85,14 @@ def _vsa(rule: dict[str, Any], rows: list[Any], run: str) -> tuple[list[str], li
 def _evals(rule: dict[str, Any], rows: list[Any], run: str) -> tuple[list[str], list[str]]:
     from opentine._eval_verdict import EvalVerdictError, verify
 
-    signers, passed, failures = rule.get("signers") or [], [], []
+    signers, passed, failures = rule.get("signers"), [], []  # [] trusts no signer
     for verdict in rows:
         try:
             found = verify(verdict)
         except EvalVerdictError as exc:
             failures.append(f"eval: {exc}")
             continue
-        if found["run"] != run or (signers and found["signer"] not in signers):
+        if found["run"] != run or (signers is not None and found["signer"] not in signers):
             continue
         if not found["passed"]:
             failures.append(f"eval: item {found['item']} failed")
