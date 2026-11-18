@@ -120,3 +120,27 @@ def test_the_exported_run_re_imports_to_the_same_kinds_models_and_usage(
     assert [(e.kind, e.model, e.provider, dict(e.usage)) for e in again] == [
         (e.kind, e.model, e.provider, dict(e.usage)) for e in first
     ]
+
+
+@pytest.mark.parametrize("key", ["input.value", "output.value", "custom.unmapped.note"])
+def test_a_secret_in_any_captured_attribute_is_redacted(tmp_path, monkeypatch, key):
+    monkeypatch.setattr(cli, "RUNS_DIR", tmp_path / ".tine_runs")
+    monkeypatch.chdir(tmp_path)
+    document = _document("langgraph")
+    for span in otel_spans(document):
+        span["attributes"] = [a for a in span["attributes"] if a["key"] != key]
+        span["attributes"].append({"key": key, "value": {"stringValue": f"use {SECRET}"}})
+    source = tmp_path / "source.json"
+    source.write_bytes(json.dumps(document).encode())
+    output = tmp_path / "out.tine"
+    try:
+        cli.main(["import", str(source), "--format", "otel-json", "--save", str(output)])
+    except SystemExit as exc:
+        assert not exc.code
+    artifact = read_artifact_json(output)
+    stored = [base64.b64decode(item["data"]) for item in artifact["objects"].values()
+              if item.get("encoding") == "raw"]  # fmt: skip
+    assert all(SECRET.encode() not in blob for blob in stored)
+    assert SECRET not in json.dumps(artifact)
+    exported = json.dumps([decoded(span) for span in to_otel_genai(Run.load(output))])
+    assert SECRET not in exported
