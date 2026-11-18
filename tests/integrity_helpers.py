@@ -92,6 +92,17 @@ def cases() -> list[dict]:
         ("windows-separators", [_t("evals\\graders\\judge.py", "write")], clean,
          [["fail:protected-surface-modified", GRADER]]),
         ("unobserved-pins", [], {}, []),
+        ("dotdot-escape", [_t("tests/../evals/graders/judge.py", "write")], clean,
+         [["fail:protected-surface-modified", GRADER]]),
+        ("case-variant", [_t("Evals/Graders/JUDGE.py", "write")], clean,
+         [["fail:protected-surface-modified", "Evals/Graders/JUDGE.py"]]),
+        ("list-edited-by-run", [_t(".tine/protected.toml", "write")], clean,
+         [["fail:protected-surface-modified", ".tine/protected.toml"]]),
+        ("key-roles-edited", [_t(".tine\\key-roles.toml", "write")], clean,
+         [["fail:protected-surface-modified", ".tine/key-roles.toml"]]),
+        ("taint-deleted", [_t(".tine/integrity/taints/ab.json", "delete")], clean,
+         [["fail:protected-surface-modified", ".tine/integrity/taints/ab.json"]]),
+        ("dotdot-above-root", [_t("../evals/graders/judge.py", "write")], clean, []),
         ("read-of-grader-is-fine", [_t(GRADER, "read")], clean, []),
     ]  # fmt: skip
     return [{"id": i, "observations": {"touched": t, "digests": d}, "expect": e}

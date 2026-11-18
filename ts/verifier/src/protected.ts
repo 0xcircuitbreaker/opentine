@@ -44,12 +44,22 @@ export interface ProtectedFinding {
 }
 
 export function normalize(path: string): string {
-  return path
-    .replace(/\\/g, "/")
-    .split("/")
-    .filter((p) => p !== "" && p !== ".")
-    .join("/");
+  const parts: string[] = [];
+  for (const part of path.replace(/\\/g, "/").split("/")) {
+    if (part === "" || part === ".") continue;
+    if (part === ".." && parts.length > 0 && parts[parts.length - 1] !== "..") parts.pop();
+    else parts.push(part);
+  }
+  return parts.join("/");
 }
+
+/** ASCII lower case, as `opentine._integrity.fold`. */
+export function fold(text: string): string {
+  return text.replace(/[A-Z]/g, (c) => c.toLowerCase());
+}
+
+/** Trust-root files: a write or delete on them is always a protected-surface fact. */
+export const CONTROL = [".tine/protected.toml", ".tine/key-roles.toml", ".tine/integrity/**"];
 
 function escape(ch: string): string {
   return /[A-Za-z0-9_]/.test(ch) ? ch : `\\u${ch.charCodeAt(0).toString(16).padStart(4, "0")}`;
@@ -81,12 +91,14 @@ export function globRegex(pattern: string): RegExp {
 }
 
 export function matches(pattern: string, path: string): boolean {
-  return globRegex(normalize(pattern)).test(normalize(path));
+  return globRegex(fold(normalize(pattern))).test(fold(normalize(path)));
 }
 
 export function surfacesOf(list: Protected, path: string): Surface[] {
-  const p = normalize(path);
-  return list.surfaces.filter((s) => p in s.pins || s.globs.some((g) => matches(g, p)));
+  const p = fold(normalize(path));
+  return list.surfaces.filter(
+    (s) => Object.keys(s.pins).some((k) => fold(k) === p) || s.globs.some((g) => matches(g, p)),
+  );
 }
 
 function cmp(a: string[], b: string[]): number {
@@ -116,6 +128,8 @@ export function checkProtected(list: Protected, observations: Observations): Pro
   for (const row of observations.touched ?? []) {
     const path = normalize(row.path);
     const step = String(row.step ?? "");
+    if ((row.op === "write" || row.op === "delete") && CONTROL.some((g) => matches(g, path)))
+      add(MODIFIED, "protected-list", path, `${row.op} tool call at step ${step}`);
     for (const surface of surfacesOf(list, path)) {
       if (row.op === "write" || row.op === "delete") add(MODIFIED, surface.name, path, `${row.op} tool call at step ${step}`);
       if (row.op === "delete" && surface.kind === "test") add(TEST_DELETED, surface.name, path, `test deleted at step ${step}`);

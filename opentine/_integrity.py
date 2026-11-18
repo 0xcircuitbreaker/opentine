@@ -43,6 +43,7 @@ _HEX = re.compile(r"[0-9a-f]{64}")
 _NAME = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}")
 MAX_SURFACES = 256
 MAX_PINS = 100_000
+_FOLD = str.maketrans("ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz")
 
 
 class ProtectedError(ValueError):
@@ -50,9 +51,29 @@ class ProtectedError(ValueError):
 
 
 def normalize(path: str) -> str:
-    """A repository-relative posix path: backslashes become ``/``, ``./`` and doubles go."""
-    parts = [p for p in path.replace("\\", "/").split("/") if p not in ("", ".")]
+    """A repository-relative posix path: ``\\`` is ``/``; ``.``, doubles and ``x/..`` go.
+
+    A ``..`` that climbs above the root is kept, so the path stays outside.
+    """
+    parts: list[str] = []
+    for part in path.replace("\\", "/").split("/"):
+        if part in ("", "."):
+            continue
+        if part == ".." and parts and parts[-1] != "..":
+            parts.pop()
+        else:
+            parts.append(part)
     return "/".join(parts)
+
+
+def fold(text: str) -> str:
+    """ASCII lower case, the same in the TS port (case-insensitive file systems)."""
+    return text.translate(_FOLD)
+
+
+# Files that hold the trust root itself: a run that writes or deletes them is a
+# protected-surface fact whether or not the list names them.
+CONTROL = (".tine/protected.toml", ".tine/key-roles.toml", ".tine/integrity/**")
 
 
 def glob_regex(pattern: str) -> str:
@@ -78,7 +99,9 @@ def glob_regex(pattern: str) -> str:
 
 
 def matches(pattern: str, path: str) -> bool:
-    return re.match(glob_regex(normalize(pattern)), normalize(path), re.DOTALL) is not None
+    """Glob match, ASCII case-insensitive: ``Tests/X.py`` is ``tests/x.py`` on Windows."""
+    regex = glob_regex(fold(normalize(pattern)))
+    return re.match(regex, fold(normalize(path)), re.DOTALL) is not None
 
 
 def parse(data: bytes) -> dict[str, Any]:
@@ -126,9 +149,10 @@ def parse(data: bytes) -> dict[str, Any]:
 
 def surfaces_of(protected: dict[str, Any], path: str) -> list[dict[str, Any]]:
     """The surfaces whose globs or pins cover *path*."""
-    path = normalize(path)
+    path = fold(normalize(path))
     return [s for s in protected["surfaces"]
-            if path in s["pins"] or any(matches(g, path) for g in s["globs"])]  # fmt: skip
+            if path in {fold(p) for p in s["pins"]}
+            or any(matches(g, path) for g in s["globs"])]  # fmt: skip
 
 
 def _finding(code: str, surface: str, path: str, detail: str) -> dict[str, str]:
@@ -161,6 +185,8 @@ def check(protected: dict[str, Any], observations: dict[str, Any]) -> list[dict[
                 add(MODIFIED, surface["name"], path, f"sha256 {now} is not the pin {pin}")
     for row in observations.get("touched") or []:
         path, op, step = normalize(row["path"]), row["op"], str(row.get("step", ""))
+        if op in ("write", "delete") and any(matches(g, path) for g in CONTROL):
+            add(MODIFIED, "protected-list", path, f"{op} tool call at step {step}")
         for surface in surfaces_of(protected, path):
             name = surface["name"]
             if op in ("write", "delete"):
@@ -177,6 +203,6 @@ def blocking(findings: list[dict[str, str]], *, strict: bool = False) -> list[di
     return [f for f in findings if f["level"] == "fail" or (strict and f["level"] == "advisory")]
 
 
-__all__ = ["HOLDOUT_READ", "KINDS", "MODIFIED", "OPS", "TEST_DELETED", "ProtectedError",
-           "blocking", "check", "glob_regex", "matches", "normalize", "parse",
+__all__ = ["CONTROL", "HOLDOUT_READ", "KINDS", "MODIFIED", "OPS", "TEST_DELETED", "ProtectedError",
+           "blocking", "check", "fold", "glob_regex", "matches", "normalize", "parse",
            "surfaces_of"]  # fmt: skip

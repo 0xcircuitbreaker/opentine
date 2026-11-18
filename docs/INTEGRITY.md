@@ -56,8 +56,22 @@ pinned file, against the list:
   write, delete or read by the tool's name (`Write`, `Edit`, `Read`, ...);
 - a shell tool's command is split for `rm`/`git rm`/`unlink` (delete),
   `>`/`>>`/`tee`/`sed -i` (write) and `cat`/`head`/`tail`/`less` (read);
-- absolute paths are made relative to the repository; paths outside it are
-  ignored.
+- a shell tool also counts `cp`/`install`/`rsync` destinations, `mv`, `ln`,
+  `truncate`, `touch`, `chmod`, `patch`, `dd of=`, `perl -i`, `git
+  checkout|restore|mv|apply|reset|stash|am` targets and, for inline code
+  (`python -c`, `perl -e`, `sh -c`, `$(...)`) that writes, every path-like
+  token in it;
+- a tool with an unknown name is a write or delete when its name says so
+  (`fs_save_file`, `move_file`, `remove_path`); list-valued path arguments
+  (`paths`, `files`) count;
+- paths are normalized (`a/../b` is `b`), matched ASCII case-insensitively
+  (`Evals/Graders/x.py` is `evals/graders/x.py` on Windows and macOS), and a
+  symlink still on disk is resolved to the file it names; absolute paths are
+  made relative to the repository; paths outside it are ignored;
+- a write or delete of the trust root itself -- `.tine/protected.toml`,
+  `.tine/key-roles.toml` or anything under `.tine/integrity/` (the list's pin
+  and the filed taints) -- is `fail:protected-surface-modified` on the
+  `protected-list` surface whether or not the list names them.
 
 | Code | Kind | Meaning |
 | --- | --- | --- |
@@ -118,5 +132,11 @@ vector family. `tests/test_060_integrity.py` regenerates the fixture from
   special-casing, visible/holdout gap, judge vs ground truth, fabricated tool
   evidence) and the seeded red-team corpus with its benign baseline.
 - Taint propagation into curated datasets.
+- A loop that can write `.tine/key-roles.toml` outside captured tool calls
+  can name its own key a policy key and re-sign an edited list; the key-role
+  file is a 0.57 trust root and must be guarded by the operator (read-only
+  checkout, or signed key roles), not by this check.
+- A filed taint deleted outside captured tool calls is gone; promote still
+  re-checks the candidate live, which only sees the pinned digests then.
 - Observation of edits made outside captured tool calls is limited to the
   pinned digests on disk at check time.
