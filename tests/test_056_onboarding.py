@@ -5,6 +5,7 @@ from __future__ import annotations
 import io
 import json
 import os
+import shutil
 import tarfile
 from pathlib import Path
 
@@ -120,6 +121,7 @@ def test_init_auto_dry_run_writes_nothing(home, tmp_path):
     assert not (home / ".config" / "opentine").exists()
 
 
+@pytest.mark.skipif(shutil.which("git") is None, reason="git is required")
 def test_init_auto_push_beside_git_installs_the_pre_push_hook(home, tmp_path, monkeypatch):
     import subprocess
 
