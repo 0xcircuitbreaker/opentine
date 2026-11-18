@@ -73,7 +73,8 @@ def fold(text: str) -> str:
 
 # Files that hold the trust root itself: a run that writes or deletes them is a
 # protected-surface fact whether or not the list names them.
-CONTROL = (".tine/protected.toml", ".tine/key-roles.toml", ".tine/integrity/**")
+CONTROL = (".tine/protected.toml", ".tine/key-roles.toml", ".tine/trust-bundle.note",
+           ".tine/integrity/**")  # fmt: skip
 
 
 def glob_regex(pattern: str) -> str:

@@ -14,7 +14,8 @@ and whose payload holds only existing documents::
      "trust_policy": {...},            # a trust-policies.json entry, portable fields
      ["witness_network": {...},]       # an opentine-witness-network/1 registry
      ["log_keys": [vkey, ...],]        # pinned signed-note log keys
-     ["admission_policies": {name: {...}}]}  # opentine.admission-policy documents
+     ["admission_policies": {name: {...}}],  # opentine.admission-policy documents
+     ["key_roles": {"version": 1, "roles": {...}}]}  # .tine/key-roles.toml, as JSON (0.59)
 
 Every part is checked by the validator of its own format. Path fields of a
 trust policy (``pubkey``, ``rekor_key``, ...) name local files and are
@@ -46,6 +47,7 @@ _TOP = {
     "witness_network",
     "log_keys",
     "admission_policies",
+    "key_roles",
 }
 #: Trust-policy fields a bundle may carry: no local paths.
 PORTABLE = ("pin", "require_receipt", "cert_identity", "cert_oidc_issuer", "require_sct",
@@ -143,6 +145,15 @@ def validate(payload: Any) -> dict[str, Any]:
             raise BundleError(f"trust bundle: {exc}") from None
     _log_keys(payload.get("log_keys", []))
     _admission(payload.get("admission_policies", {}))
+    if "key_roles" in payload:
+        from opentine._key_roles import KeyRoleError, parse_doc
+
+        try:
+            roles = parse_doc(payload["key_roles"])
+        except KeyRoleError as exc:
+            raise BundleError(f"trust bundle: key_roles: {exc}") from None
+        if payload["key_roles"]["roles"] != {r: k for r, k in roles.items() if k}:
+            raise BundleError("trust bundle: key_roles must list sorted sha256: fingerprints")
     return payload
 
 

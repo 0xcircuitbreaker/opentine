@@ -1,11 +1,13 @@
 """``tine trust bundle create|verify`` (0.51): owner-signed browser trust bundles.
 
 ``create --key KEY --name NAME --serial N [--policy NAME | --pin FP...]
-[--witnesses FILE] [--log-vkey V]... [--admission NAME=FILE]... [--expires T]
+[--witnesses FILE] [--log-vkey V]... [--admission NAME=FILE]... [--key-roles FILE]
+[--expires T]
 [--out FILE]`` signs a bundle (``_trust_bundle``) from existing documents: a
 named trust policy's portable fields or ``--pin`` fingerprints, an
 ``opentine-witness-network/1`` registry, signed-note log keys and
-``opentine.admission-policy`` files. ``verify FILE --owner-vkey V
+``opentine.admission-policy`` files, and (0.59) the key roles of a
+``.tine/key-roles.toml``, which only grant powers when signed this way. ``verify FILE --owner-vkey V
 [--min-serial N]`` checks one against the owner key pinned out of band and
 exits 4 when it does not hold. Both take ``--json`` (``tine-cli-trust-bundle/1``).
 """
@@ -43,6 +45,8 @@ def add_bundle_parser(group_sub: argparse._SubParsersAction) -> None:
     create.add_argument("--log-vkey", action="append", help="Pinned log key")
     create.add_argument("--admission", action="append", metavar="NAME=FILE",
                         help="opentine.admission-policy document (repeatable)")  # fmt: skip
+    create.add_argument("--key-roles", metavar="FILE",
+                        help="Sign these key roles (a key-roles.toml) into it")  # fmt: skip
     create.add_argument("--expires", metavar="TIME", help="RFC 3339 expiry time")
     create.add_argument("--out", metavar="FILE", help="Write the bundle here (else stdout)")
     create.add_argument("--json", action="store_true", help="Emit a JSON object instead")
@@ -104,6 +108,11 @@ def _payload(args: argparse.Namespace) -> dict[str, Any]:
                 raise ValueError(f"--admission {spec!r} is not NAME=FILE")
             policies[name] = json.loads(_read(path))
         payload["admission_policies"] = policies
+    if args.key_roles:
+        from opentine._key_roles import parse
+
+        roles = parse(_read(args.key_roles))
+        payload["key_roles"] = {"version": 1, "roles": {r: k for r, k in roles.items() if k}}
     return payload
 
 
@@ -122,6 +131,8 @@ def summary(command: str, note: bytes, payload: dict[str, Any], owner: str) -> d
         "log_keys": list(payload.get("log_keys", [])),
         "admission_policies": sorted(payload.get("admission_policies", {})),
     }
+    if "key_roles" in payload:
+        out["key_roles"] = payload["key_roles"]["roles"]
     if "expires_at" in payload:
         out["expires_at"] = payload["expires_at"]
     if "witness_network" in payload:

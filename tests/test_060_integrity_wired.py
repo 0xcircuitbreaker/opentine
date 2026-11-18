@@ -11,6 +11,7 @@ from pathlib import Path
 
 from opentine import Run, cli
 from opentine._schemas import validate_output
+from tests.key_roles_helpers import isolated_trust_config  # noqa: F401
 from tests.test_060_integrity import _cli, _store, _tool, room  # noqa: F401
 
 HACK = {

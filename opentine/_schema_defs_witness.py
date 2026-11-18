@@ -62,7 +62,8 @@ SCHEMAS: dict[str, dict[str, Any]] = {
         "A trust bundle `tine trust bundle create` signed or `verify` checked against the "
         "pinned owner key (SPEC 8.26): its digest, serial and times, the pinned signer "
         "fingerprints, log keys, the witness network's log and quorum, and the names of "
-        "its admission policies. A bundle that does not verify is the error envelope (exit 4).",
+        "its admission policies, and (0.59) the key roles it signs. A bundle that does not "
+        "verify is the error envelope (exit 4).",
         open_(["command", "schema", "ok", "owner_vkey", "digest", "serial", "issued_at", "pins",
                "log_keys", "admission_policies"], {
             "command": {"enum": ["trust bundle create", "trust bundle verify"]},
@@ -70,6 +71,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
             "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
             "serial": {"type": "integer", "minimum": 1}, "issued_at": STR, "expires_at": STR,
             "pins": strs(), "log_keys": strs(), "admission_policies": strs(), "path": STR,
+            "key_roles": {"type": "object", "additionalProperties": strs()},
             "witness_network": closed(["log", "quorum"], {"log": STR, "quorum": STR})})),
 }  # fmt: skip
 COMMAND_SCHEMAS: dict[str, str] = {

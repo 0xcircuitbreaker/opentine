@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opentine.com/schemas/tine-cli-keys-lint-1.schema.json",
   "title": "tine keys lint --json",
-  "description": "Key separation for self-improving agent loops: the key-role policy (`.tine/key-roles.toml`) and its findings. A `fail:` finding (the optimizer key also holds a scorer, dataset, verdict or approver key; a malformed policy) blocks; an `advisory:` finding blocks only with `--strict`. `blocking` counts what refused.",
+  "description": "Key separation for self-improving agent loops: the key-role policy (`.tine/key-roles.toml`) and its findings. A `fail:` finding (the optimizer key also holds a scorer, dataset, verdict or approver key; a malformed policy) blocks; an `advisory:` finding blocks only with `--strict`. `blocking` counts what refused. `pinning` (0.59) says where the roles came from: `pinned` (an owner-signed trust bundle whose owner key is pinned outside the repository), `unpinned` (only the unsigned file: it may refuse, never grant) or `absent`.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -13,9 +13,17 @@
     "strict",
     "roles",
     "findings",
-    "blocking"
+    "blocking",
+    "pinning"
   ],
   "properties": {
+    "pinning": {
+      "enum": [
+        "pinned",
+        "unpinned",
+        "absent"
+      ]
+    },
     "command": {
       "const": "keys lint"
     },
@@ -75,6 +83,20 @@
           }
         },
         "approver": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "policy": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "stopper": {
           "type": "array",
           "items": {
             "type": "string",

@@ -26,6 +26,9 @@ FORMAT = "tine-holds/1"
 #: Rows whose target starts with this keep a loop stop (opentine.coord._loop_hold):
 #: ``tine hold release`` refuses them, so deleting coord/loops/LOOP cannot un-stop.
 LOOP_STOP = "loop-stop:"
+#: 0.59: rows whose target starts with this keep an integrity taint
+#: (opentine._integrity_hold): released never, so deleting the taint file cannot un-taint.
+TAINT = "integrity-taint:"
 MAX_HOLDS_BYTES = 4 * 1024 * 1024
 
 
@@ -120,6 +123,8 @@ def release(repo, target: str) -> list[dict[str, str]]:
         gone.extend(r for r in rows if target in (r["oid"], r["target"]))
         if any(r["target"].startswith(LOOP_STOP) for r in gone):
             raise HoldError(f"{target} keeps a loop stop: a stopped loop is never released")
+        if any(r["target"].startswith(TAINT) for r in gone):
+            raise HoldError(f"{target} keeps an integrity taint: a taint is never released")
         return [r for r in rows if r not in gone]
 
     edit_holds(holds_path(repo), change)

@@ -1,6 +1,8 @@
 """What pins a promotion to its inputs (0.57): signed policy, bound approvals, loop.
 
-* **Signed policy.** When ``.tine/key-roles.toml`` names a ``policy`` role,
+* **Signed policy.** When the key roles name a ``policy`` role (0.59: from an
+  owner-signed trust bundle, :mod:`opentine._key_roles_pin`; a ``policy`` role
+  in an unsigned ``.tine/key-roles.toml`` alone refuses every policy),
   ``tine promote`` accepts only a ``[promote]`` policy (and the label admission
   policy it names) covered by an attestation whose claim follows
   ``opentine.promotion-policy/1``::
@@ -92,31 +94,41 @@ def sign_policy(key: Any, policy: dict[str, Any], at: str) -> dict[str, Any]:
                                                       signed_at=at)}  # fmt: skip
 
 
-def roles(repo_path: Path | None) -> dict[str, list[str]] | None:
-    """The repository's key-role policy, or ``None`` (no repository or no file)."""
-    from opentine._key_roles import load, policy_path
+def role_state(repo_path: Path | None) -> dict[str, Any]:
+    """:func:`opentine._key_roles_pin.resolve` for a repository (``absent`` without one)."""
+    from opentine._key_roles_pin import resolve
     from opentine.repo import Repo
 
     if repo_path is None:
-        return None
+        return resolve(None)
     try:
         store = Repo.open(repo_path).path
     except Exception:  # noqa: BLE001 - no repository, so no key-role policy
-        return None
-    return load(policy_path(store))
+        return resolve(None)
+    return resolve(store)
+
+
+def roles(repo_path: Path | None) -> dict[str, list[str]] | None:
+    """The key roles that may grant powers: only pinned ones (0.59), else ``None``."""
+    found = role_state(repo_path)
+    return found["roles"] if found["status"] == "pinned" else None
 
 
 def policy_pin(repo_path: Path | None, policy: dict[str, Any], promoter: str,
                files: list[Path]) -> tuple[dict | None, list]:  # fmt: skip
     """``(row, refusals)``: the attestation that pins *policy*, when a policy role exists."""
     from opentine._key_roles import KeyRoleError
+    from opentine._key_roles_pin import UNPINNED
 
     try:
-        held = roles(repo_path)
+        found = role_state(repo_path)
     except KeyRoleError as exc:
         return None, [refusal("promote.policy-unsigned", f"key-role policy: {exc}")]
+    held = found["roles"]
     if not held or not held.get("policy"):
         return None, []
+    if found["status"] != "pinned":  # a policy role in an unsigned file grants nothing
+        return None, [refusal("promote.policy-unsigned", f"{UNPINNED}; no policy key counts")]
     want = (policy["sha256"], policy["label_policy_sha256"])
     banned = {promoter, *held.get("optimizer", [])}
     for path in files:
@@ -159,4 +171,4 @@ def run_loops(repo_path: Path | None, candidate: str) -> set[str]:
     return loops
 
 
-__all__ = ["POLICY", "approvals", "policy_pin", "roles", "run_loops", "sign_policy"]
+__all__ = ["POLICY", "approvals", "policy_pin", "role_state", "roles", "run_loops", "sign_policy"]

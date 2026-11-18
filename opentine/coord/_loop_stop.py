@@ -145,12 +145,16 @@ def verify_stop(repo: Any, loop: str, oid: Any) -> str:
 
 
 def _stopper(repo: Any, signer: Any) -> str:
-    from opentine._key_roles import STOPPER, KeyRoleError, load, policy_path
+    from opentine._key_roles import STOPPER, KeyRoleError
+    from opentine._key_roles_pin import resolve
 
     try:
-        roles = load(policy_path(repo.path))
+        found = resolve(repo.path)
     except KeyRoleError as exc:
         return f"unverified: key-role policy: {exc}"
+    roles = found["roles"]
+    if roles and roles.get(STOPPER) and found["status"] != "pinned":
+        return "unverified: the stopper role is unpinned (no owner-signed trust bundle)"
     if roles and roles.get(STOPPER) and signer not in roles[STOPPER]:
         return "unverified: the signer is not a stopper key"
     return "verified"

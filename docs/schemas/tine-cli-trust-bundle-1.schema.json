@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opentine.com/schemas/tine-cli-trust-bundle-1.schema.json",
   "title": "tine trust bundle --json",
-  "description": "A trust bundle `tine trust bundle create` signed or `verify` checked against the pinned owner key (SPEC 8.26): its digest, serial and times, the pinned signer fingerprints, log keys, the witness network's log and quorum, and the names of its admission policies. A bundle that does not verify is the error envelope (exit 4).",
+  "description": "A trust bundle `tine trust bundle create` signed or `verify` checked against the pinned owner key (SPEC 8.26): its digest, serial and times, the pinned signer fingerprints, log keys, the witness network's log and quorum, and the names of its admission policies, and (0.59) the key roles it signs. A bundle that does not verify is the error envelope (exit 4).",
   "type": "object",
   "required": [
     "command",
@@ -66,6 +66,15 @@
     },
     "path": {
       "type": "string"
+    },
+    "key_roles": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
     },
     "witness_network": {
       "type": "object",

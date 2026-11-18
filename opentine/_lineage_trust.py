@@ -2,8 +2,9 @@
 
 ``tine lineage check`` proves who signed each verdict; this module says whether
 that signer is *trusted*. The trust comes from the 0.57 key separation: the
-repository's ``.tine/key-roles.toml`` ``scorer`` role (:mod:`opentine._key_roles`,
-read through :func:`opentine._promote_pins.roles`) and, when given, the
+repository's ``scorer`` key role (:mod:`opentine._key_roles`, read through
+:func:`opentine._promote_pins.roles`: from 0.59 only from an owner-signed trust
+bundle, so an unsigned ``.tine/key-roles.toml`` alone leaves signers unpinned) and, when given, the
 promotion policy's ``eval_signers`` pin (:func:`opentine._promote_checks.load_policy`).
 When both are present a signer must be in both. A key in the ``optimizer`` role
 is never trusted, so a loop cannot sign its own evals and record them.
@@ -19,7 +20,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-UNPINNED_WARNING = ("eval signers are unpinned: no .tine/key-roles.toml scorer role or "
+UNPINNED_WARNING = ("eval signers are unpinned: no pinned (owner-signed) scorer key role or "
                     "promotion policy eval_signers, so a verdict's signer is proven, "
                     "not trusted")  # fmt: skip
 

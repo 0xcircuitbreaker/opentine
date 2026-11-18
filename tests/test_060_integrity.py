@@ -17,6 +17,7 @@ from opentine._integrity_observe import touched
 from opentine._integrity_run import LIST, PIN, TAINTS, promote_refusals, taints
 from opentine.repository import Repo
 from tests.integrity_helpers import FIXTURE, GRADER, PROTECTED_TOML, build_fixture, render
+from tests.key_roles_helpers import isolated_trust_config, pin_roles  # noqa: F401
 from tests.promote_helpers import AT, fingerprint
 
 pytestmark = pytest.mark.filterwarnings("ignore::UserWarning")
@@ -68,6 +69,7 @@ def room(tmp_path: Path, capsys) -> Path:
     roles = f'version = 1\n[roles]\npolicy = ["{fingerprint(POLICY)}"]\n'
     roles += f'optimizer = ["{fingerprint(OPTIMIZER)}"]\n'
     (root / ".tine" / "key-roles.toml").write_bytes(roles.encode("ascii"))
+    pin_roles(root / ".tine")  # 0.59: roles grant only from an owner-signed trust bundle
     (root / LIST).write_bytes(LIST_TOML.encode("ascii"))
     code, row = _cli(capsys, "integrity", "pin", "--repo", root.as_posix(), "--json")
     assert code == 0 and row["pins"] == 2 and row["signed"] is False
@@ -195,7 +197,8 @@ def test_promote_refuses_a_tainted_or_live_failing_candidate(room: Path, tmp_pat
     doc = json.loads(forged.read_bytes())
     doc["claim"]["run"] = "run:sha256:" + "0" * 64
     forged.write_bytes(json.dumps(doc).encode())
-    assert promote_refusals(room, bad) == []
+    # 0.59: the held attestation still taints, whatever happens to the file
+    assert [r["code"] for r in promote_refusals(room, bad)] == ["promote.score-tainted"]
 
 
 def test_lineage_check_and_why_surface_taint(room: Path, tmp_path, capsys) -> None:

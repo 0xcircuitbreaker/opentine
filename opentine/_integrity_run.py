@@ -4,8 +4,10 @@
   attestation in ``.tine/integrity/protected.json`` (an existing
   ``attestation``, Ed25519) has the claim
   ``{"schema": "opentine.integrity.protected/1", "protected_sha256": HEX}``
-  over the file's bytes and is signed by a ``policy``-role key of
-  ``.tine/key-roles.toml`` that is not an ``optimizer`` key (0.57 key roles).
+  over the file's bytes and is signed by a ``policy``-role key that is not an
+  ``optimizer`` key. The roles count only from an owner-signed trust bundle
+  (:mod:`opentine._key_roles_pin`); an unsigned ``.tine/key-roles.toml`` alone
+  is unpinned and pins nothing.
   A loop that edits the list breaks the pin: ``fail:protected-list-unsigned``.
   No list at all is ``fail:protected-list-missing``.
 * **Taint is a claim convention.** A run that tripped a ``fail:`` can be
@@ -13,6 +15,9 @@
   ``opentine.integrity.taint`` (``run``, ``codes``, ``findings_sha256``,
   ``protected_sha256``), filed as ``.tine/integrity/taints/HEX.json``.
   Any taint whose signature verifies counts: a taint only ever refuses.
+  0.59: the taint is also stored as an attestation and held
+  (``integrity-taint:RUN``, :mod:`opentine._integrity_hold`), which ``tine hold
+  release`` refuses, so deleting the file does not un-taint.
 """
 
 from __future__ import annotations
@@ -75,7 +80,8 @@ def sign_list(root: Path, key: Any, at: str) -> dict[str, Any]:
 def load_list(root: Path) -> tuple[dict | None, str | None, list[dict[str, str]]]:
     """``(protected, sha256, findings)``: the list when its pin holds, else findings."""
     from opentine._integrity import ProtectedError
-    from opentine._key_roles import KeyRoleError, load
+    from opentine._key_roles import KeyRoleError
+    from opentine._key_roles_pin import resolve
 
     try:
         raw = (Path(root) / LIST).read_bytes()
@@ -84,9 +90,10 @@ def load_list(root: Path) -> tuple[dict | None, str | None, list[dict[str, str]]
     digest = hashlib.sha256(raw).hexdigest()
     try:
         protected = parse(raw)
-        roles = load(Path(root) / ".tine" / "key-roles.toml") or {}
+        found = resolve(Path(root) / ".tine")
     except (ProtectedError, KeyRoleError) as exc:
         return None, digest, [_finding(UNSIGNED, str(exc))]
+    roles = (found["roles"] or {}) if found["status"] == "pinned" else {}
     allowed = set(roles.get("policy", [])) - set(roles.get("optimizer", []))
     try:
         doc = json.loads((Path(root) / PIN).read_bytes())
@@ -96,8 +103,12 @@ def load_list(root: Path) -> tuple[dict | None, str | None, list[dict[str, str]]
     good = (isinstance(claim, dict) and claim.get("schema") == LIST_SCHEMA
             and claim.get("protected_sha256") == digest)  # fmt: skip
     who = _signer(doc) if good else None
-    if not allowed:
-        why = "no policy-role key in .tine/key-roles.toml may pin the list"
+    if found["status"] == "unpinned":
+        from opentine._key_roles_pin import UNPINNED
+
+        why = f"{UNPINNED}, so no policy-role key may pin the list"
+    elif not allowed:
+        why = "no policy-role key in the pinned key roles may pin the list"
     elif who is None:
         why = "no signed opentine.integrity.protected/1 attestation covers these bytes"
     elif who not in allowed:
@@ -137,25 +148,39 @@ def taint(root: Path, key: Any, row: dict[str, Any], at: str) -> dict[str, str]:
              "protected_sha256": row["protected_sha256"]}  # fmt: skip
     document = _sign(key, claim, row["run"], at)
     path = Path(root) / TAINTS / f"{row['run'].rsplit(':', 1)[-1]}.json"
+    from opentine import _integrity_hold
+
+    oid = _integrity_hold.record(Path(root), document)  # first: a lost file still taints
     _dump(path, document)
-    return {"path": path.as_posix(), "signer": document["signer"]}
+    return {"path": path.as_posix(), "signer": document["signer"], "hold": oid}
+
+
+def _taint_row(doc: Any, run: str) -> dict[str, Any] | None:
+    if isinstance(doc, dict) and "unreadable" in doc:
+        return {"run": run, "codes": ["holds-unreadable"], "signer": doc["unreadable"]}
+    claim = doc.get("claim") if isinstance(doc, dict) else None
+    if not (isinstance(claim, dict) and claim.get("convention") == TAINT):
+        return None
+    if claim.get("run") != run or doc.get("target_id") != run or _signer(doc) is None:
+        return None
+    return {"run": run, "codes": list(claim.get("codes") or []), "signer": doc["signer"]}
 
 
 def taints(root: Path | None, run: str) -> list[dict[str, Any]]:
-    """The filed taints on *run* whose signature verifies (an empty list: none)."""
+    """The taints on *run* whose signature verifies: filed, or held (0.59); none is ``[]``."""
+    from opentine import _integrity_hold
+
     if root is None or not isinstance(run, str) or ":" not in run:
         return []
     path = Path(root) / TAINTS / f"{run.rsplit(':', 1)[-1]}.json"
     try:
-        doc = json.loads(path.read_bytes())
+        docs = [json.loads(path.read_bytes())]
     except (OSError, ValueError):
-        return []
-    claim = doc.get("claim") if isinstance(doc, dict) else None
-    if not (isinstance(claim, dict) and claim.get("convention") == TAINT):
-        return []
-    if claim.get("run") != run or doc.get("target_id") != run or _signer(doc) is None:
-        return []
-    return [{"run": run, "codes": list(claim.get("codes") or []), "signer": doc["signer"]}]
+        docs = []
+    docs += _integrity_hold.held(Path(root), run)
+    rows = [row for row in (_taint_row(doc, run) for doc in docs) if row is not None]
+    unique = {(row["signer"], tuple(row["codes"])): row for row in rows}
+    return [unique[k] for k in sorted(unique)]
 
 
 def promote_refusals(root: Path | None, candidate: str) -> list[dict[str, str]]:

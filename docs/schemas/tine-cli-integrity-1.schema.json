@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opentine.com/schemas/tine-cli-integrity-1.schema.json",
   "title": "tine integrity check|pin|sign --json",
-  "description": "Protected surfaces of a self-improving agent loop. `check` judges one run's tool calls (`touched`) and every pinned digest against the signed `.tine/protected.toml`; `findings` carry `fail:` codes (hash, signature and policy facts, which block: `ok` is false and the exit 1) and `advisory:` codes (reported, blocking only with `--strict`); `--record` adds the advisory reward-hack detectors over a run record. `taint` names the signed `opentine.integrity.taint` attestation filed with `--key`. `pin` writes current digests into the list (`signed` false: re-sign it); `sign` pins the list's bytes with a policy-role key.",
+  "description": "Protected surfaces of a self-improving agent loop. `check` judges one run's tool calls (`touched`) and every pinned digest against the signed `.tine/protected.toml`; `findings` carry `fail:` codes (hash, signature and policy facts, which block: `ok` is false and the exit 1) and `advisory:` codes (reported, blocking only with `--strict`); `--record` adds the advisory reward-hack detectors over a run record. `taint` names the signed `opentine.integrity.taint` attestation filed with `--key`, and `hold` the object id of the same attestation held as `integrity-taint:RUN` (0.59), which `tine hold release` refuses. `pin` writes current digests into the list (`signed` false: re-sign it); `sign` pins the list's bytes with a policy-role key.",
   "oneOf": [
     {
       "type": "object",
@@ -128,7 +128,8 @@
               "additionalProperties": false,
               "required": [
                 "path",
-                "signer"
+                "signer",
+                "hold"
               ],
               "properties": {
                 "path": {
@@ -136,6 +137,16 @@
                 },
                 "signer": {
                   "type": "string"
+                },
+                "hold": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 }
               }
             },

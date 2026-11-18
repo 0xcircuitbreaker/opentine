@@ -59,7 +59,7 @@ export function fold(text: string): string {
 }
 
 /** Trust-root files: a write or delete on them is always a protected-surface fact. */
-export const CONTROL = [".tine/protected.toml", ".tine/key-roles.toml", ".tine/integrity/**"];
+export const CONTROL = [".tine/protected.toml", ".tine/key-roles.toml", ".tine/trust-bundle.note", ".tine/integrity/**"];
 
 function escape(ch: string): string {
   return /[A-Za-z0-9_]/.test(ch) ? ch : `\\u${ch.charCodeAt(0).toString(16).padStart(4, "0")}`;

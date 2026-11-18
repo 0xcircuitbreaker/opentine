@@ -26,7 +26,8 @@ _CHECK = closed(["command", "schema", "ok", "run", "protected_sha256", "touched"
     **_HEAD, "command": {"const": "integrity check"}, "ok": BOOL, "run": STR,
     "protected_sha256": opt(_HEX), "touched": {"type": "array", "items": _TOUCHED},
     "findings": {"type": "array", "items": _FINDING}, "blocking": INT,
-    "taint": opt(closed(["path", "signer"], {"path": STR, "signer": STR}))})  # fmt: skip
+    "taint": opt(closed(["path", "signer", "hold"], {"path": STR, "signer": STR,
+                                                     "hold": opt(STR)}))})  # fmt: skip
 _PIN = closed(["command", "schema", "ok", "pins", "list", "signed"], {
     **_HEAD, "command": {"const": "integrity pin"}, "ok": {"const": True}, "pins": INT,
     "list": STR, "signed": {"const": False}})  # fmt: skip
@@ -42,7 +43,9 @@ SCHEMAS: dict[str, dict[str, Any]] = {
         "is false and the exit 1) and `advisory:` codes (reported, blocking only with "
         "`--strict`); `--record` adds the advisory reward-hack detectors over a run "
         "record. `taint` names the signed `opentine.integrity.taint` attestation filed with "
-        "`--key`. `pin` writes current digests into the list (`signed` false: re-sign it); "
+        "`--key`, and `hold` the object id of the same attestation held as "
+        "`integrity-taint:RUN` (0.59), which `tine hold release` refuses. `pin` writes "
+        "current digests into the list (`signed` false: re-sign it); "
         "`sign` pins the list's bytes with a policy-role key.",
         {"oneOf": [_CHECK, _PIN, _SIGN]}),
 }  # fmt: skip

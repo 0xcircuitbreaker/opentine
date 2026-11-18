@@ -18,6 +18,7 @@ from opentine.coord import _loop_stop, _tasks
 from opentine.graph import Run, StepKind
 from opentine.policies import PolicySet
 from opentine.repository import Repo
+from tests.key_roles_helpers import isolated_trust_config, pin_roles  # noqa: F401
 from tests.promote_helpers import PROMOTER, RUN_A, RUN_B, fingerprint, policy, write_key
 from tests.test_058_promote import Room, _codes, _good, _tine
 
@@ -39,6 +40,7 @@ def repo(tmp_path):
 def _roles(repo: Repo, **roles: list[str]) -> None:
     lines = ["version = 1", "[roles]"] + [f"{r} = {json.dumps(k)}" for r, k in roles.items()]
     (repo.path / "key-roles.toml").write_bytes(("\n".join(lines) + "\n").encode("utf-8"))
+    pin_roles(repo.path)  # 0.59: roles grant only from an owner-signed trust bundle
 
 
 def _at(repo: Repo) -> list[str]:
