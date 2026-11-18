@@ -1970,6 +1970,20 @@ reading it. See docs/LINEAGE.md.
 promote` (`promote.score-tainted`) and reported by `tine lineage check|why`
 (`lineage.score-tainted`). See docs/INTEGRITY.md.
 
+## Canaries and contamination (0.60)
+
+| Command | What it does |
+| --- | --- |
+| `tine dataset canary-add TEXT --entropy-bits N --key KEY [--holdout NAME] [--at TIME] --repo PATH` | Signs an `opentine.integrity.canary` registration; it counts only for a pinned `dataset`-role, non-optimizer key |
+| `tine dataset canary-list --repo PATH` | Lists the registrations (digest, entropy, holdout, signer, `counted`) without their text |
+| `tine integrity scan [--file PATH]... --repo PATH` | Finds registered canaries in runs, prompts, memory and exported packs; a content-addressed index reads only objects not yet scanned; exit 1 on any match |
+| `tine dataset canary-check LENGTHS.json [--margin-bits M] [--strict] [--run RUN] --repo PATH` | Refuses (`dataset.canary-below-entropy`, exit 1) a model that codes a counted canary below its declared entropy; the lengths must be signed by a pinned scorer key (`canary.unsigned`) |
+| `tine dataset canary-sign LENGTHS.json --run RUN --key KEY [--out FILE] [--at TIME]` | Signs a scorer's per-canary code lengths (`{"model", "lengths": [{"canary_sha256", "code_bits"}]}`) as an `opentine.integrity.canary-lengths` attestation bound to `RUN`; writes `FILE` (default `LENGTHS.signed.json`) for `canary-check` and `promote --canary-lengths` |
+| `tine dataset contamination HOLDOUT.jsonl --against CORPUS.jsonl [--threshold J] [--repo PATH]` | Reports exact blob-oid matches and word 5-gram MinHash near-duplicates at or above the threshold (default 0.8); exit 1 on any leak |
+
+The `dataset` verbs print `tine-cli-canary/1` and `scan` prints
+`tine-cli-integrity/1` with `--json`. See docs/INTEGRITY.md.
+
 A sent message is delivered by the member's `tine hook capture` at its next
 turn end (the hook inherits `OPENTINE_FLEET_ID` and `OPENTINE_FLEET_MEMBER`
 from `tine fleet up`), once, and recorded as a `human` step with actor
@@ -1995,6 +2009,7 @@ tine dataset export DATASET.jsonl --out PATH [--format jsonl|hf] [--split S]
 tine dataset show DATASET.jsonl
 tine eval run DATASET.jsonl --scorer SPEC --key KEY --out DIR [--threshold T]
               [--outputs FILE.jsonl] [--run RUN] [--judge-prompt FILE] [--created-at TIME]
+              [--holdout DIR [--repo PATH]]
 tine eval verify DIR [--pubkey PUB]
 tine eval compare A B [--pubkey PUB] [--exit-code]
 tine eval ci --key KEY [--config TOML] [--out DIR] [--repo PATH] [--created-at TIME]
@@ -2007,6 +2022,28 @@ itself as `run`. `--format hf` reads or writes a local Hugging Face folder of
 JSON Lines splits (`<split>.jsonl` or `data/<split>*.jsonl`, with
 `dataset_info.json` and a dataset card on export); nothing is downloaded and
 Parquet is not read.
+
+Sealed holdouts (0.60, docs/HOLDOUTS.md):
+
+```text
+tine dataset seal DATASET.jsonl --out DIR --name NAME --max-unseals 4 --max-items 50 --key KEY --seal-key FILE
+tine dataset unseal DIR --out FILE.jsonl --run RUN --why TEXT --key KEY --seal-key FILE
+tine dataset exposure DIR [--chain OLDER...] [--repo PATH]
+```
+
+`seal` also takes `--rotate-from OLD` and `--repo PATH`; `unseal` takes
+`--purpose eval|other`, `--items I,J`, `--exceed-budget` and `--repo PATH`.
+
+`seal` needs a `dataset`-role key and `unseal` an `eval`-role key from the
+owner-pinned trust bundle. `unseal` writes a signed access record before it
+releases items and enforces the holdout's exposure budget; `tine promote
+--sealed-holdout DIR` refuses an exposed holdout (`promote.holdout-exposed`;
+holdouts under `REPO/.tine/holdouts/` are checked without the flag), `tine
+promote --canary-lengths FILE` refuses a failed canary check
+(`promote.canary-failed`; lengths whose run is not the candidate,
+`promote.canary-run-mismatch`),
+and `tine eval run --holdout DIR` refuses runs that touched it
+(`eval.holdout-touched`). `--json` prints `tine-cli-holdout-1`.
 
 `eval run` scores each item's `output` (or the `--outputs` row with the same
 `id`) and signs one `tine-eval-verdict/1` per item (SPEC 4.12) with the

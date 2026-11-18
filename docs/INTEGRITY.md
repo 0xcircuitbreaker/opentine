@@ -155,6 +155,136 @@ the repository, where only the file records it).
   mutation run has a filed or held taint, and exit 1: a tainted score cannot justify
   a lineage step.
 
+## Canaries and contamination (0.60)
+
+A *canary* is a string planted in a holdout so that a later copy of it, or a
+model that codes it too cheaply, is evidence that the holdout leaked.
+
+### Registration
+
+`tine dataset canary-add TEXT --entropy-bits N --key KEY [--holdout NAME]`
+signs a registration: an existing `attestation` (no new object kind) on the
+target `sha256:<sha256 of TEXT>` whose claim follows the convention
+`opentine.integrity.canary`:
+
+```json
+{"convention": "opentine.integrity.canary", "canary": "TEXT",
+ "canary_sha256": "HEX", "entropy_bits": 96, "holdout": "NAME or null"}
+```
+
+It is filed as `.tine/integrity/canaries/HEX.json`. A canary is one line of
+8 to 4096 UTF-8 bytes. `entropy_bits` is the declared information content of
+the string: the fewest bits a model that never saw it needs to code it (at
+most 8 per byte). A string of 24 random hex digits carries 96 bits.
+
+A registration *counts* only when its signature verifies and its signer holds
+the `dataset` role, and not the `optimizer` role, in key roles pinned by an
+owner-signed trust bundle (0.59). Others are listed with `counted: false`.
+`tine integrity scan` still looks for them, because finding more never weakens
+a check. `tine dataset canary-check` does not use them to judge, so an
+optimizer cannot lower a declared entropy by filing its own copy.
+`canary-list` and every `--json` output give the digest, never the text.
+
+### `tine integrity scan`
+
+The scan reads every object in the repository, loose or packed, and searches
+it in one pass for every registered canary. A canary is looked for as its UTF-8
+bytes and as its JSON-escaped spelling. An object reachable from a `prompts/`
+ref is reported as `prompts`, one reachable from a `memory/` ref as `memory`,
+and any other object as `runs`. `--file PATH` (repeatable) also searches an
+exported pack or bundle as raw bytes, under the surface `packs`. A compressed
+export is searched as stored. The command exits 1 when any canary is found.
+
+Objects are content addressed, so the scan keeps a derived index,
+`.tine/integrity/canary-index.sqlite`. Per object id, the index stores the
+digest of the canary set the object was scanned under and the canaries it
+held. The index can be rebuilt by deleting it. A scan reads only the objects
+not yet scanned under the current set. `counts` reports `objects`, `read`,
+`cached` and `matches`. After a first scan, scanning a repository that grew by
+*k* objects reads *k* objects, however many it held before
+(`tests/test_061_canary.py` checks this by count at two repository sizes).
+Registering a new canary changes the set digest, so the next scan reads every
+object once.
+
+### `tine dataset canary-check LENGTHS.json`
+
+A scoring run reports the code length that the model under test assigns each
+canary (`-log2 P(canary)` summed over its tokens). Since 0.60 the file is a
+signed attestation (no new object kind) whose claim follows the convention
+`opentine.integrity.canary-lengths`, with `target_id` the scoring run id:
+
+```json
+{"convention": "opentine.integrity.canary-lengths", "run": "RUN", "model": "candidate-7",
+ "lengths": [{"canary_sha256": "HEX", "code_millibits": 31500}]}
+```
+
+Lengths are integer millibits, rounded down (a signed claim holds no floats).
+The signer must hold the `scorer` role, and not the `optimizer` role, in the
+owner-pinned key roles; `--run RUN` also requires the claim to name that run.
+An unsigned, unpinned or unbound file is refused with `canary.unsigned`, and a
+registration file that matches none of its held copies with `canary.tampered`
+(both exit nonzero). A counted canary that is coded
+below `entropy_bits - margin_bits` (`--margin-bits`, default 0) is evidence
+that the model saw the holdout. The command refuses it with
+`dataset.canary-below-entropy`, sets `ok` false and exits 1. The following are
+advisory (owner decision D12) and block only with `--strict`:
+
+- `dataset.canary-unscored`: a counted canary that the run did not score.
+- `dataset.canary-unregistered`: a scored digest that no registration names.
+- `dataset.canary-not-counted`: a registration that does not count.
+
+The test suite uses a deterministic integer stub model (order-4 byte contexts,
+add-one smoothing, integer bit lengths). Primed on the canary, it codes the
+canary below its declared entropy and is refused. Unprimed, it is not.
+
+### `tine dataset contamination HOLDOUT.jsonl --against CORPUS.jsonl`
+
+The command reports two kinds of leak and records the method in the result:
+
+- **exact**: each item's text (`input`, then `expected`) as a `blob` object id
+  (schema 1, UTF-8). A holdout item is reported when its id is in a corpus or
+  stored in the `--repo` repository.
+- **near-duplicate**: word 5-gram shingles (lower-cased `\w+` tokens), MinHash
+  signatures (128 permutations) and banded LSH (32 bands of 4 rows) to find
+  candidates. The command then computes the exact Jaccard of the two shingle
+  sets and reports pairs at or above `--threshold` (default 0.8), with both
+  the exact and the estimated value. The number of candidate comparisons
+  depends on how many near matches exist, not on the size of the corpus.
+
+- Chunked: an item split across several corpus items, each under the
+  threshold alone, is reported under `chunked` when the share of its shingles
+  found in the union of corpus shingles (its `coverage`) is at or above the
+  threshold.
+
+The command exits 1 on any leak. Embedding similarity is out of scope for this
+check.
+
+### Mutations and what a writer can still do
+
+Both the scan and the shingles fold text first (`opentine._canary_norm`):
+Unicode NFKC, case folding, a fixed table of Cyrillic and Greek lookalike
+letters, and dropping format characters such as zero-width spaces; the scan
+also drops all whitespace and decodes JSON `\uXXXX` escapes. A canary written
+in upper case, with extra or inserted spaces, a zero-width character or
+lookalike letters is still found (`tests/test_061_canary_review.py`).
+`canary-check` refuses a lengths file that scores none of the counted canaries
+(`dataset.canary-none-scored`), and `--margin-bits` must leave every judged
+canary a positive floor.
+
+Since 0.60 each registration is also held (`tine hold` target
+`holdout-canary:HEX`, never released), and readers take the union of the file
+and its held copies: deleting a registration does not stop it counting, and
+overwriting one is refused as `canary.tampered`. The held copies are skipped
+by `integrity scan` (a registration holds its canary by design).
+
+These checks are evidence, not a seal. Out of scope for 0.60: a canary split
+across two objects (each object is scanned on its own); real paraphrases
+(5-gram containment and MinHash see near copies only, until embeddings in
+0.74); compressed packs passed as raw files (`--file` searches stored bytes);
+and the full Unicode confusables table. A writer can also edit the derived
+scan index so objects look already scanned (delete
+`.tine/integrity/canary-index.sqlite` to rescan everything).
+
 ## Python and TypeScript
 
 The pure check is `opentine._integrity.check`; the TS port is
@@ -167,6 +297,11 @@ vector family. `tests/test_060_integrity.py` regenerates the fixture from
 
 ## Not yet
 
+- Canaries (0.60): sealed holdout items (TINEAES), `tine dataset unseal`
+  access records, exposure budgets and holdout rotation are separate plan
+  items. The scan reads repository objects and raw files, so it does not
+  inflate compressed exports. Embedding near-duplicates wait for a pinned
+  embedding model. No TypeScript reader reads canary records yet.
 - The remaining advisory heuristics of the plan (skip insertion,
   special-casing, visible/holdout gap, judge vs ground truth, fabricated tool
   evidence) and the seeded red-team corpus with its benign baseline.

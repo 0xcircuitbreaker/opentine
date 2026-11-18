@@ -34,6 +34,8 @@ from opentine._schema_defs_audit_kit import COMMAND_SCHEMAS as _AUDIT_KIT_COMMAN
 from opentine._schema_defs_audit_kit import SCHEMAS as _AUDIT_KIT
 from opentine._schema_defs_auth import COMMAND_SCHEMAS as _AUTH_COMMANDS
 from opentine._schema_defs_auth import SCHEMAS as _AUTH
+from opentine._schema_defs_canary import COMMAND_SCHEMAS as _CANARY_COMMANDS
+from opentine._schema_defs_canary import SCHEMAS as _CANARY
 from opentine._schema_defs_ci import KIND_SCHEMAS as _CI_KINDS
 from opentine._schema_defs_ci import SCHEMAS as _CI
 from opentine._schema_defs_cli import COMMAND_SCHEMAS as _CLI_COMMANDS
@@ -46,6 +48,8 @@ from opentine._schema_defs_extend import SCHEMAS as _EXTEND
 from opentine._schema_defs_forge import COMMAND_SCHEMAS as _FORGE_COMMANDS
 from opentine._schema_defs_forge import KIND_SCHEMAS as _FORGE_KINDS
 from opentine._schema_defs_forge import SCHEMAS as _FORGE
+from opentine._schema_defs_holdout import COMMAND_SCHEMAS as _HOLDOUT_COMMANDS
+from opentine._schema_defs_holdout import SCHEMAS as _HOLDOUT
 from opentine._schema_defs_hook import COMMAND_SCHEMAS as _HOOK_COMMANDS
 from opentine._schema_defs_hook import SCHEMAS as _HOOK
 from opentine._schema_defs_hosted import COMMAND_SCHEMAS as _HOSTED_COMMANDS
@@ -108,6 +112,8 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     **_LOOP,
     **_LINEAGE,
     **_INTEGRITY,
+    **_HOLDOUT,
+    **_CANARY,
 }
 COMMAND_SCHEMAS: dict[str, str] = {
     **_CLI_COMMANDS,
@@ -131,6 +137,8 @@ COMMAND_SCHEMAS: dict[str, str] = {
     **_LOOP_COMMANDS,
     **_LINEAGE_COMMANDS,
     **_INTEGRITY_COMMANDS,
+    **_HOLDOUT_COMMANDS,
+    **_CANARY_COMMANDS,
 }
 KIND_SCHEMAS: dict[str, str] = {
     **_REDACT_KINDS,

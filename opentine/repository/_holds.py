@@ -29,6 +29,10 @@ LOOP_STOP = "loop-stop:"
 #: 0.59: rows whose target starts with this keep an integrity taint
 #: (opentine._integrity_hold): released never, so deleting the taint file cannot un-taint.
 TAINT = "integrity-taint:"
+#: 0.60: rows that keep a sealed holdout's access record or a canary registration
+#: (opentine._holdout_hold): released never, so deleting the file lowers nothing.
+HOLDOUT_ACCESS = "holdout-access:"
+CANARY_HOLD = "holdout-canary:"
 MAX_HOLDS_BYTES = 4 * 1024 * 1024
 
 
@@ -125,6 +129,9 @@ def release(repo, target: str) -> list[dict[str, str]]:
             raise HoldError(f"{target} keeps a loop stop: a stopped loop is never released")
         if any(r["target"].startswith(TAINT) for r in gone):
             raise HoldError(f"{target} keeps an integrity taint: a taint is never released")
+        if any(r["target"].startswith((HOLDOUT_ACCESS, CANARY_HOLD)) for r in gone):
+            raise HoldError(f"{target} keeps a holdout access record or canary registration: "
+                            "it is never released")  # fmt: skip
         return [r for r in rows if r not in gone]
 
     edit_holds(holds_path(repo), change)

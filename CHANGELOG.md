@@ -1,5 +1,82 @@
 # Changelog
 
+## 0.60.0 — Sealed holdouts and canaries (2026-11-18)
+
+- `tine dataset seal` commits to a holdout with an RFC 6962 Merkle root over
+  salted item leaves (signed claim `opentine.holdout.commitment/1`, an
+  existing attestation) and stores each item as a `TINEAES3` ciphertext bound
+  to its slot. Sealing needs a `dataset`-role key from the owner-pinned trust
+  bundle; the seal key stays outside the folder.
+- `tine dataset unseal` needs an `eval`-role key (a new optional key role; an
+  optimizer key never qualifies) and writes a signed, chained
+  `opentine.holdout.access/1` record (who, which run, why) before it releases
+  any item. Each released item is checked against its leaf.
+- Exposure budgets: a holdout declares `max_unseals` and `max_items`. `unseal`
+  refuses past either (`holdout.budget-exceeded`) unless `--exceed-budget`
+  records the overrun; `tine promote --sealed-holdout DIR` refuses with
+  `promote.holdout-exposed` when a holdout is over budget or its access
+  records do not chain; holdouts under `REPO/.tine/holdouts/` are checked
+  without the flag. `tine dataset exposure` reports the counts.
+- Rotation: `seal --rotate-from OLD` names the previous root and commitment
+  digest; `exposure --chain` checks the commitment chain.
+- `tine eval run --holdout DIR` refuses with `eval.holdout-touched` when a
+  scored run was named by a non-eval access record, holds an item in clear, or
+  contains an item's 5-word shingles at 0.8 or more (threshold recorded).
+- `tine promote --canary-lengths FILE` runs `tine dataset canary-check` and
+  refuses with `promote.canary-failed` when it does not pass, and with
+  `promote.canary-run-mismatch` when the signed lengths are not for the
+  candidate run.
+- New published schema `tine-cli-holdout-1` for `seal`, `unseal` and
+  `exposure`. Docs: docs/HOLDOUTS.md.
+- `tine dataset canary-add TEXT --entropy-bits N --key KEY` registers a canary
+  string with a declared entropy in bits. The registration is an existing
+  attestation under the claim convention `opentine.integrity.canary`, and it
+  counts only when a pinned `dataset`-role key that is not an optimizer key
+  signs it. `tine dataset canary-list` lists registrations without their text.
+- `tine integrity scan` finds registered canaries in runs, prompts, memory and
+  exported packs (`--file`). A derived, content-addressed index
+  (`.tine/integrity/canary-index.sqlite`) means that a repeat scan reads only
+  new objects, and `counts` reports how many objects were read and how many
+  came from the index.
+- `tine dataset canary-sign LENGTHS.json --run RUN --key KEY [--out FILE]`
+  signs a scorer's per-canary code lengths for one scoring run, the
+  attestation `canary-check` and `promote --canary-lengths` read.
+- `tine dataset canary-check LENGTHS.json` reads the per-canary code lengths
+  from a scoring run. It refuses with `dataset.canary-below-entropy` (exit 1)
+  when a model codes a counted canary below its declared entropy, which is
+  evidence that the model saw the holdout. Unscored, unregistered and
+  uncounted canaries are advisory (D12).
+- `tine dataset contamination HOLDOUT.jsonl --against CORPUS.jsonl` reports
+  exact blob-oid matches and word 5-gram MinHash/LSH near-duplicates whose
+  exact Jaccard is at or above a recorded threshold (default 0.8).
+- The scan and contamination check fold case, whitespace, zero-width
+  characters and Cyrillic/Greek lookalikes before matching; `contamination`
+  also reports items chunked across several corpus items (`chunked`, by
+  shingle coverage). `canary-check` refuses a run that scores no counted
+  canary (`dataset.canary-none-scored`) and a margin that leaves no floor.
+- Access records and canary registrations survive their files: each is also
+  stored as a blob and held (`holdout-access:ROOT:SEQ`,
+  `holdout-canary:HEX`), and `tine hold release` refuses those rows, as for
+  0.57 loop stops and 0.59 taints. Exposure is computed from the union of the
+  folder's records and the held copies, so deleting records cannot lower it;
+  a registration file that matches none of its held copies is refused as
+  `canary.tampered`, and a deleted one still counts.
+- `canary-check` requires the lengths file to be a signed attestation (claim
+  convention `opentine.integrity.canary-lengths`, integer `code_millibits`)
+  from a `scorer`-role key in the owner-pinned roles that is not an optimizer
+  key, bound to the scoring run id (`target_id`; `--run RUN` checks it);
+  anything else is refused with `canary.unsigned`. `run` and `signer` are
+  reported.
+- `unseal` ignores records not validly signed by an allowed key when it picks
+  the next sequence, so a forged file in the next slot no longer blocks it;
+  two validly signed records for one sequence still break the chain.
+- Out of scope, documented in docs/HOLDOUTS.md: canaries split across
+  objects, real paraphrases (until embeddings in 0.74), compressed packs
+  passed as raw files, and the full confusables table.
+- New published schema `tine-cli-canary-1`. `tine-cli-integrity-1` gains
+  `integrity scan`. There are no new object kinds, wire formats or vector
+  families.
+
 ## 0.59.0 — Measuring-stick integrity (2026-11-18)
 
 - `.tine/protected.toml` names the protected surfaces of a self-improving

@@ -1,0 +1,504 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-canary-1.schema.json",
+  "title": "tine dataset canary-add|canary-list|canary-check|canary-sign|contamination --json",
+  "description": "Canaries and contamination for sealed holdouts. `canary-add` signs a canary registration (claim convention `opentine.integrity.canary`) with a declared entropy in bits; `counted` is true when the signer holds the dataset role, not the optimizer role, in pinned key roles. Outputs never repeat a canary's text. `canary-check` reads per-canary code lengths from a scoring run (a signed attestation, claim convention `opentine.integrity.canary-lengths`, from a pinned scorer-role key that is not an optimizer key, bound to the run id in `run`) and refuses (`dataset.canary-below-entropy`, `ok` false, exit 1) when a counted canary is coded below `entropy_bits - margin_bits`; other findings are advisory (D12). `canary-sign` signs a scorer's per-canary code lengths for one run (`run`) and writes the attestation `canary-check` reads to `out` (`sha256` its bytes). `contamination` reports exact blob-oid matches and word 5-gram MinHash near-duplicates whose exact Jaccard is at or above the recorded threshold.",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "canary"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-canary/1"
+        },
+        "command": {
+          "const": "dataset canary-add"
+        },
+        "ok": {
+          "const": true
+        },
+        "canary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "canary_sha256",
+            "entropy_bits",
+            "bytes",
+            "holdout",
+            "signer",
+            "counted"
+          ],
+          "properties": {
+            "canary_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "entropy_bits": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "holdout": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "signer": {
+              "type": "string"
+            },
+            "counted": {
+              "type": "boolean"
+            },
+            "path": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "canaries"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-canary/1"
+        },
+        "command": {
+          "const": "dataset canary-list"
+        },
+        "ok": {
+          "const": true
+        },
+        "canaries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "canary_sha256",
+              "entropy_bits",
+              "bytes",
+              "holdout",
+              "signer",
+              "counted"
+            ],
+            "properties": {
+              "canary_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "entropy_bits": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "bytes": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "holdout": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "signer": {
+                "type": "string"
+              },
+              "counted": {
+                "type": "boolean"
+              },
+              "path": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "model",
+        "run",
+        "signer",
+        "margin_bits",
+        "judged",
+        "findings",
+        "blocking"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-canary/1"
+        },
+        "command": {
+          "const": "dataset canary-check"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "run": {
+          "type": "string"
+        },
+        "signer": {
+          "type": "string"
+        },
+        "margin_bits": {
+          "type": "integer"
+        },
+        "blocking": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "judged": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "canary_sha256",
+              "holdout",
+              "code_bits",
+              "entropy_bits",
+              "below"
+            ],
+            "properties": {
+              "canary_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "holdout": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "code_bits": {
+                "type": "number"
+              },
+              "entropy_bits": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "below": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "level",
+              "code",
+              "canary_sha256",
+              "detail"
+            ],
+            "properties": {
+              "level": {
+                "enum": [
+                  "fail",
+                  "advisory"
+                ]
+              },
+              "code": {
+                "enum": [
+                  "dataset.canary-below-entropy",
+                  "dataset.canary-unscored",
+                  "dataset.canary-unregistered",
+                  "dataset.canary-not-counted",
+                  "dataset.canary-none-scored"
+                ]
+              },
+              "canary_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "detail": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "run",
+        "model",
+        "signer",
+        "canaries",
+        "out",
+        "sha256"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-canary/1"
+        },
+        "command": {
+          "const": "dataset canary-sign"
+        },
+        "ok": {
+          "const": true
+        },
+        "run": {
+          "type": "string"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "signer": {
+          "type": "string"
+        },
+        "canaries": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "out": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "method",
+        "counts",
+        "exact",
+        "near",
+        "chunked"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-canary/1"
+        },
+        "command": {
+          "const": "dataset contamination"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "method": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "exact",
+            "shingle",
+            "permutations",
+            "bands",
+            "rows",
+            "threshold",
+            "coverage"
+          ],
+          "properties": {
+            "exact": {
+              "type": "string"
+            },
+            "shingle": {
+              "type": "string"
+            },
+            "permutations": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "bands": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "rows": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "threshold": {
+              "type": "number"
+            },
+            "coverage": {
+              "type": "string"
+            }
+          }
+        },
+        "counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "holdout",
+            "corpus",
+            "candidates",
+            "exact",
+            "near",
+            "chunked"
+          ],
+          "properties": {
+            "holdout": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "corpus": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "candidates": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "exact": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "near": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "chunked": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "chunked": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "found_in",
+              "coverage"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "found_in": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "coverage": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "exact": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "oid",
+              "found_in"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "oid": {
+                "type": "string"
+              },
+              "found_in": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "near": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "found_in",
+              "jaccard",
+              "minhash_estimate"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "found_in": {
+                "type": "string"
+              },
+              "jaccard": {
+                "type": "number"
+              },
+              "minhash_estimate": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

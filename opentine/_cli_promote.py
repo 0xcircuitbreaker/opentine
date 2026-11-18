@@ -24,6 +24,10 @@ def add_signed_promote_args(p: Any) -> None:
     p.add_argument("--policy-attestation", action="append", default=[], metavar="FILE",
                    help="A signed policy (--sign-policy), for a 'policy' role")  # fmt: skip
     p.add_argument("--spent", metavar="USD", help="Spend to check against the cap (required)")
+    p.add_argument("--sealed-holdout", action="append", default=[], metavar="DIR",
+                   help="A sealed holdout whose exposure budget must hold (0.60)")  # fmt: skip
+    p.add_argument("--canary-lengths", metavar="FILE",
+                   help="Canary code lengths; a failed canary-check refuses")  # fmt: skip
     p.add_argument("--loop", metavar="LOOP", help="Refuse when LOOP is stopped (tine loop stop)")
     p.add_argument("--state", metavar="DIR", help="Label state (default REPO/.tine/promotion)")
     p.add_argument("--out", metavar="DIR", help="Where decisions go (a FILE for --approve)")
@@ -84,7 +88,10 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
                              holdout=holdout, approvals=[Path(a) for a in args.approval],
                              spent=args.spent, repo_path=Path(args.repo),
                              loop=args.loop, **common, policy_attestations=[
-                                 Path(a) for a in args.policy_attestation])  # fmt: skip
+                                 Path(a) for a in args.policy_attestation],
+                             sealed_holdouts=[Path(d) for d in args.sealed_holdout],
+                             canary_lengths=Path(args.canary_lengths) if args.canary_lengths
+                             else None)  # fmt: skip
 
 
 def cmd_signed_promote(args: argparse.Namespace) -> None:
