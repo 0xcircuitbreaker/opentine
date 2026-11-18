@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opentine.com/schemas/tine-cli-eval-ci-1.schema.json",
   "title": "tine eval ci --json",
-  "description": "Every eval `.tine/evals.toml` declares, run and signed: per eval its id, folder, counts, pass rate and gate, and the registered `judge_prompt` it used (name, version, digest) or null. `ok` is true only when every eval reaches its `min_pass_rate`; the command then exits 0, else 1.",
+  "description": "Every eval `.tine/evals.toml` declares, run and signed: per eval its id, folder, counts, pass rate and gate, and the registered `judge_prompt` it used (name, version, digest) or null, and `cost`, the LLM-judge calls' total in USD. `ok` is true only when every eval reaches its `min_pass_rate`; the command then exits 0, else 1.",
   "type": "object",
   "required": [
     "command",
@@ -22,6 +22,9 @@
       "type": "string"
     },
     "out": {
+      "type": "string"
+    },
+    "cost": {
       "type": "string"
     },
     "evals": {

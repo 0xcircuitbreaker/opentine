@@ -20,10 +20,14 @@ Review lists the key as a reviewer, and a gate only when the user's gate
 policy names it (:func:`gate_policy` with no trusted runner trusts nothing).
 
 Model credentials are the user's own: ``.tine/runner.toml`` names the
-environment variables holding them, which reach the reviewers and never the
+environment variables holding them, which reach the reviewers and the eval
+judges (a ``[[model]]`` named after an ``llm-judge`` provider) and never the
 report. The model endpoints listed there are the only egress the sandbox
 allows (:mod:`opentine._runner_sandbox`); the policy's digest is recorded in
-every step's evidence. The report carries the push's cost.
+every step's evidence. The report carries the push's cost: the reviewers'
+plus the eval judges' calls. Hosted mode refuses to start unless the reviewers
+sit behind the documented network sandbox
+(:func:`opentine._runner_sandbox.require_network_sandbox`).
 """
 
 from __future__ import annotations
@@ -106,9 +110,10 @@ def gate_policy(trusted: list[bytes], *, evals: int = 1, levels: tuple[str, ...]
     from opentine._signing_pins import key_fingerprint
 
     vsa = None
-    if trusted:
-        key = base64.urlsafe_b64encode(trusted[0]).decode().rstrip("=")
-        vsa = {"key": key, "levels": list(levels), "policy": "", "resource": ""}
+    if trusted:  # every trusted runner key, so a VSA from a rotated key still counts
+        keys = [base64.urlsafe_b64encode(raw).decode().rstrip("=") for raw in trusted]
+        vsa = {"key": keys[0], "keys": keys[1:], "levels": list(levels), "policy": "",
+               "resource": ""}  # fmt: skip
     signers = [key_fingerprint(raw) for raw in trusted]  # empty: no verdict counts
     return {"format": FORMAT, "vsa": vsa, "evals": {"min": evals, "signers": signers},
             "approvals": None}  # fmt: skip
@@ -127,6 +132,15 @@ def _vsa(key: Any, event: dict[str, Any], subject: str, passed: bool, policy: st
     return sign_statement(statement, key)
 
 
+def _cost(review: dict[str, Any], evals: dict[str, Any] | None) -> dict[str, Any]:
+    """The push's cost: the reviewers' recorded costs plus the eval judges' calls."""
+    from decimal import Decimal
+
+    judged = Decimal(evals["cost"]) if evals else Decimal(0)
+    total = Decimal(review["cost"]["total"]) + judged
+    return {**review["cost"], "total": str(total), "evals": str(judged)}
+
+
 def run_push(repo: Any, review_id: str, fleet: Any, key: Any, event: dict[str, Any], *,
              config: dict[str, Any], mode: str, out: Path,
              key_id: str | None = None) -> dict[str, Any]:  # fmt: skip
@@ -139,6 +153,8 @@ def run_push(repo: Any, review_id: str, fleet: Any, key: Any, event: dict[str, A
 
     if mode not in MODES:
         raise ValueError(f"mode is one of {', '.join(MODES)}")
+    if mode == "hosted":
+        sandbox.require_network_sandbox(dict(os.environ))
     event = check_trigger(event)
     models = config["models"]
     names = [m["credential_env"] for m in models if m["credential_env"]]
@@ -155,8 +171,10 @@ def run_push(repo: Any, review_id: str, fleet: Any, key: Any, event: dict[str, A
             target = (root / config["evals"]).resolve()
             if not target.is_relative_to(root.resolve()):
                 raise ValueError("[runner] evals must be a path inside the repository")
+            judges = {m["name"]: credentials[m["credential_env"]] for m in models
+                      if m["credential_env"] in credentials}  # fmt: skip
             evals = run_ci(target, key, out / "evals", repo_path=root,
-                           created_at=event["at"])  # fmt: skip
+                           created_at=event["at"], credentials=judges)  # fmt: skip
     signed = review.pop("signed")
     critical = any(r["severity"] == "critical" for r in signed)
     passed = not critical and (evals is None or evals["ok"])
@@ -172,7 +190,7 @@ def run_push(repo: Any, review_id: str, fleet: Any, key: Any, event: dict[str, A
                                              "result": result}}]  # fmt: skip
     return {"mode": mode, "trigger": event, "identity": identity(key), "sandbox": document,
             "sandbox_policy": digest, "review": review, "evals": evals, "vsa": vsa,
-            "credentials": {n: n in credentials for n in names}, "cost": review["cost"],
+            "credentials": {n: n in credentials for n in names}, "cost": _cost(review, evals),
             "steps": steps}  # fmt: skip
 
 

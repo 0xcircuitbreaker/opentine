@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import os
 import re
-import shutil
 import socket
 import subprocess
 from pathlib import Path
@@ -54,11 +53,14 @@ def _env(allow_local: bool) -> dict[str, str]:
     }
 
 
+def command_for(repo: Path, args: tuple[str, ...] | list[str], pin: tuple[str, ...] = ()) -> list:
+    return ["git", "-c", "core.hooksPath=" + os.devnull, "-c", "credential.helper=",
+            "-c", "http.followRedirects=false", *pin, "--git-dir", str(repo), *args]  # fmt: skip
+
+
 def git(repo: Path, *args: str, timeout: float = 30, allow_local: bool = False,
         pin: tuple[str, ...] = ()) -> bytes:  # fmt: skip
-    command = ["git", "-c", "core.hooksPath=" + os.devnull, "-c", "credential.helper=",
-               "-c", "http.followRedirects=false", *pin,
-               "--git-dir", str(repo), *args]  # fmt: skip
+    command = command_for(repo, args, pin)
     try:
         done = subprocess.run(command, capture_output=True, timeout=timeout,
                               env=_env(allow_local), check=False)  # fmt: skip
@@ -72,7 +74,14 @@ def git(repo: Path, *args: str, timeout: float = 30, allow_local: bool = False,
 
 
 def size(path: Path) -> int:
-    return sum(p.stat().st_size for p in Path(path).rglob("*") if p.is_file())
+    """Bytes under *path*; a file git removes mid-walk counts as nothing."""
+    total = 0
+    for item in Path(path).rglob("*"):
+        try:
+            total += item.lstat().st_size if item.is_file() else 0
+        except OSError:
+            continue
+    return total
 
 
 def _pinned(upstream: str, allow_private: bool) -> tuple[str, ...]:
@@ -97,23 +106,13 @@ def _pinned(upstream: str, allow_private: bool) -> tuple[str, ...]:
     return ("-c", f"http.curloptResolve={host}:{port}:{shown}")
 
 
-def fetch(upstream: str, dest: Path, *, allow_local: bool, timeout: float, max_bytes: int):
-    """Mirror *upstream*'s heads and tags into the bare repo *dest*, or raise ``GitError``."""
-    if upstream.startswith("-") or not (
-        upstream.startswith("https://") or (allow_local and upstream.startswith("file://"))
-    ):
-        raise GitError("the upstream must be an https:// URL", "mirror.upstream-unverifiable")
-    pin = () if upstream.startswith("file://") else _pinned(upstream, allow_local)
-    if not (dest / "HEAD").is_file():
-        dest.mkdir(parents=True, exist_ok=True)
-        subprocess.run(["git", "init", "-q", "--bare", str(dest)], env=_env(False),
-                       capture_output=True, check=True, timeout=30)  # fmt: skip
-    git(dest, "fetch", "--quiet", "--prune", "--no-tags", "--no-recurse-submodules",
-        "--end-of-options", upstream, "+refs/heads/*:refs/heads/*", "+refs/tags/*:refs/tags/*",
-        timeout=timeout, allow_local=allow_local, pin=pin)  # fmt: skip
-    if size(dest) > max_bytes:
-        shutil.rmtree(dest, ignore_errors=True)
-        raise GitError("the upstream is larger than the mirror limit", "mirror.limit-exceeded")
+def fetch(upstream: str, dest: Path, *, allow_local: bool, timeout: float, max_bytes: int,
+          credential: str | None = None) -> None:  # fmt: skip
+    """Mirror *upstream* into *dest* under a size watchdog (:mod:`opentine._mirror_fetch`)."""
+    from opentine._mirror_fetch import fetch as watched
+
+    watched(upstream, dest, allow_local=allow_local, timeout=timeout, max_bytes=max_bytes,
+            credential=credential)  # fmt: skip
 
 
 def object_format(repo: Path) -> str:
@@ -144,6 +143,11 @@ def resolve(repo: Path, ref: str) -> str:
     known = refs(repo)
     if _HEX.fullmatch(ref):
         if git(repo, "cat-file", "-t", ref, timeout=10).strip() != b"commit":
+            raise Missing(ref)
+        # only a commit the mirror's own refs reach: an object left behind by a
+        # force-push, or one that never came from the upstream, is not served
+        if not git(repo, "for-each-ref", "--count=1", "--format=%(refname)",
+                   f"--contains={ref}", "refs/heads", "refs/tags", timeout=10).strip():  # fmt: skip
             raise Missing(ref)
         return ref
     if not _REF.fullmatch(ref) or ".." in ref or ref.startswith(("-", "/")):

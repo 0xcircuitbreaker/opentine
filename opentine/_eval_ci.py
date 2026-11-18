@@ -119,7 +119,8 @@ def judge_template(record: dict[str, Any]) -> str:
     return "".join(pieces)
 
 
-def _one(entry: dict[str, Any], base: Path, key: Any, out: Path, repo: Any, when: Any) -> dict:
+def _one(entry: dict[str, Any], base: Path, key: Any, out: Path, repo: Any, when: Any,
+         keys: dict[str, str], spent: list[float]) -> dict:  # fmt: skip
     from opentine import _prompt
     from opentine._eval_dataset import read_jsonl
     from opentine._eval_run import run_eval
@@ -135,7 +136,12 @@ def _one(entry: dict[str, Any], base: Path, key: Any, out: Path, repo: Any, when
         found = _prompt.check(record)
         prompt = judge_template(record)
         link = {k: found[k] for k in ("name", "version", "digest")}
-    scorer = parse(entry["scorer"], prompt=prompt) if prompt else parse(entry["scorer"])
+    judge: dict[str, Any] = {"prompt": prompt} if prompt else {}
+    if entry["scorer"].startswith("llm-judge:"):
+        provider = entry["scorer"].split(":")[1]
+        if provider in keys:
+            judge["api_key"] = keys[provider]
+    scorer = parse(entry["scorer"], **judge)
     outputs = None
     if entry["outputs"]:
         rows = read_jsonl(base / entry["outputs"])
@@ -143,6 +149,7 @@ def _one(entry: dict[str, Any], base: Path, key: Any, out: Path, repo: Any, when
     summary = run_eval(read_jsonl(base / entry["dataset"]), scorer, key, out / entry["name"],
                        threshold=entry["threshold"], outputs=outputs, default_run=entry["run"],
                        created_at=when)  # fmt: skip
+    spent.extend(scorer.spent)
     items, passed = summary["items"], summary["passed"]
     rate = Decimal(passed) / Decimal(items) if items else Decimal(0)
     ok = items > 0 and rate >= Decimal(str(entry["min_pass_rate"]))
@@ -153,9 +160,19 @@ def _one(entry: dict[str, Any], base: Path, key: Any, out: Path, repo: Any, when
 
 
 def run_ci(
-    config: Path, key: Any, out: Path, *, repo_path: Path, created_at: str | None = None
+    config: Path,
+    key: Any,
+    out: Path,
+    *,
+    repo_path: Path,
+    created_at: str | None = None,
+    credentials: dict[str, str] | None = None,
 ) -> dict[str, Any]:
-    """Run every eval *config* declares; ``ok`` only when each one passes its gate."""
+    """Run every eval *config* declares; ``ok`` only when each one passes its gate.
+
+    *credentials* maps an ``llm-judge`` provider to its model key; ``cost`` is
+    what the judge calls cost, in USD (``"0"`` with no judge).
+    """
     from opentine.repository import Repo
 
     entries = load(config)
@@ -163,9 +180,13 @@ def run_ci(
     repo = None
     if any(entry["judge_prompt"] for entry in entries):
         repo = Repo.open(repo_path)
-    rows = [_one(entry, base, key, out, repo, created_at) for entry in entries]
+    spent: list[float] = []
+    rows = [_one(entry, base, key, out, repo, created_at, credentials or {}, spent)
+            for entry in entries]  # fmt: skip
+    total = sum((Decimal(str(value)) for value in spent), Decimal(0))
     return {"config": config.as_posix(), "out": out.as_posix(),
-            "ok": all(row["ok"] for row in rows), "evals": rows}  # fmt: skip
+            "ok": all(row["ok"] for row in rows), "evals": rows,
+            "cost": str(total)}  # fmt: skip
 
 
 __all__ = ["CONFIG", "ConfigError", "judge_template", "load", "run_ci"]

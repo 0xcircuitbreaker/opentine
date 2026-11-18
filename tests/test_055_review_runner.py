@@ -107,6 +107,9 @@ def _checkout(base: Path, name: str, monkeypatch) -> tuple[Path, dict]:
 def keys(tmp_path, monkeypatch):
     monkeypatch.setenv("XDG_CONFIG_HOME", (tmp_path / "config").as_posix())
     monkeypatch.setenv("RUNNER_MODEL_KEY", "sk-test-never-in-a-report")
+    # hosted mode needs the network sandbox; the probe stands in for its direct-connect check
+    monkeypatch.setenv("OPENTINE_RUNNER_NETWORK", "allowlist")
+    monkeypatch.setattr(_runner_sandbox, "direct_egress", lambda target: False)
     (tmp_path / "runner.key").write_text(RUNNER, encoding="utf-8")
     (tmp_path / "user.key").write_text(USER, encoding="utf-8")
     return tmp_path

@@ -5,7 +5,8 @@ Off unless the operator turns it on (``tine serve --mirror``). A mirror is
 ``opentine.project`` manifest and holds:
 
 * ``git/``: a bare, fetch-only copy of the upstream's heads and tags;
-* ``link.json``: the upstream URL, the slot and the manifest it was linked under;
+* ``link.json``: the upstream URL (never its credential: ``_mirror_secret``), the
+  slot and the manifest it was linked under;
 * ``state.json``: the last sync, as the body of an ``opentine.mirror-state``
   (frozen, SPEC 4.17): a host statement, never a user's;
 * ``search.sqlite3``: the code-search cache (``_mirror_search``).
@@ -28,7 +29,7 @@ from typing import Any
 
 from opentine import _mirror_git as gitio
 from opentine import _mirror_state, _project
-from opentine.remote import _project_store
+from opentine.remote import _mirror_secret, _project_store
 from opentine.remote.backend import valid_tenant
 
 DEFAULTS: dict[str, Any] = {
@@ -140,11 +141,14 @@ def link(root: Path, tenant: str, request: dict[str, Any], cfg: dict[str, Any]) 
         if not opened:
             raise Refused("url and salt must open the slot's commitment", "mirror.locator")
         shown = locator["commitment"]
-    record = {"upstream": url, "shown": shown, "slot": role, "visibility": manifest["visibility"],
+    url, credential = _mirror_secret.split(url)  # userinfo never reaches link.json
+    record = {"upstream": url, "shown": _mirror_secret.strip(shown), "slot": role,
+              "visibility": manifest["visibility"],
               "manifest": _project.digest(manifest), "default_branch": slot["default_branch"],
               "project_id": manifest["project_id"]}  # fmt: skip
     place = directory(root, tenant)
     place.mkdir(parents=True, exist_ok=True)
+    _mirror_secret.save(place, credential)
     _write(place / "link.json", record)
     return record
 
@@ -180,7 +184,8 @@ def sync(root: Path, tenant: str, cfg: dict[str, Any], *, force: bool = False,
         fmt, status, reasons = "sha1", "synced", []
         try:
             gitio.fetch(linked["upstream"], repo(root, tenant), allow_local=cfg["allow_local"],
-                        timeout=cfg["sync_timeout_seconds"], max_bytes=limit)  # fmt: skip
+                        timeout=cfg["sync_timeout_seconds"], max_bytes=limit,
+                        credential=_mirror_secret.load(directory(root, tenant)))  # fmt: skip
             fmt, found = gitio.object_format(repo(root, tenant)), gitio.refs(repo(root, tenant))
             if len(found) > cfg["max_refs"]:
                 found, status, reasons = {}, "paused", ["mirror.limit-exceeded"]

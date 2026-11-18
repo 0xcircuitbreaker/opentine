@@ -4,7 +4,8 @@ A gate policy (``opentine-merge-gates/1``, kept in the merge queue record) says
 what a candidate run needs before it may land::
 
     {"format": "opentine-merge-gates/1",
-     "vsa": {"key": "<b64url Ed25519>", "levels": [...], "policy": "", "resource": ""} | null,
+     "vsa": {"key": "<b64url Ed25519>", "keys"?: [...], "levels": [...], "policy": "",
+             "resource": ""} | null,
      "evals": {"min": N, "signers": ["sha256:<fingerprint>", ...]} | null,
      "approvals": {"required": N, "keys": ["<hex Ed25519>", ...]} | null}
 
@@ -12,7 +13,8 @@ Evidence is ``{"vsa": [DSSE envelopes], "evals": [verdicts], "approvals":
 [merge-approval records]}``. :func:`evaluate` checks each piece offline:
 
 * **vsa** -- at least one envelope classifies ``valid`` for the candidate run
-  under the pinned server key (:func:`opentine._vsa_verify.classify`).
+  under the pinned server key, or under any further key in ``keys`` (a rotated
+  signer) (:func:`opentine._vsa_verify.classify`).
 * **evals** -- every verdict about the candidate verifies, none failed, at
   least ``min`` passed, each signed by a listed signer when ``signers`` is set
   (an empty list trusts no signer, so removing the last key never widens it).
@@ -50,6 +52,9 @@ def check_policy(policy: Any) -> dict[str, Any]:
     vsa, evals, approvals = (policy.get(k) for k in ("vsa", "evals", "approvals"))
     if vsa is not None and (not isinstance(vsa, dict) or not isinstance(vsa.get("key"), str)):
         raise GateError("gates.vsa needs a pinned key")
+    extra = (vsa or {}).get("keys", [])
+    if not isinstance(extra, list) or not all(isinstance(k, str) for k in extra):
+        raise GateError("gates.vsa.keys lists further pinned keys")
     for name, value, count in (("evals", evals, "min"), ("approvals", approvals, "required")):
         if value is None:
             continue
@@ -64,20 +69,16 @@ def check_policy(policy: Any) -> dict[str, Any]:
 def _vsa(rule: dict[str, Any], rows: list[Any], run: str) -> tuple[list[str], list[str]]:
     from opentine._vsa_verify import classify
 
-    key = rule["key"]
-    raw = base64.urlsafe_b64decode(key + "=" * (-len(key) % 4))
+    pinned = [rule["key"], *rule.get("keys", [])]  # any pinned key: a rotated signer counts
     seen = []
     for envelope in rows:
-        kind = classify(
-            envelope,
-            raw,
-            run,
-            levels=rule.get("levels") or (),
-            policy=rule.get("policy") or "",
-            resource=rule.get("resource") or "",
-        )
-        if kind == "valid":  # fmt: skip
-            return [digest(envelope)], []
+        for key in pinned:
+            raw = base64.urlsafe_b64decode(key + "=" * (-len(key) % 4))
+            kind = classify(envelope, raw, run, levels=rule.get("levels") or (),
+                            policy=rule.get("policy") or "",
+                            resource=rule.get("resource") or "")  # fmt: skip
+            if kind == "valid":
+                return [digest(envelope)], []
         seen.append(kind)
     return [], [f"vsa: no valid VSA for {run} ({', '.join(seen) or 'none given'})"]
 
