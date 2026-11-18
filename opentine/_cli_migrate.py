@@ -114,4 +114,4 @@ def cmd_migrate(args: argparse.Namespace) -> None:
         f"[{BRAND}]# Migrated[/] {_terminal(path.name)} v{_terminal(source_version)} "
         f"-> v{run.format_version}"
     )
-    console.print(f"[dim]Saved:[/] {_terminal(output)} {badge}")
+    console.print(f"[dim]Saved:[/] {_terminal(output)} {badge}", soft_wrap=True)

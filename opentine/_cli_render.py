@@ -102,7 +102,7 @@ def _save_run_receipt(run: Run, save: str | None, force: bool = False) -> Path:
         _require_output_slot(output, force)
     run.save(output)
     _report_cost(run)
-    console.print(f"\n[{BRAND}]Saved:[/] {_terminal(output)}")
+    console.print(f"\n[{BRAND}]Saved:[/] {_terminal(output)}", soft_wrap=True)  # never split a path
     _print_run_tree(run)
     return output
 
