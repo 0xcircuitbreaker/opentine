@@ -28,6 +28,29 @@
   routes (refusals included); the response shapes are API shapes, not object
   kinds.
 
+- `tine review runner REVIEW --fleet TOML --event PUSH.json --out DIR` runs the
+  reviewer fleet, `.tine/evals.toml` and an admission VSA on one push from a
+  mirror sync or a forge webhook. It emits only existing kinds (review
+  findings, eval verdicts, the admission VSA), all signed by the runner's own
+  key.
+- `tine review runner-identity` prints the runner's published service
+  identity, labelled `review runner`, with the fingerprints it was rotated
+  from. It is never trusted by default: findings count only when the Review
+  lists its key, gates only when the gate policy names it.
+- Model credentials are your own: `.tine/runner.toml` names the environment
+  variables holding them and refuses inline credentials; the report records
+  only whether each was present, plus the push's cost.
+- The runner's sandbox allows egress only to the configured model endpoints;
+  any other lookup or connect in the runner's process is refused, and the
+  sandbox policy digest is recorded in every step's evidence and in the VSA.
+- Findings carry the push time, so hosted and self-hosted runs sign
+  byte-identical findings for a deterministic reviewer set.
+- Merge gates: an explicit empty `evals.signers` list now trusts no signer
+  (omitting it still accepts any verifying signer), so removing the last
+  trusted runner key flips the gate to unmet.
+- `deploy/review-runner/Dockerfile` packages the runner once for hosted and
+  self-hosted use; `docs/REVIEW-RUNNERS.md` documents it with a free local path.
+
 ## 0.54.0 — CI speedup (2026-11-18)
 
 0.54 cuts the time CI takes without dropping any check. The Python suite now

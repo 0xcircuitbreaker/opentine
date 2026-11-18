@@ -1,0 +1,10 @@
+# .tine/runner.toml: what the review runner may reach and which credentials it passes on.
+# Credentials are never written here: name the environment variable that holds each one.
+
+[runner]
+evals = ".tine/evals.toml"   # push-triggered evals on the same runner (optional)
+
+[[model]]
+name = "default"
+endpoint = "https://models.example.org/v1"   # the only egress the sandbox allows
+credential_env = "MODEL_API_KEY"              # your own key, passed to the reviewers only
