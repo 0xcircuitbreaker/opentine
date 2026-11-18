@@ -1,0 +1,189 @@
+{
+ "resourceSpans": [
+  {
+   "resource": {
+    "attributes": [
+     {
+      "key": "service.name",
+      "value": {
+       "stringValue": "support-agent"
+      }
+     }
+    ]
+   },
+   "scopeSpans": [
+    {
+     "scope": {
+      "name": "claude_agent_sdk"
+     },
+     "spans": [
+      {
+       "attributes": [
+        {
+         "key": "gen_ai.operation.name",
+         "value": {
+          "stringValue": "invoke_agent"
+         }
+        },
+        {
+         "key": "gen_ai.provider.name",
+         "value": {
+          "stringValue": "anthropic"
+         }
+        },
+        {
+         "key": "gen_ai.agent.name",
+         "value": {
+          "stringValue": "support"
+         }
+        },
+        {
+         "key": "gen_ai.conversation.id",
+         "value": {
+          "stringValue": "conv-1"
+         }
+        },
+        {
+         "key": "claude_agent_sdk.session_id",
+         "value": {
+          "stringValue": "sess-7"
+         }
+        },
+        {
+         "key": "custom.team",
+         "value": {
+          "stringValue": "billing"
+         }
+        }
+       ],
+       "endTimeUnixNano": "1763460000400000000",
+       "kind": 1,
+       "name": "invoke_agent support",
+       "spanId": "a000000000000001",
+       "startTimeUnixNano": "1763460000000000000",
+       "traceId": "5b8efff798038103d269b633813fc60c"
+      },
+      {
+       "attributes": [
+        {
+         "key": "gen_ai.operation.name",
+         "value": {
+          "stringValue": "chat"
+         }
+        },
+        {
+         "key": "gen_ai.provider.name",
+         "value": {
+          "stringValue": "anthropic"
+         }
+        },
+        {
+         "key": "gen_ai.request.model",
+         "value": {
+          "stringValue": "claude-sonnet-4-5"
+         }
+        },
+        {
+         "key": "gen_ai.response.model",
+         "value": {
+          "stringValue": "claude-sonnet-4-5"
+         }
+        },
+        {
+         "key": "gen_ai.request.max_tokens",
+         "value": {
+          "intValue": "1024"
+         }
+        },
+        {
+         "key": "gen_ai.request.temperature",
+         "value": {
+          "doubleValue": 0.2
+         }
+        },
+        {
+         "key": "gen_ai.response.id",
+         "value": {
+          "stringValue": "msg_01"
+         }
+        },
+        {
+         "key": "gen_ai.response.finish_reasons",
+         "value": {
+          "arrayValue": {
+           "values": [
+            {
+             "stringValue": "tool_use"
+            }
+           ]
+          }
+         }
+        },
+        {
+         "key": "gen_ai.usage.input_tokens",
+         "value": {
+          "intValue": "120"
+         }
+        },
+        {
+         "key": "gen_ai.usage.output_tokens",
+         "value": {
+          "intValue": "40"
+         }
+        },
+        {
+         "key": "gen_ai.prompt",
+         "value": {
+          "stringValue": "{\"role\": \"user\", \"content\": \"rotate key AKIAIOSFODNN7EXAMPLE\"}"
+         }
+        }
+       ],
+       "endTimeUnixNano": "1763460000410000000",
+       "kind": 1,
+       "name": "chat claude-sonnet-4-5",
+       "parentSpanId": "a000000000000001",
+       "spanId": "a000000000000002",
+       "startTimeUnixNano": "1763460000010000000",
+       "traceId": "5b8efff798038103d269b633813fc60c"
+      },
+      {
+       "attributes": [
+        {
+         "key": "gen_ai.operation.name",
+         "value": {
+          "stringValue": "execute_tool"
+         }
+        },
+        {
+         "key": "gen_ai.tool.name",
+         "value": {
+          "stringValue": "Read"
+         }
+        },
+        {
+         "key": "gen_ai.tool.call.id",
+         "value": {
+          "stringValue": "toolu_01"
+         }
+        },
+        {
+         "key": "gen_ai.tool.type",
+         "value": {
+          "stringValue": "function"
+         }
+        }
+       ],
+       "endTimeUnixNano": "1763460000420000000",
+       "kind": 1,
+       "name": "execute_tool Read",
+       "parentSpanId": "a000000000000001",
+       "spanId": "a000000000000003",
+       "startTimeUnixNano": "1763460000020000000",
+       "traceId": "5b8efff798038103d269b633813fc60c"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
