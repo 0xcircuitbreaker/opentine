@@ -165,7 +165,7 @@ def _client(responses: list[httpx.Response], seen: list[str]) -> httpx.Client:
 
 def test_client_retries_429_honouring_retry_after(monkeypatch):
     slept: list[float] = []
-    monkeypatch.setattr(_http.time, "sleep", slept.append)
+    monkeypatch.setattr(_http, "_sleep", slept.append)
     seen: list[str] = []
     session = _client(
         [
@@ -179,7 +179,7 @@ def test_client_retries_429_honouring_retry_after(monkeypatch):
 
 
 def test_client_retry_is_bounded_and_degrades_to_a_clean_error(monkeypatch):
-    monkeypatch.setattr(_http.time, "sleep", lambda seconds: None)
+    monkeypatch.setattr(_http, "_sleep", lambda seconds: None)
     seen: list[str] = []
     busy = [httpx.Response(429, headers={"Retry-After": "1"}) for _ in range(10)]
     with pytest.raises(ValueError, match="HTTP 429"):

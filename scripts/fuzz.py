@@ -42,12 +42,16 @@ HOURS_ENV = "OPENTINE_FUZZ_HOURS"
 HANG_SECONDS = 120.0  # an input still running after this is saved as "hang" and the run exits 1
 
 
-def watchdog(watch: list[object], keep, name_of, limit: float = HANG_SECONDS) -> None:
-    """Save the input a hung reader is stuck on, then end the run (exit 1)."""
+def watchdog(watch: list[object], keep, name_of, limit: float = HANG_SECONDS) -> threading.Event:
+    """Save the input a hung reader is stuck on, then end the run (exit 1).
+
+    Returns an event that stops the watchdog. It waits on that event rather than
+    ``time.sleep``, so a test that patches ``time.sleep`` cannot make it spin.
+    """
+    stop = threading.Event()
 
     def loop() -> None:
-        while True:
-            time.sleep(min(limit / 4, 5.0))
+        while not stop.wait(min(limit / 4, 5.0)):
             started, parts = watch[0], watch[1]
             if started is not None and time.monotonic() - started > limit:
                 keep(name_of(), parts, f"hang: still running after {limit:.0f}s")
@@ -55,6 +59,7 @@ def watchdog(watch: list[object], keep, name_of, limit: float = HANG_SECONDS) ->
                 os._exit(1)
 
     threading.Thread(target=loop, daemon=True).start()
+    return stop
 
 
 def reproduce(path: Path, target: str | None) -> int:

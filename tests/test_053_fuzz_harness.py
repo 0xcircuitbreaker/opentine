@@ -201,11 +201,12 @@ def test_the_watchdog_saves_a_hung_input_and_exits(monkeypatch):
     saved, exits = [], []
     monkeypatch.setattr(script.os, "_exit", lambda code: exits.append(code))
     watch = [None, None]
-    script.watchdog(watch, lambda t, p, why: saved.append((t, p, why)), lambda: "pack", 0.2)
+    stop = script.watchdog(watch, lambda t, p, why: saved.append((t, p, why)), lambda: "pack", 0.2)
     watch[:] = [script.time.monotonic() - 10.0, (b"stuck",)]
     deadline = script.time.monotonic() + 30.0
     while not exits and script.time.monotonic() < deadline:
         script.time.sleep(0.05)
+    stop.set()
     watch[:] = [None, None]
     assert exits and exits[0] == 1
     assert saved[0][:2] == ("pack", (b"stuck",)) and saved[0][2].startswith("hang")
