@@ -53,6 +53,8 @@ from opentine._schema_defs_hosted import SCHEMAS as _HOSTED
 from opentine._schema_defs_integrate import COMMAND_SCHEMAS as _INTEGRATE_COMMANDS
 from opentine._schema_defs_integrate import KIND_SCHEMAS as _INTEGRATE_KINDS
 from opentine._schema_defs_integrate import SCHEMAS as _INTEGRATE
+from opentine._schema_defs_integrity import COMMAND_SCHEMAS as _INTEGRITY_COMMANDS
+from opentine._schema_defs_integrity import SCHEMAS as _INTEGRITY
 from opentine._schema_defs_lineage import COMMAND_SCHEMAS as _LINEAGE_COMMANDS
 from opentine._schema_defs_lineage import SCHEMAS as _LINEAGE
 from opentine._schema_defs_loop import COMMAND_SCHEMAS as _LOOP_COMMANDS
@@ -105,6 +107,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     **_AUTH,
     **_LOOP,
     **_LINEAGE,
+    **_INTEGRITY,
 }
 COMMAND_SCHEMAS: dict[str, str] = {
     **_CLI_COMMANDS,
@@ -127,6 +130,7 @@ COMMAND_SCHEMAS: dict[str, str] = {
     **_AUTH_COMMANDS,
     **_LOOP_COMMANDS,
     **_LINEAGE_COMMANDS,
+    **_INTEGRITY_COMMANDS,
 }
 KIND_SCHEMAS: dict[str, str] = {
     **_REDACT_KINDS,
