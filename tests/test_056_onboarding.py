@@ -68,7 +68,9 @@ def test_init_auto_gives_a_signed_run_in_under_five_commands(home, tmp_path, cap
     from opentine._agent_keys import key_paths
 
     hook_file = native.config_path(agent).read_text(encoding="utf-8")
-    assert f"hook capture --agent {agent}" in hook_file and str(root) in hook_file
+    # The config is JSON: a Windows path appears with its backslashes escaped.
+    assert f"hook capture --agent {agent}" in hook_file
+    assert json.dumps(str(root))[1:-1] in hook_file
     key = key_paths("local")[0]
     assert key.read_bytes().startswith(b"-----BEGIN ENCRYPTED PRIVATE KEY-----")
 
