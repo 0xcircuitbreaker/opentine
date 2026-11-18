@@ -156,6 +156,10 @@ jobs:
       - name: Compare every case across the three implementations
         run: uv run python scripts/check_parity.py --require-ts
 
+      # 0.53: every python, pyz and TS refusal names its pinned reason code.
+      - name: Compare the reason code of every refusal
+        run: uv run python scripts/check_parity.py --require-ts --reasons
+
   leave-service:
     # 0.50 (ROADMAP "leave the hosted service"): export a tenant from one tine serve,
     # import it into a fresh one and into a local repository, and get the same
@@ -360,7 +364,9 @@ jobs:
   fuzz-otlp:
     # 0.48: the scaled run of the OTLP protobuf/gRPC ingest fuzzer (an iteration
     # count, seeded per run). The 72 h acceptance run is scripts/fuzz_otlp.py --hours 72.
-    name: Fuzz OTLP ingest (scaled)
+    # 0.53: the format-reader fuzzer (scripts/fuzz.py) runs scaled here too; its
+    # 72 h run is OPENTINE_FUZZ_HOURS=72 (docs/RELEASING.md, "The 72-hour fuzz run").
+    name: Fuzz OTLP ingest and format readers (scaled)
     runs-on: ubuntu-latest
     timeout-minutes: 30  # a hung run fails the job instead of holding CI for 6 h
     permissions:
@@ -380,6 +386,9 @@ jobs:
 
       - name: Fuzz 1,000,000 mutated export requests
         run: uv run python scripts/fuzz_otlp.py --iterations 1000000 --seed "$GITHUB_RUN_ID" --report-every 60
+
+      - name: Fuzz every format reader (20,000 inputs per target)
+        run: uv run python scripts/fuzz.py --iterations 20000 --seed "$GITHUB_RUN_ID" --report-every 60
 
       - name: Keep crash inputs
         if: failure()

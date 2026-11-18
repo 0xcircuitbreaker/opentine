@@ -139,3 +139,46 @@ jobs:
             bench-040.json
             bench-gate.md
           if-no-files-found: warn
+
+  cdc-bakeoff:
+    # 0.53: the CDC bake-off on the pinned runner. Sizes are deterministic for the
+    # pinned inputs; this job produces the runner's CPU and latency numbers for
+    # docs/bench/0.53-cdc.md. Not a release gate (its name is not a gate prefix).
+    name: CDC bake-off (pinned runner)
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      UV_PYTHON: "3.13"
+      OMP_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with:
+          version: "0.11.12"
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          uv python install "$UV_PYTHON"
+          uv sync --locked --all-extras
+
+      - name: Run the pinned bake-off
+        shell: bash
+        run: |
+          mkdir -p cdc
+          uv run --locked python scripts/bench/cdc_bakeoff.py --out cdc/cdc.json \
+            --markdown cdc/0.53-cdc.md > /dev/null
+          cat cdc/0.53-cdc.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: cdc-bakeoff-${{ github.sha }}
+          path: cdc
+          if-no-files-found: warn

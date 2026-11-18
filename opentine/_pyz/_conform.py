@@ -29,6 +29,7 @@ from . import (
     _evalv,
     _fleet,
     _keyless,
+    _reasons,
     _sig,
     _tlog,
 )
@@ -164,11 +165,16 @@ def answer(
     """The pyz's answer to one case; ``KeyError`` for an op it does not answer here.
 
     *keys* maps the names of ``docs/conformance/keys.json`` to key bytes, for
-    the ``sig.*`` ops a case names a key in.
+    the ``sig.*`` ops a case names a key in. A refusal carries its reason code
+    as ``exc.code`` (:mod:`._reasons`).
     """
-    if op in KEYED:
-        return KEYED[op](raw, value, dict(args), dict(keys or {}))
-    return OPS[op](raw, value, dict(args))
+    handler = KEYED.get(op)
+    try:
+        if handler is not None:
+            return handler(raw, value, dict(args), dict(keys or {}))
+        return OPS[op](raw, value, dict(args))
+    except ValueError as exc:  # a refusal names its pinned reason code (0.53)
+        raise _reasons.named(exc, op, raw) from None
 
 
 __all__ = ["KEYED", "OPS", "answer"]

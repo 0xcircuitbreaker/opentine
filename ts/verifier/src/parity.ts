@@ -15,6 +15,6 @@ import { loadSuite, runSuite } from "./suite.js";
 
 const root = resolve(process.argv[2] ?? ".");
 for (const row of runSuite(loadSuite(root))) {
-  const line = { id: row.id, file: row.file, op: row.op, status: row.status, reason: row.reasonActual, detail: row.detail };
+  const line = { id: row.id, file: row.file, op: row.op, status: row.status, reason: row.reasonActual, refused: row.refused === true, detail: row.detail };
   process.stdout.write(JSON.stringify(line) + "\n");
 }

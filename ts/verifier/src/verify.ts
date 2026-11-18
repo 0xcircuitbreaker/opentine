@@ -20,7 +20,8 @@ export interface Report {
   ok: boolean;
   format: string | null;
   root: string | null;
-  integrity: { ok: boolean; reason: string };
+  /** `code` (0.53): the reason code of a refusal that names one, as the CLI and the conformance suite pin it. */
+  integrity: { ok: boolean; reason: string; code?: string };
   signature: SignatureResult | null;
 }
 
@@ -41,6 +42,7 @@ export function verifyBytes(raw: Uint8Array, path: string, keys: VerifyKeys = {}
   } catch (exc) {
     if (!(exc instanceof TineError)) throw exc;
     report.integrity.reason = exc.message;
+    if (exc.code) report.integrity.code = exc.code;
     return report;
   }
   const v5 = isV5Artifact(data);

@@ -1032,7 +1032,8 @@ otherwise it serves until Ctrl-C or SIGTERM. `--listen` defaults to
 decompression. The controls and what is left open are in
 [security/otlp-grpc-review.md](security/otlp-grpc-review.md);
 `scripts/fuzz_otlp.py` is the fuzzer (CI runs it scaled; the 72-hour run is
-`--hours 72`).
+`--hours 72`). Since 0.53 `scripts/fuzz.py` also fuzzes the `.tine` v4/v5, pack,
+local pack and DSSE readers; see the 72-hour fuzz run in [RELEASING.md](RELEASING.md).
 
 ## Assurance tiers (0.39)
 

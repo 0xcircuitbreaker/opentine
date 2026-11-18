@@ -40,9 +40,12 @@ export function readUvarint(data: Uint8Array, start: number): [number, number] {
   throw new TineError("compressed header length is malformed", "codec.malformed");
 }
 
-/** The uncompressed bytes of a stored body; legacy (unwrapped) bytes come back as they are. */
-export function unwrap(data: Uint8Array, limit = MAX_TINE_ARTIFACT_BYTES, dictionaries?: DictLookup): Uint8Array {
-  if (!isWrapped(data)) return data;
+/**
+ * The checked header of a wrapped body: codec byte, declared size and frame.
+ * Every reader (`unwrap`, the browser's streamed inflate) refuses a bad header
+ * with the same message and reason code.
+ */
+export function wrapHeader(data: Uint8Array, limit = MAX_TINE_ARTIFACT_BYTES): { codec: number; size: number; frame: Uint8Array } {
   const start = MAGIC.length;
   if (data.length <= start) throw new TineError("compressed header is truncated", "codec.malformed");
   const codec = data[start];
@@ -55,6 +58,13 @@ export function unwrap(data: Uint8Array, limit = MAX_TINE_ARTIFACT_BYTES, dictio
   if (size > Math.max(frame.length, 1) * ratio) {
     throw new TineError("compressed body exceeds the decompression ratio limit", "codec.ratio");
   }
+  return { codec, size, frame };
+}
+
+/** The uncompressed bytes of a stored body; legacy (unwrapped) bytes come back as they are. */
+export function unwrap(data: Uint8Array, limit = MAX_TINE_ARTIFACT_BYTES, dictionaries?: DictLookup): Uint8Array {
+  if (!isWrapped(data)) return data;
+  const { codec, size, frame } = wrapHeader(data, limit);
   let out: Uint8Array;
   if (codec === 0) out = frame;
   else if (codec === 1) {

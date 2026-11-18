@@ -304,8 +304,9 @@ The earlier draft built three separate append-only logs (op log, custody, tlog).
 | 0.50.0 | Delivered (freeze candidate; criterion 7 met; the audit engagement, 30 nightly green days, green CI runs of the parity, peer-compat, audit-kit and bench jobs, counsel sign-off and the 72 h fuzz outstanding) |
 | 0.51.0 | Delivered (§12; the browser verifier reads bundles and trust bundles, TS codec-3, gates produce evidence, D1 in force with no predicate granted; outstanding: tag-locked npm packages and the tineyard version-lag CI check, Firefox/WebKit harness runs, three consecutive green main runs, the audit engagement letter) |
 | 0.52.0 | Delivered (§12; the admin surface, scoped tokens, CI OIDC exchange and published fair-use limits are specified in OpenAPI and served by `tine serve`, the uniform-404 oracle covers every route, and the security debt is cleared; outstanding: the 24 h token fuzz, the live MinIO race run, a tineyard staging route dump through `check_api_contract.py`, the 200-seed import fault run, the audit engagement letter) |
+| 0.53.0 | Delivered (§12; every refusal of the pinned set names its reason code in Python, pyz and TS and the `parity` job checks it; fuzz targets for every reader and the DSSE verifiers with a hang watchdog; the CDC bake-off re-run with the stored gear table; the gc/lock contention stress test in the nightly; RFC 4998 deferred to 1.1 with its caveat; outstanding: the 72 h fuzz run with 0 untriaged crashes, the CDC numbers on the pinned runner, the audit engagement letter) |
 
-**Status:** 0.50.0 ended the §10 plan; §12 plans 0.51–0.60 toward 1.0; 0.51.0 and 0.52.0 are delivered.
+**Status:** 0.50.0 ended the §10 plan; §12 plans 0.51–0.60 toward 1.0; 0.51.0, 0.52.0 and 0.53.0 are delivered.
 
 ### 0.35.0: Security hardening (about 5 weeks)
 

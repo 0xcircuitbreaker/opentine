@@ -1,7 +1,7 @@
 # The OpenTine Format Specification
 
-**Spec version:** 0.52.0 (draft until opentine 0.52.0 is tagged). **Previous
-version:** 0.51.0. Changes between versions are listed in
+**Spec version:** 0.53.0 (draft until opentine 0.53.0 is tagged). **Previous
+version:** 0.52.0. Changes between versions are listed in
 [Spec changelog](#spec-changelog); section anchors are stable (see
 [Stable anchors](#stable-anchors)).
 
@@ -24,8 +24,8 @@ documented rather than smoothed over; those places are marked **⚠ Hazard**.
 
 ## How to cite
 
-> *The OpenTine Format Specification*, opentine `docs/SPEC.md`, version 0.52.0.
-> https://github.com/0xcircuitbreaker/opentine/blob/v0.52.0/docs/SPEC.md
+> *The OpenTine Format Specification*, opentine `docs/SPEC.md`, version 0.53.0.
+> https://github.com/0xcircuitbreaker/opentine/blob/v0.53.0/docs/SPEC.md
 
 Cite a version, not `main`: the tagged URL is immutable, and a citation of a
 section should add its anchor (for example `#s-4.8` for `tine-actions/1`). The
@@ -2814,7 +2814,7 @@ last: `opentine.forge-check` (§4.24, family 73), `opentine.review-finding`
 answered by the reference, the TS verifier and the pyz (through
 `tests/test_048_forge.py`, `tests/test_048_review_finding.py` and
 `tests/test_048_oms.py`). As of 0.48.0 the cutoff is in force: 0.49.0,
-0.50.0, 0.51.0 and 0.52.0 add no object kind and no wire format.
+0.50.0, 0.51.0, 0.52.0 and 0.53.0 add no object kind and no wire format.
 
 **The 0.50 freeze review** closed those lists without adding a kind or a
 format. The pyz now answers every reader and verifier case of every family
@@ -2827,8 +2827,9 @@ storage set that remains outside the pyz is refs, reflogs, shallow files, the
 repository layout and config, and packs (families 16, 22, 24, 26-29, 99):
 repository internals a verifier of exported files never opens; the TS
 verifier answers them. `scripts/check_parity.py` runs the reference, the TS
-verifier and the built pyz on every case and fails on any disagreement. The
-frozen list and the review result are `docs/FREEZE.md`.
+verifier and the built pyz on every case and fails on any disagreement; with
+`--reasons` (0.53) it also fails on a refusal that names no reason code or the
+wrong one. The frozen list and the review result are `docs/FREEZE.md`.
 
 ---
 
@@ -2997,6 +2998,7 @@ Reason codes are dotted `area.detail` strings matching
 | timestamp (§8.6) | `timestamp.verified`, `timestamp.absent`, `timestamp.integrity-failed`, `timestamp.malformed`, `timestamp.bound-mismatch`, `timestamp.imprint-mismatch`, `timestamp.bad-signature`, `timestamp.unsupported-algorithm`, `timestamp.missing-eku`, `timestamp.outside-validity`, `timestamp.no-roots` (`unavailable-offline`), `timestamp.untrusted-root`, `timestamp.roots-unreadable`, `timestamp.revoked`, `timestamp.revocation-invalid` (0.50) |
 | delegation (§4.10) | `delegation.verified`, `delegation.unsigned`, and the chain codes of §4.10 |
 | offline | `offline.network-refused` — a check tried to open a connection and was refused; the run fails |
+| shape (§0.2) | `shape.not-utf8` (0.53) — a JSON body holding a NUL byte, so not UTF-8 text (a UTF-16/32 body); the TS verifier already named it |
 
 The minimal verifier adds codes for what only it reports:
 `signature.crypto-unavailable` (Ed25519 needs the `cryptography` package and it
@@ -3005,6 +3007,16 @@ is not importable — `unavailable-offline`, never a pass),
 `evidence.manifest-unreadable`, `evidence.custody-linked`,
 `evidence.custody-manifest-mismatch`, `evidence.custody-unreadable`, and
 `dataset.run` (one per run of a dataset or evidence folder).
+
+**Every refusal names its code (0.53).** A refusal of a reader or verifier
+operation carries the reason code the conformance suite pins for it. The
+Python reference names it with `opentine/_refusal_codes.py` (by operation and
+message, since the frozen kernel's messages are terse); the conformance adapter
+attaches it as `exc.code`, and a programming error (`TypeError`, `KeyError`,
+...) is never named as a refusal. Where the
+reference cannot tell two rules apart the code is a member of the published
+alias group. `scripts/check_parity.py --reasons` fails on any unnamed Python
+refusal across the pinned set.
 
 <a id="s-8.3"></a>
 ## 8.3 Datasets and the Merkle root
@@ -4492,6 +4504,7 @@ Versions are the opentine release that changed this document.
 
 | Spec version | Change |
 |---|---|
+| 0.53.0 | 8.2, reason-code parity: every refusal of the pinned conformance set names its reason code in the Python reference (attached at the conformance adapter, never to a programming error), the pyz and the TS verifier, checked by `scripts/check_parity.py --reasons`; `shape.not-utf8` (a JSON body holding a NUL byte) is documented. No object kind, wire format, vector family or schema was added. |
 | 0.52.0 | 8.27, the admin surface (`caps.session`, `caps.tenancy`; OpenAPI tag `admin`): sessions, passkey (WebAuthn) login with user verification required, tenants, members, invitations, settings, retention (stored only) and holds, one `{"error","code"}` error shape; 8.28, scoped API tokens, the CI OIDC exchange and published fair-use limits (`caps.scoped_tokens`, `caps.oidc_exchange`, `caps.limits`; self-hosted servers are unlimited unless the operator opts in; no quota ever deletes); 8.15, a caller who cannot read a tenant gets the uniform `404` on every tenant route, and `tine tenant import --remote` is all or nothing (`caps.tenant_import`); 4.19, gated merge approvals are issued into a queue as tickets with a nonce and an expiry (local queue state, not a signed field); Part 12 adds `tine-cli-serve-token-1` and `tine-cli-gc-1`, and `tine-cli-merge-queue-1` gains optional fields. All unsigned HTTP shapes or CLI output; no object kind, wire format or existing byte format changed. |
 | 0.51.0 | 2.8, a formatted zstd dictionary is required (a raw-content one is refused, so the Python and TS readers agree); 8.26, browser trust bundles: an owner-signed C2SP signed note over a trust policy's portable fields, an `opentine-witness-network/1` registry, log keys and admission policies, refused on rollback, applied as `tine verify --pin` (a profile, not a kind); Part 12 adds `tine-cli-trust-bundle-1`. The freeze ruling on predicates inside frozen envelopes is recorded in FREEZE.md (no predicate granted). No existing byte format changed. |
 | 0.50.0 | 2.3, codec byte 3 (zstd with a dictionary, local v3 packs only); 2.8, pack v3 dictionaries (`dicts/<sha256>.zdict`, `pack_dicts`, gc keeps the latest dictionary per kind, purge drops the old dictionaries), `min_reader` 0.50.0 and `_config.READER_VERSION` 0.50.0; 5.5, the 0.50 freeze review (Python, TS and pyz parity, families 79-84); 8.6, CRLs and OCSP responses embedded in an RFC 3161 token and the `timestamp.revoked` and `timestamp.revocation-invalid` codes; 8.24 `opentine-line-attribution/1` and 8.25 `tine-cost-statement/1` documented; Part 12 adds `tine-cli-tenant-1`. RFC 4998 evidence records are deferred past the freeze. No object kind or wire format was added. |

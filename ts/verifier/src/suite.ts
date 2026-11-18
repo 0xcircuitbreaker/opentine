@@ -39,6 +39,8 @@ export interface Row {
   detail: string;
   reasonExpected: string | null;
   reasonActual: string | null;
+  /** True when this verifier refused the input. */
+  refused?: boolean;
   output?: unknown;
 }
 
@@ -204,6 +206,7 @@ export function runCase(suite: Suite, file: string, testCase: Case): Row {
       return row;
     }
     accepted = false;
+    row.refused = true;
     row.reasonActual = exc instanceof TineError ? exc.code : null;
     row.detail = (exc as Error).message;
   }

@@ -160,6 +160,13 @@ What the review changed (no kind and no format was added):
   and `tine-cost-statement/1`. SPEC 8.24 and 8.25 now document the last two.
 - `scripts/check_parity.py` and the CI job `parity` fail on any disagreement or
   any unanswered case between the three implementations.
+- 0.53: `scripts/check_parity.py --reasons` (also run by the `parity` job)
+  fails on any refusal of a pinned reject case that names no reason code, or
+  names one outside the pinned code's alias group, in any of the three. The
+  pyz names the code of a refusal raised by a module it vendors verbatim
+  (`kernel`, `_agent_identity`) through `_pyz/_reasons.py`, without changing
+  that module; the browser verifier refuses a wrapped file with the CLI's
+  reason text and carries its code as `integrity.code`.
 
 What the vectors do not cover, recorded rather than hidden:
 
@@ -274,6 +281,7 @@ may only shrink.
 
 **Deferred to 1.1 (decision D2, 2026-11-13).** No RFC 4998 bound form is added
 before 1.0: it would be a new bound form and would reopen the freeze while the
-audit is reading it. The caveat, which every compliance profile repeats:
-long-term timestamp renewal before 1.1 covers **up to 16 root-bound tokens; it
-is not a hash-tree renewal; it does not survive a SHA-256 break.**
+audit is reading it. The caveat on long-term timestamp renewal before 1.1,
+which every compliance profile under `docs/compliance/` repeats word for word:
+
+> up to 16 root-bound tokens; not a hash-tree renewal; does not survive a SHA-256 break.
