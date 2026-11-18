@@ -692,7 +692,7 @@ take the same flags.
   `--prune=now`. `tine hold add|list|release <oid|ref>` records holds in
   `.tine/holds`; `prune`, `gc --prune=now`, `rewind --apply` and remote deletes
   and purges keep held objects and everything they reach.
-- `tine repo storage gc --upgrade` (0.13+, opt-in, never automatic) moves a repository to
+- `tine repo storage gc --upgrade` (0.13+) moves a repository to
   storage version 3: packs of large single-kind blocks, run snapshots stored as
   their parent plus the newly appended events, events without their empty
   default fields, and a binary index. Every read rebuilds the original bytes
@@ -701,6 +701,14 @@ take the same flags.
   repository** (`repository config is incompatible`); `tine repo storage gc --downgrade`
   rewrites it for version 2 so they can open it again. Later `gc`, `repack`,
   auto-pack and `prune` keep writing v3 packs in a version-3 repository.
+  Since 0.58 auto-pack makes this move itself the first time it packs a
+  version-2 repository, so packs at rest are in the current local format
+  (`TINELP3`, read by every release since 0.13 and by the TypeScript verifier);
+  existing packs are not rewritten. `gc --downgrade` pins
+  `"auto_pack": {"format": 1}` in `config.json` so auto-pack never undoes it;
+  that pin or `OPENTINE_AUTO_PACK_FORMAT=1` keeps auto-pack on version 2.
+  `Repo.pack()` and bundles still emit `TINEPACK3`: the 0.34 peer-compat reader
+  cannot read `TINEPACK5`.
 - `tine repo storage gc --pack-refs` (0.37+, opt-in) folds every loose ref into
   one `.tine/packed-refs` file (`<oid> <ref>` lines, sorted), so `list_refs` is
   one read instead of one open per ref; later gcs keep folding new loose refs.

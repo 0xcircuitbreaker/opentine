@@ -236,6 +236,25 @@ DRIVEN = (
         ("eval", "ci", "--config", "evals.toml", "--key", "purge.key", "--repo", "repo", "--json"),
         "tine-cli-eval-ci-1",
     ),
+    (
+        ("eval", "compare", "ea", "eb", "--ci", "permutation", "--resamples", "100", "--json"),
+        "tine-cli-eval-compare-1",
+    ),  # fmt: skip
+    (
+        (
+            "promote",
+            "run:sha256:" + "b" * 64,
+            "--baseline",
+            "prod",
+            "--approve",
+            "--key",
+            "purge.key",
+            "--out",
+            "approval.json",
+            "--json",
+        ),
+        "tine-cli-promote-1",
+    ),  # fmt: skip
     (("plugins", "list", "--json"), "tine-cli-plugins-1"),
     (("experts", "code", "--json"), "tine-experts-1"),
     (
@@ -269,6 +288,12 @@ DRIVEN = (
         "tine-cli-serve-token-1",
     ),  # 0.52
     (("serve", "token", "list", "--root", "remote", "--json"), "tine-cli-serve-token-1"),
+    (("keys", "lint", "--repo", "repo", "--json"), "tine-cli-keys-lint-1"),  # 0.58
+    (("loop", "status", "opt", "--repo", "repo", "--json"), "tine-cli-loop-1"),  # 0.58
+    (
+        ("loop", "stop", "opt", "--ed25519-key-file", "purge.key", "--repo", "repo", "--json"),
+        "tine-cli-loop-1",
+    ),  # 0.58
 )
 
 
@@ -278,6 +303,10 @@ def test_every_driven_json_output_validates(monkeypatch, capsys, room, argv, exp
         pytest.skip("tine experts blames with git")
     if argv[:2] == ("audit-kit", "verify"):  # 0.49: verify needs a kit to check
         _tine(monkeypatch, capsys, "audit-kit", "build", "run.tine", "--out", "kit", "--json")
+    if argv[:2] == ("eval", "compare"):  # 0.58: two eval folders to compare
+        for side in ("ea", "eb"):
+            _tine(monkeypatch, capsys, "eval", "run", "repo/d.jsonl", "--scorer", "exact",
+                  "--key", "purge.key", "--out", side, "--json")  # fmt: skip
     _code, out = _tine(monkeypatch, capsys, *argv)
     if expected is None:  # a usage error prints no JSON object at all
         assert not out.strip().startswith("{") or "error" in json.loads(out)

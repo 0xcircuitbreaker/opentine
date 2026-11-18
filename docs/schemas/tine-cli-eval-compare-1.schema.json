@@ -1,0 +1,329 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-eval-compare-1.schema.json",
+  "title": "tine eval compare --json",
+  "description": "Two evals, both verified, compared item by item (`regressed`, `fixed`, `changed`, `only_a`, `only_b`, `mean_delta`). With `--ci` (0.58) `stats` follows the `opentine.eval-compare/1` convention: per metric (`score`, `pass_rate`) both means, the delta, a paired-bootstrap interval `ci` or a permutation `p_value`, and whether it is significant, a regression or an improvement; `export` and `attestation` name the files `--export` and `--attest --out` wrote.",
+  "type": "object",
+  "required": [
+    "command",
+    "ok",
+    "a",
+    "b",
+    "regressed",
+    "fixed"
+  ],
+  "properties": {
+    "command": {
+      "const": "eval compare"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "a": {
+      "type": "object",
+      "required": [
+        "eval",
+        "ok"
+      ],
+      "properties": {
+        "eval": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "b": {
+      "type": "object",
+      "required": [
+        "eval",
+        "ok"
+      ],
+      "properties": {
+        "eval": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    },
+    "mean_delta": {
+      "type": "string"
+    },
+    "regressed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "fixed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "only_a": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "only_b": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "stats": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "convention",
+            "method",
+            "alpha",
+            "seed",
+            "resamples",
+            "n",
+            "metrics",
+            "regressions"
+          ],
+          "properties": {
+            "convention": {
+              "const": "opentine.eval-compare/1"
+            },
+            "method": {
+              "enum": [
+                "paired-bootstrap",
+                "permutation"
+              ]
+            },
+            "alpha": {
+              "type": "string"
+            },
+            "seed": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "resamples": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "n": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "metrics": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "score",
+                "pass_rate"
+              ],
+              "properties": {
+                "score": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "a",
+                    "b",
+                    "delta",
+                    "ci",
+                    "p_value",
+                    "significant",
+                    "regression",
+                    "improvement"
+                  ],
+                  "properties": {
+                    "a": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "b": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "delta": {
+                      "type": "string",
+                      "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                    },
+                    "ci": {
+                      "anyOf": [
+                        {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                          },
+                          "minItems": 2,
+                          "maxItems": 2
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "p_value": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "significant": {
+                      "type": "boolean"
+                    },
+                    "regression": {
+                      "type": "boolean"
+                    },
+                    "improvement": {
+                      "type": "boolean"
+                    }
+                  }
+                },
+                "pass_rate": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "a",
+                    "b",
+                    "delta",
+                    "ci",
+                    "p_value",
+                    "significant",
+                    "regression",
+                    "improvement"
+                  ],
+                  "properties": {
+                    "a": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "b": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "delta": {
+                      "type": "string",
+                      "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                    },
+                    "ci": {
+                      "anyOf": [
+                        {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                          },
+                          "minItems": 2,
+                          "maxItems": 2
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "p_value": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "significant": {
+                      "type": "boolean"
+                    },
+                    "regression": {
+                      "type": "boolean"
+                    },
+                    "improvement": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            },
+            "regressions": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "score",
+                  "pass_rate"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "export": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "attestation": {
+      "type": "string"
+    }
+  }
+}

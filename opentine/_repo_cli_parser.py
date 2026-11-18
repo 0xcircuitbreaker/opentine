@@ -122,6 +122,8 @@ def add_repo_parsers(subparsers: argparse._SubParsersAction) -> None:
 
 
 def _add_write_parsers(subparsers: argparse._SubParsersAction) -> None:
+    from opentine._cli_promote import add_signed_promote_args
+
     """The three mutating verbs plus ``repo-verify``, the reader of what they sign.
 
     Each takes a ref *or* a run oid as its target. ``promote`` deliberately has no
@@ -156,17 +158,13 @@ def _add_write_parsers(subparsers: argparse._SubParsersAction) -> None:
         required=True,
         help="Evaluator label; self-asserted unless a signing key binds it",
     )
-    evaluate.add_argument(
-        "--score",
-        action="append",
-        required=True,
-        metavar="NAME=VALUE",
-        help="One finite numeric score; repeatable",
-    )
+    evaluate.add_argument("--score", action="append", required=True, metavar="NAME=VALUE",
+                          help="One finite numeric score; repeatable")  # fmt: skip
 
     promote = subparsers.add_parser("promote", help="CAS-update a promotions/<name> release gate")
     promote.add_argument("target", help=target)
-    promote.add_argument("--name", required=True, help="The promotions/<name> to point at the run")
+    promote.add_argument("--name", help="The promotions/<name> to point at the run")
+    add_signed_promote_args(promote)  # 0.58: --baseline LABEL, the signed promotion gate
     promote.add_argument(
         "--expected-old",
         help="The oid promotions/<name> currently holds; required to move an existing promotion",

@@ -2306,6 +2306,32 @@ or `reject`), `approver` (a name), `approved_at`, and a `tine-sig/3` block
 over `opentine.merge-approval.v1:` + JCS of `{body, header}`. Reason codes
 `merge-approval.malformed|unsigned|no-key|wrong-key|bad-signature`.
 
+**Loop stop (0.58, claim convention).** `tine loop stop LOOP` writes an
+`attestation` (no new kind) whose `claim` is
+`{"convention": "opentine.loop-stop/1", "loop": LOOP, "reason": TEXT,
+"stopped_at": RFC3339}`, `signer` the `sha256:` fingerprint of the Ed25519
+key that signs it (`tine-attest/1` or `/2`), `target_id` a control run
+recording the stop or the run that prompted it. The `opentine-coord/1`
+record `coord/loops/<loop>` (`kind: "loop"`, value `{loop, status: "stopped",
+stop, signer, updated_ms}`, the attestation in `evidence_ids`) indexes it. A
+task whose value carries `loop` (a loop generation) is refused `claim` and
+`heartbeat` with code `stopped` once that record exists, whether or not the
+stop verifies (fail-safe); `done` is allowed. So is a task whose id is in the
+loop's namespace (`LOOP.` followed by anything) without `loop`, and adding a
+task to a stopped loop is refused. The stop is also kept by a `tine-holds/1`
+row `{"oid": STOP, "target": "loop-stop:LOOP"}` that `tine hold release`
+refuses, and the fence reads it when the coord record is gone or holds no
+stop; an unreadable holds file fences (fail closed). With a `stopper` role in
+`.tine/key-roles.toml`, a stop signed by another key still fences and is
+reported `unverified`. Verifiers read nothing new.
+
+**Promotion claim conventions (0.57).** `opentine.promotion-approval/1`
+claims carry `candidate`, `label`, `previous` (the holder replaced, or null)
+and `sequence` (the label history's length); `opentine.promotion-policy/1`
+claims carry `policy_sha256` and `label_policy_sha256`, `target_id`
+`sha256:<policy sha256>`. Both are attestations; verifiers report the claims
+`unchecked` (docs/EVALS-PROMOTION.md).
+
 **Merge queue.** A queue is the `opentine-coord/1` record
 `coord/merge-queue/<id>` (`kind: "merge-queue"`) owning one target ref, with
 `queue`, `target`, `gates` (an `opentine-merge-gates/1` policy or null),

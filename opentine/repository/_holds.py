@@ -23,6 +23,9 @@ from opentine.repository._lockfile import acquire
 from opentine.repository._paths import atomic_bytes, internal_path
 
 FORMAT = "tine-holds/1"
+#: Rows whose target starts with this keep a loop stop (opentine.coord._loop_hold):
+#: ``tine hold release`` refuses them, so deleting coord/loops/LOOP cannot un-stop.
+LOOP_STOP = "loop-stop:"
 MAX_HOLDS_BYTES = 4 * 1024 * 1024
 
 
@@ -115,6 +118,8 @@ def release(repo, target: str) -> list[dict[str, str]]:
 
     def change(rows):
         gone.extend(r for r in rows if target in (r["oid"], r["target"]))
+        if any(r["target"].startswith(LOOP_STOP) for r in gone):
+            raise HoldError(f"{target} keeps a loop stop: a stopped loop is never released")
         return [r for r in rows if r not in gone]
 
     edit_holds(holds_path(repo), change)

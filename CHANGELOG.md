@@ -1,5 +1,93 @@
 # Changelog
 
+## 0.57.0 — Signed promotion and eval statistics (2026-11-18)
+
+- `tine eval compare A B --ci paired-bootstrap|permutation [--alpha] [--seed]
+  [--resamples]` adds per-metric statistics (`score`, `pass_rate`): both means,
+  the delta, a paired-bootstrap interval or a sign-flip permutation p-value, and
+  the regressions. The arithmetic is exact (integer micro-units) and the result
+  is deterministic given the seed. It prints a table, or `--json` under the new
+  published schema `tine-cli-eval-compare-1`.
+- `--export FILE` writes the paired items the numbers come from;
+  `scripts/eval_compare_reproduce.py FILE` (standard library only) reproduces
+  `stats` from it byte for byte. `--attest KEY --out FILE` signs the result as an
+  existing `attestation` whose claim follows the documented convention
+  `opentine.eval-compare/1`.
+- `tine promote TARGET --baseline LABEL` is a signed promotion gate. A label moves
+  only when trusted, signed eval verdicts beat the baseline under the policy's
+  test, with a minimum n and a holdout. It also needs approvals from listed
+  approvers, a spend under the budget cap, and an `opentine.admission-policy`
+  that covers `labels/LABEL`. Every refusal is named (`promote.n-below-minimum`,
+  `promote.ci-crosses-zero`, `promote.missing-approver`, `promote.over-budget`
+  and others).
+- A promotion emits the existing admission VSA. Its `inputAttestations` list
+  the eval folders, approvals and signed comparisons (the frozen-safe lineage),
+  and a signed decision attestation goes with it.
+- `--approve` signs an approval, `--revert --reason` writes a signed revert
+  decision, and `--canary DIR` reverts automatically on a signed, significant
+  regression. `tine promote TARGET --name NAME` (the `promotions/<name>` ref)
+  is unchanged.
+- No new object kinds, wire formats or vector families. The claim conventions
+  `opentine.eval-compare/1`, `opentine.promotion-approval/1` and
+  `opentine.promotion-decision/1` are documented in `docs/EVALS-PROMOTION.md`,
+  and verifiers report them `unchecked`. A promote, revert, promote sequence
+  verifies offline in the Python reference, the pyz and the TS verifier
+  (`tests/data/promotion_chain.json`).
+- `tine keys lint` checks key separation for self-improving agent loops: the
+  key-role policy `.tine/key-roles.toml` names the `optimizer`, `scorer`,
+  `dataset`, `verdict` and (optional) `approver` keys, and the lint exits 1
+  when the optimizer key, or a candidate signing key given with
+  `--optimizer-key`, also holds any of the others (`fail:key-separation.shared`)
+  or the policy is malformed. Advisory findings (no policy, a role nobody
+  holds) never block unless `--strict`. `--json` prints `tine-cli-keys-lint/1`.
+  `opentine._key_roles.check_separation` is the same check for the promotion
+  gate.
+
+- `tine loop stop LOOP --ed25519-key-file KEY` is the kill switch: a signed
+  attestation with the `opentine.loop-stop/1` claim convention (no new object
+  kind), indexed by `coord/loops/LOOP`. `tine task add --loop LOOP` marks a task
+  as a generation of LOOP; once stopped, its `claim` and `heartbeat` are refused
+  with code `stopped`. The fence reads the stop record, never a clock, so a
+  clock-skewed fleet is refused at once and the running generation ends within
+  one lease period. `tine loop status LOOP` reports the stop and whether it
+  verifies; `--json` prints `tine-cli-loop/1`.
+
+- The promotion gate and the kill switch close the ways a loop could route
+  around them. With a `policy` role in `.tine/key-roles.toml`, `tine promote`
+  needs `--policy-attestation`: an `opentine.promotion-policy/1` attestation
+  (`tine promote promote.toml --sign-policy`) over the policy and its label
+  policy from a `policy` key that is not the promoting or an optimizer key
+  (`promote.policy-unsigned`). Approvals name the holder they replace and
+  the label's sequence, so a revert retires them (`promote.approval-stale`).
+  A first promotion's baseline must score one run other than the candidate,
+  and the canary checks its baseline's run and signer like the gate. The
+  candidate run's `opentine.loop` or `opentine.task` metadata names its loop,
+  so a stopped loop is refused without `--loop`.
+- A loop stop is also kept by a hold that `tine hold release` refuses; the
+  fence and `promote` read it, so deleting or rewriting `coord/loops/LOOP`
+  does not un-stop the loop. An optional `stopper` role reports a stop from
+  another key as `unverified` (it still fences). A task whose id starts with
+  `LOOP.` is fenced without `--loop`, and adding a task to a stopped loop is
+  refused. Limits: `--spent` is declared, label state is local, and there is
+  no remote loop stop.
+
+- **Behaviour change**, storage: auto-pack now writes the current local pack
+  format. The first time it packs a version-2 repository (what `tine init`
+  writes) it moves the descriptor to storage version 3, so packs at rest, and
+  each run's own pack after that, are `TINELP3`: read by every release since
+  0.13 (the 0.34 peer-compat job now reads a version-3 repository) and by the
+  TypeScript verifier. Existing packs are not rewritten. `tine repo storage gc
+  --downgrade` pins `"auto_pack": {"format": 1}` so auto-pack never undoes it;
+  `OPENTINE_AUTO_PACK_FORMAT=1` does the same per process.
+- `Repo.pack()` keeps emitting `TINEPACK3`, and bundle and transfer defaults
+  are unchanged: the published 0.34 reader refuses a `TINEPACK5` pack
+  (`invalid pack header`), so that default cannot flip while 0.34 is a
+  supported peer.
+- `tine promote --baseline` runs the key-separation check on the promoting
+  key (`promote.key-separation`, from the repository's `.tine/key-roles.toml`)
+  and, with `--loop LOOP`, refuses while that loop is stopped
+  (`promote.loop-stopped`). `--revert` is never blocked by a stop.
+
 ## 0.56.0 — Onboarding and capture breadth (2026-11-18)
 
 - OTLP import maps OpenInference attributes (span kind, model, provider, token

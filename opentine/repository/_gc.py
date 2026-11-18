@@ -17,6 +17,7 @@ from pathlib import Path
 from opentine import _codec
 from opentine.kernel import KernelError
 from opentine.repository import _winretry
+from opentine.repository._autopack_format import pinned
 from opentine.repository._config import (
     STORAGE_V3,
     STORAGE_VERSION,
@@ -92,6 +93,8 @@ def set_storage_version(repo, version: int, codec: str) -> None:
         config.update(version=version, storage={"compression": codec})
         config.pop("note", None)
         config.update({"note": V3_NOTE} if version == STORAGE_V3 else {})
+        if version != STORAGE_V3:  # 0.58: auto-pack never undoes a downgrade
+            config["auto_pack"] = pinned(config.get("auto_pack"))
         return True
 
     rewrite_config(repo.path, change)
@@ -99,11 +102,7 @@ def set_storage_version(repo, version: int, codec: str) -> None:
 
 
 def pack_format(repo) -> int:
-    """The pack format a write uses now: 3 in a v3 repository, else 1.
-
-    Read from the descriptor each time, never cached: a process that opened the
-    repository before an upgrade or downgrade must follow it.
-    """
+    """The pack format a write uses now: 3 in a v3 repository, else 1 (never cached)."""
     config = read_config(internal_path(repo.path, "config.json"))
     return 3 if storage_version(config) == STORAGE_V3 else 1
 

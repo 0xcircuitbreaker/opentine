@@ -121,7 +121,7 @@ def test_autopack_packs_only_cold_objects_once_over_the_threshold(tmp_path, monk
     assert maybe_autopack(repo).packed == len(cold)
     assert {oid for oid, _, _ in loose_entries(repo.path)} == young
     assert _all_raw(Repo.open(repo.path)) == before
-    assert read_config(repo.path / "config.json")["version"] == 2
+    assert read_config(repo.path / "config.json")["version"] == 3  # 0.58: current format
 
 
 def test_autopack_never_upgrades_a_version_1_repository(tmp_path, monkeypatch):

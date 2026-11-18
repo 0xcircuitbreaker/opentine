@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-keys-lint-1.schema.json",
+  "title": "tine keys lint --json",
+  "description": "Key separation for self-improving agent loops: the key-role policy (`.tine/key-roles.toml`) and its findings. A `fail:` finding (the optimizer key also holds a scorer, dataset, verdict or approver key; a malformed policy) blocks; an `advisory:` finding blocks only with `--strict`. `blocking` counts what refused.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "command",
+    "schema",
+    "ok",
+    "policy",
+    "strict",
+    "roles",
+    "findings",
+    "blocking"
+  ],
+  "properties": {
+    "command": {
+      "const": "keys lint"
+    },
+    "schema": {
+      "const": "tine-cli-keys-lint/1"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "policy": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "strict": {
+      "type": "boolean"
+    },
+    "blocking": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "roles": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "optimizer": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "scorer": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "dataset": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "verdict": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "approver": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "level",
+          "code",
+          "role",
+          "key",
+          "message"
+        ],
+        "properties": {
+          "level": {
+            "enum": [
+              "fail",
+              "advisory"
+            ]
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^(fail|advisory):[a-z0-9.-]+$"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "enum": [
+                  "optimizer",
+                  "scorer",
+                  "dataset",
+                  "verdict",
+                  "approver"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

@@ -18,6 +18,12 @@ A task's value is::
 
 The fencing token only ever grows (the ref's annotation chain keeps every
 version), so downstream writes can be ordered and fenced by it.
+
+0.58: a task added with ``loop=LOOP`` is one generation of a self-improving
+agent loop; once ``tine loop stop LOOP`` recorded a signed stop, its claim and
+heartbeat are refused (``code="stopped"``, :mod:`opentine.coord._loop_stop`),
+and so is adding one. A task whose id is in a loop's namespace (``LOOP.*``)
+is treated the same with or without ``loop=``.
 """
 
 from __future__ import annotations
@@ -26,6 +32,7 @@ import re
 import time
 from typing import Any
 
+from opentine.coord import _loop_stop
 from opentine.coord._store import history, read, swap
 
 KIND = "task"
@@ -38,7 +45,7 @@ MAX_ATTEMPTS = 64
 
 
 class LeaseError(ValueError):
-    """A refused task operation; ``code`` is ``exists|missing|held|done|stale|contended``."""
+    """A refused task; ``code`` is ``exists|missing|held|done|stale|stopped|contended``."""
 
     def __init__(self, code: str, message: str):
         super().__init__(message)
@@ -67,12 +74,17 @@ def _ttl(ttl: float) -> int:
     return int(ttl * 1000)
 
 
-def add(repo: Any, task: str, title: str = "", *, now: int | None = None) -> dict[str, Any]:
+def add(
+    repo: Any, task: str, title: str = "", *, now: int | None = None, loop: str | None = None
+) -> dict[str, Any]:
     if len(title) > MAX_TITLE:
         raise ValueError("task title is too long")
     value = {"task": task, "title": title, "status": "open", "holder": None, "fencing": 0,
              "lease_expires_ms": None, "updated_ms": now_ms() if now is None else now}  # fmt: skip
+    if loop is not None:  # 0.58: only then, so other tasks keep their bytes
+        value["loop"] = _loop_stop.ref_name(loop).removeprefix(_loop_stop.PREFIX)
     name = ref_name(task)
+    _stopped(repo, value)  # no new generation of a stopped loop, --loop or its namespace
     if read(repo, name, KIND)[0] is not None or swap(repo, name, KIND, value, None) is None:
         raise LeaseError("exists", f"task {task} already exists")
     return value
@@ -102,6 +114,7 @@ def claim(
         moment = now_ms() if now is None else now
         if value["status"] == "done":
             raise LeaseError("done", f"task {task} is done")
+        _stopped(repo, value)
         if value["status"] == "claimed" and not expired(value, moment):
             raise LeaseError("held", f"task {task} is held by {value['holder']} "
                              f"(fencing {value['fencing']})")  # fmt: skip
@@ -113,14 +126,24 @@ def claim(
     raise LeaseError("contended", f"task {task}: too many concurrent claims")
 
 
+def _stopped(repo: Any, value: dict[str, Any]) -> None:
+    try:
+        _loop_stop.fence(repo, value)
+    except _loop_stop.LoopStopped as exc:
+        raise LeaseError("stopped", f"task {value['task']}: {exc}") from None
+
+
 def _as_holder(
-    repo: Any, task: str, holder: str, fencing: int, change: Any, now: int | None
-) -> dict[str, Any]:
+    repo: Any, task: str, holder: str, fencing: int, change: Any, now: int | None,
+    fenced: bool = False,
+) -> dict[str, Any]:  # fmt: skip
     name = ref_name(task)
     for _ in range(MAX_ATTEMPTS):
         oid, value = read(repo, name, KIND)
         if value is None:
             raise LeaseError("missing", f"no such task: {task}")
+        if fenced:
+            _stopped(repo, value)
         moment = now_ms() if now is None else now
         if (
             value["status"] != "claimed"
@@ -142,7 +165,7 @@ def heartbeat(
 ) -> dict[str, Any]:
     span = _ttl(ttl)
     return _as_holder(repo, task, holder, fencing,
-                      lambda moment: {"lease_expires_ms": moment + span}, now)  # fmt: skip
+                      lambda moment: {"lease_expires_ms": moment + span}, now, True)  # fmt: skip
 
 
 def done(

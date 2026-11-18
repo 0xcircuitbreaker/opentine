@@ -1,4 +1,4 @@
-"""``tine eval run|verify|compare|ci``: signed tine-eval-verdict/1 evals (0.45, 0.47)."""
+"""``tine eval run|verify|compare|ci``: signed tine-eval-verdict/1 evals (0.45, 0.47, 0.58)."""
 
 from __future__ import annotations
 
@@ -33,6 +33,18 @@ def add_eval_parsers(sub: Any) -> None:
     compare.add_argument("left", metavar="A")
     compare.add_argument("right", metavar="B")
     compare.add_argument("--exit-code", action="store_true", help="Exit 1 on any regression")
+    compare.add_argument(
+        "--ci",
+        choices=("paired-bootstrap", "permutation"),
+        help="Per-metric deltas with an interval or p-value (0.58)",
+    )
+    compare.add_argument("--alpha", default="0.05", help="Significance level (default 0.05)")
+    compare.add_argument("--seed", type=int, default=0, help="Resampling seed (default 0)")
+    compare.add_argument("--resamples", type=int, default=2000, help="Resamples (default 2000)")
+    compare.add_argument("--export", metavar="FILE", help="Write the export --ci computed from")
+    compare.add_argument("--attest", metavar="KEY", help="Sign the result as an attestation")
+    compare.add_argument("--out", metavar="FILE", help="Where --attest writes it")
+    compare.add_argument("--signed-at", metavar="TIME", help="YYYY-MM-DDTHH:MM:SSZ (default now)")
     ci = verbs.add_parser("ci", help="Run every eval .tine/evals.toml declares; gate on them")
     ci.add_argument("--config", metavar="TOML", help="Eval config (default: .tine/evals.toml)")
     ci.add_argument("--key", required=True, metavar="KEY", help="Ed25519 private key that signs")
@@ -106,6 +118,10 @@ def _human(verb: str, row: dict[str, Any]) -> None:
         )  # fmt: skip
         for item in row["regressed"]:
             console.print(f"  regressed  {item}", highlight=False, markup=False)
+        if row.get("stats"):
+            from opentine._cli_eval_compare import table
+
+            table(row)
         return
     head = "VERIFIED" if row.get("ok", True) else "FAILED"
     console.print(
@@ -136,6 +152,10 @@ def cmd_eval(args: argparse.Namespace) -> None:
             row = _ci(args)
         elif verb == "verify":
             row = verify_eval(Path(args.eval_dir), public_key=_pubkey(args))
+        elif args.ci:
+            from opentine._cli_eval_compare import compare_ci
+
+            row = compare_ci(args, _pubkey(args))
         else:
             row = compare(Path(args.left), Path(args.right), public_key=_pubkey(args))
     except errors as exc:
@@ -146,7 +166,8 @@ def cmd_eval(args: argparse.Namespace) -> None:
         _human(verb, row)
     if verb == "ci" and not row["ok"]:
         raise SystemExit(1)
-    failed = not row["ok"] or (verb == "compare" and args.exit_code and row["regressed"])
+    regressed = row.get("regressed") or (row.get("stats") or {}).get("regressions")
+    failed = not row["ok"] or (verb == "compare" and args.exit_code and regressed)
     if failed:
         raise SystemExit(VERIFICATION_FAILED if not row["ok"] else 1)
 

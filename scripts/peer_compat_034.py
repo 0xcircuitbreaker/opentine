@@ -143,7 +143,7 @@ def write(base: Path) -> dict[str, Any]:
     """Write the current tree's files under *base*; return the reader's manifest."""
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-    from opentine import _memory, _project, _prompt, _tombstone
+    from opentine import _codec, _memory, _project, _prompt, _tombstone
     from opentine._format_v4 import FORMAT_ENV
     from opentine.graph import Run, StepKind
     from opentine.policies import PolicySet
@@ -157,7 +157,7 @@ def write(base: Path) -> dict[str, Any]:
         run.add_step(StepKind.done, {"text": text})
         return run
 
-    repo = Repo.init(base / "repo")
+    repo = Repo.init(base / "repo", compression=_codec.default_codec())  # as CI writes
     runs = [repo.put_run(new_run(n, f"{n} done"), ref="heads/main").run_id for n in "ab"]
     recorder = Recorder.start(repo, ref="heads/traced", capture=False)
     recorder.append(TraceEvent("model", 1, "trace", "span", outputs={"text": "ok"}))
@@ -190,6 +190,13 @@ def write(base: Path) -> dict[str, Any]:
         default.append((base / f"{stem}.v5.tine").as_posix())
         legacy.append((base / f"{stem}.legacy.tine").as_posix())
     (base / "main.pack").write_bytes(repo.pack())
+    # 0.58: auto-pack's at-rest format (storage v3, TINELP3), every pack rewritten in it.
+    from opentine.repository._autopack_format import adopt_current_format
+    from opentine.repository._gc import gc
+
+    if not adopt_current_format(repo):
+        raise RuntimeError("auto-pack did not move the repository to storage version 3")
+    gc(repo, repack=True, keep_transfer_packs=True)
     return {
         "repo": (base / "repo").as_posix(),
         "runs": runs,

@@ -160,8 +160,7 @@ def _pack_sizes(root) -> dict[str, int]:
 def maybe_autopack(repo, *, min_age: float = MIN_AGE, own: frozenset[str] = frozenset()):
     """Pack cold loose objects if the threshold is reached; the ``GcResult`` or ``None``.
 
-    Loose oids in *own* (stored by this process) count and pack whatever their age.
-    """
+    Loose oids in *own* (stored by this process) count and pack whatever their age."""
     try:
         limit = threshold(repo)
         if limit is None or getattr(repo, "_storage_codec", None) is None:
@@ -169,8 +168,10 @@ def maybe_autopack(repo, *, min_age: float = MIN_AGE, own: frozenset[str] = froz
         merge = merge_candidates(_pack_sizes(repo.path))  # 0.40: run packs pile up too
         if not merge and not due(repo.path, min_age, limit, byte_threshold(repo), own):
             return None
+        from opentine.repository._autopack_format import adopt_current_format
         from opentine.repository._gc import gc
 
+        adopt_current_format(repo)  # 0.58: pack in the current local format
         return gc(
             repo, min_age=min_age, merge_packs=merge, keep_transfer_packs=True, own=own,
             **level_kwargs(repo),
@@ -236,8 +237,10 @@ def settle(repo) -> None:
         if not hot or threshold(repo) is None:
             maybe_autopack(repo)
             return
+        from opentine.repository._autopack_format import adopt_current_format
         from opentine.repository._gc import gc
 
+        adopt_current_format(repo)  # 0.58: pack in the current local format
         gc(
             repo, min_age=MIN_AGE, merge_packs=sorted(hot), keep_transfer_packs=True, own=mine,
             **level_kwargs(repo),
