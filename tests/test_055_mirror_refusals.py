@@ -3,6 +3,7 @@ unlink deletes; tenants are isolated."""
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 import threading
 from wsgiref.simple_server import make_server
@@ -13,6 +14,8 @@ from opentine import _project
 from opentine.remote import _mirror_store
 from opentine.remote._http_server import ThreadingWSGIServer, TimeoutRequestHandler
 from tests._mirror_fixture import call, fixture_repo, make_app, put_project
+
+pytestmark = pytest.mark.skipif(shutil.which("git") is None, reason="needs git on PATH")
 
 T = "/v1/tenants/acme/project/"
 PUSHES = [

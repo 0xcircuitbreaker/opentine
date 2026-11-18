@@ -5,10 +5,12 @@ from __future__ import annotations
 import io
 import json
 import os
+import shutil
 import subprocess
 from pathlib import Path
 from typing import Any
 
+import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from opentine import _jsonschema, _project
@@ -24,6 +26,8 @@ TOKENS = {
 
 
 def git(repo: Path, *args: str, when: int = 0) -> str:
+    if shutil.which("git") is None:
+        pytest.skip("the code mirror tests need git on PATH")
     stamp = f"2026-01-0{1 + when}T12:00:00Z"
     env = {**os.environ, "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull,
            "GIT_AUTHOR_NAME": "Ada", "GIT_AUTHOR_EMAIL": "ada@example.org",
