@@ -16,9 +16,14 @@ DEFAULT_POLICY = {"holdout_gap": 0.15, "judge_disagree": 0.25, "block_on_advisor
 
 
 def _num(value) -> float | None:
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
+    # A numeric string is still a score: a loop must not evade the gap check by quoting it.
+    if isinstance(value, bool) or not isinstance(value, (int, float, str)):
         return None
-    return float(value)
+    try:
+        out = float(value)
+    except ValueError:
+        return None
+    return out if out == out and abs(out) != float("inf") else None
 
 
 def detect_visible_holdout_gap(run: dict, policy: dict) -> list[_d.Finding]:

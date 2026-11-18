@@ -100,3 +100,11 @@ Advisory detectors are heuristics: a determined optimizer can evade them, and
 an honest change can trip them. They exist to route attention, not to judge.
 The guarantees come from the `fail:` facts, signed evals, key separation and
 the promotion policy.
+
+Known evasions the detectors do not catch: an answer-key environment
+variable read through a computed name (`os.environ[prefix + suffix]`), a
+literal hidden behind arbitrary computation rather than base64, hex or a
+`0x` constant, a grader edited and restored between capture points, and
+anything the run record itself omits. A detector only sees the diff, scores
+and events it is given; the record's own integrity is a `fail:` fact
+question, not an advisory one.

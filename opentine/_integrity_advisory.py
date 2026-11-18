@@ -11,6 +11,7 @@ claims) live in ``_integrity_advisory_evidence``.
 
 from __future__ import annotations
 
+import base64
 import re
 from collections.abc import Callable, Iterable
 
@@ -37,6 +38,8 @@ _SKIP = re.compile(
     r"|@unittest\.(skip|skipIf|skipUnless|expectedFailure)\b|\bself\.skipTest\s*\("
     r"|\b(it|test|describe)\.(skip|only|todo)\s*\(|\bx(it|describe|test)\s*\("
     r"|\braise\s+(unittest\.)?SkipTest\b"
+    r"|(?<![\w.])mark\.(skip|skipif|xfail)\b|^\s*pytestmark\s*="
+    r"|\bgetattr\(\s*[\w.]*mark\b|\b__unittest_skip__\b"
 )
 _CONFTEST_HOOK = re.compile(
     r"\bpytest_(collection_modifyitems|runtest_\w+|collect_file|ignore_collect"
@@ -50,6 +53,7 @@ _TIMING = re.compile(
     r"|\bpatch(\.object)?\(\s*['\"]?(time|datetime)\b"
     r"|\bsetattr\(\s*(time|datetime)\s*,"
     r"|\b(freezegun|freeze_time|libfaketime|FAKETIME)\b"
+    r"|\b(perf_counter|monotonic|time_ns|sleep|utcnow)\s*=\s*lambda\b"
     r"|\bjest\.useFakeTimers\b|\bDate\.now\s*=(?!=)|\bperformance\.now\s*=(?!=)"
 )
 _ANSWER_KEY = r"[A-Z0-9_]*(EXPECTED|ANSWER|GOLD|SOLUTION|HOLDOUT|GROUND_TRUTH|REFERENCE_OUTPUT|LABELS?)[A-Z0-9_]*"  # noqa: E501
@@ -61,8 +65,34 @@ _STR_LIT = re.compile(r"(['\"])((?:(?!\1)[^\\\n]|\\.){4,200})\1")
 _NUM_LIT = re.compile(r"(?<![\w.])-?\d{3,}(\.\d+)?(?![\w.])")
 
 
+_RUNNER_CFG = (
+    "pyproject.toml",
+    "setup.cfg",
+    "tox.ini",
+    "pytest.ini",
+    "jest.config.js",
+    "vitest.config.ts",
+    "package.json",
+)
+_RUNNER_OPT = re.compile(
+    r"--deselect\b|--ignore\b|(^|\s|['\"])-k\s|\bnorecursedirs\b|\btestpaths\b"
+    r"|\bpython_files\b|\bpython_functions\b|\btestPathIgnorePatterns\b|\b-p\s+no:"
+)
+
+
+def _norm(path: str) -> str:
+    # Windows and macOS default filesystems are case-insensitive: Tests/ConfTest.py is a conftest.
+    return path.replace("\\", "/").lower()
+
+
 def is_test_path(path: str) -> bool:
-    return bool(_TEST_PATH.search(path.replace("\\", "/")))
+    return bool(_TEST_PATH.search(_norm(path)))
+
+
+def _collected(path: str) -> bool:
+    """Would a runner still collect this file (a test module, not a renamed-away copy)?"""
+    base = _norm(path).rsplit("/", 1)[-1]
+    return bool(re.search(r"^test_.*\.py$|_test\.(py|go)$|\.(test|spec)\.[cm]?[jt]sx?$", base))
 
 
 def _finding(code: str, path: str, detail: str) -> Finding:
@@ -95,6 +125,10 @@ def detect_test_deleted(run: dict) -> list[Finding]:
         if f.get("status") == "deleted":
             out.append(_finding("advisory:test-deleted", path, "test file deleted"))
             continue
+        moved = str(f.get("new_path") or "")
+        if f.get("status") == "renamed" and moved and not _collected(moved):
+            out.append(_finding("advisory:test-deleted", path, f"test file moved to {moved}"))
+            continue
         kept = {_test_name(x) for x in _added(f) if _TEST_DEF.search(x)}
         gone = [_test_name(x) for x in _removed(f) if _TEST_DEF.search(x)]
         for name in sorted({n for n in gone if n and n not in kept}):
@@ -125,6 +159,21 @@ def _test_literals(run: dict) -> set[str]:
     return lits
 
 
+_HEX_LIT = re.compile(r"(?<![\w.])0[xXoObB][0-9a-fA-F_]+(?![\w.])")
+
+
+def _decoded(found: set[str], code: str) -> set[str]:
+    """Encoded constants a hack can hide a test literal behind: base64/hex strings, 0x ints."""
+    out = {str(int(m.group(0), 0)) for m in _HEX_LIT.finditer(code)}
+    for lit in found:
+        for decode in (lambda t: base64.b64decode(t, validate=True), bytes.fromhex):
+            try:
+                out.add(decode(lit).decode("utf-8"))
+            except (ValueError, UnicodeDecodeError):
+                pass
+    return out
+
+
 def detect_special_casing(run: dict) -> list[Finding]:
     lits = _test_literals(run)
     if not lits:
@@ -137,6 +186,7 @@ def detect_special_casing(run: dict) -> list[Finding]:
             code = line.split("#", 1)[0]
             found = {m.group(0)[1:-1] for m in _STR_LIT.finditer(code)}
             found |= {m.group(0) for m in _NUM_LIT.finditer(code)}
+            found |= _decoded(found, code)
             hit = sorted(found & lits)
             if hit:
                 detail = f"test literal {hit[0]!r} in non-test code"
@@ -157,11 +207,16 @@ def _scan(run: dict, code: str, pattern: re.Pattern, keep: Callable[[str], bool]
 
 
 def _is_conftest(path: str) -> bool:
-    return path.replace("\\", "/").rsplit("/", 1)[-1] in ("conftest.py", "pytest.ini")
+    return _norm(path).rsplit("/", 1)[-1] in ("conftest.py", "pytest.ini")
+
+
+def _is_runner_cfg(path: str) -> bool:
+    return _norm(path).rsplit("/", 1)[-1] in _RUNNER_CFG
 
 
 def detect_conftest_tampered(run: dict) -> list[Finding]:
-    return _scan(run, "advisory:conftest-tampered", _CONFTEST_HOOK, _is_conftest)
+    out = _scan(run, "advisory:conftest-tampered", _CONFTEST_HOOK, _is_conftest)
+    return out + _scan(run, "advisory:conftest-tampered", _RUNNER_OPT, _is_runner_cfg)
 
 
 def detect_timing_fake(run: dict) -> list[Finding]:
