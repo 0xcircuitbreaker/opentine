@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Sealed holdouts and canaries
+## 0.60.0 — Sealed holdouts and canaries (2026-11-18)
 
 - `tine dataset seal` commits to a holdout with an RFC 6962 Merkle root over
   salted item leaves (signed claim `opentine.holdout.commitment/1`, an
