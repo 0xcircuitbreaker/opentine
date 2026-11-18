@@ -33,7 +33,11 @@ Every Windows cell is split into 4 shards by `pytest-split`, using the committed
 ```bash
 uv run pytest tests -m "not live and not live_harness" -p no:xdist \
   --store-durations --durations-path tests/test_durations.json
+uv run python scripts/scrub_durations.py
 ```
+
+The scrub step drops test ids shaped like credentials (the redaction tests use
+fake tokens as parameters), so the committed file never trips secret scanning.
 
 A test that cannot run beside others (it changes the working directory, a
 process-wide setting, or a fixed port) is marked `@pytest.mark.serial`. Prefer
