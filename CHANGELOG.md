@@ -1,5 +1,32 @@
 # Changelog
 
+## Unreleased — Measuring-stick integrity
+
+- `.tine/protected.toml` names the protected surfaces of a self-improving
+  agent loop (graders, tests, holdout manifests, sandbox policy, scorer code)
+  as globs with pinned sha256 digests. The list counts only when pinned by an
+  `opentine.integrity.protected/1` attestation from a `policy`-role key that is
+  not an optimizer key (0.57 key roles), so a loop cannot edit the list:
+  `tine integrity pin` writes current digests, `tine integrity sign` pins the
+  bytes.
+- `tine integrity check RUN` judges the run's tool calls (file tools and shell
+  commands) and every pinned digest and exits 1 on
+  `fail:protected-surface-modified` (a hash fact),
+  `fail:protected-list-unsigned` or `fail:protected-list-missing`.
+  `advisory:test-deleted` and `advisory:holdout-read` are reported and block
+  only with `--strict` (owner decision D12). `--json` prints the new published
+  schema `tine-cli-integrity-1`.
+- `--key` files a signed taint for a failing run, an existing attestation
+  under the claim convention `opentine.integrity.taint`.
+- `tine promote` refuses a tainted candidate, or one that trips a `fail:`
+  against the protected list at promotion time, with `promote.score-tainted`.
+- `tine lineage check` and `why` report `lineage.score-tainted` for a variant
+  whose mutation run is tainted.
+- The TS verifier has the same check (`checkProtected`); both answer the shared
+  fixture `tests/data/integrity_check.json`, outside the frozen vector family.
+  `tine verify`, the pyz, object kinds, wire formats and vectors are unchanged
+  (freeze-safe). See docs/INTEGRITY.md.
+
 ## 0.58.0 — Self-modification lineage (2026-11-18)
 
 - `tine lineage record --run RUN --key KEY --code-tree|--prompt|--config|--weights

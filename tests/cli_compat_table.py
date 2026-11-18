@@ -5215,4 +5215,28 @@ ROWS: tuple[tuple, ...] = (
         False,
         {"command": "lineage", "lineage_command": "check", "variant": "v1", "dir": "d"},
     ),
+    (
+        "plain:integrity check R --strict --json",
+        "plain",
+        ["integrity", "check", "R", "--strict", "--json"],
+        "opentine._cli_integrity:cmd_integrity",
+        False,
+        {"command": "integrity", "integrity_command": "check", "run": "R", "strict": True},
+    ),
+    (
+        "plain:integrity pin --repo r",
+        "plain",
+        ["integrity", "pin", "--repo", "r"],
+        "opentine._cli_integrity:cmd_integrity",
+        False,
+        {"command": "integrity", "integrity_command": "pin", "repo": "r"},
+    ),
+    (
+        "plain:integrity sign --key k",
+        "plain",
+        ["integrity", "sign", "--key", "k"],
+        "opentine._cli_integrity:cmd_integrity",
+        False,
+        {"command": "integrity", "integrity_command": "sign", "key": "k"},
+    ),
 )

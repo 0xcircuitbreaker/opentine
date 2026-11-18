@@ -172,6 +172,15 @@ its variant id is not indexed.
 
 `--json` prints `tine-cli-lineage/1` for every subcommand.
 
+## Tainted scores (0.60)
+
+A variant whose mutation run carries a signed `opentine.integrity.taint`
+(`tine integrity check RUN --key KEY`, docs/INTEGRITY.md) is reported by
+`check` and `why` as `lineage.score-tainted`, and the command exits 1: a score
+from a run that modified a protected surface cannot justify a lineage step.
+The taint is read from `REPO/.tine/integrity/taints/`; the lineage folder and
+the TS `checkLineage` fixture are unchanged.
+
 ## Not yet
 
 The Tineyard view of the graph comes later. Record signers are proven, not

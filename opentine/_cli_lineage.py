@@ -126,8 +126,19 @@ def _row(args: argparse.Namespace) -> dict:
         return _record(args)
     files = read_folder(_folder(args), max_files=args.max_files, max_bytes=args.max_bytes)
     if args.lineage_command == "check":
-        return check(files, args.variant, trust(args))
+        return tainted(args, files, check(files, args.variant, trust(args)))
     return body(args, _folder(args), files)
+
+
+def tainted(args: argparse.Namespace, files: dict, row: dict) -> dict:
+    """*row* with ``lineage.score-tainted`` for each tainted mutation run (0.60)."""
+    from opentine._integrity_run import lineage_findings
+
+    extra = lineage_findings(Path(args.repo), files, [row["variant"], *row["ancestors"]])
+    if not extra:
+        return row
+    found = sorted(row["findings"] + extra, key=lambda f: (f["variant"], f["code"], f["detail"]))
+    return {**row, "ok": False, "findings": found}
 
 
 def _print(args: argparse.Namespace, row: dict) -> None:

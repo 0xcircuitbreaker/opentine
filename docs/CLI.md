@@ -1958,6 +1958,18 @@ with `LOOP.` is fenced with or without `--loop`. `--json` prints
 lineage folder over `--max-files` (200000) or `--max-bytes` (1 GiB) before
 reading it. See docs/LINEAGE.md.
 
+## Protected surfaces (0.60)
+
+| Command | What it does |
+| --- | --- |
+| `tine integrity pin --repo PATH` | Writes the current sha256 of every file `.tine/protected.toml` covers into its pins; the list must be signed again |
+| `tine integrity sign --key KEY [--at TIME] --repo PATH` | Pins the list's bytes with an `opentine.integrity.protected/1` attestation; only a `policy`-role, non-optimizer key counts |
+| `tine integrity check RUN [--strict] [--key KEY] [--at TIME] --repo PATH` | Judges the run's tool calls and every pinned digest; exit 1 on `fail:protected-surface-modified`, `fail:protected-list-unsigned` or `fail:protected-list-missing`; `advisory:test-deleted` and `advisory:holdout-read` block only with `--strict`; `--key` files a signed `opentine.integrity.taint` for a failing run |
+
+`--json` prints `tine-cli-integrity/1`. A tainted run is refused by `tine
+promote` (`promote.score-tainted`) and reported by `tine lineage check|why`
+(`lineage.score-tainted`). See docs/INTEGRITY.md.
+
 A sent message is delivered by the member's `tine hook capture` at its next
 turn end (the hook inherits `OPENTINE_FLEET_ID` and `OPENTINE_FLEET_MEMBER`
 from `tine fleet up`), once, and recorded as a `human` step with actor
