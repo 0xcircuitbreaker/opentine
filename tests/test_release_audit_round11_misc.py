@@ -290,6 +290,7 @@ BINARY_DEPENDENT_TEST_MODULES = {
     "tests/test_048_review_run.py": "git",
     "tests/test_055_review_runner.py": "git",
     "tests/test_050_stress_compat.py": "git",
+    "tests/test_058_pack_defaults.py": "git",
     "tests/test_conformance_drift.py": "git",
     "tests/test_entire_import_0_19.py": "git",
     "tests/test_entire_refs_0_42.py": "git",
