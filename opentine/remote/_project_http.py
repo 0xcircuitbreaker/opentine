@@ -16,8 +16,9 @@
 Every read the caller may not make, of a tenant without a project, or of
 another tenant answers the same ``404 {"error": "not found"}``; an
 unauthenticated caller gets the same ``401`` for every tenant, existing or not.
-``tine serve`` stores no code: there is no upload-pack, receive-pack or mirror
-route, and no ``mirror`` capability.
+``tine serve`` stores no code unless ``--mirror`` turns on the read-only code
+mirror (0.55, ``caps.project.mirror``, :mod:`._mirror_http`); there is never an
+upload-pack or receive-pack route.
 """
 
 from __future__ import annotations
@@ -36,9 +37,11 @@ NOT_FOUND = {"error": "not found"}
 def capabilities(service: Any) -> dict[str, Any]:
     if getattr(service.objects, "root", None) is None:
         return {}
+    from opentine.remote._mirror_http import capabilities as mirror_caps
+
     return {
         "project": {"path": "project", "history": "project/history", "max_page": PAGE,
-                    "kind": _project.KIND, "update": "PUT"},
+                    "kind": _project.KIND, "update": "PUT", **mirror_caps(service)},
         "social_export": {"path": "social", "counts": ["stars", "watches"]},
     }  # fmt: skip
 

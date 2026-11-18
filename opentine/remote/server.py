@@ -17,6 +17,7 @@ from opentine.remote._events_setup import attach_events
 from opentine.remote._gateway import GatewayApp
 from opentine.remote._http_server import ThreadingWSGIServer, TimeoutRequestHandler
 from opentine.remote._limits import Limits
+from opentine.remote._mirror_serve import add_mirror_arguments, attach_mirror, mirror_options
 from opentine.remote._serve_admission import add_admission_arguments, serve_admission
 from opentine.remote._serve_auth import add_auth_arguments, limits_config, serve_identities
 from opentine.remote._token_scope import ScopedPolicy
@@ -56,6 +57,7 @@ def reference_app(
     admin: dict[str, Any] | None = None,
     limits: dict | None = None,
     ci_trust: str | Path | None = None,
+    mirror: dict[str, Any] | None = None,
 ) -> RemoteApp:
     """0.52: scoped tokens (``_token_store``), quotas and CI exchange (``_gateway``)."""
     state = Path(root).resolve()
@@ -89,6 +91,7 @@ def reference_app(
     )
     attach_events(service, state, allow_private=webhooks_allow_private)
     attach_admin(service, state, **(admin or {}))  # 0.52: session, login, tenants
+    attach_mirror(service, mirror)  # 0.55: caps.project.mirror, off by default
     exchange = CIExchange.load(ci_trust, tokens) if ci_trust else None
     return GatewayApp(
         service,
@@ -177,6 +180,7 @@ def add_serve_parser(subparsers: argparse._SubParsersAction) -> None:
     add_auth_arguments(parser)
     add_admin_surface_arguments(parser)
     add_admission_arguments(parser)
+    add_mirror_arguments(parser)
     add_admin_parsers(parser)
 
 
@@ -215,6 +219,7 @@ def cmd_serve(args: argparse.Namespace, console: Any) -> None:
         admin=admin_options(args),
         limits=limits_config(args),
         ci_trust=args.ci_trust,
+        mirror=mirror_options(args),
     )
     handler_limits = {"timeout": args.timeout, "header_timeout": args.header_timeout}
     handler = type("_Handler", (TimeoutRequestHandler,), handler_limits)

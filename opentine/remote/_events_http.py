@@ -152,6 +152,12 @@ def extra_routes(app: Any, identity, tenant: str, resource: str, method: str, en
         found = coord_routes(app, identity, tenant, resource, method, environ, sr)
         if found is not None:
             return found
+    if resource.startswith(("project/mirror", "project/code/")):  # 0.55 (``_mirror_http``)
+        from opentine.remote._mirror_http import mirror_routes
+
+        found = mirror_routes(app, identity, tenant, resource, method, environ, sr)
+        if found is not None:
+            return found
     if resource in ("project", "project/history", "social"):  # 0.46.1 (``_project_http``)
         from opentine.remote._project_http import project_routes
 

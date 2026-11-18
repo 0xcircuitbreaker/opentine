@@ -96,6 +96,23 @@ export const OPERATIONS = {
   mintToken: { method: "POST", path: "/v1/tenants/{tenant}/tokens", cap: "scoped_tokens", status: "stable" },
   revokeToken: { method: "DELETE", path: "/v1/tenants/{tenant}/tokens/{token_id}", cap: "scoped_tokens", status: "stable" },
   importTenant: { method: "POST", path: "/v1/tenants/{tenant}/import", cap: "tenant_import", status: "stable" },
+  // 0.55 code mirror (caps.project.mirror): read-only; push, git smart HTTP, archive and LFS refused.
+  getMirror: { method: "GET", path: "/v1/tenants/{tenant}/project/mirror", cap: "project", status: "stable" },
+  linkMirror: { method: "PUT", path: "/v1/tenants/{tenant}/project/mirror", cap: "project", status: "stable" },
+  unlinkMirror: { method: "DELETE", path: "/v1/tenants/{tenant}/project/mirror", cap: "project", status: "stable" },
+  syncMirror: { method: "POST", path: "/v1/tenants/{tenant}/project/mirror/sync", cap: "project", status: "stable" },
+  codeRefs: { method: "GET", path: "/v1/tenants/{tenant}/project/code/refs", cap: "project", status: "stable" },
+  codeTree: { method: "GET", path: "/v1/tenants/{tenant}/project/code/tree", cap: "project", status: "stable" },
+  codeBlob: { method: "GET", path: "/v1/tenants/{tenant}/project/code/blob", cap: "project", status: "stable" },
+  codeRaw: { method: "GET", path: "/v1/tenants/{tenant}/project/code/raw", cap: "project", status: "stable" },
+  codeHistory: { method: "GET", path: "/v1/tenants/{tenant}/project/code/history", cap: "project", status: "stable" },
+  codeCompare: { method: "GET", path: "/v1/tenants/{tenant}/project/code/compare", cap: "project", status: "stable" },
+  codeSearch: { method: "GET", path: "/v1/tenants/{tenant}/project/code/search", cap: "project", status: "stable" },
+  refuseGitDiscovery: { method: "GET", path: "/v1/tenants/{tenant}/project/code/info/refs", cap: "project", status: "stable" },
+  refusePush: { method: "POST", path: "/v1/tenants/{tenant}/project/code/git-receive-pack", cap: "project", status: "stable" },
+  refuseUploadPack: { method: "POST", path: "/v1/tenants/{tenant}/project/code/git-upload-pack", cap: "project", status: "stable" },
+  refuseArchive: { method: "GET", path: "/v1/tenants/{tenant}/project/code/archive", cap: "project", status: "stable" },
+  refuseLfs: { method: "POST", path: "/v1/tenants/{tenant}/project/code/info/lfs/objects/batch", cap: "project", status: "stable" },
 } as const satisfies Record<string, Operation>;
 
 export type OperationId = keyof typeof OPERATIONS;
