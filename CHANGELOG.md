@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Self-modification lineage
+## 0.58.0 — Self-modification lineage (2026-11-18)
 
 - `tine lineage record --run RUN --key KEY --code-tree|--prompt|--config|--weights
   DIGEST [--parent VARIANT]... [--eval DIR]... [--selector T] [--decision FILE]
