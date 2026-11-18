@@ -64,7 +64,10 @@ def cmd_doctor(args: argparse.Namespace) -> None:
 
     body = _doctor.report(args.repo)
     if args.bundle:
-        atomic_write_bytes(Path(args.bundle), _doctor.bundle(body))
+        from opentine import _doctor_tar  # 0.56: a .tar.gz path gets the tarball
+
+        make = _doctor_tar.tarball if _doctor_tar.wanted(args.bundle) else _doctor.bundle
+        atomic_write_bytes(Path(args.bundle), make(body))
     if args.json:
         emit({"command": "doctor", **body})
     else:
