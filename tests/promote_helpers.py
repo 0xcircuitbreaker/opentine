@@ -32,12 +32,12 @@ def write_key(path: Path, seed: str) -> Path:
 
 
 def make_eval(out: Path, run: str, passing, *, n: int = 40, dataset: str = "main",
-              signer: str = EVALER) -> Path:  # fmt: skip
+              signer: str = EVALER, keep=None) -> Path:  # fmt: skip
     """An exact-scored eval of *n* items; item i passes when ``passing(i)``."""
     items = [{"id": f"{dataset}-{i:03d}", "input": f"{dataset} {i}", "expected": "yes"}
-             for i in range(n)]  # fmt: skip
+             for i in range(n) if keep is None or keep(i)]  # fmt: skip
     outputs = {row["id"]: {"output": "yes" if passing(i) else "no", "run": run}
-               for i, row in enumerate(items)}  # fmt: skip
+               for row in items for i in [int(row["id"].rsplit("-", 1)[1])]}  # fmt: skip
     run_eval(items, parse("exact"), key(signer), out, outputs=outputs, created_at=AT)
     return out
 

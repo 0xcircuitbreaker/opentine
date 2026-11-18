@@ -126,7 +126,8 @@ def promote(key: Any, policy: dict[str, Any], candidate: str, label: str, *, sta
     _check_label(policy, label, key)
     evidence, refusals = gate(policy, candidate=candidate, label=label, current=record["current"],
                               baseline=baseline, evals=evals, holdout=holdout,
-                              approval_files=approvals, spent=spent)  # fmt: skip
+                              approval_files=approvals, spent=spent,
+                              promoter=_who(key))  # fmt: skip
     if record["current"] == candidate:
         refusals.append(refusal("promote.already-current", f"{candidate} already holds {label}"))
     if refusals:
@@ -152,7 +153,7 @@ def promote(key: Any, policy: dict[str, Any], candidate: str, label: str, *, sta
         "action": "promote", "label": label, "candidate": candidate,
         "previous": record["current"], "vsa_sha256": _sha(vsa), "inputs": inputs,
         "stats": stats, "spent_usd": evidence["spent_usd"],
-        "budget_usd": evidence["budget_usd"]}, at)  # fmt: skip
+        "budget_usd": evidence["budget_usd"], "policy_sha256": policy["sha256"]}, at)  # fmt: skip
     _write(out / "vsa.json", vsa)
     _write(out / "decision.json", decision)
     for name, document in files.items():

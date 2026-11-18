@@ -21,7 +21,7 @@ def add_signed_promote_args(p: Any) -> None:
                    help="Holdout eval folders: baseline, then candidate")  # fmt: skip
     p.add_argument("--approval", action="append", default=[], metavar="FILE",
                    help="A signed approval (--approve); repeatable")  # fmt: skip
-    p.add_argument("--spent", default="0", metavar="USD", help="Spend to check against the cap")
+    p.add_argument("--spent", metavar="USD", help="Spend to check against the cap (required)")
     p.add_argument("--state", metavar="DIR", help="Label state (default REPO/.tine/promotion)")
     p.add_argument("--out", metavar="DIR", help="Where decisions go (a FILE for --approve)")
     p.add_argument("--at", metavar="TIME", help="YYYY-MM-DDTHH:MM:SSZ (default: now)")
@@ -65,6 +65,8 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
                                 canary_evals=Path(args.canary), **common)  # fmt: skip
     if not args.evals:
         raise ValueError("--evals is required")
+    if args.spent is None:
+        raise ValueError("--spent USD is required: the budget cap is checked against it")
     holdout = (Path(args.holdout[0]), Path(args.holdout[1])) if args.holdout else None
     return promotion.promote(key, policy, args.target, args.baseline,
                              baseline=Path(args.baseline_evals), evals=Path(args.evals),

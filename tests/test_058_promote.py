@@ -23,6 +23,7 @@ from tests.promote_helpers import (
     RUN_A,
     RUN_B,
     RUN_C,
+    fingerprint,
     make_eval,
     policy,
     write_key,
@@ -84,7 +85,7 @@ def _good(room: Room, capsys, run: str = RUN_B) -> list[str]:
     hcand = room.evals(f"hcand-{run[-1]}", run, lambda i: i % 10 != 0, dataset="hold")
     return ["--baseline-evals", base.as_posix(), "--evals", cand.as_posix(), "--holdout",
             hbase.as_posix(), hcand.as_posix(), "--approval",
-            room.approve(capsys, run).as_posix()]  # fmt: skip
+            room.approve(capsys, run).as_posix(), "--spent", "1"]  # fmt: skip
 
 
 def _codes(row: dict) -> set[str]:
@@ -113,7 +114,7 @@ def test_n_below_the_minimum_is_refused_by_name(room, capsys):
     cand = room.evals("c20", RUN_B, lambda i: True, n=20)
     code, row = room.promote(capsys, RUN_B, "--baseline-evals", base.as_posix(), "--evals",
                              cand.as_posix(), "--approval",
-                             room.approve(capsys, RUN_B).as_posix(),
+                             room.approve(capsys, RUN_B).as_posix(), "--spent", "0",
                              pol=policy(room.base, require_holdout=False))  # fmt: skip
     assert code == 1 and row["action"] == "refused"
     assert _codes(row) == {"promote.n-below-minimum"}
@@ -125,7 +126,7 @@ def test_an_interval_crossing_zero_is_refused_by_name(room, capsys):
     cand = room.evals("same-b", RUN_B, lambda i: i % 2 == 1)
     code, row = room.promote(capsys, RUN_B, "--baseline-evals", base.as_posix(), "--evals",
                              cand.as_posix(), "--approval",
-                             room.approve(capsys, RUN_B).as_posix(),
+                             room.approve(capsys, RUN_B).as_posix(), "--spent", "0",
                              pol=policy(room.base, require_holdout=False))  # fmt: skip
     assert code == 1 and _codes(row) == {"promote.ci-crosses-zero"}
 
@@ -135,7 +136,7 @@ def test_permutation_without_a_gain_is_not_significant(room, capsys):
     cand = room.evals("pb", RUN_B, lambda i: i % 2 == 0 or i == 1)
     code, row = room.promote(capsys, RUN_B, "--baseline-evals", base.as_posix(), "--evals",
                              cand.as_posix(), "--approval",
-                             room.approve(capsys, RUN_B).as_posix(),
+                             room.approve(capsys, RUN_B).as_posix(), "--spent", "0",
                              pol=policy(room.base, require_holdout=False,
                                         test="permutation"))  # fmt: skip
     assert code == 1 and _codes(row) == {"promote.not-significant"}
@@ -211,3 +212,32 @@ def test_a_signed_canary_regression_reverts_automatically(room, capsys):
 def test_the_legacy_promotions_ref_form_still_needs_a_name(room, capsys):
     with pytest.raises(SystemExit):
         cli.main(["promote", RUN_B, "--repo", room.base.as_posix()])
+
+
+def test_the_promoting_key_cannot_approve_itself(room, capsys):
+    pol = policy(room.base, approvers=[fingerprint(PROMOTER), fingerprint(APPROVER)])
+    args = _good(room, capsys)
+    at = args.index("--approval")
+    args[at + 1] = room.approve(capsys, RUN_B, seed=room.promoter).as_posix()
+    code, row = room.promote(capsys, RUN_B, *args, pol=pol)
+    assert code == 1 and _codes(row) == {"promote.missing-approver"}
+
+
+def test_a_candidate_cannot_drop_the_items_it_fails(room, capsys):
+    args = _good(room, capsys)
+    at = args.index("--evals")
+    cherry = room.evals("cherry", RUN_B, lambda i: True, keep=lambda i: i % 10 != 0)
+    args[at + 1] = cherry.as_posix()
+    code, row = room.promote(capsys, RUN_B, *args)
+    assert code == 1 and row["action"] == "refused"
+    assert _codes(row) & {"promote.item-mismatch", "promote.dataset-mismatch"}
+
+
+@pytest.mark.parametrize("spent", [None, "-1", "nan"])
+def test_spend_must_be_declared_and_non_negative(room, capsys, spent):
+    args = _good(room, capsys)
+    at = args.index("--spent")
+    args = args[:at] + ([] if spent is None else ["--spent", spent])
+    code, row = room.promote(capsys, RUN_B, *args)
+    assert code == 1 and row.get("action") != "promote" and "refusals" not in row
+    assert not (room.state / "prod.json").exists()

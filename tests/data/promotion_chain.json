@@ -84,6 +84,7 @@
             }
           ],
           "label": "prod",
+          "policy_sha256": "4d0c5a4670a3168c25330988336fd65301097a83fc6b7bfd116e1cbaa006ca09",
           "previous": null,
           "schema": "opentine.promotion-decision/1",
           "spent_usd": "0",
@@ -172,7 +173,7 @@
           "scheme": "tine-attest/2",
           "signed_at": "2026-11-01T12:00:00Z",
           "signer": "sha256:cd8fa86afd6bf20d66d6c248647e5ecd5e778c2f78a30699d52506ce021baca8",
-          "value": "9c4db9eb16b2ebd28f6b7f14eb3fb01ba494a4110a17f08a7b53fc027fc4a9fd2882cd400820132b263b8d3301ffc1234145fa0e88e5a05674bc80f90d750d0e"
+          "value": "d9c6fa2254c17af3df5bf4780c913e9cd7daa85e3d16fdac7014039550600f3fcc399a322641e148391052eb986be5f82be3c0e39a9b702a37f8c696a3535501"
         },
         "signer": "sha256:cd8fa86afd6bf20d66d6c248647e5ecd5e778c2f78a30699d52506ce021baca8",
         "target_id": "run:sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
@@ -418,6 +419,7 @@
             }
           ],
           "label": "prod",
+          "policy_sha256": "4d0c5a4670a3168c25330988336fd65301097a83fc6b7bfd116e1cbaa006ca09",
           "previous": null,
           "schema": "opentine.promotion-decision/1",
           "spent_usd": "0",
@@ -506,7 +508,7 @@
           "scheme": "tine-attest/2",
           "signed_at": "2026-11-01T12:00:00Z",
           "signer": "sha256:cd8fa86afd6bf20d66d6c248647e5ecd5e778c2f78a30699d52506ce021baca8",
-          "value": "3ab2ed336cba628ef33bc0d9d622bb58a6bd904b3b93309af0ebea7123b13afd86deed9f456384c0cddc703ca479e0e0e6cd2874f1974ce50b0a1d81fbe5e501"
+          "value": "6ab9718eaa1a5d4e5be73b2c7089cf4bb24a15c724c0fe633b9de0b34f8bae2eb2b74635029cdcc45a711804ed9755de7343ec8b84df99162185cebee13db807"
         },
         "signer": "sha256:cd8fa86afd6bf20d66d6c248647e5ecd5e778c2f78a30699d52506ce021baca8",
         "target_id": "run:sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"

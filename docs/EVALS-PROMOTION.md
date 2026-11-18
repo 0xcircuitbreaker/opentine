@@ -69,7 +69,7 @@ Ed25519. Its claim is:
 tine promote RUN --baseline LABEL --approve --key KEY --out APPROVAL.json
 tine promote RUN --baseline LABEL --key KEY --policy promote.toml --out DIR \
     --baseline-evals DIR --evals DIR --holdout BASE_DIR CAND_DIR \
-    --approval APPROVAL.json [--spent USD] [--state DIR] [--at TIME]
+    --approval APPROVAL.json --spent USD [--state DIR] [--at TIME]
 tine promote RUN --baseline LABEL --revert --reason TEXT --key KEY --policy promote.toml --out DIR
 tine promote RUN --baseline LABEL --canary DIR --baseline-evals DIR --key KEY --policy promote.toml --out DIR
 ```
@@ -112,8 +112,9 @@ A label moves only when every check passes. Each refusal names its reason:
 | `promote.not-significant` | the permutation test shows no significant gain at `alpha` |
 | `promote.missing-holdout` | the policy requires a holdout and none was given |
 | `promote.holdout-not-held-out` | the holdout is the main dataset |
-| `promote.missing-approver` | there are fewer valid approvals than `min_approvals` from keys in `approvers`, for this run and this label |
-| `promote.over-budget` | `--spent` is above `budget_usd` |
+| `promote.missing-approver` | there are fewer valid approvals than `min_approvals` from keys in `approvers`, for this run and this label; an approval signed by the promoting key or by an `eval_signers` key never counts, so a loop cannot approve itself |
+| `promote.over-budget` | `--spent` is above `budget_usd` (`--spent` is required and must be a non-negative decimal) |
+| `promote.item-mismatch` | the two sides of a pair scored different item sets: n is always the full paired set, so a candidate cannot drop the items it fails |
 | `promote.label-policy` | the admission policy does not cover `labels/LABEL`, or its `subjects` do not list the promoting key |
 | `promote.already-current` | the run already holds the label |
 | `promote.not-current` | the run to revert does not hold the label |
@@ -155,7 +156,7 @@ It is local state, like the merge queue's, not a wire format.
 {"schema": "opentine.promotion-decision/1", "action": "promote" | "revert",
  "label": "prod", "candidate": "run:sha256:…", "previous": "run:sha256:…" | null,
  "vsa_sha256": "…", "inputs": [ … ], "stats": {"main": { … }, "holdout": { … }},
- "spent_usd": "…", "budget_usd": "…"}
+ "spent_usd": "…", "budget_usd": "…", "policy_sha256": HEX}
 ```
 
 A revert decision carries `reason` and `stats`, and no `vsa_sha256` or
