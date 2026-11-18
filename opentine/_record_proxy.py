@@ -20,6 +20,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 from urllib.parse import urlsplit
 
+from opentine._http_linger import LingeringCloseMixin
+
 #: name -> (base-URL env vars, public default, provider, wire dialect).
 UPSTREAMS: dict[str, tuple[tuple[str, ...], str, str, str]] = {
     "openai": (
@@ -159,7 +161,7 @@ class _Handler(BaseHTTPRequestHandler):
     do_GET = do_POST = do_PUT = do_DELETE = do_PATCH = _proxy
 
 
-class RecordingServer(ThreadingHTTPServer):
+class RecordingServer(LingeringCloseMixin, ThreadingHTTPServer):
     daemon_threads = True
 
     def __init__(self, bases: dict[str, str], on_record: Callable[[dict[str, Any]], None]):

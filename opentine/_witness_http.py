@@ -33,6 +33,7 @@ from pathlib import Path
 from typing import Any
 
 from opentine import _witness
+from opentine._http_linger import LingeringHTTPServer
 from opentine.repository import _tlog, _tlog_note, _tlog_proof
 
 MAX_BODY = 1 << 16
@@ -158,7 +159,7 @@ def make_server(
             ops.count("200")
             self._send(200, lines)
 
-    return ThreadingHTTPServer(address, Handler)
+    return LingeringHTTPServer(address, Handler)
 
 
 def _post(url: str, body: bytes, timeout: float) -> tuple[int, bytes]:

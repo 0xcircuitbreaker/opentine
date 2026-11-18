@@ -21,6 +21,7 @@ import zlib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 
+from opentine._http_linger import LingeringCloseMixin
 from opentine._otlp_collect import OtlpCollector
 from opentine.trace._import_guard import shape_checked
 
@@ -203,7 +204,7 @@ class OtlpHandler(BaseHTTPRequestHandler):
             self._reply(200, {})
 
 
-class OtlpServer(ThreadingHTTPServer):
+class OtlpServer(LingeringCloseMixin, ThreadingHTTPServer):
     daemon_threads = True
 
     def __init__(self, address: tuple[str, int], collector: OtlpCollector, max_bytes: int) -> None:
