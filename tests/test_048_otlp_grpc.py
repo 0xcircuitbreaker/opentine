@@ -41,7 +41,9 @@ def grpc_receiver():
 
 def _call(channel, method, data, **kw):
     stub = channel.unary_unary(method)
-    return stub(data, timeout=30, **kw)
+    # A hang guard, not a speed limit: a loaded Windows runner (xdist workers on
+    # every core) exceeded a 30 s deadline on the first call.
+    return stub(data, timeout=120, **kw)
 
 
 def test_grpc_traces_and_logs_reach_the_collector(grpc_receiver):
