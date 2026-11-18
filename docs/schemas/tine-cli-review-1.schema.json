@@ -24,7 +24,9 @@
         "import",
         "push",
         "run",
-        "findings"
+        "findings",
+        "runner",
+        "runner-identity"
       ]
     },
     "ok": {

@@ -160,6 +160,481 @@ components:
           type: "array"
       required: []
       type: "object"
+    CodeBlob:
+      additionalProperties: false
+      properties:
+        commit:
+          type: "string"
+        content:
+          anyOf:
+            - type: "string"
+            - type: "null"
+        encoding:
+          anyOf:
+            - enum:
+                - "utf-8"
+                - "base64"
+            - type: "null"
+        mirror:
+          additionalProperties: false
+          properties:
+            computed_by:
+              const: "host"
+            label:
+              type: "string"
+            reasons:
+              items:
+                type: "string"
+              type: "array"
+            slot:
+              enum:
+                - "primary"
+                - "secondary"
+            status:
+              enum:
+                - "synced"
+                - "stale"
+                - "failed"
+                - "paused"
+                - "never-synced"
+            synced_at:
+              anyOf:
+                - type: "string"
+                - type: "null"
+            upstream:
+              type: "string"
+          required:
+            - "computed_by"
+            - "label"
+            - "reasons"
+            - "slot"
+            - "status"
+            - "synced_at"
+            - "upstream"
+          type: "object"
+        oid:
+          type: "string"
+        path:
+          type: "string"
+        ref:
+          type: "string"
+        size:
+          minimum: 0
+          type: "integer"
+        truncated:
+          type: "boolean"
+      required:
+        - "commit"
+        - "content"
+        - "encoding"
+        - "mirror"
+        - "oid"
+        - "path"
+        - "ref"
+        - "size"
+        - "truncated"
+      type: "object"
+    CodeCompare:
+      additionalProperties: false
+      properties:
+        ahead_by:
+          minimum: 0
+          type: "integer"
+        base:
+          type: "string"
+        behind_by:
+          minimum: 0
+          type: "integer"
+        commits:
+          items:
+            properties:
+              author:
+                properties:
+                  email:
+                    type: "string"
+                  name:
+                    type: "string"
+                required:
+                  - "email"
+                  - "name"
+                type: "object"
+              authored_at:
+                type: "string"
+              committed_at:
+                type: "string"
+              oid:
+                type: "string"
+              parents:
+                items:
+                  type: "string"
+                type: "array"
+              subject:
+                type: "string"
+            required:
+              - "author"
+              - "authored_at"
+              - "committed_at"
+              - "oid"
+              - "parents"
+              - "subject"
+            type: "object"
+          type: "array"
+        files:
+          items:
+            properties:
+              path:
+                type: "string"
+              status:
+                type: "string"
+            required:
+              - "path"
+              - "status"
+            type: "object"
+          type: "array"
+        files_truncated:
+          type: "boolean"
+        head:
+          type: "string"
+        mirror:
+          additionalProperties: false
+          properties:
+            computed_by:
+              const: "host"
+            label:
+              type: "string"
+            reasons:
+              items:
+                type: "string"
+              type: "array"
+            slot:
+              enum:
+                - "primary"
+                - "secondary"
+            status:
+              enum:
+                - "synced"
+                - "stale"
+                - "failed"
+                - "paused"
+                - "never-synced"
+            synced_at:
+              anyOf:
+                - type: "string"
+                - type: "null"
+            upstream:
+              type: "string"
+          required:
+            - "computed_by"
+            - "label"
+            - "reasons"
+            - "slot"
+            - "status"
+            - "synced_at"
+            - "upstream"
+          type: "object"
+      required:
+        - "ahead_by"
+        - "base"
+        - "behind_by"
+        - "commits"
+        - "files"
+        - "files_truncated"
+        - "head"
+        - "mirror"
+      type: "object"
+    CodeHistory:
+      additionalProperties: false
+      properties:
+        commit:
+          type: "string"
+        commits:
+          items:
+            properties:
+              author:
+                properties:
+                  email:
+                    type: "string"
+                  name:
+                    type: "string"
+                required:
+                  - "email"
+                  - "name"
+                type: "object"
+              authored_at:
+                type: "string"
+              committed_at:
+                type: "string"
+              oid:
+                type: "string"
+              parents:
+                items:
+                  type: "string"
+                type: "array"
+              subject:
+                type: "string"
+            required:
+              - "author"
+              - "authored_at"
+              - "committed_at"
+              - "oid"
+              - "parents"
+              - "subject"
+            type: "object"
+          type: "array"
+        mirror:
+          additionalProperties: false
+          properties:
+            computed_by:
+              const: "host"
+            label:
+              type: "string"
+            reasons:
+              items:
+                type: "string"
+              type: "array"
+            slot:
+              enum:
+                - "primary"
+                - "secondary"
+            status:
+              enum:
+                - "synced"
+                - "stale"
+                - "failed"
+                - "paused"
+                - "never-synced"
+            synced_at:
+              anyOf:
+                - type: "string"
+                - type: "null"
+            upstream:
+              type: "string"
+          required:
+            - "computed_by"
+            - "label"
+            - "reasons"
+            - "slot"
+            - "status"
+            - "synced_at"
+            - "upstream"
+          type: "object"
+        next_cursor:
+          anyOf:
+            - minimum: 0
+              type: "integer"
+            - type: "null"
+        path:
+          type: "string"
+        ref:
+          type: "string"
+      required:
+        - "commit"
+        - "commits"
+        - "mirror"
+        - "next_cursor"
+        - "path"
+        - "ref"
+      type: "object"
+    CodeRefs:
+      additionalProperties: false
+      properties:
+        default_branch:
+          type: "string"
+        mirror:
+          additionalProperties: false
+          properties:
+            computed_by:
+              const: "host"
+            label:
+              type: "string"
+            reasons:
+              items:
+                type: "string"
+              type: "array"
+            slot:
+              enum:
+                - "primary"
+                - "secondary"
+            status:
+              enum:
+                - "synced"
+                - "stale"
+                - "failed"
+                - "paused"
+                - "never-synced"
+            synced_at:
+              anyOf:
+                - type: "string"
+                - type: "null"
+            upstream:
+              type: "string"
+          required:
+            - "computed_by"
+            - "label"
+            - "reasons"
+            - "slot"
+            - "status"
+            - "synced_at"
+            - "upstream"
+          type: "object"
+        refs:
+          additionalProperties:
+            type: "string"
+          type: "object"
+      required:
+        - "default_branch"
+        - "mirror"
+        - "refs"
+      type: "object"
+    CodeSearch:
+      additionalProperties: false
+      properties:
+        commit:
+          anyOf:
+            - type: "string"
+            - type: "null"
+        hits:
+          items:
+            additionalProperties: false
+            properties:
+              line:
+                minimum: 0
+                type: "integer"
+              path:
+                type: "string"
+              snippet:
+                type: "string"
+            required:
+              - "line"
+              - "path"
+              - "snippet"
+            type: "object"
+          type: "array"
+        mirror:
+          additionalProperties: false
+          properties:
+            computed_by:
+              const: "host"
+            label:
+              type: "string"
+            reasons:
+              items:
+                type: "string"
+              type: "array"
+            slot:
+              enum:
+                - "primary"
+                - "secondary"
+            status:
+              enum:
+                - "synced"
+                - "stale"
+                - "failed"
+                - "paused"
+                - "never-synced"
+            synced_at:
+              anyOf:
+                - type: "string"
+                - type: "null"
+            upstream:
+              type: "string"
+          required:
+            - "computed_by"
+            - "label"
+            - "reasons"
+            - "slot"
+            - "status"
+            - "synced_at"
+            - "upstream"
+          type: "object"
+      required:
+        - "commit"
+        - "hits"
+        - "mirror"
+      type: "object"
+    CodeTree:
+      additionalProperties: false
+      properties:
+        commit:
+          type: "string"
+        entries:
+          items:
+            properties:
+              mode:
+                type: "string"
+              name:
+                type: "string"
+              oid:
+                type: "string"
+              path:
+                type: "string"
+              size:
+                anyOf:
+                  - minimum: 0
+                    type: "integer"
+                  - type: "null"
+              type:
+                enum:
+                  - "blob"
+                  - "tree"
+                  - "commit"
+            required:
+              - "mode"
+              - "name"
+              - "oid"
+              - "path"
+              - "size"
+              - "type"
+            type: "object"
+          type: "array"
+        mirror:
+          additionalProperties: false
+          properties:
+            computed_by:
+              const: "host"
+            label:
+              type: "string"
+            reasons:
+              items:
+                type: "string"
+              type: "array"
+            slot:
+              enum:
+                - "primary"
+                - "secondary"
+            status:
+              enum:
+                - "synced"
+                - "stale"
+                - "failed"
+                - "paused"
+                - "never-synced"
+            synced_at:
+              anyOf:
+                - type: "string"
+                - type: "null"
+            upstream:
+              type: "string"
+          required:
+            - "computed_by"
+            - "label"
+            - "reasons"
+            - "slot"
+            - "status"
+            - "synced_at"
+            - "upstream"
+          type: "object"
+        path:
+          type: "string"
+        ref:
+          type: "string"
+      required:
+        - "commit"
+        - "entries"
+        - "mirror"
+        - "path"
+        - "ref"
+      type: "object"
     Consistency:
       properties:
         checkpoint:
@@ -624,6 +1099,128 @@ components:
           required:
             - "token"
           type: "object"
+    MirrorLabel:
+      additionalProperties: false
+      properties:
+        computed_by:
+          const: "host"
+        label:
+          type: "string"
+        reasons:
+          items:
+            type: "string"
+          type: "array"
+        slot:
+          enum:
+            - "primary"
+            - "secondary"
+        status:
+          enum:
+            - "synced"
+            - "stale"
+            - "failed"
+            - "paused"
+            - "never-synced"
+        synced_at:
+          anyOf:
+            - type: "string"
+            - type: "null"
+        upstream:
+          type: "string"
+      required:
+        - "computed_by"
+        - "label"
+        - "reasons"
+        - "slot"
+        - "status"
+        - "synced_at"
+        - "upstream"
+      type: "object"
+    MirrorLink:
+      additionalProperties: false
+      properties:
+        private:
+          type: "boolean"
+        salt:
+          type: "string"
+        slot:
+          enum:
+            - "primary"
+            - "secondary"
+        url:
+          type: "string"
+      required: []
+      type: "object"
+    MirrorStatus:
+      additionalProperties: false
+      properties:
+        default_branch:
+          anyOf:
+            - type: "string"
+            - type: "null"
+        manifest:
+          anyOf:
+            - type: "string"
+            - type: "null"
+        mirror:
+          additionalProperties: false
+          properties:
+            computed_by:
+              const: "host"
+            label:
+              type: "string"
+            reasons:
+              items:
+                type: "string"
+              type: "array"
+            slot:
+              enum:
+                - "primary"
+                - "secondary"
+            status:
+              enum:
+                - "synced"
+                - "stale"
+                - "failed"
+                - "paused"
+                - "never-synced"
+            synced_at:
+              anyOf:
+                - type: "string"
+                - type: "null"
+            upstream:
+              type: "string"
+          required:
+            - "computed_by"
+            - "label"
+            - "reasons"
+            - "slot"
+            - "status"
+            - "synced_at"
+            - "upstream"
+          type: "object"
+        refs:
+          minimum: 0
+          type: "integer"
+        state:
+          anyOf:
+            - type: "object"
+            - type: "null"
+      required:
+        - "default_branch"
+        - "manifest"
+        - "mirror"
+        - "refs"
+        - "state"
+      type: "object"
+    MirrorUnlinked:
+      additionalProperties: false
+      properties:
+        unlinked:
+          const: true
+      required:
+        - "unlinked"
+      type: "object"
     Missing:
       additionalProperties: false
       properties:
@@ -4473,6 +5070,661 @@ paths:
       x-opentine-cap: "project"
       x-opentine-permission: "update_ref"
       x-opentine-status: "stable"
+  "/v1/tenants/{tenant}/project/code/archive":
+    get:
+      operationId: "refuseArchive"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Refused: no archive downloads"
+      tags:
+        - "protocol"
+      x-opentine-cap: "project"
+      x-opentine-permission: "read_ref"
+      x-opentine-status: "stable"
+  "/v1/tenants/{tenant}/project/code/blob":
+    get:
+      operationId: "codeBlob"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+        - description: "Branch, tag, full ref or commit id; the default branch when absent."
+          in: "query"
+          name: "ref"
+          required: false
+          schema:
+            type: "string"
+        - description: "Path inside the commit; the root when absent."
+          in: "query"
+          name: "path"
+          required: false
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/CodeBlob"
+          description: "OK"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "A file of a mirrored commit, as JSON"
+      tags:
+        - "protocol"
+      x-opentine-cap: "project"
+      x-opentine-permission: "read_ref"
+      x-opentine-status: "stable"
+  "/v1/tenants/{tenant}/project/code/compare":
+    get:
+      operationId: "codeCompare"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+        - description: "Base ref or commit."
+          in: "query"
+          name: "base"
+          required: false
+          schema:
+            type: "string"
+        - description: "Head ref or commit."
+          in: "query"
+          name: "head"
+          required: false
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/CodeCompare"
+          description: "OK"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Commits in base..head and the files changed"
+      tags:
+        - "protocol"
+      x-opentine-cap: "project"
+      x-opentine-permission: "read_ref"
+      x-opentine-status: "stable"
+  "/v1/tenants/{tenant}/project/code/git-receive-pack":
+    post:
+      operationId: "refusePush"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Refused: the mirror is read-only"
+      tags:
+        - "protocol"
+      x-opentine-cap: "project"
+      x-opentine-permission: "read_ref"
+      x-opentine-status: "stable"
+  "/v1/tenants/{tenant}/project/code/git-upload-pack":
+    post:
+      operationId: "refuseUploadPack"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Refused: the mirror does not serve git clones"
+      tags:
+        - "protocol"
+      x-opentine-cap: "project"
+      x-opentine-permission: "read_ref"
+      x-opentine-status: "stable"
+  "/v1/tenants/{tenant}/project/code/history":
+    get:
+      operationId: "codeHistory"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+        - description: "Branch, tag, full ref or commit id."
+          in: "query"
+          name: "ref"
+          required: false
+          schema:
+            type: "string"
+        - description: "Only this path."
+          in: "query"
+          name: "path"
+          required: false
+          schema:
+            type: "string"
+        - description: "Opaque cursor from next_cursor."
+          in: "query"
+          name: "cursor"
+          required: false
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/CodeHistory"
+          description: "OK"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Commits newest first, paged"
+      tags:
+        - "protocol"
+      x-opentine-cap: "project"
+      x-opentine-permission: "read_ref"
+      x-opentine-status: "stable"
+  "/v1/tenants/{tenant}/project/code/info/lfs/objects/batch":
+    post:
+      operationId: "refuseLfs"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Refused: no LFS"
+      tags:
+        - "protocol"
+      x-opentine-cap: "project"
+      x-opentine-permission: "read_ref"
+      x-opentine-status: "stable"
+  "/v1/tenants/{tenant}/project/code/info/refs":
+    get:
+      operationId: "refuseGitDiscovery"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Refused: the mirror does not speak git smart HTTP"
+      tags:
+        - "protocol"
+      x-opentine-cap: "project"
+      x-opentine-permission: "read_ref"
+      x-opentine-status: "stable"
+  "/v1/tenants/{tenant}/project/code/raw":
+    get:
+      operationId: "codeRaw"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+        - description: "Branch, tag, full ref or commit id; the default branch when absent."
+          in: "query"
+          name: "ref"
+          required: false
+          schema:
+            type: "string"
+        - description: "Path inside the commit; the root when absent."
+          in: "query"
+          name: "path"
+          required: false
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            "application/octet-stream":
+              schema:
+                format: "binary"
+                type: "string"
+          description: "OK"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "A file's bytes, labelled in X-OpenTine-* headers"
+      tags:
+        - "protocol"
+      x-opentine-cap: "project"
+      x-opentine-permission: "read_ref"
+      x-opentine-status: "stable"
+  "/v1/tenants/{tenant}/project/code/refs":
+    get:
+      operationId: "codeRefs"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/CodeRefs"
+          description: "OK"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Mirrored heads and tags"
+      tags:
+        - "protocol"
+      x-opentine-cap: "project"
+      x-opentine-permission: "read_ref"
+      x-opentine-status: "stable"
+  "/v1/tenants/{tenant}/project/code/search":
+    get:
+      operationId: "codeSearch"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+        - description: "Search words."
+          in: "query"
+          name: "q"
+          required: false
+          schema:
+            type: "string"
+        - description: "At most this many hits, 1-50."
+          in: "query"
+          name: "limit"
+          required: false
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/CodeSearch"
+          description: "OK"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Hybrid code search, scoped to the tenant"
+      tags:
+        - "protocol"
+      x-opentine-cap: "project"
+      x-opentine-permission: "read_ref"
+      x-opentine-status: "stable"
+  "/v1/tenants/{tenant}/project/code/tree":
+    get:
+      operationId: "codeTree"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+        - description: "Branch, tag, full ref or commit id; the default branch when absent."
+          in: "query"
+          name: "ref"
+          required: false
+          schema:
+            type: "string"
+        - description: "Path inside the commit; the root when absent."
+          in: "query"
+          name: "path"
+          required: false
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/CodeTree"
+          description: "OK"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "A directory of a mirrored commit"
+      tags:
+        - "protocol"
+      x-opentine-cap: "project"
+      x-opentine-permission: "read_ref"
+      x-opentine-status: "stable"
   "/v1/tenants/{tenant}/project/history":
     get:
       operationId: "projectHistory"
@@ -4525,6 +5777,204 @@ paths:
         - "protocol"
       x-opentine-cap: "project"
       x-opentine-permission: "read_ref"
+      x-opentine-status: "stable"
+  "/v1/tenants/{tenant}/project/mirror":
+    delete:
+      operationId: "unlinkMirror"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/MirrorUnlinked"
+          description: "OK"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Unlink: delete the mirror, its state and caches"
+      tags:
+        - "protocol"
+      x-opentine-cap: "project"
+      x-opentine-permission: "update_ref"
+      x-opentine-status: "stable"
+    get:
+      operationId: "getMirror"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/MirrorStatus"
+          description: "OK"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "The mirror's link and last sync (a host statement)"
+      tags:
+        - "protocol"
+      x-opentine-cap: "project"
+      x-opentine-permission: "read_ref"
+      x-opentine-status: "stable"
+    put:
+      operationId: "linkMirror"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/MirrorLink"
+        required: true
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/MirrorStatus"
+          description: "OK"
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Bad request"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Link the mirror to a slot of the current manifest and sync it"
+      tags:
+        - "protocol"
+      x-opentine-cap: "project"
+      x-opentine-permission: "update_ref"
+      x-opentine-status: "stable"
+  "/v1/tenants/{tenant}/project/mirror/sync":
+    post:
+      operationId: "syncMirror"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/MirrorStatus"
+          description: "OK"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+      summary: "Webhook-triggered sync (429 inside min_interval_seconds)"
+      tags:
+        - "protocol"
+      x-opentine-cap: "project"
+      x-opentine-permission: "update_ref"
       x-opentine-status: "stable"
   "/v1/tenants/{tenant}/ref-txn":
     post:

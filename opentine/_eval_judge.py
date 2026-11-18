@@ -30,10 +30,14 @@ DEFAULT_PROMPT = (
 SCORE_LINE = re.compile(r"SCORE:\s*([01](?:\.[0-9]+)?)\b", re.IGNORECASE)
 
 
-def _model(spec: str) -> Any:
-    from opentine.models import resolve_model
+def _model(spec: str, api_key: str | None = None) -> Any:
+    from opentine.models import model_class, resolve_model
 
-    return resolve_model(spec)
+    if api_key is None:
+        return resolve_model(spec)
+    provider, _, model = spec.partition(":")
+    adapter = model_class(provider)
+    return adapter(model, api_key=api_key) if model else adapter(api_key=api_key)
 
 
 def _reply_text(response: Any) -> str:
@@ -59,14 +63,21 @@ def judge_score(text: str) -> float:
     return score if 0.0 <= score <= 1.0 else 0.0
 
 
-def judge_scorer(spec: str, *, prompt: str | None = None, runs_dir: Path | None = None) -> Scorer:
-    """The ``llm-judge`` scorer for *spec*; judge runs go to *runs_dir*."""
+def judge_scorer(spec: str, *, prompt: str | None = None, runs_dir: Path | None = None,
+                 api_key: str | None = None) -> Scorer:  # fmt: skip
+    """The ``llm-judge`` scorer for *spec*; judge runs go to *runs_dir*.
+
+    *api_key* is the model credential (the review runner passes the one its
+    ``runner.toml`` names, as it does for reviewers); each call's cost is
+    recorded on its judge run and appended to the scorer's ``spent``.
+    """
     from opentine._cli_common import _runs_dir
     from opentine.graph import Run, RunStatus, StepKind
 
     template = prompt or DEFAULT_PROMPT
     version = "1+sha256:" + hashlib.sha256(f"{spec}\0{template}".encode()).hexdigest()[:16]
-    model = _model(spec)
+    model = _model(spec) if api_key is None else _model(spec, api_key)
+    spent: list[float] = []
     target = Path(runs_dir) if runs_dir is not None else _runs_dir()
 
     def score(item: dict[str, Any], output: Any) -> tuple[float, str]:
@@ -76,7 +87,9 @@ def judge_scorer(spec: str, *, prompt: str | None = None, runs_dir: Path | None 
             output=_show(output),
         )
         messages = [{"role": "user", "content": text}]
-        reply = _reply_text(asyncio.run(model.complete(messages, temperature=0.0)))
+        response = asyncio.run(model.complete(messages, temperature=0.0))
+        reply = _reply_text(response)
+        meta = response if isinstance(response, dict) else {}
         value = judge_score(reply)
         run = Run(
             model_info=spec,
@@ -84,13 +97,18 @@ def judge_scorer(spec: str, *, prompt: str | None = None, runs_dir: Path | None 
             tags=["eval-judge"],
             metadata={"eval_judge": {"item": item.get("id"), "scorer_version": version}},
         )
-        run.add_step(StepKind.model, {"messages": messages}, {"text": reply}, model_info=spec)
+        usage = meta.get("usage") if isinstance(meta.get("usage"), dict) else None
+        billing = meta.get("billing") if isinstance(meta.get("billing"), dict) else None
+        cost = meta.get("cost") if isinstance(meta.get("cost"), (int, float)) else 0.0
+        run.add_step(StepKind.model, {"messages": messages}, {"text": reply}, model_info=spec,
+                     cost=float(cost), usage=usage, billing=billing)  # fmt: skip
+        spent.append(run.total_cost)
         run.status = RunStatus.completed
         target.mkdir(parents=True, exist_ok=True)
         run.save(target / f"{run.id}.tine")
         return value, run.id
 
-    return Scorer("llm-judge", version, score, {"model": spec})
+    return Scorer("llm-judge", version, score, {"model": spec}, spent)
 
 
 __all__ = ["DEFAULT_PROMPT", "judge_score", "judge_scorer"]

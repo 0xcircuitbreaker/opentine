@@ -14,12 +14,14 @@ import re
 from typing import Any
 
 from opentine.remote._api_routes import API_VERSION, ROUTES, Route
+from opentine.remote._api_routes_mirror import MIRROR_QUERY
 from opentine.remote._openapi_schemas import SCHEMAS as _SCHEMAS_BASE
 from opentine.remote._openapi_schemas_047 import SCHEMAS_047
 from opentine.remote._openapi_schemas_052 import SCHEMAS_052
 from opentine.remote._openapi_schemas_052_tokens import SCHEMAS_052_TOKENS
+from opentine.remote._openapi_schemas_055 import SCHEMAS_055
 
-SCHEMAS = {**_SCHEMAS_BASE, **SCHEMAS_047, **SCHEMAS_052, **SCHEMAS_052_TOKENS}
+SCHEMAS = {**_SCHEMAS_BASE, **SCHEMAS_047, **SCHEMAS_052, **SCHEMAS_052_TOKENS, **SCHEMAS_055}
 
 _PARAM = re.compile(r"\{([a-z_]+)\}")
 _PLAIN_KEY = re.compile(r"^[A-Za-z_$][A-Za-z0-9_.$-]*$")
@@ -54,6 +56,7 @@ _QUERY = {
     "listRefPage": _PAGE,
     "logEntries": _PAGE,
     "listShares": [("run", "Only links to this run.")],
+    **MIRROR_QUERY,  # 0.55
 }
 
 

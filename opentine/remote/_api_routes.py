@@ -21,6 +21,7 @@ from __future__ import annotations
 from typing import NamedTuple
 
 from opentine.remote._api_routes_admin import ADMIN_ROUTES
+from opentine.remote._api_routes_mirror import MIRROR_ROUTES
 
 API_VERSION = "1.0.0"
 PACK = "application/vnd.opentine.pack"
@@ -122,7 +123,7 @@ ROUTES: tuple[Route, ...] = (
           "Store a client-signed tombstone; for a held blob, purge it (admin)",
           "tombstones", "stable", "upload", "Tombstone",
           (("201", "TombstoneStored"), ("400", "Error"), *_ERR)),
-    # 0.46.1 projects (ROADMAP §11): the manifest only; tine serve stores no code.
+    # 0.46.1 projects (ROADMAP §11): the manifest (code: 0.55 _api_routes_mirror).
     Route("GET", T + "/project", "getProject", "The current opentine.project manifest",
           "project", "stable", "read_ref", None, (("200", "Project"), *_ERR)),
     Route("GET", T + "/project/history", "projectHistory", "Manifest versions, oldest first, paged",
@@ -162,6 +163,7 @@ ROUTES: tuple[Route, ...] = (
           ("done", "finishTask", "Close the task (holder and current fencing token)"))),
     # 0.52 admin surface (SPEC 8.27): session, login, tenants -- no signed data.
     *(Route(*row) for row in ADMIN_ROUTES),
+    *(Route(*row) for row in MIRROR_ROUTES),  # 0.55 caps.project.mirror
     # 0.52 caps.scoped_tokens and caps.limits (_gateway): unsigned admin shapes.
     Route("GET", "/limits", "getLimits", "Published fair-use limits and quota policy",
           "limits", "stable", None, None, (("200", "Limits"),)),

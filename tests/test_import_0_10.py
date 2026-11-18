@@ -8,6 +8,7 @@ source-defined shape (cited per section); no captured user content is used.
 
 from __future__ import annotations
 
+import gc
 import json
 import os
 import time
@@ -592,18 +593,26 @@ def test_gemini_patch_merge_is_linear_in_tool_calls():
 
 
 def _growth(build, run, n: int) -> float:
-    """time(4n) / time(n), best of three each: ~4 when linear, ~16 when quadratic."""
+    """time(8n) / time(n): ~8 when linear, ~64 when quadratic.
 
-    def best(size: int) -> float:
-        data = build(size)
-        timings = []
-        for _ in range(3):
-            started = time.perf_counter()
-            run(data)
-            timings.append(time.perf_counter() - started)
-        return min(timings)
-
-    return best(4 * n) / max(best(n), 0.01)
+    The two sizes are timed in interleaved rounds with the collector off and
+    each keeps its fastest round, so a burst of load from parallel workers
+    has to slow every large round, and no small one, to move the ratio.
+    """
+    small, large = build(n), build(8 * n)
+    best = {id(small): float("inf"), id(large): float("inf")}
+    enabled = gc.isenabled()
+    gc.disable()
+    try:
+        for _ in range(5):
+            for data in (small, large):
+                started = time.perf_counter()
+                run(data)
+                best[id(data)] = min(best[id(data)], time.perf_counter() - started)
+    finally:
+        if enabled:
+            gc.enable()
+    return best[id(large)] / max(best[id(small)], 1e-4)
 
 
 def _gemini_updates(size: int) -> list[dict]:
@@ -617,7 +626,7 @@ def _gemini_updates(size: int) -> list[dict]:
 
 
 def test_gemini_patch_updates_cost_linear_time_in_updates_times_calls():
-    assert _growth(_gemini_updates, gemini_session_events, 1500) < 8
+    assert _growth(_gemini_updates, gemini_session_events, 1500) < 20
 
 
 def test_gemini_result_attaches_to_one_call_when_ids_repeat():

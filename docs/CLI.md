@@ -1373,9 +1373,10 @@ compare-and-swap on the remote's head; the remote checks the chain and the
 owner's signature, stores the manifest exactly as signed, logs the move in its
 transparency log, and never signs one. `--json` follows `tine-cli-project-1`.
 
-`tine serve` stores no code and offers no mirror: the code mirror, its sync
-worker and its `opentine.mirror-state` host statements (SPEC 4.17) are
-opentine-web services. `python tine-verify.pyz FILE.json [--pubkey K]` checks a
+`tine serve` stores no code unless started with `--mirror` (0.55): then it
+serves the read-only code mirror of SPEC 8.18 (`--mirror-poll-seconds`,
+`--mirror-max-mb`, `--mirror-allow-local`), whose state is an
+`opentine.mirror-state` body (SPEC 4.17), a host statement. `python tine-verify.pyz FILE.json [--pubkey K]` checks a
 manifest, a history (`tine project history --json` output) or a mirror state
 offline; a mirror state never passes (verdict `host-statement`). The
 `65-project.json` and `66-mirror-state.json` conformance families (the git

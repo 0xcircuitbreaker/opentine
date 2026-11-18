@@ -1,5 +1,81 @@
 # Changelog
 
+## 0.55.0 — Code mirror and review runner (2026-11-18)
+
+- `tine serve --mirror` serves a read-only code mirror (`caps.project.mirror`,
+  SPEC 8.18): link a slot of the current project manifest with `PUT
+  project/mirror`, sync it by polling (`--mirror-poll-seconds`) or a webhook
+  (`POST project/mirror/sync`, `429` inside the minimum interval), and read it
+  with `GET project/code/refs|tree|blob|raw|history|compare|search`. Off by
+  default.
+- Every mirror answer is labelled with its upstream, its last-sync time and
+  `computed_by: "host"`; the stored sync state is the body of the frozen
+  `opentine.mirror-state` (a host statement, never signed as a user).
+- Code search reuses the `repo-search --hybrid` fusion (BM25 plus
+  `hash-ngram/1` vectors) over an index kept inside each tenant's mirror.
+- The mirror refuses push, git smart HTTP (`info/refs`, `git-upload-pack`,
+  `git-receive-pack`), archive downloads and LFS with `403` and a
+  `mirror.*-refused` code, and refuses a public project over private code.
+  Unknown refs and paths and unreadable tenants are the uniform `404`.
+- `DELETE project/mirror` unlinks: the mirror, its state and its caches are
+  deleted.
+- Limits: the upstream's size (`--mirror-max-mb` and the tenant's
+  `mirror_bytes` quota), its ref count and the blob size served are published
+  in the capability; an upstream over a limit pauses the mirror with
+  `mirror.limit-exceeded`. Only `https://` upstreams are fetched
+  (`--mirror-allow-local` adds `file://` for self-hosting and tests).
+- `docs/api/openapi-v1.yaml` and the TS SDK operation table cover the 17 new
+  routes (refusals included); the response shapes are API shapes, not object
+  kinds.
+- A successful mirror sync spools one `mirror-sync` push per created, moved
+  or deleted ref (`pushes/<digest>.json` in the tenant's mirror directory),
+  each checked by the runner and ready for `tine review runner --event`.
+- `tine review runner REVIEW --fleet TOML --event PUSH.json --out DIR` runs the
+  reviewer fleet, `.tine/evals.toml` and an admission VSA on one push from a
+  mirror sync or a forge webhook. It emits only existing kinds (review
+  findings, eval verdicts, the admission VSA), all signed by the runner's own
+  key.
+- `tine review runner-identity` prints the runner's published service
+  identity, labelled `review runner`, with the fingerprints it was rotated
+  from. It is never trusted by default: findings count only when the Review
+  lists its key, gates only when the gate policy names it.
+- Model credentials are your own: `.tine/runner.toml` names the environment
+  variables holding them and refuses inline credentials; the report records
+  only whether each was present, plus the push's cost.
+- The runner's sandbox allows egress only to the configured model endpoints;
+  any other lookup or connect in the runner's process is refused, and the
+  sandbox policy digest is recorded in every step's evidence and in the VSA.
+- Findings carry the push time, so hosted and self-hosted runs sign
+  byte-identical findings for a deterministic reviewer set.
+- **Behaviour change**, merge gates: `evals.signers: []` (an explicit empty
+  list) now trusts no signer, where it used to accept any verifying signer.
+  Omitting `signers` still accepts any verifying signer. A policy that wrote
+  `[]` to mean "anyone" must drop the field; removing the last trusted runner
+  key now flips the gate to unmet.
+- Merge gates: `vsa.keys` lists further pinned keys beside `vsa.key`, so a VSA
+  signed by any trusted runner key counts while a key is rotated.
+- The mirror's fetch is held to the size limit while it runs: a watchdog
+  kills `git fetch` and deletes the partial mirror as soon as it passes the
+  limit, so an oversized upstream cannot fill the disk first.
+- Code reads by commit id serve only commits the mirror's refs reach; an
+  object left behind by a force-push is the uniform `404`.
+- Upstream credentials (`https://user:token@host/...`, the supported way to
+  mirror a private https upstream) never reach `link.json`, a label or a
+  response: they are kept in `credential` (mode `0600`) in the tenant's mirror
+  directory and sent only as an `Authorization` header to the pinned host.
+- The runner's egress guard pins the addresses its model endpoints resolved to
+  when it started, and pins private or reserved addresses only for loopback
+  endpoints; a later DNS answer cannot widen the allowlist.
+- Hosted mode refuses to start unless the reviewers sit behind the network
+  sandbox: `OPENTINE_RUNNER_NETWORK=allowlist` must be set and a direct
+  connect to the probe address (`OPENTINE_RUNNER_PROBE`, default
+  `1.1.1.1:443`) must fail.
+- Eval LLM judges get the model credential `runner.toml` names (a `[[model]]`
+  named after the judge's provider), and their calls count in the push's
+  cost (`cost.evals`); `tine eval ci --json` reports the judges' `cost`.
+- `deploy/review-runner/Dockerfile` packages the runner once for hosted and
+  self-hosted use; `docs/REVIEW-RUNNERS.md` documents it with a free local path.
+
 ## 0.54.0 — CI speedup (2026-11-18)
 
 0.54 cuts the time CI takes without dropping any check. The Python suite now

@@ -92,10 +92,11 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     "tine-cli-eval-ci-1": doc("tine-cli-eval-ci-1", "tine eval ci --json",
         "Every eval `.tine/evals.toml` declares, run and signed: per eval its id, folder, "
         "counts, pass rate and gate, and the registered `judge_prompt` it used (name, version, "
-        "digest) or null. `ok` is true only when every eval reaches its `min_pass_rate`; the "
-        "command then exits 0, else 1.",
+        "digest) or null, and `cost`, the LLM-judge calls' total in USD. `ok` is true only "
+        "when every eval reaches its `min_pass_rate`; the command then exits 0, else 1.",
         open_(["command", "ok", "config", "out", "evals"], {
             "command": {"const": "eval ci"}, "ok": BOOL, "config": STR, "out": STR,
+            "cost": STR,
             "evals": {"type": "array", "items": closed(
                 ["name", "eval", "dir", "items", "passed", "mean_score", "pass_rate",
                  "min_pass_rate", "ok", "judge_prompt"], {

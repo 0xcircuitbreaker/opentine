@@ -79,7 +79,8 @@ SCHEMAS: dict[str, dict[str, Any]] = {
         "signed eval verdicts, and a number of signed approvals from listed keys.",
         closed(["format"], {
             "format": {"const": "opentine-merge-gates/1"},
-            "vsa": opt(open_(["key"], {"key": STR, "levels": {"type": "array", "items": STR},
+            "vsa": opt(open_(["key"], {"key": STR, "keys": {"type": "array", "items": STR},
+                                       "levels": {"type": "array", "items": STR},
                                        "policy": STR, "resource": STR})),
             "evals": opt(open_(["min"], {"min": {"type": "integer", "minimum": 1},
                                          "signers": {"type": "array", "items": FPR}})),

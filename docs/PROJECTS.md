@@ -79,8 +79,37 @@ project` (writers and admins; a compare-and-swap on the head digest that
 accepts only a manifest chained to the current one and signed by one of its
 owners). `caps.social_export`: `GET social`, count-only stars and watches.
 Reads the caller may not make answer the same `404` as a tenant without a
-project; `tine serve` stores no code and has no upload-pack, receive-pack or
-mirror capability.
+project. `tine serve` stores no code unless started with `--mirror`, and never
+has an upload-pack or receive-pack.
+
+### The code mirror (0.55)
+
+`tine serve --mirror` adds `caps.project.mirror`: a read-only mirror of a
+linked project's upstream, with a code-read API (`project/code/refs`, `tree`,
+`blob`, `raw`, `history`, `compare`, `search`) over the manifest and the
+mirror state. Every answer is labelled with the upstream, the last-sync time
+and `computed_by: "host"`: it is the host's statement, not something you
+verified. Sync is polled (`--mirror-poll-seconds`, default 300) or triggered
+by a webhook (`POST project/mirror/sync` with a writer token); the published
+limits cap the upstream's size (`--mirror-max-mb`, and the tenant's
+`mirror_bytes` quota), its refs and the blobs served. Push, git clone over
+smart HTTP, archive downloads and LFS are refused, and so is a public project
+over private code. `DELETE project/mirror` unlinks and deletes the mirror and
+its caches. Only `https://` upstreams are fetched; `--mirror-allow-local`
+also allows `file://` stand-ins (self-host and tests). A private https
+upstream is mirrored with its credential in the URL (`https://user:token@host/
+repo.git`): the credential is split off at link time into `credential` (mode
+`0600`) in the tenant's mirror directory, never written to `link.json` or shown,
+and sent only as an `Authorization` header. On Windows, which has no POSIX
+file modes, the credential file relies on the mirror directory's ACLs. The fetch runs under a watchdog that
+kills it once the mirror passes its size limit, and a commit id is served only
+when the mirror's refs reach it. The full contract is
+SPEC 8.18 and `docs/api/openapi-v1.yaml`.
+
+Each successful sync also spools one push per created, moved or deleted ref
+under the tenant's mirror directory (`pushes/<digest>.json`, source
+`mirror-sync`). Each file is the `--event` input of `tine review runner`;
+see [REVIEW-RUNNERS.md](REVIEW-RUNNERS.md).
 
 ## CLI
 

@@ -90,7 +90,9 @@ def _post(url, body, content_type="application/json", headers=None):
     for key, value in (headers or {}).items():
         request.add_header(key, value)
     try:
-        with urllib.request.urlopen(request, timeout=10) as response:
+        # A hang guard, not a speed limit: on a loaded Windows runner (xdist workers
+        # on every core) the request that saves a run can stall past 10 s.
+        with urllib.request.urlopen(request, timeout=60) as response:
             return response.status, json.loads(response.read())
     except urllib.error.HTTPError as exc:
         return exc.code, json.loads(exc.read())

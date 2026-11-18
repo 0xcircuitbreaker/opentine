@@ -12,7 +12,6 @@ each verified against the head version's reviewers.
 from __future__ import annotations
 
 import argparse
-import io
 from pathlib import Path
 from typing import Any
 
@@ -34,58 +33,23 @@ def add_run_parsers(actions: Any) -> list[argparse.ArgumentParser]:
 
 
 def _run(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], str]:
-    from opentine import _review, _review_run
+    from opentine import _review_run
+    from opentine._review_fleet import run_fleet
     from opentine._signing_keys import ed25519_private_from_file
-    from opentine.fleet import _manifest, _runner
+    from opentine.fleet import _manifest
     from opentine.repository import _review_store as store
 
-    current = store.load(repo, args.review_id)
-    if current is None:
+    if store.load(repo, args.review_id) is None:
         raise KeyError(f"no review {args.review_id} here: `tine review create` first")
-    head = current["versions"][-1]
     key = ed25519_private_from_file(args.ed25519_key_file)
-    me = key.public_key().public_bytes_raw().hex()
-    if me not in head["reviewers"]:
-        raise ValueError("the signing key is not a reviewer of the head version")
     fleet = _manifest.load(Path(args.fleet), trust_now=args.trust)
-    root = Path(repo.worktree)
-    text = _review_run.context(root, args.base, args.diff_file)
-    state = _runner.create(fleet)
-    work = state.directory / state.id
-    work.mkdir(parents=True, exist_ok=True)
-    (work / "review-context.diff").write_text(text, "utf-8")
-
-    def extra(member: str) -> dict[str, str]:
-        return {"OPENTINE_REVIEW_ID": args.review_id,
-                "OPENTINE_REVIEW_CONTEXT": str(work / "review-context.diff"),
-                "OPENTINE_REVIEW_FINDINGS": str(work / f"{member}.findings.jsonl")}  # fmt: skip
-
-    code = _runner.run(fleet, state, out=io.StringIO(), extra=extra)
-    members = [{"key": m["key"], "name": f"{m['vary']['agent']}-{m['key']}", "run": m.get("run"),
-                "status": m["status"]} for m in state.data["members"]]  # fmt: skip
-
-    def read(member: dict[str, Any]) -> str:
-        path = work / f"{member['key']}.findings.jsonl"
-        if path.is_symlink() or not path.is_file():
-            return ""
-        with path.open("rb") as handle:  # a member cannot make the run read without bound
-            return handle.read(_review_run.MAX_CONTEXT).decode("utf-8", "replace")
-
-    signed, skipped = _review_run.sign_all(head, members, read, key, args.key_id)
-    stored = _review_run.load(repo, args.review_id)
-    have = {r["finding_id"] for r in stored}
-    fresh = [r for r in signed if r["finding_id"] not in have]
-    _review_run.save(repo, args.review_id, stored + fresh)
-    digest = _review.digest(head)
-    if signed:
-        version = _review.sign(_review_run.next_version(head, signed), key, key_id=args.key_id)
-        digest = store.append(repo, version, expected=_review.digest(head))
-    rows = _review_run.verify_all(signed, head["reviewers"], args.review_id)
-    body = {"review_id": args.review_id, "fleet": fleet.name, "fleet_id": state.id,
-            "exit_code": code, "members": members, "findings": rows, "skipped": skipped,
-            "head": digest}  # fmt: skip
+    text = _review_run.context(Path(repo.worktree), args.base, args.diff_file)
+    body = run_fleet(repo, args.review_id, fleet, key, args.key_id, text)
+    body.pop("signed")
+    body.pop("cost")
+    rows, members, digest = body["findings"], body["members"], body["head"]
     text = (f"review {args.review_id}: {len(rows)} signed finding(s) from {len(members)} "
-            f"reviewer(s), {skipped} skipped; head {digest}")  # fmt: skip
+            f"reviewer(s), {body['skipped']} skipped; head {digest}")  # fmt: skip
     return body, text
 
 
@@ -104,6 +68,10 @@ def _findings(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], str]
 
 
 def act(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], str]:
+    if args.review_action.startswith("runner"):
+        from opentine._cli_review_runner import act as runner
+
+        return runner(args, repo)
     return (_run if args.review_action == "run" else _findings)(args, repo)
 
 

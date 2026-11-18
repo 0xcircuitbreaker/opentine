@@ -23,6 +23,12 @@
             "key": {
               "type": "string"
             },
+            "keys": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
             "levels": {
               "type": "array",
               "items": {
