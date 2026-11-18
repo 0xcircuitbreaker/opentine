@@ -1,4 +1,4 @@
-"""0.59 lineage scale: a 1e5-node synthetic archive, proven by counts, not wall time.
+"""0.58 lineage scale: a 1e5-node synthetic archive, proven by counts, not wall time.
 
 ``why`` must touch O(depth + evidence) index rows whatever the archive size, so
 the same query on a 1e3-node and a 1e5-node archive visits exactly the same

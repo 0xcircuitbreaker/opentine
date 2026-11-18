@@ -1,4 +1,4 @@
-"""0.59: the shared lineage-check fixture is current and the reference answers it.
+"""0.58: the shared lineage-check fixture is current and the reference answers it.
 
 ``tests/data/lineage_check.json`` is the lineage folder (base64) and the
 ``(code, variant)`` pairs each case must report; ``ts/verifier/test/lineage.test.ts``
@@ -39,14 +39,15 @@ def test_fixture_is_current(tmp_path) -> None:
 def test_fixture_covers_every_code() -> None:
     codes = {code for case in _fixture()["cases"] for code, _ in case["expect"]}
     names = ("variant-unknown", "record-invalid", "parent-missing", "cycle", "evidence-missing",
-             "decision-mismatch")  # fmt: skip
+             "decision-mismatch", "signer-untrusted")  # fmt: skip
     assert codes == {f"lineage.{c}" for c in names}
     assert any(not case["expect"] for case in _fixture()["cases"])
 
 
 @pytest.mark.parametrize("case", _fixture()["cases"], ids=lambda c: c["id"])
 def test_reference_answers_every_case(case: dict) -> None:
-    found = check(_files(), case["variant"])
+    found = check(_files(), case["variant"], case.get("trust"))
+    assert found["signers"] == ("pinned" if case.get("trust") else "unpinned")
     assert [[f["code"], f["variant"]] for f in found["findings"]] == case["expect"]
     assert found["ok"] is (not case["expect"])
 

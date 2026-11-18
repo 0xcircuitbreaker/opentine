@@ -7,7 +7,7 @@ label. OpenTine records each variant as a signed node with links to the
 evidence for keeping it, so an auditor can ask of any variant: where did it
 come from, and which signed evals justified each step?
 
-This page covers the record, the check and the graph commands (0.59). Nothing here adds an object
+This page covers the record, the check and the graph commands (0.58). Nothing here adds an object
 kind, a predicate, a wire format or a conformance vector: a lineage record is an
 existing `attestation` whose claim follows a documented convention, and the
 check is a CLI command with its own codes (`tine verify` and the pyz are
@@ -87,10 +87,35 @@ every reachable record once, and exits 1 when it finds anything:
 | `lineage.cycle` | The ancestry comes back to a variant on the current path |
 | `lineage.evidence-missing` | A justifying eval is absent, its verdicts do not hash to `verdicts_sha256`, a verdict is unsigned, does not verify, repeats an item or scores another run than the mutation run (an eval of another variant cannot justify this one), or a variant with parents names no eval |
 | `lineage.decision-mismatch` | The cited decision is absent or unsigned, is not an `opentine.promotion-decision/1` promote of the mutation run, was made under another policy than the record names, or cites none of the variant's evals among its `inputs` |
+| `lineage.signer-untrusted` | Eval signers are pinned (below) and a justifying verdict is signed by a key that is not an allowed eval signer, or by an optimizer key |
 
 Each finding names the variant it is about, so a problem in an ancestor shows
 up when checking any of its descendants. `--json` prints `tine-cli-lineage/1`:
 `ancestors` in walk order and `findings` sorted by variant, then code.
+
+### Signer trust
+
+A signature proves who signed a verdict, not that the signer may judge the
+loop: a loop could sign its own evals and record a variant on them. `check`
+and `why` therefore pin eval signers with the 0.57 key separation:
+
+* the `scorer` role of `REPO/.tine/key-roles.toml` names the allowed eval
+  signers, and its `optimizer` role the loop's own keys;
+* `--promotion-policy TOML` adds the `eval_signers` of a `tine promote`
+  policy; with both, a signer must be in both.
+
+Every verdict of every justifying eval must then be signed by an allowed key
+that is not an optimizer key (an optimizer key listed as a scorer is still
+refused), or the variant gets `lineage.signer-untrusted`. The output says
+`"signers": "pinned"`. With neither source the output says
+`"signers": "unpinned"` and the text output prints a warning: the check then
+proves who signed, and makes no claim that the signer is trusted.
+
+### Size limit
+
+Every lineage command except `record` lists and sizes the folder before reading
+it and refuses (exit 1, `lineage.too-large`) one over 200000 files or 1 GiB
+(`--max-files N`, `--max-bytes N`), without reading a file.
 
 ## Links to promotion and loops
 
@@ -149,6 +174,5 @@ its variant id is not indexed.
 
 ## Not yet
 
-The Tineyard view of the graph comes later. A trust pin for record and eval
-signers (the check proves who signed, not that the signer is trusted), and a
-limit on lineage folder size, are open.
+The Tineyard view of the graph comes later. Record signers are proven, not
+pinned to a role.

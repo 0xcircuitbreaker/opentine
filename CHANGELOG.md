@@ -36,6 +36,14 @@
   1 when the check refuses. `--max-nodes` caps the walk (`truncated`); `graph`
   reports parent cycles under `cyclic`; `signed` means the signature verifies
   under the signer's key (a copied block does not count).
+- Signer trust: `check` and `why` pin eval signers to the `scorer` role of
+  `.tine/key-roles.toml` (and, with `--promotion-policy`, the policy's
+  `eval_signers`). A justifying verdict signed by any other key, or by an
+  `optimizer` key, is `lineage.signer-untrusted`, so a loop cannot sign its own
+  evals. With no roles the output reports `signers: unpinned` as a warning.
+  The TS `checkLineage` takes the same trust; the shared fixture has the cases.
+- Every lineage command but `record` refuses a folder over 200000 files or
+  1 GiB (`--max-files`, `--max-bytes`) before reading it.
 
 ## 0.57.0 — Signed promotion and eval statistics (2026-11-18)
 

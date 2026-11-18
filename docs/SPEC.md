@@ -2332,7 +2332,7 @@ claims carry `policy_sha256` and `label_policy_sha256`, `target_id`
 `sha256:<policy sha256>`. Both are attestations; verifiers report the claims
 `unchecked` (docs/EVALS-PROMOTION.md).
 
-**Lineage variant (0.59, claim convention).** `tine lineage record` writes an
+**Lineage variant (0.58, claim convention).** `tine lineage record` writes an
 `attestation` (no new kind, no predicate) on the variant's mutation run
 (`target_id`, a `run:sha256:` oid), Ed25519-signed (`tine-attest/2`), whose
 `claim` has exactly these fields:
@@ -2354,7 +2354,10 @@ justifying eval absent, re-hashing to another digest or holding a verdict that
 is unsigned, does not verify, repeats an item or scores another run than
 `mutation_run`; a variant with parents and no eval). Records, decisions and
 verdicts with a duplicate JSON key are refused, not read last-wins and
-`lineage.decision-mismatch`. These are CLI codes: `tine verify`, the pyz and
+`lineage.decision-mismatch`, and, when `.tine/key-roles.toml` or a promotion
+policy pins eval signers, `lineage.signer-untrusted` (a verdict not signed by an
+allowed, non-optimizer eval-signer key; otherwise the output reports signers
+`unpinned`). These are CLI codes: `tine verify`, the pyz and
 the conformance vectors are unchanged, and verifiers report the claim
 `unchecked`. The Python and TS checks answer the shared fixture
 `tests/data/lineage_check.json` (docs/LINEAGE.md).

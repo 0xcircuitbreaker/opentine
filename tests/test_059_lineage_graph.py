@@ -1,4 +1,4 @@
-"""0.59 lineage graph half: the derived index, ``graph``, ``why``, ``archive``.
+"""0.58 lineage graph half: the derived index, ``graph``, ``why``, ``archive``.
 
 The index reads the same lineage folder ``tine lineage record`` writes and
 ``tine lineage check`` judges, under the one ``opentine.lineage.variant`` claim.

@@ -1,5 +1,5 @@
 /**
- * 0.59 `tine lineage check VARIANT`: a port of `opentine._lineage_check.check`.
+ * 0.58 `tine lineage check VARIANT`: a port of `opentine._lineage_check.check`.
  *
  * Input is a lineage folder as a map of relative path to bytes
  * (`variants/HEX.json`, `evals/HEX.jsonl`, `decisions/HEX.json`). Records are
@@ -29,7 +29,11 @@ const RUN = /^run:sha256:[0-9a-f]{64}$/;
 const LOOP = /^[a-z0-9][a-z0-9._-]{0,63}$/;
 
 export interface LineageFinding { code: string; variant: string; detail: string }
-export interface LineageReport { ok: boolean; variant: string; ancestors: string[]; findings: LineageFinding[] }
+/** Who may sign justifying verdicts (from .tine/key-roles.toml and the promotion policy). */
+export interface LineageTrust { eval_signers: string[]; optimizer: string[] }
+export interface LineageReport {
+  ok: boolean; variant: string; signers: "pinned" | "unpinned"; ancestors: string[]; findings: LineageFinding[];
+}
 
 /** Duplicate keys are refused: one reader, one meaning (no last-wins laundering). */
 const READ = { ...KERNEL, duplicates: "reject" as const };
@@ -98,7 +102,7 @@ function shape(claim: JValue | undefined, variant: string): string | null {
   return null;
 }
 
-function evalProblem(files: Map<string, Uint8Array>, row: JObject, run: string): string | null {
+function evalProblem(files: Map<string, Uint8Array>, row: JObject, run: string, signers: Set<string>): string | null {
   const id = row.get("eval") as string;
   const raw = files.get(`evals/${id.slice(7)}.jsonl`);
   if (raw === undefined) return `eval ${id} is absent`;
@@ -121,6 +125,7 @@ function evalProblem(files: Map<string, Uint8Array>, row: JObject, run: string):
     const item = String(verdict.get("item"));
     if (seen.has(item)) return `eval ${id}: verdict ${i + 1} repeats an item`;
     seen.add(item);
+    signers.add(String(verdict.get("signer")));
   }
   return null;
 }
@@ -152,7 +157,17 @@ function decisionProblem(files: Map<string, Uint8Array>, claim: JObject): string
   return null;
 }
 
-function node(files: Map<string, Uint8Array>, variant: string, out: LineageFinding[]): string[] {
+/** Why some verdict signer is not trusted (not an allowed eval signer, or an optimizer key). */
+function untrusted(signers: Set<string>, trust: LineageTrust | null): string | null {
+  if (trust === null) return null;
+  const allowed = new Set(trust.eval_signers);
+  const optimizer = new Set(trust.optimizer);
+  const bad = [...signers].filter((s) => !allowed.has(s) || optimizer.has(s)).sort();
+  if (!bad.length) return null;
+  return `verdicts signed by ${bad.join(", ")}: not an allowed eval-signer key, or an optimizer key`;
+}
+
+function node(files: Map<string, Uint8Array>, variant: string, out: LineageFinding[], trust: LineageTrust | null): string[] {
   const raw = files.get(`variants/${variant.slice(7)}.json`);
   if (raw === undefined) return [];
   const payload = parse(raw);
@@ -174,10 +189,13 @@ function node(files: Map<string, Uint8Array>, variant: string, out: LineageFindi
   const parents = c.get("parents") as string[];
   const evals = c.get("evals") as JObject[];
   if (parents.length && !evals.length) out.push(finding("evidence-missing", variant, "a derived variant names no eval"));
+  const signers = new Set<string>();
   for (const row of evals) {
-    const found = evalProblem(files, row, c.get("mutation_run") as string);
+    const found = evalProblem(files, row, c.get("mutation_run") as string, signers);
     if (found) out.push(finding("evidence-missing", variant, found));
   }
+  const distrust = untrusted(signers, trust);
+  if (distrust) out.push(finding("signer-untrusted", variant, distrust));
   if (c.get("decision") !== null) {
     const found = decisionProblem(files, c);
     if (found) out.push(finding("decision-mismatch", variant, found));
@@ -188,12 +206,13 @@ function node(files: Map<string, Uint8Array>, variant: string, out: LineageFindi
 const cmp = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
 
 /** Iterative depth-first walk, parents in order; the same findings as the Python check. */
-export function checkLineage(files: Map<string, Uint8Array>, variant: string): LineageReport {
+export function checkLineage(files: Map<string, Uint8Array>, variant: string, trust: LineageTrust | null = null): LineageReport {
+  const signers = trust === null ? "unpinned" : "pinned";
   if (!DIGEST.test(variant)) throw new Error("VARIANT must be a sha256:HEX variant id");
   const out: LineageFinding[] = [];
   const has = (v: string): boolean => files.has(`variants/${v.slice(7)}.json`);
   if (!has(variant)) {
-    return { ok: false, variant, ancestors: [], findings: [finding("variant-unknown", variant, "no record names this variant")] };
+    return { ok: false, variant, signers, ancestors: [], findings: [finding("variant-unknown", variant, "no record names this variant")] };
   }
   const state = new Map<string, "open" | "done">();
   const order: string[] = [];
@@ -201,7 +220,7 @@ export function checkLineage(files: Map<string, Uint8Array>, variant: string): L
   const enter = (v: string): void => {
     state.set(v, "open");
     order.push(v);
-    stack.push({ node: v, parents: node(files, v, out), index: 0 });
+    stack.push({ node: v, parents: node(files, v, out, trust), index: 0 });
   };
   enter(variant);
   while (stack.length) {
@@ -218,5 +237,5 @@ export function checkLineage(files: Map<string, Uint8Array>, variant: string): L
     else if (!state.has(parent)) enter(parent);
   }
   out.sort((a, b) => cmp(a.variant, b.variant) || cmp(a.code, b.code) || cmp(a.detail, b.detail));
-  return { ok: !out.length, variant, ancestors: order.slice(1), findings: out };
+  return { ok: !out.length, variant, signers, ancestors: order.slice(1), findings: out };
 }

@@ -1,4 +1,4 @@
-"""0.59: ``tine lineage record|check`` end to end, and what the check refuses.
+"""0.58: ``tine lineage record|check`` end to end, and what the check refuses.
 
 No wall clock: the check's cost is proven by counting record reads (each
 ancestor is read once however many paths reach it), not by timing.
@@ -117,9 +117,9 @@ def test_each_ancestor_is_read_once_in_a_dense_archive(tmp_path, monkeypatch, wi
     reads = []
     original = _lineage_check._node
 
-    def counted(files, v, out):
+    def counted(files, v, out, trust):
         reads.append(v)
-        return original(files, v, out)
+        return original(files, v, out, trust)
 
     monkeypatch.setattr(_lineage_check, "_node", counted)
     found = check(read_folder(store), ids[-1])

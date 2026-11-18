@@ -1,4 +1,4 @@
-"""Deterministic lineage folder for the 0.59 tests and the shared py/ts fixture.
+"""Deterministic lineage folder for the 0.58 tests and the shared py/ts fixture.
 
 ``build_fixture(base)`` promotes RUN_B under the 0.58 gate, records a small
 evolutionary archive over it, and returns ``tests/data/lineage_check.json``:
@@ -22,6 +22,7 @@ from opentine.attest_signing import sign_attestation
 from tests.promote_helpers import (
     APPROVER,
     AT,
+    EVALER,
     PROMOTER,
     RUN_A,
     RUN_B,
@@ -32,7 +33,14 @@ from tests.promote_helpers import (
     policy,
 )
 
-RECORDER = "8d" * 32
+RECORDER = "8d" * 32  # the loop's own (optimizer) key
+
+
+def trust() -> dict:
+    """Signers pinned as 0.57 key roles would: EVALER scores, RECORDER optimizes."""
+    return {"eval_signers": [fingerprint(EVALER)], "optimizer": [fingerprint(RECORDER)]}
+
+
 UNKNOWN = "sha256:" + "e" * 64
 
 
@@ -112,6 +120,9 @@ def archive(base: Path) -> tuple[Path, dict[str, str]]:
                         edit={"selector": "edited after signing"})  # fmt: skip
     v["merge"] = raw(store, {"artifacts": art(10), "parents": [v["good"], v["absent"]],
                              "evals": ev})  # fmt: skip
+    forged = make_eval(base / "forged", RUN_B, lambda i: True, signer=RECORDER)
+    v["forged"] = record(sign, run=RUN_B, artifacts=art(13), store=store, parents=[v["root"]],
+                         evals=[forged], at=AT)["variant"]  # fmt: skip
     v["unknown"] = UNKNOWN
     return store, v
 
@@ -124,7 +135,11 @@ def build_fixture(base: Path) -> dict:
         found = check(files, variant)["findings"]
         cases.append({"id": name, "variant": variant,
                       "expect": [[f["code"], f["variant"]] for f in found]})  # fmt: skip
-    return {"about": "0.59 lineage check cases (py and ts); regenerate with "
+    for name in ("forged", "good"):  # the same variants with eval signers pinned
+        found = check(files, named[name], trust())["findings"]
+        cases.append({"id": f"{name}-pinned", "variant": named[name], "trust": trust(),
+                      "expect": [[f["code"], f["variant"]] for f in found]})  # fmt: skip
+    return {"about": "0.58 lineage check cases (py and ts); regenerate with "
                      "python -m tests.test_059_lineage_fixture DIR",
             "files": {k: base64.b64encode(b).decode() for k, b in sorted(files.items())},
             "cases": cases}  # fmt: skip

@@ -1,4 +1,4 @@
-"""``tine lineage record|check|graph|why|archive|index`` (0.59): self-modification lineage.
+"""``tine lineage record|check|graph|why|archive|index`` (0.58): self-modification lineage.
 
 ``lineage record --run RUN --key KEY --code-tree D ...`` signs an attestation
 whose claim follows ``opentine.lineage.variant`` and files it, with the evals
@@ -19,6 +19,7 @@ from pathlib import Path
 
 from opentine._cli_common import _terminal, console
 from opentine._cli_errors import USAGE, error
+from opentine._lineage import MAX_BYTES, MAX_FILES
 
 SCHEMA = "tine-cli-lineage/1"
 
@@ -36,6 +37,27 @@ def add_lineage_parser(subparsers: argparse._SubParsersAction) -> None:
         parser.add_argument("--repo", default=".", metavar="PATH", help="v3 repository")
         parser.add_argument("--dir", metavar="DIR", help="Lineage folder (REPO/.tine/lineage)")
         parser.add_argument("--json", action="store_true", help="Machine-readable output")
+    for parser in (check, graph, why, archive, index):
+        parser.add_argument(
+            "--max-files",
+            type=int,
+            default=MAX_FILES,
+            metavar="N",
+            help=f"Refuse a lineage folder over N files ({MAX_FILES})",
+        )
+        parser.add_argument(
+            "--max-bytes",
+            type=int,
+            default=MAX_BYTES,
+            metavar="N",
+            help=f"Refuse a lineage folder over N bytes ({MAX_BYTES})",
+        )
+    for parser in (check, why):
+        parser.add_argument(
+            "--promotion-policy",
+            metavar="TOML",
+            help="Also pin eval signers to this policy's eval_signers",
+        )
     for parser in (graph, why, archive, index):
         parser.add_argument("--no-refresh", action="store_true",
                             help="Use the index as is, even when stale")  # fmt: skip
@@ -88,19 +110,29 @@ def _record(args: argparse.Namespace) -> dict:
     return {"ok": True, **row}
 
 
+def trust(args: argparse.Namespace) -> dict | None:
+    """The eval-signer trust for check and why (``None``: unpinned)."""
+    from opentine._lineage_trust import load_trust
+
+    policy = getattr(args, "promotion_policy", None)
+    return load_trust(Path(args.repo), Path(policy) if policy else None)
+
+
 def _row(args: argparse.Namespace) -> dict:
     from opentine._cli_lineage_graph import body
     from opentine._lineage_check import check, read_folder
 
     if args.lineage_command == "record":
         return _record(args)
+    files = read_folder(_folder(args), max_files=args.max_files, max_bytes=args.max_bytes)
     if args.lineage_command == "check":
-        return check(read_folder(_folder(args)), args.variant)
-    return body(args, _folder(args))
+        return check(files, args.variant, trust(args))
+    return body(args, _folder(args), files)
 
 
 def _print(args: argparse.Namespace, row: dict) -> None:
     from opentine._cli_lineage_graph import text
+    from opentine._lineage_trust import UNPINNED_WARNING
 
     command = args.lineage_command
     if command == "graph":  # DOT verbatim: no wrapping, no markup
@@ -113,6 +145,8 @@ def _print(args: argparse.Namespace, row: dict) -> None:
         verdict = "OK" if row["ok"] else "REFUSED"
         console.print(_terminal(f"{verdict} {row['variant']} ({len(row['ancestors'])} "
                                 "ancestors)"), markup=False)  # fmt: skip
+        if row["signers"] == "unpinned":
+            console.print(_terminal(f"  warning: {UNPINNED_WARNING}"), markup=False)
         for item in row["findings"]:
             console.print(_terminal(f"  {item['code']} {item['variant']}: {item['detail']}"),
                           markup=False)  # fmt: skip

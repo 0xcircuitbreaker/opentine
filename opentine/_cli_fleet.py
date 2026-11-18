@@ -54,7 +54,7 @@ def add_fleet_parser(subparsers: argparse._SubParsersAction) -> None:
     add_task_parser(subparsers)
     add_keys_parser(subparsers)  # 0.58: tine keys lint
     add_loop_parser(subparsers)  # 0.58: tine loop stop|status
-    add_lineage_parser(subparsers)  # 0.59: tine lineage record|check|graph|why|archive|index
+    add_lineage_parser(subparsers)  # 0.58: tine lineage record|check|graph|why|archive|index
 
 
 def _fail(message: object) -> SystemExit:

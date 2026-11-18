@@ -1,4 +1,4 @@
-"""``tine lineage record``: a signed node of the self-modification lineage (0.59).
+"""``tine lineage record``: a signed node of the self-modification lineage (0.58).
 
 A variant (a code tree, prompt, config or weights, by digest) is recorded as an
 existing ``attestation`` (tine-attest/2, Ed25519) on its mutation run, whose
@@ -135,15 +135,74 @@ def record(key: Any, *, run: str, artifacts: dict[str, str | None], store: Path,
             "evals": rows, "decision": cited}  # fmt: skip
 
 
-def read_folder(folder: Any) -> dict[str, bytes]:
-    """The lineage folder as ``{relative posix path: bytes}`` (the three subfolders only)."""
+def _unique(pairs: list) -> dict:
+    keys = [k for k, _ in pairs]
+    if len(set(keys)) != len(keys):
+        raise ValueError("duplicate key")  # one reader, one meaning: no last-wins laundering
+    return dict(pairs)
+
+
+def loads(raw: bytes | str) -> Any:
+    text = raw.decode("utf-8") if isinstance(raw, bytes) else raw
+    return json.loads(text, object_pairs_hook=_unique)
+
+
+def signed(payload: Any) -> bool:
+    """Ed25519-signed, verifying under its embedded key, and that key is the signer."""
+    from opentine._signing_pins import key_fingerprint
+    from opentine.attest_signing import verify_attestation
+
+    block = payload.get("signature") if isinstance(payload, dict) else None
+    if not isinstance(block, dict) or block.get("alg") != "ed25519":
+        return False
+    raw = block.get("public_key")
+    if not (isinstance(raw, str) and HEX_RE.fullmatch(raw)):
+        return False
+    if key_fingerprint(bytes.fromhex(raw)) != payload.get("signer"):
+        return False
+    return verify_attestation(payload, trust_embedded=True).ok
+
+
+MAX_FILES = 200_000  # records + evals + decisions a lineage command will read
+MAX_BYTES = 1 << 30  # 1 GiB over those files
+
+
+class LineageTooLarge(ValueError):
+    """The lineage folder is over the node or byte limit: refused before it is read."""
+
+
+def read_folder(folder: Any, *, max_files: int = MAX_FILES,
+                max_bytes: int = MAX_BYTES) -> dict[str, bytes]:  # fmt: skip
+    """The lineage folder as ``{relative posix path: bytes}`` (the three subfolders only).
+
+    The folder is listed and sized first; over *max_files* files or *max_bytes*
+    bytes it raises :class:`LineageTooLarge` without reading any file.
+    """
     root = Path(folder)
-    files: dict[str, bytes] = {}
+    found: list[tuple[str, Path]] = []
+    total = 0
     for sub in ("variants", "evals", "decisions"):
         for path in sorted((root / sub).glob("*")) if (root / sub).is_dir() else []:
             if path.is_file():
-                files[f"{sub}/{path.name}"] = path.read_bytes()
-    return files
+                found.append((f"{sub}/{path.name}", path))
+                total += path.stat().st_size
+                if len(found) > max_files or total > max_bytes:
+                    raise LineageTooLarge(
+                        f"lineage.too-large: {root} is over {max_files} files or {max_bytes} "
+                        "bytes; raise --max-files/--max-bytes to read it")  # fmt: skip
+    return {name: path.read_bytes() for name, path in found}
 
 
-__all__ = ["ARTIFACTS", "CONVENTION", "FOLDER", "read_folder", "record", "variant_id"]
+__all__ = [
+    "ARTIFACTS",
+    "CONVENTION",
+    "FOLDER",
+    "MAX_BYTES",
+    "MAX_FILES",
+    "LineageTooLarge",
+    "loads",
+    "read_folder",
+    "record",
+    "signed",
+    "variant_id",
+]

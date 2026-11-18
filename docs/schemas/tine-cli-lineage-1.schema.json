@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opentine.com/schemas/tine-cli-lineage-1.schema.json",
   "title": "tine lineage record|check|graph|why|archive|index --json",
-  "description": "The self-modification lineage of a self-improving agent loop. `record` names the variant id it signed (claim convention `opentine.lineage.variant`), the record file, its parents, justifying evals and cited decision. `check` walks the variant's ancestry over the lineage folder: `ancestors` in depth-first order, `findings` each a `lineage.*` code about one variant; `ok` only when there is none (exit 1 otherwise). `graph`, `why`, `archive` and `index` read the derived index `LINEAGE_FOLDER/index/lineage.sqlite` (rebuildable, never authoritative): `graph` lists variants and parent edges with `graph_sha256`, equal for equal graphs; `why` walks one variant to every ancestor and its evidence (evals, judges, dataset commitments, approvers, policies, decisions), reporting the index rows `visited`, and carries `check`'s `ok` and `findings` (exit 1 when not ok); `archive` summarises a population with non-linear parents; `index` builds it.",
+  "description": "The self-modification lineage of a self-improving agent loop. `record` names the variant id it signed (claim convention `opentine.lineage.variant`), the record file, its parents, justifying evals and cited decision. `check` walks the variant's ancestry over the lineage folder: `ancestors` in depth-first order, `findings` each a `lineage.*` code about one variant; `ok` only when there is none (exit 1 otherwise). `signers` is `pinned` when `.tine/key-roles.toml` or a promotion policy pins eval signers (an untrusted one is `lineage.signer-untrusted`) and `unpinned` otherwise: a warning that signers are proven, not trusted. `graph`, `why`, `archive` and `index` read the derived index `LINEAGE_FOLDER/index/lineage.sqlite` (rebuildable, never authoritative): `graph` lists variants and parent edges with `graph_sha256`, equal for equal graphs; `why` walks one variant to every ancestor and its evidence (evals, judges, dataset commitments, approvers, policies, decisions), reporting the index rows `visited`, and carries `check`'s `ok` and `findings` (exit 1 when not ok); `archive` summarises a population with non-linear parents; `index` builds it.",
   "oneOf": [
     {
       "type": "object",
@@ -92,6 +92,7 @@
         "schema",
         "ok",
         "variant",
+        "signers",
         "ancestors",
         "findings"
       ],
@@ -108,6 +109,12 @@
         "variant": {
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "signers": {
+          "enum": [
+            "pinned",
+            "unpinned"
+          ]
         },
         "ancestors": {
           "type": "array",
@@ -134,7 +141,8 @@
                   "lineage.parent-missing",
                   "lineage.cycle",
                   "lineage.evidence-missing",
-                  "lineage.decision-mismatch"
+                  "lineage.decision-mismatch",
+                  "lineage.signer-untrusted"
                 ]
               },
               "variant": {
@@ -263,6 +271,7 @@
         "store_checked",
         "visited",
         "ok",
+        "signers",
         "findings"
       ],
       "properties": {
@@ -283,6 +292,12 @@
         "ok": {
           "type": "boolean"
         },
+        "signers": {
+          "enum": [
+            "pinned",
+            "unpinned"
+          ]
+        },
         "findings": {
           "type": "array",
           "items": {
@@ -301,7 +316,8 @@
                   "lineage.parent-missing",
                   "lineage.cycle",
                   "lineage.evidence-missing",
-                  "lineage.decision-mismatch"
+                  "lineage.decision-mismatch",
+                  "lineage.signer-untrusted"
                 ]
               },
               "variant": {

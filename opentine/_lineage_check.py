@@ -20,16 +20,17 @@ through ``parents`` is checked; each finding names the variant it is about:
 ``lineage.decision-mismatch`` the cited promotion decision is absent, unsigned,
                               not an ``opentine.promotion-decision/1`` promote of
                               the mutation run, under another policy, or cites
-                              none of the variant's evals.
+                              none of the variant's evals;
+``lineage.signer-untrusted``  with signers pinned (:mod:`opentine._lineage_trust`),
+                              a justifying verdict is signed by a key that is not
+                              an allowed eval signer, or is an optimizer key.
 
-These codes are ``tine lineage check`` output only: ``tine verify`` and the pyz
-do not emit them.
+These codes are ``tine lineage check`` output only (not ``tine verify``/pyz).
 """
 
 from __future__ import annotations
 
 import hashlib
-import json
 from typing import Any
 
 from opentine._lineage import (
@@ -42,42 +43,17 @@ from opentine._lineage import (
     read_folder,
     variant_id,
 )
+from opentine._lineage import loads as _loads
+from opentine._lineage import signed as _signed
+from opentine._lineage_trust import status, untrusted
 
 DECISION = "opentine.promotion-decision/1"
 _CLAIM = {"convention", "variant", "artifacts", "parents", "mutation_run", "evals", "selector",
           "decision", "policy", "loop"}  # fmt: skip
 
 
-def _unique(pairs: list) -> dict:
-    keys = [k for k, _ in pairs]
-    if len(set(keys)) != len(keys):
-        raise ValueError("duplicate key")  # one reader, one meaning: no last-wins laundering
-    return dict(pairs)
-
-
-def _loads(raw: bytes | str) -> Any:
-    text = raw.decode("utf-8") if isinstance(raw, bytes) else raw
-    return json.loads(text, object_pairs_hook=_unique)
-
-
 def _finding(code: str, variant: str, detail: str) -> dict[str, str]:
     return {"code": f"lineage.{code}", "variant": variant, "detail": detail}
-
-
-def _signed(payload: Any) -> bool:
-    """Ed25519-signed, verifying under its embedded key, and that key is the signer."""
-    from opentine._signing_pins import key_fingerprint
-    from opentine.attest_signing import verify_attestation
-
-    block = payload.get("signature") if isinstance(payload, dict) else None
-    if not isinstance(block, dict) or block.get("alg") != "ed25519":
-        return False
-    raw = block.get("public_key")
-    if not (isinstance(raw, str) and HEX_RE.fullmatch(raw)):
-        return False
-    if key_fingerprint(bytes.fromhex(raw)) != payload.get("signer"):
-        return False
-    return verify_attestation(payload, trust_embedded=True).ok
 
 
 def _shape(claim: Any, variant: str) -> str | None:
@@ -121,7 +97,8 @@ def _shape(claim: Any, variant: str) -> str | None:
     return None
 
 
-def _eval_problem(files: dict[str, bytes], row: dict[str, str], run: str) -> str | None:
+def _eval_problem(files: dict[str, bytes], row: dict[str, str], run: str,
+                  signers: set[str]) -> str | None:  # fmt: skip
     from opentine import _eval_verdict as verdicts
     from opentine._eval_run import PINNED, eval_id
 
@@ -148,6 +125,7 @@ def _eval_problem(files: dict[str, bytes], row: dict[str, str], run: str) -> str
         if verdict["item"] in seen:
             return f"eval {row['eval']}: verdict {number} repeats an item"
         seen.add(verdict["item"])
+        signers.add(verdict["signer"])
     return None
 
 
@@ -179,7 +157,7 @@ def _decision_problem(files: dict[str, bytes], claim: dict[str, Any]) -> str | N
     return None
 
 
-def _node(files: dict[str, bytes], variant: str, out: list) -> list[str] | None:
+def _node(files: dict[str, bytes], variant: str, out: list, trust: Any) -> list[str] | None:
     """Check one record; its parents, or None when it is absent or invalid."""
     raw = files.get(f"variants/{variant[7:]}.json")
     if raw is None:
@@ -200,10 +178,13 @@ def _node(files: dict[str, bytes], variant: str, out: list) -> list[str] | None:
         return []
     if claim["parents"] and not claim["evals"]:
         out.append(_finding("evidence-missing", variant, "a derived variant names no eval"))
+    signers: set[str] = set()
     for row in claim["evals"]:
-        found = _eval_problem(files, row, claim["mutation_run"])
+        found = _eval_problem(files, row, claim["mutation_run"], signers)
         if found:
             out.append(_finding("evidence-missing", variant, found))
+    if found := untrusted(signers, trust):
+        out.append(_finding("signer-untrusted", variant, found))
     if claim["decision"] is not None:
         found = _decision_problem(files, claim)
         if found:
@@ -211,14 +192,15 @@ def _node(files: dict[str, bytes], variant: str, out: list) -> list[str] | None:
     return list(claim["parents"])
 
 
-def check(files: dict[str, bytes], variant: str) -> dict[str, Any]:
-    """``{ok, variant, ancestors, findings}``; iterative depth-first, parents in order."""
+def check(files: dict[str, bytes], variant: str, trust: Any = None) -> dict[str, Any]:
+    """``{ok, variant, signers, ancestors, findings}``; depth-first, parents in order."""
     out: list[dict[str, str]] = []
     if not (isinstance(variant, str) and DIGEST_RE.fullmatch(variant)):
         raise ValueError("VARIANT must be a sha256:HEX variant id")
     if f"variants/{variant[7:]}.json" not in files:
         out.append(_finding("variant-unknown", variant, "no record names this variant"))
-        return {"ok": False, "variant": variant, "ancestors": [], "findings": out}
+        return {"ok": False, "variant": variant, "signers": status(trust), "ancestors": [],
+                "findings": out}  # fmt: skip
     state: dict[str, str] = {}
     order: list[str] = []
     stack: list[tuple[str, list[str], int]] = []
@@ -226,7 +208,7 @@ def check(files: dict[str, bytes], variant: str) -> dict[str, Any]:
     def enter(node: str) -> None:
         state[node] = "open"
         order.append(node)
-        stack.append((node, _node(files, node, out) or [], 0))
+        stack.append((node, _node(files, node, out, trust) or [], 0))
 
     enter(variant)
     while stack:
@@ -244,7 +226,8 @@ def check(files: dict[str, bytes], variant: str) -> dict[str, Any]:
         elif parent not in state:
             enter(parent)
     out.sort(key=lambda f: (f["variant"], f["code"], f["detail"]))
-    return {"ok": not out, "variant": variant, "ancestors": order[1:], "findings": out}
+    return {"ok": not out, "variant": variant, "signers": status(trust), "ancestors": order[1:],
+            "findings": out}  # fmt: skip
 
 
 __all__ = ["check", "read_folder"]

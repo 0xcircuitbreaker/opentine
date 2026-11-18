@@ -1,4 +1,4 @@
-"""``why`` and ``archive`` over the derived lineage index (0.59).
+"""``why`` and ``archive`` over the derived lineage index (0.58).
 
 ``why VARIANT`` walks from a variant to every ancestor and collects each one's
 evidence (evals, judges, dataset commitments, approvers, policies,

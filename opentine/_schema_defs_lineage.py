@@ -1,4 +1,4 @@
-"""JSON Schema for ``tine lineage record|check|graph|why|archive|index --json`` (0.59).
+"""JSON Schema for ``tine lineage record|check|graph|why|archive|index --json`` (0.58).
 
 A CLI output, not an object kind: lineage records are existing attestations
 whose claim follows the ``opentine.lineage.variant`` convention (docs/LINEAGE.md).
@@ -30,7 +30,8 @@ _TOTALS = closed(["variants", "signed", "roots", "leaves", "multi_parent", "max_
                   "multi_parent": INT, "max_parents": INT})  # fmt: skip
 _HEAD = {"schema": {"const": "tine-cli-lineage/1"}}
 _CODES = ("variant-unknown", "record-invalid", "parent-missing", "cycle", "evidence-missing",
-          "decision-mismatch")  # fmt: skip
+          "decision-mismatch", "signer-untrusted")  # fmt: skip
+_SIGNERS = {"enum": ["pinned", "unpinned"]}
 _FINDING = closed(
     ["code", "variant", "detail"],
     {"code": {"enum": [f"lineage.{c}" for c in _CODES]}, "variant": _SHA, "detail": STR},
@@ -43,8 +44,9 @@ _RECORD = closed(["command", "schema", "ok", "variant", "record", "parents", "ev
     **_HEAD, "command": {"const": "lineage record"}, "ok": {"const": True}, "variant": _SHA,
     "record": STR, "parents": _SHAS, "evals": {"type": "array", "items": _EVAL},
     "decision": opt(closed(["sha256"], {"sha256": _HEX}))})  # fmt: skip
-_CHECK = closed(["command", "schema", "ok", "variant", "ancestors", "findings"], {
+_CHECK = closed(["command", "schema", "ok", "variant", "signers", "ancestors", "findings"], {
     **_HEAD, "command": {"const": "lineage check"}, "ok": BOOL, "variant": _SHA,
+    "signers": _SIGNERS,
     "ancestors": _SHAS, "findings": _FINDINGS})  # fmt: skip
 
 _GRAPH = closed(["command", "schema", "nodes", "edges", "missing_parents", "cyclic",
@@ -53,9 +55,10 @@ _GRAPH = closed(["command", "schema", "nodes", "edges", "missing_parents", "cycl
     "edges": {"type": "array", "items": _EDGE}, "missing_parents": _SHAS, "cyclic": _SHAS,
     "graph_sha256": _HEX})  # fmt: skip
 _WHY = closed(["command", "schema", "variant", "depth", "ancestors", "evidence", "summary",
-               "missing_parents", "truncated", "store_checked", "visited", "ok", "findings"], {
+               "missing_parents", "truncated", "store_checked", "visited", "ok", "signers",
+               "findings"], {
     **_HEAD, "command": {"const": "lineage why"}, "variant": _SHA, "depth": INT,
-    "ok": BOOL, "findings": _FINDINGS,
+    "ok": BOOL, "signers": _SIGNERS, "findings": _FINDINGS,
     "ancestors": {"type": "array", "items": _ANCESTOR},
     "evidence": {"type": "array", "items": _EVIDENCE},
     "summary": {"type": "object", "additionalProperties": strs()},
@@ -77,7 +80,10 @@ SCHEMAS: dict[str, dict[str, Any]] = {
         "its parents, justifying evals and cited decision. `check` walks the variant's "
         "ancestry over the lineage folder: `ancestors` in depth-first order, `findings` each "
         "a `lineage.*` code about one variant; `ok` only when there is none (exit 1 "
-        "otherwise). `graph`, `why`, `archive` and `index` read the derived index "
+        "otherwise). `signers` is `pinned` when `.tine/key-roles.toml` or a promotion "
+        "policy pins eval signers (an untrusted one is `lineage.signer-untrusted`) and "
+        "`unpinned` otherwise: a warning that signers are proven, not trusted. `graph`, "
+        "`why`, `archive` and `index` read the derived index "
         "`LINEAGE_FOLDER/index/lineage.sqlite` (rebuildable, never authoritative): `graph` "
         "lists variants and parent edges with `graph_sha256`, equal for equal graphs; `why` "
         "walks one variant to every ancestor and its evidence (evals, judges, dataset "

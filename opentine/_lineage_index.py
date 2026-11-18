@@ -1,4 +1,4 @@
-"""The derived lineage index at ``LINEAGE_FOLDER/index/lineage.sqlite`` (0.59).
+"""The derived lineage index at ``LINEAGE_FOLDER/index/lineage.sqlite`` (0.58).
 
 Derived, rebuildable and never authoritative: every row comes from a signed
 ``opentine.lineage.variant`` record in the lineage folder that ``tine lineage

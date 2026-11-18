@@ -1,4 +1,4 @@
-"""0.59 lineage graph half under attack: a loop laundering a self-modification."""
+"""0.58 lineage graph half under attack: a loop laundering a self-modification."""
 
 from __future__ import annotations
 

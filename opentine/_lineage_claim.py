@@ -1,4 +1,4 @@
-"""Reading ``opentine.lineage.variant`` records into index rows (0.59).
+"""Reading ``opentine.lineage.variant`` records into index rows (0.58).
 
 There is one claim convention and one schema: the one ``tine lineage record``
 signs and ``tine lineage check`` judges (:mod:`opentine._lineage`,
