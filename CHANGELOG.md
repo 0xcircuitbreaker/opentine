@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Onboarding and capture breadth
+## 0.56.0 — Onboarding and capture breadth (2026-11-18)
 
 - OTLP import maps OpenInference attributes (span kind, model, provider, token
   counts including cache and reasoning details, tool, agent and session ids)
