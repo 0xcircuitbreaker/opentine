@@ -80,6 +80,8 @@ dev = [
     "pytest>=9.0.3",
     "pytest-asyncio>=1.0",
     "pytest-rerunfailures>=15.0",
+    "pytest-split>=0.10",
+    "pytest-xdist>=3.6",
     "ruff>=0.4",
     "twine>=5.0",
 ]
@@ -155,4 +157,5 @@ markers = [
     "live: tests that call real model providers or local live services",
     "live_harness: tests that call real external agent CLI harnesses",
     "stress: multi-process contention tests (run in CI; deselect with -m 'not stress')",
+    "serial: tests that share process-wide state and must not run beside others under pytest-xdist (CI runs them in a separate -p no:xdist pass)",
 ]
