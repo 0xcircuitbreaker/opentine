@@ -1,5 +1,42 @@
 # Changelog
 
+## Unreleased — Self-modification lineage
+
+- `tine lineage record --run RUN --key KEY --code-tree|--prompt|--config|--weights
+  DIGEST [--parent VARIANT]... [--eval DIR]... [--selector T] [--decision FILE]
+  [--policy HEX] [--loop LOOP]` signs a variant of a self-improving agent loop as
+  an existing `attestation` under the documented claim convention
+  `opentine.lineage.variant`: its parents (zero, one or many), artifact digests,
+  mutation run, justifying evals, selector, promotion decision and policy. The
+  record, its evals and the decision are filed by digest in `.tine/lineage/`.
+  It refuses an eval that does not verify and a loop stopped by `tine loop stop`.
+- `tine lineage check VARIANT` walks the variant's ancestry over that folder
+  alone and exits 1 with named findings: `lineage.evidence-missing` (a
+  justifying eval unsigned, absent or edited), `lineage.parent-missing`,
+  `lineage.cycle`, `lineage.decision-mismatch` (the cited 0.57 promotion
+  decision is absent, unsigned, promotes another run, was made under another
+  policy or cites none of the variant's evals), `lineage.record-invalid` and
+  `lineage.variant-unknown`. Each ancestor is read once.
+- The TS verifier has the same check (`checkLineage`); both answer the shared
+  fixture `tests/data/lineage_check.json`, outside the frozen vector family.
+- `--json` prints the new published schema `tine-cli-lineage-1`. `tine verify`,
+  the pyz, object kinds, wire formats and vectors are unchanged (freeze-safe).
+  See docs/LINEAGE.md.
+- `tine lineage graph [--format dot|json]`, `tine lineage why VARIANT`,
+  `tine lineage archive [--loop] [--signed]` and `tine lineage index [--rebuild]`
+  read the same lineage folder through a derived index
+  (`.tine/lineage/index/lineage.sqlite`), under the one claim convention: no
+  second schema. The index is rebuilt when any folder file changes; deleting
+  and rebuilding it gives an identical `graph_sha256`.
+- `why` walks a variant to every ancestor and its evals, verdict datasets and
+  judges, approvers, policy, promotion decision and its inputs, touching
+  O(ancestors + evidence) index rows (`visited` reports them). It re-derives
+  each ancestor from its record, rebuilds a hand-edited index once
+  (`rebuilt`), and carries `tine lineage check`'s `ok` and `findings`, exiting
+  1 when the check refuses. `--max-nodes` caps the walk (`truncated`); `graph`
+  reports parent cycles under `cyclic`; `signed` means the signature verifies
+  under the signer's key (a copied block does not count).
+
 ## 0.57.0 — Signed promotion and eval statistics (2026-11-18)
 
 - `tine eval compare A B --ci paired-bootstrap|permutation [--alpha] [--seed]

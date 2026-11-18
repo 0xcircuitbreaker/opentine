@@ -1943,6 +1943,19 @@ rewriting `coord/loops/LOOP` does not un-stop the loop. A task whose id starts
 with `LOOP.` is fenced with or without `--loop`. `--json` prints
 `tine-cli-loop/1`. Local repositories only: `--loop` is refused with `--remote`.
 
+## Self-modification lineage (0.59)
+
+| Command | What it does |
+| --- | --- |
+| `tine lineage record --run RUN --key KEY --code-tree\|--prompt\|--config\|--weights DIGEST [--parent VARIANT]... [--eval DIR]... [--selector T] [--decision FILE] [--policy HEX] [--loop LOOP] [--at TIME] [--dir DIR] --repo PATH` | Signs a variant record (claim convention `opentine.lineage.variant`) and files it, the eval verdicts and the promotion decision it cites in `REPO/.tine/lineage` (or `--dir`); refuses an eval that does not verify and a stopped `--loop` |
+| `tine lineage check VARIANT [--dir DIR] --repo PATH` | Walks the variant's ancestry; exit 1 with `lineage.*` findings (`evidence-missing`, `parent-missing`, `cycle`, `decision-mismatch`, `record-invalid`, `variant-unknown`) |
+| `tine lineage graph [--format dot\|json] [--loop LOOP] [--dir DIR] [--no-refresh] --repo PATH` | The variant DAG from the derived index (DOT, or JSON with `missing_parents`, `cyclic`, `graph_sha256`) |
+| `tine lineage why VARIANT [--max-depth N] [--max-nodes N] [--dir DIR] --repo PATH` | Every ancestor and its evidence, re-derived from the records; carries the check's `ok` and `findings` and exits 1 when it refuses |
+| `tine lineage archive [--loop LOOP] [--signed] [--dir DIR] --repo PATH` | Population totals and per-variant fan-in/fan-out |
+| `tine lineage index [--rebuild] [--dir DIR] --repo PATH` | Build the derived index (`LINEAGE_FOLDER/index/lineage.sqlite`; rebuildable, never authoritative) |
+
+`--json` prints `tine-cli-lineage/1`. See docs/LINEAGE.md.
+
 A sent message is delivered by the member's `tine hook capture` at its next
 turn end (the hook inherits `OPENTINE_FLEET_ID` and `OPENTINE_FLEET_MEMBER`
 from `tine fleet up`), once, and recorded as a `human` step with actor
