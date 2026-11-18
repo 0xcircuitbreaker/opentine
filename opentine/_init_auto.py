@@ -133,12 +133,15 @@ def _push(path: Path, wanted: bool, dry_run: bool) -> dict[str, Any]:
 
 def wiring(repo: Path) -> list[dict[str, Any]]:
     """The OTLP and MCP proxy setup, as commands for the user to start."""
+    import shlex
+
+    quoted = shlex.quote(str(repo))
     return [
         {"step": "otlp", "status": "printed",
-         "detail": f"tine serve --otlp --repo {repo}; then OTEL_EXPORTER_OTLP_ENDPOINT="
+         "detail": f"tine serve --otlp --repo {quoted}; then OTEL_EXPORTER_OTLP_ENDPOINT="
                    f"{OTLP_ENDPOINT}"},
         {"step": "mcp-proxy", "status": "printed",
-         "detail": f"tine mcp-proxy --repo {repo} -- <your MCP server command>"},
+         "detail": f"tine mcp-proxy --repo {quoted} -- <your MCP server command>"},
     ]  # fmt: skip
 
 
