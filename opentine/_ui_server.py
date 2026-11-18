@@ -23,6 +23,8 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, unquote, urlsplit
 
+from opentine._http_linger import LingeringHTTPServer
+
 HOST = "127.0.0.1"
 CSP = (
     "default-src 'none'; script-src 'self'; style-src 'self'; worker-src 'self'; "
@@ -213,7 +215,7 @@ class Handler(BaseHTTPRequestHandler):
 
 def make_server(catalog: Catalog, port: int = 0) -> ThreadingHTTPServer:
     handler = type("BoundHandler", (Handler,), {"catalog": catalog})
-    server = ThreadingHTTPServer((HOST, port), handler)
+    server = LingeringHTTPServer((HOST, port), handler)
     server.daemon_threads = True
     return server
 

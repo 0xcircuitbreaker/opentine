@@ -21,6 +21,7 @@ import zlib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 
+from opentine._http_linger import LingeringCloseMixin
 from opentine._otlp_collect import OtlpCollector
 from opentine.trace._import_guard import shape_checked
 
@@ -95,7 +96,7 @@ def _host_name(header: str) -> str:
     return host.removesuffix(".")
 
 
-DRAIN_BYTES = 1 << 20  # oversize bodies up to this are read off before a 413
+DRAIN_BYTES = 1 << 20  # an unread body up to this is read off before any refusal
 
 
 class OtlpHandler(BaseHTTPRequestHandler):
@@ -130,8 +131,8 @@ class OtlpHandler(BaseHTTPRequestHandler):
         except ValueError as exc:
             raise _Refused(411, "a Content-Length header is required") from exc
         if length < 0 or length > self.max_bytes:
-            self.rfile.read(min(max(length, 0), DRAIN_BYTES))  # no RST before the reply
             raise _Refused(413, f"request body exceeds {self.max_bytes} bytes")
+        self.body_read = True
         data = self.rfile.read(length)
         encoding = (self.headers.get("Content-Encoding") or "identity").strip().lower()
         if encoding == "gzip":
@@ -165,14 +166,27 @@ class OtlpHandler(BaseHTTPRequestHandler):
         if _host_name(self.headers.get("Host") or "") not in LOOPBACK_NAMES:
             raise _Refused(403, "Host header must name the loopback address")
 
+    def _drain(self) -> None:
+        """Read an unread body off before a refusal: closing a socket with unread
+        input sends a reset, which can reach the client before the reply (Windows)."""
+        if getattr(self, "body_read", False):
+            return
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            return
+        self.rfile.read(min(max(length, 0), DRAIN_BYTES))
+
     def do_POST(self) -> None:  # noqa: N802 - stdlib name
         route = ROUTES.get(self.path.split("?", 1)[0])
+        self.body_read = False
         try:
             if route is None:
                 raise _Refused(404, "OTLP/HTTP serves POST /v1/traces and /v1/logs")
             self._check_origin()
             rejected = getattr(self.collector, route)(self._body(route))
         except _Refused as exc:
+            self._drain()
             self._reply(exc.status, {"code": exc.status, "message": str(exc)})
             return
         except (RecursionError, ValueError) as exc:
@@ -190,7 +204,7 @@ class OtlpHandler(BaseHTTPRequestHandler):
             self._reply(200, {})
 
 
-class OtlpServer(ThreadingHTTPServer):
+class OtlpServer(LingeringCloseMixin, ThreadingHTTPServer):
     daemon_threads = True
 
     def __init__(self, address: tuple[str, int], collector: OtlpCollector, max_bytes: int) -> None:

@@ -29,6 +29,8 @@ from collections import Counter
 from socketserver import ThreadingMixIn
 from wsgiref.simple_server import WSGIRequestHandler, WSGIServer
 
+from opentine._http_linger import LingeringCloseMixin
+
 _BUSY_BODY = b'{"error":"server is busy"}'
 _BUSY = (
     b"HTTP/1.1 503 Service Unavailable\r\nContent-Type: application/json\r\n"
@@ -57,7 +59,7 @@ def _peer(address) -> str:
     return str(parsed)
 
 
-class ThreadingWSGIServer(ThreadingMixIn, WSGIServer):
+class ThreadingWSGIServer(LingeringCloseMixin, ThreadingMixIn, WSGIServer):
     daemon_threads = True
     request_queue_size = 64
     max_workers = 16
@@ -99,7 +101,7 @@ class ThreadingWSGIServer(ThreadingMixIn, WSGIServer):
                 request.sendall(_BUSY)
         except OSError:
             pass
-        self.shutdown_request(request)
+        self.hard_close(request)
 
     def process_request(self, request, client_address) -> None:
         peer = _peer(client_address)

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import gzip
 import json
+import socket
 import time
 import urllib.error
 import urllib.request
@@ -191,6 +192,25 @@ def test_refusals(receiver):
     bomb = gzip.compress(b'{"pad": "' + b"x" * (1024 * 1024) + b'"}')
     assert _post(url + "/v1/traces", bomb, headers={"Content-Encoding": "gzip"})[0] == 413
     assert runs == [] and collector.pending() == 0
+
+
+def test_a_refusal_reads_the_body_before_it_closes():
+    """A refusal raised before the body is read used to close with the body unread;
+    the kernel then reset the connection, sometimes before the reply arrived."""
+    server = start(OtlpCollector(lambda run: None, idle=3600), "127.0.0.1", 0, max_bytes=1 << 20)
+    body = b"\x0a" * (512 * 1024)  # under the cap: refused for its type, not its size
+    head = "POST /v1/logs HTTP/1.1\r\nHost: 127.0.0.1\r\n"
+    head += f"Content-Type: application/protobuf\r\nContent-Length: {len(body)}\r\n\r\n"
+    try:
+        for _ in range(100):  # the reset was intermittent: about 1 in 20 on Linux
+            with socket.create_connection(server.server_address, timeout=30) as conn:
+                conn.sendall(head.encode() + body)
+                reply = b""
+                while chunk := conn.recv(65536):
+                    reply += chunk
+            assert reply.split(b" ")[1] == b"415"
+    finally:
+        server.stop()
 
 
 def test_serve_otlp_flags_parse_and_refuse_non_loopback():

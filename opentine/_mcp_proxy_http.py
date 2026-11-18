@@ -17,6 +17,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 from urllib.parse import urlsplit
 
+from opentine._http_linger import LingeringCloseMixin
 from opentine._mcp_proxy_record import CLIENT, MAX_MESSAGE, SERVER, McpRecorder
 from opentine._otlp_http import LOOPBACK_NAMES, _host_name
 from opentine._record_proxy import _HOP
@@ -137,7 +138,7 @@ class _Handler(BaseHTTPRequestHandler):
     do_GET = do_POST = do_DELETE = _proxy
 
 
-class McpHttpProxy(ThreadingHTTPServer):
+class McpHttpProxy(LingeringCloseMixin, ThreadingHTTPServer):
     daemon_threads = True
 
     def __init__(self, address: tuple[str, int], upstream: str, recorder: McpRecorder) -> None:
