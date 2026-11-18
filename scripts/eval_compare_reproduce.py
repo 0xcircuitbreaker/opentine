@@ -90,7 +90,8 @@ def main(argv: list[str]) -> int:
         return 2
     with open(argv[0], encoding="utf-8") as handle:
         data = json.load(handle)
-    sys.stdout.write(json.dumps(reproduce(data), sort_keys=True) + "\n")
+    # Bytes, so the output is identical on every OS (text stdout would write CRLF on Windows).
+    sys.stdout.buffer.write((json.dumps(reproduce(data), sort_keys=True) + "\n").encode())
     return 0
 
 
