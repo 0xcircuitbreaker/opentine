@@ -59,8 +59,8 @@ before changing a workflow.
 
 ## Automatic release on green (`release-on-green.yml`)
 
-With the repository variable `AUTO_RELEASE` set to exactly `true`, no manual
-tag is needed. A release ships like this:
+Releases need no manual tag: this workflow is on by default (the repository
+variable `AUTO_RELEASE` set to `false` turns it off). A release ships like this:
 
 1. Prepare the release commit as in the checklist below (version in
    `pyproject.toml` and `opentine/_version.py`, changelog date, pinned URLs) and
@@ -87,8 +87,8 @@ tag is needed. A release ships like this:
    unchanged.
 
 Any non-release commit simply ends the job green with nothing done. To stop
-automatic releases, set `AUTO_RELEASE` to anything but `true` (or delete it) or
-disable the workflow; it is off by default. Manual tagging (step 5 of the
+automatic releases, set the repository variable `AUTO_RELEASE` to `false` or
+disable the workflow; it is on by default. Manual tagging (step 5 of the
 checklist) still works exactly as before. For a release with no human step at
 all, the `pypi` environment must have no required reviewers; with a reviewer it
 still waits for approval at step 6.

@@ -1,8 +1,8 @@
 name: Release on green
 
 # Tags and publishes a release once CI is green on a release commit pushed to
-# main. Opt-in: does nothing unless the repository variable AUTO_RELEASE is
-# exactly 'true'. Disable this workflow (or unset the variable) to stop it.
+# main. On by default; set the repository variable AUTO_RELEASE to 'false' (or
+# disable this workflow) to stop it.
 on:
   # Safe use: no checkout or execution of the triggering code; only pushes to
   # main from this repository proceed (head_repository and event are checked).
@@ -21,7 +21,7 @@ jobs:
   tag-and-dispatch:
     name: Tag the release commit and start publish.yml
     if: >-
-      vars.AUTO_RELEASE == 'true'
+      vars.AUTO_RELEASE != 'false'
       && github.event.workflow_run.conclusion == 'success'
       && github.event.workflow_run.event == 'push'
       && github.event.workflow_run.head_branch == 'main'
