@@ -123,6 +123,8 @@ def _beats(pair: str, a: Path, b: Path, policy: dict[str, Any], out: list) -> di
     row = statistical(a, b, method=policy["test"], alpha=policy["alpha"], seed=policy["seed"],
                       resamples=policy["resamples"])  # fmt: skip
     if row["stats"] is None:
+        # Fail closed: a pair the comparison cannot verify never counts as a gain.
+        out.append(refusal("promote.eval-invalid", f"{pair}: the comparison does not verify"))
         return None
     from opentine._eval_run import read_verdicts
 
