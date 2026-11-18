@@ -53,6 +53,8 @@ from opentine._schema_defs_hosted import SCHEMAS as _HOSTED
 from opentine._schema_defs_integrate import COMMAND_SCHEMAS as _INTEGRATE_COMMANDS
 from opentine._schema_defs_integrate import KIND_SCHEMAS as _INTEGRATE_KINDS
 from opentine._schema_defs_integrate import SCHEMAS as _INTEGRATE
+from opentine._schema_defs_loop import COMMAND_SCHEMAS as _LOOP_COMMANDS
+from opentine._schema_defs_loop import SCHEMAS as _LOOP
 from opentine._schema_defs_merge import COMMAND_SCHEMAS as _MERGE_COMMANDS
 from opentine._schema_defs_merge import KIND_SCHEMAS as _MERGE_KINDS
 from opentine._schema_defs_merge import SCHEMAS as _MERGE
@@ -99,6 +101,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     **_ALERTS,
     **_WITNESS,
     **_AUTH,
+    **_LOOP,
 }
 COMMAND_SCHEMAS: dict[str, str] = {
     **_CLI_COMMANDS,
@@ -119,6 +122,7 @@ COMMAND_SCHEMAS: dict[str, str] = {
     **_ALERT_COMMANDS,
     **_WITNESS_COMMANDS,
     **_AUTH_COMMANDS,
+    **_LOOP_COMMANDS,
 }
 KIND_SCHEMAS: dict[str, str] = {
     **_REDACT_KINDS,

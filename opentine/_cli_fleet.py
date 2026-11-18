@@ -25,6 +25,8 @@ from pathlib import Path
 
 from opentine._cli_common import BRAND, _terminal, console
 from opentine._cli_errors import error
+from opentine._cli_keys import COMMANDS as KEYS_COMMANDS
+from opentine._cli_keys import add_keys_parser
 from opentine._cli_task import COMMANDS as TASK_COMMANDS
 from opentine._cli_task import add_task_parser
 
@@ -46,6 +48,7 @@ def add_fleet_parser(subparsers: argparse._SubParsersAction) -> None:
     parser.add_argument("--json", action="store_true", help="Machine-readable output")
     add_record_args(parser)
     add_task_parser(subparsers)
+    add_keys_parser(subparsers)  # 0.58: tine keys lint
 
 
 def _fail(message: object) -> SystemExit:
@@ -182,6 +185,10 @@ def cmd_fleet(args: argparse.Namespace) -> None:
         raise _fail(exc) from exc
 
 
-COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {"fleet": cmd_fleet, **TASK_COMMANDS}
+COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
+    "fleet": cmd_fleet,
+    **TASK_COMMANDS,
+    **KEYS_COMMANDS,
+}
 
 __all__ = ["COMMANDS", "add_fleet_parser", "cmd_fleet"]

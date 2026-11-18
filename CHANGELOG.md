@@ -33,6 +33,16 @@
   and verifiers report them `unchecked`. A promote, revert, promote sequence
   verifies offline in the Python reference, the pyz and the TS verifier
   (`tests/data/promotion_chain.json`).
+- `tine keys lint` checks key separation for self-improving agent loops: the
+  key-role policy `.tine/key-roles.toml` names the `optimizer`, `scorer`,
+  `dataset`, `verdict` and (optional) `approver` keys, and the lint exits 1
+  when the optimizer key, or a candidate signing key given with
+  `--optimizer-key`, also holds any of the others (`fail:key-separation.shared`)
+  or the policy is malformed. Advisory findings (no policy, a role nobody
+  holds) never block unless `--strict`. `--json` prints `tine-cli-keys-lint/1`.
+  `opentine._key_roles.check_separation` is the same check for the promotion
+  gate.
+
 - **Behaviour change**, storage: auto-pack now writes the current local pack
   format. The first time it packs a version-2 repository (what `tine init`
   writes) it moves the descriptor to storage version 3, so packs at rest, and

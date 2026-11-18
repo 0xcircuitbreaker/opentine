@@ -5129,4 +5129,12 @@ ROWS: tuple[tuple, ...] = (
         False,
         {"command": "serve", "admin_action": "token", "token_id": "0123456789abcdef"},
     ),
+    (
+        "plain:keys lint --optimizer-key K --strict --json",
+        "plain",
+        ["keys", "lint", "--optimizer-key", "K", "--strict", "--json"],
+        "opentine._cli_keys:cmd_keys",
+        False,
+        {"command": "keys", "keys_command": "lint", "optimizer_key": ["K"], "strict": True},
+    ),
 )
