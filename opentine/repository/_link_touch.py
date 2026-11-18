@@ -8,7 +8,10 @@ event naming an old blob, a ref moved to an orphaned run) re-touches it first:
 * the touch lands before prune moves the object: prune sees it young and
   restores it (with everything it reaches);
 * prune moved it first: the touch finds nothing, and the writer refuses the link
-  instead of committing a run or ref that names a missing object.
+  instead of committing a run or ref that names a missing object;
+* a touch whose stamp lands after prune moved the object (``utime`` resolves the
+  name before it stamps the inode) counts as finding nothing: the object must
+  still be in place once the stamp has landed.
 """
 
 from __future__ import annotations
@@ -46,6 +49,10 @@ def _touch_loose_at(base: Path, parts: tuple[str, ...]) -> bool | None:
         # Not following a final symlink: the confined walk refused one (and so
         # counted it as stored), and touching the link itself changes nothing else.
         os.utime(parts[-1], dir_fd=fds[-1], follow_symlinks=False)
+        # utimensat looks the name up, then stamps the inode: a prune can move
+        # the file in between and check its age before the stamp lands. Only a
+        # file still here after the stamp is one prune will see touched.
+        os.stat(parts[-1], dir_fd=fds[-1], follow_symlinks=False)
         return True
     except FileNotFoundError:
         return None if fds else True  # a missing root is refused, as internal_path does
@@ -65,7 +72,9 @@ def touch_stored(base: Path, oid: str) -> bool:
             return True
     else:
         try:
-            os.utime(internal_path(base, *parts))
+            path = internal_path(base, *parts)
+            os.utime(path)
+            os.lstat(path)  # still here after the stamp (see _touch_loose_at)
             return True
         except FileNotFoundError:
             pass
@@ -80,6 +89,7 @@ def touch_stored(base: Path, oid: str) -> bool:
         try:
             if time.time() - os.stat(pack).st_mtime >= _PACK_FRESHEN:
                 os.utime(pack)
+                os.stat(pack)  # not parked by a prune before the stamp landed
             return True
         except FileNotFoundError:
             packs.refresh()

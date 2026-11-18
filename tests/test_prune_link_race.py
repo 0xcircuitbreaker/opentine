@@ -14,7 +14,7 @@ import time
 import pytest
 
 from opentine.kernel import KernelError
-from opentine.repository import Repo
+from opentine.repository import Repo, _link_touch
 from opentine.repository._gc_prune import prune
 
 
@@ -63,3 +63,42 @@ def test_a_link_to_an_object_not_stored_yet_is_still_allowed(tmp_path):
     store_envelope(repo, event)  # a graph stored in any order: the blob comes next
     store_envelope(repo, blob)
     assert repo.has(event.oid) and repo.fsck().ok
+
+
+@pytest.mark.skipif(
+    not (_link_touch._OPENAT and os.utime in os.supports_fd), reason="needs openat-style touch"
+)
+def test_a_touch_whose_stamp_lands_after_prune_moved_the_object_refuses_the_link(
+    tmp_path, monkeypatch
+):
+    """CI flake, 0.54: ``utimensat`` resolves the name, then stamps the inode.
+
+    The writer's touch found the blob in place; before the stamp landed, prune
+    moved it into quarantine, saw it still old, and deleted it. The stamp then
+    hit the quarantined inode, the touch reported success, and the event was
+    stored naming the pruned blob (fsck: missing linked object).
+    """
+    repo = Repo.init(tmp_path / "r")
+    blob = _orphan(repo)
+    utime = os.utime
+    raced: list[bool] = []
+
+    def lookup_then_prune_then_stamp(path, *args, dir_fd=None, **kwargs):
+        if dir_fd is None or raced:
+            return utime(path, *args, dir_fd=dir_fd, **kwargs)
+        raced.append(True)
+        fd = os.open(path, os.O_RDONLY, dir_fd=dir_fd)  # the name is resolved here
+        try:
+            prune(repo, delete=True, min_age=0, git_links=False)  # moves, sees it old, deletes
+            utime(fd)  # the stamp lands on the inode prune already took
+        finally:
+            os.close(fd)
+
+    monkeypatch.setattr(os, "utime", lookup_then_prune_then_stamp)
+    with pytest.raises(KernelError, match="missing linked object"):
+        repo.put("event", {"kind": "tool", "parent_ids": [], "output_blob": blob})
+    monkeypatch.undo()
+    assert raced
+    check = Repo.open(repo.path)
+    assert not check.has(blob)
+    assert check.fsck().ok, check.fsck()
