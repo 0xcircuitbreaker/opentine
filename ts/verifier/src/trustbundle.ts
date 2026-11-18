@@ -34,7 +34,7 @@ const TOP = new Set([
   "admission_policies",
   "key_roles",
 ]);
-const ROLES = new Set(["optimizer", "scorer", "dataset", "verdict", "approver", "policy", "stopper"]);
+const ROLES = new Set(["optimizer", "scorer", "dataset", "verdict", "approver", "policy", "stopper", "eval"]);
 const PORTABLE = new Set(["pin", "require_receipt", "cert_identity", "cert_oidc_issuer", "require_sct", "key_lifecycle"]);
 const PIN = /^sha256:[0-9a-f]{64}$/;
 const RFC3339 = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(\.\d+)?(Z|[+-](\d{2}):(\d{2}))$/;

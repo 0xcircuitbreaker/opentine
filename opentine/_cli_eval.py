@@ -27,6 +27,12 @@ def add_eval_parsers(sub: Any) -> None:
     run.add_argument("--run", dest="default_run", metavar="RUN", help="Run for items naming none")
     run.add_argument("--judge-prompt", metavar="FILE", help="llm-judge prompt template")
     run.add_argument("--created-at", metavar="TIME", help="YYYY-MM-DDTHH:MM:SSZ (default: now)")
+    run.add_argument(
+        "--holdout",
+        metavar="DIR",
+        help="Sealed holdout DATASET came from: refuse runs that touched it",
+    )
+    run.add_argument("--repo", default=".", help="Repository holding the scored runs")
     verify = verbs.add_parser("verify", help="Verify an eval folder's verdicts offline")
     verify.add_argument("eval_dir", metavar="DIR")
     compare = verbs.add_parser("compare", help="Diff two evals item by item (both verified)")
@@ -82,6 +88,10 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         parse(args.scorer)
     )  # fmt: skip
     key = ed25519_private_from_file(args.key, signer=False)
+    if args.holdout:
+        from opentine._eval_holdout import refuse_touched
+
+        refuse_touched(args, read_jsonl(Path(args.dataset)), _outputs(args.outputs))
     return run_eval(read_jsonl(Path(args.dataset)), scorer, key, Path(args.out),
                     threshold=args.threshold, outputs=_outputs(args.outputs),
                     default_run=args.default_run, created_at=args.created_at)  # fmt: skip
@@ -101,6 +111,11 @@ def _ci(args: argparse.Namespace) -> dict[str, Any]:
 
 def _human(verb: str, row: dict[str, Any]) -> None:
     from opentine._cli_common import console
+
+    for item in row.get("refusals", []):
+        console.print(f"REFUSED {item['code']}: {item['detail']}", highlight=False, markup=False)
+    if "refusals" in row:
+        return
 
     if verb == "ci":
         for item in row["evals"]:
@@ -145,6 +160,8 @@ def cmd_eval(args: argparse.Namespace) -> None:
     verb = args.eval_command
     errors = (DatasetError, ScorerError, EvalVerdictError, PassphraseUnavailable, SignatureError,
               OSError, ValueError, KeyError, ImportError)  # fmt: skip
+    from opentine._eval_holdout import HoldoutTouched
+
     try:
         if verb == "run":
             row = {"ok": True, **_run(args)}
@@ -158,12 +175,16 @@ def cmd_eval(args: argparse.Namespace) -> None:
             row = compare_ci(args, _pubkey(args))
         else:
             row = compare(Path(args.left), Path(args.right), public_key=_pubkey(args))
+    except HoldoutTouched as exc:
+        row = {"ok": False, "refusals": exc.refusals}
     except errors as exc:
         fail(exc, ERROR, prefix=f"eval {verb}: ", cause=exc)
     if args.json:
         emit({"command": f"eval {verb}", **row})
     else:
         _human(verb, row)
+    if "refusals" in row:  # 0.61 eval.holdout-touched: refused, nothing signed
+        raise SystemExit(1)
     if verb == "ci" and not row["ok"]:
         raise SystemExit(1)
     regressed = row.get("regressed") or (row.get("stats") or {}).get("regressions")

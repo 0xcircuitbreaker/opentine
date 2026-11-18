@@ -1,4 +1,8 @@
-"""``tine dataset add|import|export|show``: eval datasets as JSON Lines (0.45)."""
+"""``tine dataset add|import|export|show``: eval datasets as JSON Lines (0.45).
+
+0.61 adds sealed holdouts (``seal|unseal|exposure``, :mod:`opentine._cli_holdout`) and
+``canary-add|canary-list|canary-check|contamination`` (:mod:`opentine._cli_canary`).
+"""
 
 from __future__ import annotations
 
@@ -7,6 +11,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from opentine._cli_canary import VERBS as CANARY_VERBS
+from opentine._cli_canary import cmd_canary
 from opentine._cli_errors import ERROR, NOT_FOUND, USAGE, fail
 
 FORMATS = ("jsonl", "hf")
@@ -33,8 +39,14 @@ def add_dataset_parser(sub: Any) -> None:
         importer.add_argument(f"--{name}-field", default=name, help=f"HF column for {name}")
     show = verbs.add_parser("show", help="Item count and digest of a dataset")
     show.add_argument("dataset", metavar="DATASET.jsonl")
-    for verb in (add, importer, exporter, show):
+    from opentine._cli_holdout import add_holdout_parsers
+
+    sealed = add_holdout_parsers(verbs)  # 0.61: sealed holdouts
+    for verb in (add, importer, exporter, show, *sealed):
         verb.add_argument("--json", action="store_true", help="Print a JSON object")
+    from opentine._cli_canary import add_canary_verbs
+
+    add_canary_verbs(verbs)  # 0.61: canaries and contamination
 
 
 def _load_run(name: str, repo: str | None) -> tuple[Any, str]:
@@ -115,6 +127,13 @@ def cmd_dataset(args: argparse.Namespace) -> None:
     from opentine._eval_dataset import DatasetError
 
     verb = args.dataset_command
+    from opentine._cli_holdout import VERBS, cmd_holdout
+
+    if verb in VERBS:
+        return cmd_holdout(args)
+    if verb in CANARY_VERBS:
+        cmd_canary(args)
+        return
     handler = {"add": _add, "import": _import, "export": _export, "show": _show}[verb]
     try:
         row = handler(args)
