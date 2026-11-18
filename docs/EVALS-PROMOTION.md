@@ -175,6 +175,14 @@ A run with an integrity taint (docs/INTEGRITY.md) is refused with
 is also a `tine hold` that `tine hold release` refuses, so deleting the file
 does not launder the score.
 
+`--sealed-holdout DIR` (0.61, repeatable) names a sealed holdout whose
+exposure budget must hold: a holdout revealed past its budget, or whose
+access records do not chain, is refused with `promote.holdout-exposed`
+(docs/HOLDOUTS.md). Holdouts kept under `REPO/.tine/holdouts/` are checked
+whether or not they are named. `--canary-lengths FILE` (0.61) runs `tine dataset
+canary-check` on a scoring run's code lengths and refuses with
+`promote.canary-failed` when it does not pass.
+
 ### Approvals are bound to one move
 
 `--approve` reads the label state (`--state`, default `.tine/promotion/`) and
