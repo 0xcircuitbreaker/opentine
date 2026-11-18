@@ -211,14 +211,14 @@ def load_run(repo: Repo, oid_or_ref: str) -> Run:
                 causal_ids=list(causal_ids[event_id]),
                 provider=text_field(event.get("provider")),
                 v3_kind=raw_kind,
+                attributes=as_mapping(event.get("attributes")),
             )
         )
     manifests = as_mapping(payload.get("manifests"))
     manifest_id, policy_id = manifests.get("run"), manifests.get("policy")
     cache_id, transcript_id = manifests.get("cache"), manifests.get("transcript")
-    # Metered like the event timestamps beside it (a clock reading may be negative,
-    # unlike a cost). Bare float() raised ValueError/TypeError on a shape nothing
-    # validates on a run, and read "1e999999999" back as infinity.
+    # Metered like event timestamps (may be negative): bare float() raised on shapes
+    # nothing validates and read "1e999999999" back as infinity.
     _meter(payload.get("created_at") or 0, "run created_at", nonnegative=False)
     refs = dict(payload.get("legacy_refs") or {})
     refs.setdefault("main", (payload.get("tips") or [""])[-1] if payload.get("tips") else "")

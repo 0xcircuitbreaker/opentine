@@ -62,6 +62,10 @@ class Step:
     #: it reports any other recorded field.
     provider: str = ""
     v3_kind: str | None = None
+    #: A v3 event's free-form attributes (what an importer kept from its source,
+    #: e.g. every OTel span attribute). Carried so export can write them back;
+    #: like ``v3_kind`` it is no part of the step id and no part of equality.
+    attributes: dict[str, Any] = field(default_factory=dict, compare=False)
 
     def __post_init__(self) -> None:
         for name, value in (("cost", self.cost), ("duration", self.duration)):

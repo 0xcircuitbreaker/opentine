@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.56.0 — Onboarding and capture breadth (2026-11-18)
+
+- OTLP import maps OpenInference attributes (span kind, model, provider, token
+  counts including cache and reasoning details, tool, agent and session ids)
+  onto their GenAI semantic-convention equivalents beside the original keys;
+  `input.value` / `output.value` become step content when nothing else carried
+  any.
+- An imported run now exports with every attribute its source spans carried
+  and with its original event kind, so span -> run -> export keeps framework
+  attributes instead of dropping them.
+- Framework recipes and conformance fixtures for the Claude Agent SDK, OpenAI
+  Agents SDK, LangGraph and Pydantic AI over OTLP (docs/CAPTURE.md), each
+  round-tripped and checked for redaction of a seeded secret in the prompt.
+- `tine init --auto` sets up a repository, a local encrypted signing key and
+  the per-turn hooks of every agent CLI found on the machine (the same
+  reversible edit as `tine enable`), turns capture on, prints the OTLP and MCP
+  proxy commands, and offers the run push beside git (`--push-beside-git`
+  installs the pre-push hook, gated by the pre-push redaction scan).
+  `--dry-run` writes nothing. When the project's dependency manifests name
+  one of the four framework-recipe frameworks, it also prints that
+  framework's OTLP recipe.
+- `tine doctor --bundle PATH.tar.gz` writes a redacted diagnostics tarball
+  (`doctor.json`, `agents.json`, `hooks/<agent>.json`); each member is
+  re-scanned and nothing is written if a credential shape survives.
+- Acceptance tests: from a clean home, Copilot CLI, Factory Droid and
+  Antigravity fixtures each give a signed run in two commands, and a secret
+  seeded into the agent's prompt is absent from every stored object.
+- The Entire importer fixture is refreshed against Entire CLI v0.13.3: it now
+  carries the compact `transcript.jsonl` and `compact_transcript_start`. The
+  importer still reads the raw `full.jsonl`, and the same checkpoint imports
+  to identical events from the `entire/checkpoints/v1` branch and from
+  `refs/entire/checkpoints/*`.
+
 ## 0.55.0 — Code mirror and review runner (2026-11-18)
 
 - `tine serve --mirror` serves a read-only code mirror (`caps.project.mirror`,

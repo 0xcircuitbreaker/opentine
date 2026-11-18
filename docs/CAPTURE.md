@@ -125,6 +125,48 @@ warning.
 `python examples/otel_interop.py` runs this path offline, end to end, and then
 exports the imported run back out.
 
+### Framework recipes over OTLP
+
+Four agent frameworks reach OpenTine through the path above with no OpenTine
+code in the agent process. Each recipe has an OTLP/JSON fixture under
+`tests/fixtures/otel_frameworks/` that is imported into a run, exported again,
+and checked to carry every attribute the framework emitted, unchanged.
+
+| Framework | Emits | Instrument with |
+| --- | --- | --- |
+| Claude Agent SDK | GenAI conventions (`invoke_agent`, `chat`, `execute_tool`) | the SDK's OpenTelemetry export (`CLAUDE_CODE_ENABLE_TELEMETRY=1`, `OTEL_TRACES_EXPORTER=otlp`) |
+| OpenAI Agents SDK | OpenInference | `openinference-instrumentation-openai-agents` |
+| LangGraph | OpenInference | `openinference-instrumentation-langchain` |
+| Pydantic AI | GenAI conventions, 1.36 messages | `Agent(..., instrument=True)` |
+
+Point the exporter at `tine serve --otlp` (see `tine serve --help`) or at any
+collector writing OTLP/JSON to a file, then import:
+
+```bash
+OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318 python agent.py
+tine import traces.json --format otel-json --repo . --ref heads/main
+```
+
+OpenInference attributes are mapped onto their GenAI equivalents **beside**
+the original key, never instead of it, and a key the span already carries in
+GenAI form wins:
+
+| OpenInference | GenAI |
+| --- | --- |
+| `openinference.span.kind` `LLM` / `EMBEDDING` / `TOOL` / `AGENT` / `RETRIEVER` | `gen_ai.operation.name` `chat` / `embeddings` / `execute_tool` / `invoke_agent` / `retrieval` |
+| `llm.model_name` | `gen_ai.request.model` |
+| `llm.system`, `llm.provider` | `gen_ai.system`, `gen_ai.provider.name` |
+| `llm.token_count.prompt` / `.completion` / `.total` | `gen_ai.usage.input_tokens` / `output_tokens` / `total_tokens` |
+| `llm.token_count.prompt_details.cache_read` / `.cache_write` | `gen_ai.usage.cache_read.input_tokens` / `cache_write.input_tokens` (inclusive, split back out) |
+| `llm.token_count.completion_details.reasoning` | `gen_ai.usage.reasoning.output_tokens` |
+| `tool.name`, `tool.description`, `tool_call.id` | `gen_ai.tool.name`, `gen_ai.tool.description`, `gen_ai.tool.call.id` |
+| `agent.name`, `session.id` | `gen_ai.agent.name`, `gen_ai.conversation.id` |
+| `input.value` / `output.value` | the step's content, when no message shape carried any |
+
+Attributes no reader claims (framework metadata, request parameters, custom
+keys) are stored on the event and written back on export. Captured prompts go
+through the same redaction as every other import before they are stored.
+
 ### Importing agent session logs
 
 `tine import` also reads the session logs agent CLIs keep for themselves —

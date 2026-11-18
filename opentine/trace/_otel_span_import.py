@@ -19,6 +19,7 @@ from opentine.trace._import_helpers import integer as _int
 from opentine.trace._import_helpers import otel_spans
 from opentine.trace._import_helpers import timestamp as _timestamp
 from opentine.trace._otel_accounting import otel_accounting
+from opentine.trace._otel_aliases import fallback_content, genai_aliases
 from opentine.trace._otel_content import span_content as _span_content
 from opentine.trace._otel_dialects import claude_span
 from opentine.trace._otel_ids import imported_ids
@@ -45,6 +46,8 @@ def otel_genai_events(
             attributes = _attributes(span)
         except (RecursionError, ValueError):
             continue
+        # OpenInference spellings gain their GenAI twin; the originals stay.
+        attributes = genai_aliases(attributes)
         operation = str(attributes.get(semconv.OPERATION_NAME, span.get("name", "")))
         dialect = claude_span(str(span.get("name") or ""), attributes)
         if dialect is not None and dialect.get("skip"):
@@ -63,6 +66,8 @@ def otel_genai_events(
         end_nanos = _int(_first(span, "endTimeUnixNano", "end_time_unix_nano", default=nanos))
         model = attributes.get(semconv.RESPONSE_MODEL) or attributes.get(semconv.REQUEST_MODEL)
         inputs, outputs = _span_content(span, attributes)
+        if not inputs and not outputs:
+            inputs, outputs = fallback_content(attributes)
         if dialect is not None:
             model = model or dialect.get("model")
             inputs, outputs = (
