@@ -14,6 +14,19 @@
   Agents SDK, LangGraph and Pydantic AI over OTLP (docs/CAPTURE.md), each
   round-tripped and checked for redaction of a seeded secret in the prompt.
 
+- `tine init --auto` sets up a repository, a local encrypted signing key and
+  the per-turn hooks of every agent CLI found on the machine (the same
+  reversible edit as `tine enable`), turns capture on, prints the OTLP and MCP
+  proxy commands, and offers the run push beside git (`--push-beside-git`
+  installs the pre-push hook, gated by the pre-push redaction scan).
+  `--dry-run` writes nothing.
+- `tine doctor --bundle PATH.tar.gz` writes a redacted diagnostics tarball
+  (`doctor.json`, `agents.json`, `hooks/<agent>.json`); each member is
+  re-scanned and nothing is written if a credential shape survives.
+- Acceptance tests: from a clean home, Copilot CLI, Factory Droid and
+  Antigravity fixtures each give a signed run in two commands, and a secret
+  seeded into the agent's prompt is absent from every stored object.
+
 ## 0.55.0 — Code mirror and review runner (2026-11-18)
 
 - `tine serve --mirror` serves a read-only code mirror (`caps.project.mirror`,

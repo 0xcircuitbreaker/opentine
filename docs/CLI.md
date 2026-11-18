@@ -1982,3 +1982,42 @@ validate -` needs no `--schema`. Every `--json` object meets the envelope
 `tine-cli-envelope-1`, and the commands with a fixed shape (`show`, `verify`,
 `ls`, `search`, `cost`, `blame`, `repo-show`, `repo-search`) also meet their own
 schema. The rules are in SPEC.md Part 12.
+
+## Onboarding: `tine init --auto` and the doctor tarball (0.56)
+
+```
+tine init [PATH] --auto [--push-beside-git] [--dry-run]
+tine doctor --bundle PATH.tar.gz [--json] [--repo R]
+```
+
+`tine init --auto` creates the repository (or keeps the one there), makes a
+local Ed25519 signing key at `$XDG_CONFIG_HOME/opentine/agent-keys/local.key`
+(encrypted PKCS#8, passphrase from `OPENTINE_KEY_PASSPHRASE`, the keyring or a
+prompt; with none the step is skipped and says how to run it), and wires the
+per-turn hooks of every agent CLI found on this machine exactly as `tine
+enable` does (same backups, same `tine disable` restore), then sets
+`hooks.capture`. Captured payloads are redacted when they are written, so a
+secret an agent sees never reaches an object, and the pre-push gate re-scans
+before any push. The OTLP receiver (`tine serve --otlp`) and MCP proxy
+(`tine mcp-proxy`) commands are printed, not started. Inside a git work tree it
+offers the run push beside git; `--push-beside-git` installs the same
+`pre-push` hook as `tine git install-hook --push`. `--dry-run` reports every
+step and writes nothing.
+
+From a clean home directory a first signed run takes two commands plus the
+agent session itself:
+
+```
+tine init --auto work
+# ... use the agent; its hooks record the session under heads/capture/<agent>/...
+tine attest heads/capture/<agent>/<id> --signer local --claim '{"reviewed": true}' \
+  --ed25519-key-file ~/.config/opentine/agent-keys/local.key --repo work
+```
+
+`tine doctor --bundle` with a path ending `.tar.gz` or `.tgz` writes a gzip
+tarball: `doctor.json` (the redacted report), `agents.json` (each supported
+agent CLI, present or not, capture mode, whether opentine's shim is in its hook
+file) and `hooks/<agent>.json` (each hook file, redacted). Every member is
+re-scanned after redaction and nothing is written if a credential shape
+survives. Members carry a fixed mtime, so the same state gives the same bytes.
+Any other path keeps the single JSON document.
