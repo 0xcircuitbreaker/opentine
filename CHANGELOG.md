@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased — Onboarding and capture breadth
+
+- OTLP import maps OpenInference attributes (span kind, model, provider, token
+  counts including cache and reasoning details, tool, agent and session ids)
+  onto their GenAI semantic-convention equivalents beside the original keys;
+  `input.value` / `output.value` become step content when nothing else carried
+  any.
+- An imported run now exports with every attribute its source spans carried
+  and with its original event kind, so span -> run -> export keeps framework
+  attributes instead of dropping them.
+- Framework recipes and conformance fixtures for the Claude Agent SDK, OpenAI
+  Agents SDK, LangGraph and Pydantic AI over OTLP (docs/CAPTURE.md), each
+  round-tripped and checked for redaction of a seeded secret in the prompt.
+
 ## 0.55.0 — Code mirror and review runner (2026-11-18)
 
 - `tine serve --mirror` serves a read-only code mirror (`caps.project.mirror`,
