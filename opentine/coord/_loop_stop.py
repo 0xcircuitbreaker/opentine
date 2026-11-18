@@ -64,6 +64,20 @@ def _control_run(repo: Any, loop: str, reason: str) -> str:
     return repo.put_run(run).run_id
 
 
+def _stop_record(repo: Any, loop: str) -> tuple[str | None, dict[str, Any] | None]:
+    """``(head oid, stop value)``: the oldest stopped version in the record's chain.
+
+    A later version that drops ``status: stopped`` (a hand-written coord swap)
+    cannot un-stop the loop: the fence reads the whole chain, so the first stop
+    stands as the docstring above promises.
+    """
+    oid, value = read(repo, ref_name(loop), KIND)
+    if value is None:
+        return oid, None
+    stops = [row for row in history(repo, oid) if row.get("status") == "stopped"]
+    return oid, (stops[-1] if stops else None)
+
+
 def stop(
     repo: Any, loop: str, key: Any, *, reason: str = "", run: str | None = None,
     now: int | None = None,
@@ -79,8 +93,8 @@ def stop(
     name = ref_name(loop)
     if not isinstance(reason, str) or len(reason.encode("utf-8")) > MAX_REASON:
         raise ValueError(f"a stop reason is text of at most {MAX_REASON} bytes")
-    oid, value = read(repo, name, KIND)
-    if value is not None and value.get("status") == "stopped":
+    oid, value = _stop_record(repo, loop)
+    if value is not None:
         return value
     moment = int(time.time() * 1000) if now is None else now
     raw = key.public_key().public_bytes_raw()
@@ -98,8 +112,8 @@ def stop(
 
 def loop_state(repo: Any, loop: str) -> dict[str, Any]:
     """``{"loop", "status": "running"|"stopped", ...}`` with the stop's verification."""
-    _, value = read(repo, ref_name(loop), KIND)
-    if value is None or value.get("status") != "stopped":
+    _, value = _stop_record(repo, loop)
+    if value is None:
         return {"loop": loop, "status": "running"}
     return {**value, "verification": verify_stop(repo, loop, value.get("stop"))}
 
@@ -128,8 +142,8 @@ def fence(repo: Any, task: dict[str, Any]) -> None:
     loop = task.get("loop")
     if not loop:
         return
-    _, value = read(repo, ref_name(loop), KIND)
-    if value is not None and value.get("status") == "stopped":
+    _, value = _stop_record(repo, loop)
+    if value is not None:
         state = verify_stop(repo, loop, value.get("stop"))
         raise LoopStopped(f"loop {loop} was stopped by {value.get('signer')} ({state}); "
                           f"no further generation may take or extend a lease")  # fmt: skip

@@ -110,17 +110,33 @@ def test_a_stop_of_another_loop_or_a_plain_task_is_not_fenced(repo):
 
 def test_a_stop_record_that_does_not_verify_still_refuses(repo):
     (gen0,) = _generations(repo, "opt", 1)
+    other = _loop_stop.stop(repo, "else", _key(), now=T0)
+    from opentine.coord._store import swap
+
+    forged = {"loop": "opt", "status": "stopped", "stop": other["stop"], "updated_ms": T0}
+    assert swap(repo, "coord/loops/opt", "loop", forged, None) is not None
+    assert _loop_stop.loop_state(repo, "opt")["verification"].startswith("unverified")
+    with pytest.raises(LeaseError, match="unverified") as caught:
+        _tasks.claim(repo, gen0, "m0", TTL, now=T0)
+    assert caught.value.code == "stopped"
+
+
+def test_a_later_record_version_cannot_un_stop_or_replace_the_first_stop(repo):
+    (gen0,) = _generations(repo, "opt", 1)
     record = _loop_stop.stop(repo, "opt", _key(), now=T0)
     other = _loop_stop.stop(repo, "else", _key(), now=T0)
     from opentine.coord._store import read, swap
 
     oid, value = read(repo, "coord/loops/opt", "loop")
-    swap(repo, "coord/loops/opt", "loop", {**value, "stop": other["stop"]}, oid)
-    assert record["stop"] != other["stop"]
-    assert _loop_stop.loop_state(repo, "opt")["verification"].startswith("unverified")
-    with pytest.raises(LeaseError, match="unverified") as caught:
-        _tasks.claim(repo, gen0, "m0", TTL, now=T0)
+    oid = swap(repo, "coord/loops/opt", "loop", {**value, "stop": other["stop"]}, oid)
+    swap(repo, "coord/loops/opt", "loop", {"loop": "opt", "status": "running"}, oid)
+    state = _loop_stop.loop_state(repo, "opt")
+    assert state["status"] == "stopped" and state["stop"] == record["stop"]
+    assert state["verification"] == "verified"
+    with pytest.raises(LeaseError) as caught:
+        _tasks.claim(repo, gen0, "m0", TTL, now=T0 + 10 * TTL * 1000)
     assert caught.value.code == "stopped"
+    assert _loop_stop.stop(repo, "opt", _key(9), now=T0)["stop"] == record["stop"]
 
 
 def _cli(capsys, *argv: str) -> tuple[int, dict]:
