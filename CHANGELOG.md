@@ -47,9 +47,32 @@
   sandbox policy digest is recorded in every step's evidence and in the VSA.
 - Findings carry the push time, so hosted and self-hosted runs sign
   byte-identical findings for a deterministic reviewer set.
-- Merge gates: an explicit empty `evals.signers` list now trusts no signer
-  (omitting it still accepts any verifying signer), so removing the last
-  trusted runner key flips the gate to unmet.
+- **Behaviour change**, merge gates: `evals.signers: []` (an explicit empty
+  list) now trusts no signer, where it used to accept any verifying signer.
+  Omitting `signers` still accepts any verifying signer. A policy that wrote
+  `[]` to mean "anyone" must drop the field; removing the last trusted runner
+  key now flips the gate to unmet.
+- Merge gates: `vsa.keys` lists further pinned keys beside `vsa.key`, so a VSA
+  signed by any trusted runner key counts while a key is rotated.
+- The mirror's fetch is held to the size limit while it runs: a watchdog
+  kills `git fetch` and deletes the partial mirror as soon as it passes the
+  limit, so an oversized upstream cannot fill the disk first.
+- Code reads by commit id serve only commits the mirror's refs reach; an
+  object left behind by a force-push is the uniform `404`.
+- Upstream credentials (`https://user:token@host/...`, the supported way to
+  mirror a private https upstream) never reach `link.json`, a label or a
+  response: they are kept in `credential` (mode `0600`) in the tenant's mirror
+  directory and sent only as an `Authorization` header to the pinned host.
+- The runner's egress guard pins the addresses its model endpoints resolved to
+  when it started, and pins private or reserved addresses only for loopback
+  endpoints; a later DNS answer cannot widen the allowlist.
+- Hosted mode refuses to start unless the reviewers sit behind the network
+  sandbox: `OPENTINE_RUNNER_NETWORK=allowlist` must be set and a direct
+  connect to the probe address (`OPENTINE_RUNNER_PROBE`, default
+  `1.1.1.1:443`) must fail.
+- Eval LLM judges get the model credential `runner.toml` names (a `[[model]]`
+  named after the judge's provider), and their calls count in the push's
+  cost (`cost.evals`); `tine eval ci --json` reports the judges' `cost`.
 - `deploy/review-runner/Dockerfile` packages the runner once for hosted and
   self-hosted use; `docs/REVIEW-RUNNERS.md` documents it with a free local path.
 

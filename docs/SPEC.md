@@ -2326,7 +2326,8 @@ a holder killed before the CAS leaves only unreferenced objects, which the
 next holder rewrites byte for byte. The target ref then follows `head`. A
 conflicted merge, a merge that adds nothing or a failed gate moves the entry to
 `rejected`. Gates (`opentine._merge_gates`): **vsa**, one DSSE envelope that
-classifies `valid` (8.17) for the candidate under the pinned server key;
+classifies `valid` (8.17) for the candidate under the pinned server key or any
+further key in the optional `vsa.keys` (rotation, 0.55);
 **evals**, every `tine-eval-verdict/1` about the candidate verifies and passed,
 at least `min` of them, by listed `signers` when given; **approvals**, at least
 `required` distinct listed keys signed `approve` for this run and target, and

@@ -57,22 +57,27 @@ Nothing trusts it until you say so:
 
 * a finding counts only when the Review lists the runner key as a reviewer;
 * a merge gate counts its verdicts and VSA only when your gate policy names it
-  (`evals.signers` holds its fingerprint, `vsa.key` its key). An empty
+  (`evals.signers` holds its fingerprint, `vsa.key` or `vsa.keys` its key). An empty
   `signers` list trusts no signer, so removing the runner key turns the gate
   unmet and changes nothing else.
 
 To rotate, generate a new key and publish its identity with
 `--previous-pubkey old.pub`; the identity lists the fingerprints it was
-rotated from. Add the new key to your policy before removing the old one.
+rotated from. Add the new key to your policy before removing the old one:
+a VSA signed by any key in `vsa.key` or `vsa.keys` counts, as does a verdict
+from any fingerprint in `evals.signers`.
 
 ## Model credentials and cost
 
 Bring your own model credentials. `.tine/runner.toml` names the environment
 variable that holds each one (see `deploy/review-runner/runner.toml.example`);
 a credential written into the file is refused. The runner passes those
-variables to the reviewers and records only whether each was present. Nothing
-is resold. The report's `cost` is the push's total from what the reviewers
-recorded (`unknown_members` counts the ones that recorded none).
+variables to the reviewers and records only whether each was present. A
+`[[model]]` whose `name` is an `llm-judge` provider (say `anthropic` for
+`llm-judge:anthropic:...`) also hands its credential to that eval judge.
+Nothing is resold. The report's `cost` is the push's total: what the
+reviewers recorded (`unknown_members` counts the ones that recorded none) plus
+the eval judges' calls (`cost.evals`).
 
 ## The sandbox
 
@@ -85,10 +90,21 @@ policy, so a reader knows which policy produced a decision.
   the allowlist is refused.
 * Only the push's own fields (`source`, `ref`, `before`, `after`, `at`, `run`)
   reach the report; anything else in a webhook body is dropped.
-* Reviewer processes are held to the same allowlist by the container's network:
-  run it on a network with no route out except through an egress proxy that
-  allows only those hosts (`--network` with an internal network, a Kubernetes
+* The model endpoints are resolved once, when the runner starts, and connects
+  are pinned to those addresses: a later DNS answer cannot widen the
+  allowlist. A private, loopback or reserved address is allowed only for a
+  loopback endpoint (`http://127.0.0.1:PORT`).
+* **Reviewer processes are not covered by the in-process guard.** They are
+  held to the allowlist only by the network the container runs on, so that
+  network is a requirement, not a recommendation: run it on a network with no
+  route out except through an egress proxy that allows only the model
+  endpoints (`--network` with an internal network, a Kubernetes
   NetworkPolicy, or firewall rules).
+* Hosted mode enforces this. `--hosting hosted` refuses to start unless
+  `OPENTINE_RUNNER_NETWORK=allowlist` is set (the operator's statement that
+  the network above is in place) **and** a direct TCP connect to the probe
+  address (`OPENTINE_RUNNER_PROBE`, default `1.1.1.1:443`) fails. Self-hosted
+  mode does not check: on your own machine the reviewers are yours.
 
 ## The container
 
@@ -102,6 +118,7 @@ docker run --rm --network review-runner-net \
     -v "$PWD/runner.key:/run/secrets/review-runner.key:ro" \
     -e RUNNER_REVIEW=push \
     -e RUNNER_EVENT=/work/push.json -e RUNNER_MODE=self-hosted \
+    -e OPENTINE_RUNNER_NETWORK=allowlist \
     -v "$PWD/reviewers:/fleet:ro" -e RUNNER_FLEET=/fleet/fleet.toml -e RUNNER_TRUST_FLEET=1 \
     -e MODEL_API_KEY opentine-review-runner
 ```

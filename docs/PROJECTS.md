@@ -96,7 +96,13 @@ limits cap the upstream's size (`--mirror-max-mb`, and the tenant's
 smart HTTP, archive downloads and LFS are refused, and so is a public project
 over private code. `DELETE project/mirror` unlinks and deletes the mirror and
 its caches. Only `https://` upstreams are fetched; `--mirror-allow-local`
-also allows `file://` stand-ins (self-host and tests). The full contract is
+also allows `file://` stand-ins (self-host and tests). A private https
+upstream is mirrored with its credential in the URL (`https://user:token@host/
+repo.git`): the credential is split off at link time into `credential` (mode
+`0600`) in the tenant's mirror directory, never written to `link.json` or shown,
+and sent only as an `Authorization` header. The fetch runs under a watchdog that
+kills it once the mirror passes its size limit, and a commit id is served only
+when the mirror's refs reach it. The full contract is
 SPEC 8.18 and `docs/api/openapi-v1.yaml`.
 
 Each successful sync also spools one push per created, moved or deleted ref

@@ -8,6 +8,9 @@
 #                  manifest the operator controls, never one from the pushed tree
 # Egress: run the container on a network that reaches only the model endpoints
 # in .tine/runner.toml; the runner also refuses any other host in its own process.
+# Reviewers are held only by that network, so hosted mode needs
+# OPENTINE_RUNNER_NETWORK=allowlist and refuses to start if a direct connect to
+# OPENTINE_RUNNER_PROBE (default 1.1.1.1:443) gets through.
 set -eu
 
 : "${RUNNER_REVIEW:?set RUNNER_REVIEW}"
