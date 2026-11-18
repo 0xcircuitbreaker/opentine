@@ -1,4 +1,4 @@
-"""``tine integrity check|pin|sign`` (0.60): protected surfaces of a self-improving loop.
+"""``tine integrity check|pin|sign|scan`` (0.60; scan 0.61): protected surfaces.
 
 ``check RUN`` judges the run's tool calls and every pinned digest against the
 signed ``.tine/protected.toml`` (:mod:`opentine._integrity_run`) and exits 1 on
@@ -8,6 +8,7 @@ over a run record. ``advisory:`` findings never block unless ``--strict``
 by a signed ``opentine.integrity.taint`` attestation. ``pin`` writes the
 current digests of every protected file into the list (which must then be
 re-signed); ``sign`` pins the list's bytes with a ``policy``-role key.
+``scan`` (0.61) finds registered canaries (:mod:`opentine._canary_scan`).
 """
 
 from __future__ import annotations
@@ -29,7 +30,15 @@ def add_integrity_parser(subparsers: argparse._SubParsersAction) -> None:
     check = verbs.add_parser("check", help="Check a run against the protected surfaces")
     pin = verbs.add_parser("pin", help="Write current digests of protected files into the list")
     sign = verbs.add_parser("sign", help="Sign the protected list with a policy-role key")
-    for p in (check, pin, sign):
+    scan = verbs.add_parser("scan", help="Find registered canaries in runs, prompts, memory, packs")
+    scan.add_argument(
+        "--file",
+        action="append",
+        default=[],
+        metavar="PATH",
+        help="Also search this file (an exported pack or bundle) as raw bytes",
+    )
+    for p in (check, pin, sign, scan):
         p.add_argument("--repo", default=".", metavar="PATH", help="Repository root")
         p.add_argument("--json", action="store_true", help="Machine-readable output")
     check.add_argument("run", help="The run (run:sha256:HEX)")
@@ -87,6 +96,10 @@ def _row(args: argparse.Namespace) -> dict:
     command = args.integrity_command
     if command == "pin":
         return _pin(root)
+    if command == "scan":
+        from opentine._canary_scan import scan
+
+        return scan(root, args.file)
     if command == "sign":
         if not args.key:
             raise error("integrity sign needs --key", USAGE, prefix="integrity: ")
@@ -127,6 +140,12 @@ def cmd_integrity(args: argparse.Namespace) -> None:
     elif command == "pin":
         console.print(_terminal(f"PINNED {row['pins']} files in {row['list']}; re-sign it"),
                       markup=False)  # fmt: skip
+    elif command == "scan":
+        verdict = "CLEAN" if row["ok"] else "CANARY FOUND"
+        console.print(_terminal(f"{verdict} {row['counts']}"), markup=False)
+        for m in row["matches"]:
+            console.print(_terminal(f"  {m['surface']} {m['where']}: {m['canary_sha256']}"),
+                          markup=False)  # fmt: skip
     else:
         console.print(_terminal(f"SIGNED {row['protected_sha256']} by {row['signer']}"),
                       markup=False)  # fmt: skip

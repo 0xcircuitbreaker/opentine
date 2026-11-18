@@ -1,4 +1,4 @@
-"""JSON Schema for ``tine integrity check|pin|sign --json`` (0.60).
+"""JSON Schema for ``tine integrity check|pin|sign|scan --json`` (0.60; scan 0.61).
 
 A CLI output, not an object kind: the protected-list pin and the taint are
 existing attestations under claim conventions (docs/INTEGRITY.md).
@@ -10,6 +10,7 @@ from typing import Any
 
 from opentine._integrity_advisory import ADVISORY_CODES
 from opentine._schema_defs import BOOL, INT, STR, closed, doc, opt
+from opentine._schema_defs_canary import SCAN
 
 _HEX = {"type": "string", "pattern": "^[0-9a-f]{64}$"}
 _HEAD = {"schema": {"const": "tine-cli-integrity/1"}}
@@ -46,11 +47,13 @@ SCHEMAS: dict[str, dict[str, Any]] = {
         "`--key`, and `hold` the object id of the same attestation held as "
         "`integrity-taint:RUN` (0.59), which `tine hold release` refuses. `pin` writes "
         "current digests into the list (`signed` false: re-sign it); "
-        "`sign` pins the list's bytes with a policy-role key.",
-        {"oneOf": [_CHECK, _PIN, _SIGN]}),
+        "`sign` pins the list's bytes with a policy-role key. `scan` (0.61) lists where "
+        "registered canaries occur (`ok` false when any does); `counts` shows how many "
+        "objects were read and how many answered from the content-addressed index.",
+        {"oneOf": [_CHECK, _PIN, _SIGN, SCAN]}),
 }  # fmt: skip
 COMMAND_SCHEMAS: dict[str, str] = {
-    f"integrity {name}": "tine-cli-integrity-1" for name in ("check", "pin", "sign")
+    f"integrity {name}": "tine-cli-integrity-1" for name in ("check", "pin", "sign", "scan")
 }
 
 __all__ = ["COMMAND_SCHEMAS", "SCHEMAS"]

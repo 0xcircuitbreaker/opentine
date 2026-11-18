@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opentine.com/schemas/tine-cli-integrity-1.schema.json",
   "title": "tine integrity check|pin|sign --json",
-  "description": "Protected surfaces of a self-improving agent loop. `check` judges one run's tool calls (`touched`) and every pinned digest against the signed `.tine/protected.toml`; `findings` carry `fail:` codes (hash, signature and policy facts, which block: `ok` is false and the exit 1) and `advisory:` codes (reported, blocking only with `--strict`); `--record` adds the advisory reward-hack detectors over a run record. `taint` names the signed `opentine.integrity.taint` attestation filed with `--key`, and `hold` the object id of the same attestation held as `integrity-taint:RUN` (0.59), which `tine hold release` refuses. `pin` writes current digests into the list (`signed` false: re-sign it); `sign` pins the list's bytes with a policy-role key.",
+  "description": "Protected surfaces of a self-improving agent loop. `check` judges one run's tool calls (`touched`) and every pinned digest against the signed `.tine/protected.toml`; `findings` carry `fail:` codes (hash, signature and policy facts, which block: `ok` is false and the exit 1) and `advisory:` codes (reported, blocking only with `--strict`); `--record` adds the advisory reward-hack detectors over a run record. `taint` names the signed `opentine.integrity.taint` attestation filed with `--key`, and `hold` the object id of the same attestation held as `integrity-taint:RUN` (0.59), which `tine hold release` refuses. `pin` writes current digests into the list (`signed` false: re-sign it); `sign` pins the list's bytes with a policy-role key. `scan` (0.61) lists where registered canaries occur (`ok` false when any does); `counts` shows how many objects were read and how many answered from the content-addressed index.",
   "oneOf": [
     {
       "type": "object",
@@ -220,6 +220,155 @@
         },
         "pin": {
           "type": "string"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "canaries",
+        "canary_set_sha256",
+        "counts",
+        "matches"
+      ],
+      "properties": {
+        "command": {
+          "const": "integrity scan"
+        },
+        "schema": {
+          "const": "tine-cli-integrity/1"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "canaries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "canary_sha256",
+              "entropy_bits",
+              "bytes",
+              "holdout",
+              "signer",
+              "counted"
+            ],
+            "properties": {
+              "canary_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "entropy_bits": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "bytes": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "holdout": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "signer": {
+                "type": "string"
+              },
+              "counted": {
+                "type": "boolean"
+              },
+              "path": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "canary_set_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "objects",
+            "read",
+            "cached",
+            "files",
+            "matches"
+          ],
+          "properties": {
+            "objects": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "read": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cached": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "files": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "matches": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "matches": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "surface",
+              "where",
+              "canary_sha256",
+              "holdout"
+            ],
+            "properties": {
+              "surface": {
+                "enum": [
+                  "runs",
+                  "prompts",
+                  "memory",
+                  "packs"
+                ]
+              },
+              "where": {
+                "type": "string"
+              },
+              "canary_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "holdout": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
         }
       }
     }
