@@ -20,6 +20,10 @@ from opentine.repository.pack import MAX_PACK_BYTES
 
 MAX_CONTROL_BYTES = 1024 * 1024
 _REQUEST_SLOTS = threading.BoundedSemaphore(8)
+# The retry wait. Tests replace this name, never ``time.sleep``: patching the
+# shared ``time`` module would also stop every other thread in the process from
+# sleeping.
+_sleep = time.sleep
 
 
 def run_request(
@@ -181,7 +185,7 @@ def request_json(
                     if response.status_code not in allowed:
                         raise_for_status(response)
                     return response.status_code, read_json(response, max_seconds=max_seconds)
-            time.sleep(wait)
+            _sleep(wait)
             attempt += 1
 
     return run_request(session, max_seconds, "control request", operation)
@@ -205,7 +209,7 @@ def request_pack(
                     if response_headers is not None:
                         response_headers.update((k.lower(), v) for k, v in response.headers.items())
                     return read_pack(response, max_seconds=max_seconds)
-            time.sleep(wait)
+            _sleep(wait)
             attempt += 1
 
     return run_request(session, max_seconds, "pack request", operation)
