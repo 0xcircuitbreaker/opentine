@@ -3598,10 +3598,48 @@ reader who may not write gets `403`); an unauthenticated request is
 the same `401` for an existing private tenant and a tenant that does not exist.
 The server stores manifests exactly as signed and never signs one; it keeps
 them outside the ref listing, so `GET refs`, fetch, clone and push are what
-they were for 0.34–0.45 clients. `tine serve` stores no code: it has no
-upload-pack or receive-pack for code, no mirror route and no `mirror`
-capability. A client pins a remote's project with `tine remote add --project
-ID` and refuses one that serves another.
+they were for 0.34–0.45 clients. `tine serve` stores no code unless the
+operator starts it with `--mirror` (the code mirror below); it never has an
+upload-pack or receive-pack for code. A client pins a remote's project with
+`tine remote add --project ID` and refuses one that serves another.
+
+**The code mirror (0.55).** A remote that mirrors code adds `mirror` inside
+`caps.project` (never a top-level capability):
+`{"path": "project/mirror", "code": "project/code", "reads": [...],
+"sync": {"poll_seconds", "webhook": "project/mirror/sync",
+"min_interval_seconds"}, "limits": {"max_repo_bytes", "max_refs",
+"max_blob_bytes", "max_page"}, "refuses": [...], "computed_by": "host",
+"label"}`. Under `/v1/tenants/<t>/project/`:
+
+- `PUT mirror` (`update_ref`) with `{slot?, url?, salt?, private?}` links the
+  mirror to a slot of the current manifest and syncs it. A public slot
+  mirrors its manifest `url`; a private project's slot is opened with the
+  `url` and hex `salt` of its commitment (§4.16), and the URL is never shown.
+  A public project over private code is refused (`mirror.private-upstream`).
+- `POST mirror/sync` (`update_ref`) is the webhook-triggered sync: `429` with
+  `Retry-After` inside `min_interval_seconds`. The remote also polls every
+  linked mirror each `poll_seconds`.
+- `GET mirror` (`read_ref`): the link and the last sync, whose `state` is the
+  body of an `opentine.mirror-state` (§4.17), unsigned here: a host statement.
+- `DELETE mirror` (`update_ref`) unlinks: the mirror, its state and every
+  cache (the code-search index among them) are deleted.
+- `GET code/refs|tree|blob|raw|history|compare|search` (`read_ref`) read the
+  mirror; `ref` (branch, tag, full ref or commit id) and `path` are query
+  parameters. Every JSON answer carries `mirror: {upstream, slot, synced_at,
+  status, reasons, computed_by: "host", label}`; `raw` carries the same in
+  `X-OpenTine-Upstream`, `X-OpenTine-Synced-At` and `X-OpenTine-Computed-By`.
+  `search` ranks the default branch head's text files with the `repo-search
+  --hybrid` fusion (BM25 and `hash-ngram/1` vectors, reciprocal rank fusion),
+  from an index kept inside the tenant's mirror.
+- Push, git smart HTTP (`info/refs`, `git-upload-pack`, `git-receive-pack`),
+  archive downloads, LFS and every non-`GET` under `code/` answer `403` with
+  `mirror.push-refused`, `mirror.git-protocol-refused`,
+  `mirror.archive-refused` or `mirror.lfs-refused`.
+
+An unknown ref or path, a mirror never synced, and every tenant the caller may
+not read answer the same `404 {"error":"not found"}`. These are API shapes,
+not object kinds; nothing the mirror answers is signed, and it never signs as
+a user.
 
 <a id="s-8.19"></a>
 ## 8.19 Reviews on a remote: `caps.reviews` (0.47.0)

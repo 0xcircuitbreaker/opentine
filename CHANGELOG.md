@@ -1,5 +1,33 @@
 # Changelog
 
+## Unreleased — Code mirror and review runner
+
+- `tine serve --mirror` serves a read-only code mirror (`caps.project.mirror`,
+  SPEC 8.18): link a slot of the current project manifest with `PUT
+  project/mirror`, sync it by polling (`--mirror-poll-seconds`) or a webhook
+  (`POST project/mirror/sync`, `429` inside the minimum interval), and read it
+  with `GET project/code/refs|tree|blob|raw|history|compare|search`. Off by
+  default.
+- Every mirror answer is labelled with its upstream, its last-sync time and
+  `computed_by: "host"`; the stored sync state is the body of the frozen
+  `opentine.mirror-state` (a host statement, never signed as a user).
+- Code search reuses the `repo-search --hybrid` fusion (BM25 plus
+  `hash-ngram/1` vectors) over an index kept inside each tenant's mirror.
+- The mirror refuses push, git smart HTTP (`info/refs`, `git-upload-pack`,
+  `git-receive-pack`), archive downloads and LFS with `403` and a
+  `mirror.*-refused` code, and refuses a public project over private code.
+  Unknown refs and paths and unreadable tenants are the uniform `404`.
+- `DELETE project/mirror` unlinks: the mirror, its state and its caches are
+  deleted.
+- Limits: the upstream's size (`--mirror-max-mb` and the tenant's
+  `mirror_bytes` quota), its ref count and the blob size served are published
+  in the capability; an upstream over a limit pauses the mirror with
+  `mirror.limit-exceeded`. Only `https://` upstreams are fetched
+  (`--mirror-allow-local` adds `file://` for self-hosting and tests).
+- `docs/api/openapi-v1.yaml` and the TS SDK operation table cover the 17 new
+  routes (refusals included); the response shapes are API shapes, not object
+  kinds.
+
 ## 0.54.0 — CI speedup (2026-11-18)
 
 0.54 cuts the time CI takes without dropping any check. The Python suite now
