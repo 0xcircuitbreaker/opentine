@@ -6,6 +6,8 @@ records; ``tine-cli-prompt-1``, ``tine-cli-memory-1`` and ``tine-cli-eval-ci-1``
 are the ``--json`` outputs of ``tine prompt``, ``tine memory`` and ``tine eval
 ci``. The schemas check shape; the signature, the chain and the placeholder rule
 are the verifier's (``opentine._prompt``, ``opentine._memory``).
+``tine-cli-eval-compare-1`` and ``tine-cli-promote-1`` (0.58) are the outputs
+of ``tine eval compare`` and ``tine promote``.
 """
 
 from __future__ import annotations
@@ -36,6 +38,35 @@ _CHECK = open_(["scope", "topic", "digest", "signer", "subject", "supersedes", "
     "supersedes": opt(_BLOB), "tags": {"type": "array", "items": _TAG},
     "state": {"enum": ["verified", "verified-tofu"]}, "text": STR, "author": _NAME,
     "created_at": _WHEN})  # fmt: skip
+_STRS: dict[str, Any] = {"type": "array", "items": STR}
+_SIDE = open_(["eval", "ok"], {"eval": opt(STR), "ok": BOOL})
+_DEC = {"type": "string", "pattern": "^-?[0-9]+\\.[0-9]{6}$"}
+_METRIC = closed(
+    ["a", "b", "delta", "ci", "p_value", "significant", "regression", "improvement"],
+    {
+        "a": opt(_DEC),
+        "b": opt(_DEC),
+        "delta": _DEC,
+        "ci": opt({"type": "array", "items": _DEC, "minItems": 2, "maxItems": 2}),
+        "p_value": opt(_DEC),
+        "significant": BOOL,
+        "regression": BOOL,
+        "improvement": BOOL,
+    },
+)
+_STATS = closed(
+    ["convention", "method", "alpha", "seed", "resamples", "n", "metrics", "regressions"],
+    {
+        "convention": {"const": "opentine.eval-compare/1"},
+        "method": {"enum": ["paired-bootstrap", "permutation"]},
+        "alpha": STR,
+        "seed": INT,
+        "resamples": INT,
+        "n": INT,
+        "metrics": closed(["score", "pass_rate"], {"score": _METRIC, "pass_rate": _METRIC}),
+        "regressions": {"type": "array", "items": {"enum": ["score", "pass_rate"]}},
+    },
+)
 _LINK = opt(closed(["name", "version", "digest"], {"name": _ID, "version": INT, "digest": _BLOB}))
 
 SCHEMAS: dict[str, dict[str, Any]] = {
@@ -104,12 +135,42 @@ SCHEMAS: dict[str, dict[str, Any]] = {
                     "dir": STR, "items": INT, "passed": INT, "mean_score": STR,
                     "pass_rate": NUM, "min_pass_rate": NUM, "ok": BOOL,
                     "judge_prompt": _LINK})}})),
+    "tine-cli-eval-compare-1": doc("tine-cli-eval-compare-1", "tine eval compare --json",
+        "Two evals, both verified, compared item by item (`regressed`, `fixed`, `changed`, "
+        "`only_a`, `only_b`, `mean_delta`). With `--ci` (0.58) `stats` follows the "
+        "`opentine.eval-compare/1` convention: per metric (`score`, `pass_rate`) both means, "
+        "the delta, a paired-bootstrap interval `ci` or a permutation `p_value`, and whether "
+        "it is significant, a regression or an improvement; `export` and `attestation` name "
+        "the files `--export` and `--attest --out` wrote.",
+        open_(["command", "ok", "a", "b", "regressed", "fixed"], {
+            "command": {"const": "eval compare"}, "ok": BOOL, "a": _SIDE, "b": _SIDE,
+            "mean_delta": STR, "regressed": _STRS, "fixed": _STRS, "only_a": _STRS,
+            "only_b": _STRS, "stats": opt(_STATS), "export": opt(STR),
+            "attestation": STR})),
+    "tine-cli-promote-1": doc("tine-cli-promote-1", "tine promote --json",
+        "`tine promote TARGET --name NAME` moves a `promotions/<name>` ref (`run_id`, `ref`, "
+        "`created`). With `--baseline LABEL` (0.58) it is the signed promotion gate: "
+        "`action` is `promote`, `revert`, `canary`, `approve` or `refused`; `refusals` "
+        "lists each named reason (`promote.*`); `previous` and `current` are the label's "
+        "holder before and after; `stats` holds the `opentine.eval-compare/1` statistics.",
+        open_(["command"], {
+            "command": {"const": "promote"}, "ok": BOOL,
+            "action": {"enum": ["promote", "revert", "canary", "approve", "refused"]},
+            "label": _ID, "candidate": STR, "previous": opt(STR), "current": opt(STR),
+            "out": STR, "reason": STR, "refusals": {"type": "array", "items": closed(
+                ["code", "detail"], {"code": {"type": "string", "pattern": "^promote\\.[a-z-]+$"},
+                                     "detail": STR})},
+            "stats": {"type": "object", "additionalProperties": _STATS},
+            "inputs": {"type": "array"}, "run_id": STR, "ref": STR, "name": STR,
+            "created": BOOL})),
 }  # fmt: skip
 
 COMMAND_SCHEMAS: dict[str, str] = {
     "prompt": "tine-cli-prompt-1",
     "memory": "tine-cli-memory-1",
     "eval ci": "tine-cli-eval-ci-1",
+    "eval compare": "tine-cli-eval-compare-1",
+    "promote": "tine-cli-promote-1",
 }
 
 #: ``kind`` value -> schema stem, for the records (they carry no tag or ``command``).
