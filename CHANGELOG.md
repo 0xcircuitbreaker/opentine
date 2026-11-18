@@ -64,6 +64,10 @@
   are unchanged: the published 0.34 reader refuses a `TINEPACK5` pack
   (`invalid pack header`), so that default cannot flip while 0.34 is a
   supported peer.
+- `tine promote --baseline` runs the key-separation check on the promoting
+  key (`promote.key-separation`, from the repository's `.tine/key-roles.toml`)
+  and, with `--loop LOOP`, refuses while that loop is stopped
+  (`promote.loop-stopped`). `--revert` is never blocked by a stop.
 
 ## 0.56.0 — Onboarding and capture breadth (2026-11-18)
 

@@ -69,7 +69,7 @@ Ed25519. Its claim is:
 tine promote RUN --baseline LABEL --approve --key KEY --out APPROVAL.json
 tine promote RUN --baseline LABEL --key KEY --policy promote.toml --out DIR \
     --baseline-evals DIR --evals DIR --holdout BASE_DIR CAND_DIR \
-    --approval APPROVAL.json --spent USD [--state DIR] [--at TIME]
+    --approval APPROVAL.json --spent USD [--loop LOOP] [--state DIR] [--at TIME]
 tine promote RUN --baseline LABEL --revert --reason TEXT --key KEY --policy promote.toml --out DIR
 tine promote RUN --baseline LABEL --canary DIR --baseline-evals DIR --key KEY --policy promote.toml --out DIR
 ```
@@ -115,6 +115,8 @@ A label moves only when every check passes. Each refusal names its reason:
 | `promote.missing-approver` | there are fewer valid approvals than `min_approvals` from keys in `approvers`, for this run and this label; an approval signed by the promoting key or by an `eval_signers` key never counts, so a loop cannot approve itself |
 | `promote.over-budget` | `--spent` is above `budget_usd` (`--spent` is required and must be a non-negative decimal) |
 | `promote.item-mismatch` | the two sides of a pair scored different item sets: n is always the full paired set, so a candidate cannot drop the items it fails |
+| `promote.key-separation` | the repository's key-role policy (`.tine/key-roles.toml`, see `tine keys lint`) lists the promoting key in a scorer, dataset, verdict or approver role; with no policy file nothing is refused |
+| `promote.loop-stopped` | `--loop LOOP` names a loop with a stop in its coord record (`tine loop stop`); `--revert` stays allowed |
 | `promote.label-policy` | the admission policy does not cover `labels/LABEL`, or its `subjects` do not list the promoting key |
 | `promote.already-current` | the run already holds the label |
 | `promote.not-current` | the run to revert does not hold the label |

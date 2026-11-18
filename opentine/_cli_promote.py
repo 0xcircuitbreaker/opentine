@@ -22,6 +22,7 @@ def add_signed_promote_args(p: Any) -> None:
     p.add_argument("--approval", action="append", default=[], metavar="FILE",
                    help="A signed approval (--approve); repeatable")  # fmt: skip
     p.add_argument("--spent", metavar="USD", help="Spend to check against the cap (required)")
+    p.add_argument("--loop", metavar="LOOP", help="Refuse when LOOP is stopped (tine loop stop)")
     p.add_argument("--state", metavar="DIR", help="Label state (default REPO/.tine/promotion)")
     p.add_argument("--out", metavar="DIR", help="Where decisions go (a FILE for --approve)")
     p.add_argument("--at", metavar="TIME", help="YYYY-MM-DDTHH:MM:SSZ (default: now)")
@@ -71,7 +72,8 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
     return promotion.promote(key, policy, args.target, args.baseline,
                              baseline=Path(args.baseline_evals), evals=Path(args.evals),
                              holdout=holdout, approvals=[Path(a) for a in args.approval],
-                             spent=args.spent, **common)  # fmt: skip
+                             spent=args.spent, repo_path=Path(args.repo),
+                             loop=args.loop, **common)  # fmt: skip
 
 
 def cmd_signed_promote(args: argparse.Namespace) -> None:

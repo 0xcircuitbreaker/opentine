@@ -114,7 +114,8 @@ def approve(key: Any, candidate: str, label: str, *, at: str | None = None) -> d
 
 def promote(key: Any, policy: dict[str, Any], candidate: str, label: str, *, state: Path,
             out: Path, baseline: Path, evals: Path, holdout: tuple[Path, Path] | None,
-            approvals: list[Path], spent: str = "0", at: str | None = None) -> dict:  # fmt: skip
+            approvals: list[Path], spent: str = "0", at: str | None = None,
+            repo_path: Path | None = None, loop: str | None = None) -> dict:  # fmt: skip
     from opentine._eval_compare import attest
     from opentine.intoto import sign_statement
     from opentine.remote._vsa import build_vsa
@@ -128,6 +129,9 @@ def promote(key: Any, policy: dict[str, Any], candidate: str, label: str, *, sta
                               baseline=baseline, evals=evals, holdout=holdout,
                               approval_files=approvals, spent=spent,
                               promoter=_who(key))  # fmt: skip
+    from opentine._promote_guards import guards
+
+    refusals = guards(repo_path, _who(key), loop) + refusals
     if record["current"] == candidate:
         refusals.append(refusal("promote.already-current", f"{candidate} already holds {label}"))
     if refusals:
