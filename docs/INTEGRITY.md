@@ -48,7 +48,8 @@ at all is `fail:protected-list-unsigned`; no list is
 
 ## `tine integrity check RUN`
 
-`tine integrity check RUN [--repo PATH] [--strict] [--key KEY] [--json]` reads
+`tine integrity check RUN [--repo PATH] [--strict] [--key KEY] [--record FILE]
+[--json]` reads
 the stored run's tool calls and judges them, and the current digest of every
 pinned file, against the list:
 
@@ -72,6 +73,12 @@ pinned file, against the list:
   `.tine/key-roles.toml` or anything under `.tine/integrity/` (the list's pin
   and the filed taints) -- is `fail:protected-surface-modified` on the
   `protected-list` surface whether or not the list names them.
+
+`--record FILE` also runs the advisory reward-hack detectors
+(docs/SELF-IMPROVING-LOOPS.md) over a run record and adds their findings with
+surface `detector`. They are `advisory:` codes: reported, never blocking unless
+`--strict` (D12), and never a reason to file a taint. Only `fail:` facts taint a
+run, and `tine promote` refuses a tainted candidate with `promote.score-tainted`.
 
 | Code | Kind | Meaning |
 | --- | --- | --- |

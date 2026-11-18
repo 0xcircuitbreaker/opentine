@@ -2,7 +2,8 @@
 
 ``check RUN`` judges the run's tool calls and every pinned digest against the
 signed ``.tine/protected.toml`` (:mod:`opentine._integrity_run`) and exits 1 on
-any ``fail:`` finding; ``advisory:`` findings never block unless ``--strict``
+any ``fail:`` finding; ``--record`` adds the advisory reward-hack detectors
+over a run record. ``advisory:`` findings never block unless ``--strict``
 (owner decision D12). With ``--key`` a run that tripped a ``fail:`` is marked
 by a signed ``opentine.integrity.taint`` attestation. ``pin`` writes the
 current digests of every protected file into the list (which must then be
@@ -33,6 +34,7 @@ def add_integrity_parser(subparsers: argparse._SubParsersAction) -> None:
         p.add_argument("--json", action="store_true", help="Machine-readable output")
     check.add_argument("run", help="The run (run:sha256:HEX)")
     check.add_argument("--strict", action="store_true", help="Advisory findings block too")
+    check.add_argument("--record", metavar="PATH", help="Run record: also run the detectors")
     for p in (check, sign):
         p.add_argument("--key", metavar="KEY", help="Ed25519 key (check: signs the taint)")
         p.add_argument("--at", metavar="TIME", help="YYYY-MM-DDTHH:MM:SSZ (default: now)")
@@ -65,6 +67,18 @@ def _pin(root: Path) -> dict:
             "list": path.as_posix(), "signed": False}  # fmt: skip
 
 
+def _detected(path: str) -> list[dict[str, str]]:
+    """The advisory detectors over a run record, as ``advisory:`` findings (D12)."""
+    from opentine._integrity_advisory_evidence import advise
+
+    record = json.loads(Path(path).read_bytes())
+    if not isinstance(record, dict):
+        raise ValueError(f"{path}: a run record is a JSON object")
+    found = advise(record)["findings"]
+    return [{"level": "advisory", "code": f["code"], "surface": "detector",
+             "path": f["path"], "detail": f["detail"]} for f in found]  # fmt: skip
+
+
 def _row(args: argparse.Namespace) -> dict:
     from opentine import _integrity_run as run
     from opentine._promote import _now
@@ -78,6 +92,12 @@ def _row(args: argparse.Namespace) -> dict:
             raise error("integrity sign needs --key", USAGE, prefix="integrity: ")
         return {"ok": True, **run.sign_list(root, _key(args), args.at or _now())}
     row = run.check_run(root, args.run, strict=args.strict)
+    if args.record:
+        from opentine._integrity import blocking
+
+        row["findings"] += _detected(args.record)
+        hard = blocking(row["findings"], strict=args.strict)
+        row["ok"], row["blocking"] = not hard, len(hard)
     if args.key and any(f["level"] == "fail" for f in row["findings"]):
         row["taint"] = run.taint(root, _key(args), row, args.at or _now())
     return row

@@ -8,15 +8,16 @@ from __future__ import annotations
 
 from typing import Any
 
+from opentine._integrity_advisory import ADVISORY_CODES
 from opentine._schema_defs import BOOL, INT, STR, closed, doc, opt
 
 _HEX = {"type": "string", "pattern": "^[0-9a-f]{64}$"}
 _HEAD = {"schema": {"const": "tine-cli-integrity/1"}}
 _CODES = ("fail:protected-surface-modified", "fail:protected-list-missing",
           "fail:protected-list-unsigned", "advisory:test-deleted",
-          "advisory:holdout-read")  # fmt: skip
+          "advisory:holdout-read", *ADVISORY_CODES)  # fmt: skip
 _FINDING = closed(["level", "code", "surface", "path", "detail"], {
-    "level": {"enum": ["fail", "advisory"]}, "code": {"enum": list(_CODES)},
+    "level": {"enum": ["fail", "advisory"]}, "code": {"enum": list(dict.fromkeys(_CODES))},
     "surface": STR, "path": STR, "detail": STR})  # fmt: skip
 _TOUCHED = closed(["path", "op", "step"], {
     "path": STR, "op": {"enum": ["write", "delete", "read"]}, "step": STR})  # fmt: skip
@@ -39,9 +40,10 @@ SCHEMAS: dict[str, dict[str, Any]] = {
         "calls (`touched`) and every pinned digest against the signed `.tine/protected.toml`; "
         "`findings` carry `fail:` codes (hash, signature and policy facts, which block: `ok` "
         "is false and the exit 1) and `advisory:` codes (reported, blocking only with "
-        "`--strict`). `taint` names the signed `opentine.integrity.taint` attestation filed "
-        "with `--key`. `pin` writes current digests into the list (`signed` false: re-sign "
-        "it); `sign` pins the list's bytes with a policy-role key.",
+        "`--strict`); `--record` adds the advisory reward-hack detectors over a run "
+        "record. `taint` names the signed `opentine.integrity.taint` attestation filed with "
+        "`--key`. `pin` writes current digests into the list (`signed` false: re-sign it); "
+        "`sign` pins the list's bytes with a policy-role key.",
         {"oneOf": [_CHECK, _PIN, _SIGN]}),
 }  # fmt: skip
 COMMAND_SCHEMAS: dict[str, str] = {

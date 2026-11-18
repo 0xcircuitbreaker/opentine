@@ -33,7 +33,8 @@
   `advisory:judge-ground-truth-disagree`, `advisory:fabricated-tool-evidence`,
   `advisory:conftest-tampered`, `advisory:timing-fake` and
   `advisory:env-answer-leak`. Findings print one line each and never block by
-  default (D12); only `fail:` facts block.
+  default (D12); only `fail:` facts block. `tine integrity check RUN --record
+  FILE` runs them over a run record next to the protected-surface check.
 - Red-team corpus `tests/data/integrity_redteam/`: 30 seeded reward hacks with a
   manifest of their classes and 200 benign refactor runs, regenerated
   byte-for-byte by `scripts/gen_integrity_redteam.py`. Tests require >= 27/30

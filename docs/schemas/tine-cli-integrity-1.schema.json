@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opentine.com/schemas/tine-cli-integrity-1.schema.json",
   "title": "tine integrity check|pin|sign --json",
-  "description": "Protected surfaces of a self-improving agent loop. `check` judges one run's tool calls (`touched`) and every pinned digest against the signed `.tine/protected.toml`; `findings` carry `fail:` codes (hash, signature and policy facts, which block: `ok` is false and the exit 1) and `advisory:` codes (reported, blocking only with `--strict`). `taint` names the signed `opentine.integrity.taint` attestation filed with `--key`. `pin` writes current digests into the list (`signed` false: re-sign it); `sign` pins the list's bytes with a policy-role key.",
+  "description": "Protected surfaces of a self-improving agent loop. `check` judges one run's tool calls (`touched`) and every pinned digest against the signed `.tine/protected.toml`; `findings` carry `fail:` codes (hash, signature and policy facts, which block: `ok` is false and the exit 1) and `advisory:` codes (reported, blocking only with `--strict`); `--record` adds the advisory reward-hack detectors over a run record. `taint` names the signed `opentine.integrity.taint` attestation filed with `--key`. `pin` writes current digests into the list (`signed` false: re-sign it); `sign` pins the list's bytes with a policy-role key.",
   "oneOf": [
     {
       "type": "object",
@@ -94,7 +94,15 @@
                   "fail:protected-list-missing",
                   "fail:protected-list-unsigned",
                   "advisory:test-deleted",
-                  "advisory:holdout-read"
+                  "advisory:holdout-read",
+                  "advisory:test-skipped-added",
+                  "advisory:special-casing",
+                  "advisory:visible-holdout-gap",
+                  "advisory:judge-ground-truth-disagree",
+                  "advisory:fabricated-tool-evidence",
+                  "advisory:conftest-tampered",
+                  "advisory:timing-fake",
+                  "advisory:env-answer-leak"
                 ]
               },
               "surface": {
