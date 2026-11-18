@@ -2039,7 +2039,8 @@ releases items and enforces the holdout's exposure budget; `tine promote
 --sealed-holdout DIR` refuses an exposed holdout (`promote.holdout-exposed`;
 holdouts under `REPO/.tine/holdouts/` are checked without the flag), `tine
 promote --canary-lengths FILE` refuses a failed canary check
-(`promote.canary-failed`),
+(`promote.canary-failed`; lengths whose run is not the candidate,
+`promote.canary-run-mismatch`),
 and `tine eval run --holdout DIR` refuses runs that touched it
 (`eval.holdout-touched`). `--json` prints `tine-cli-holdout-1`.
 

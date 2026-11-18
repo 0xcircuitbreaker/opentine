@@ -12,6 +12,9 @@
   ``tine dataset canary-check`` on it does not pass (a counted canary coded
   below its declared entropy, no counted canary scored, or a lengths file that
   does not parse). Advisory canary findings stay advisory (D12).
+- ``promote.canary-run-mismatch`` when the signed lengths name a scoring run
+  other than the candidate being promoted, so a clean model's scores cannot
+  vouch for another candidate.
 """
 
 from __future__ import annotations
@@ -36,7 +39,8 @@ def sealed_folders(named: list[Path], repo: Path | None) -> list[Path]:
     return out
 
 
-def canary_refusals(lengths: Path | None, repo: Path | None) -> list[dict[str, str]]:
+def canary_refusals(lengths: Path | None, repo: Path | None,
+                    candidate: str | None = None) -> list[dict[str, str]]:  # fmt: skip
     from opentine._canary import CanaryError
     from opentine._canary_check import check
     from opentine._promote_checks import refusal
@@ -47,14 +51,28 @@ def canary_refusals(lengths: Path | None, repo: Path | None) -> list[dict[str, s
         row = check(Path(repo or "."), Path(lengths))
     except (CanaryError, OSError, ValueError) as exc:
         return [refusal("promote.canary-failed", f"{Path(lengths).as_posix()}: {exc}")]
-    return [refusal("promote.canary-failed", f"{f['code']} {f['canary_sha256']}: {f['detail']}")
-            for f in row["findings"] if f["level"] == "fail"]  # fmt: skip
+    out = []
+    if candidate is not None and row["run"] != candidate:
+        out.append(
+            refusal(
+                "promote.canary-run-mismatch",
+                f"the lengths are for run {row['run']}, not the candidate {candidate}",
+            )
+        )
+    return out + [
+        refusal("promote.canary-failed", f"{f['code']} {f['canary_sha256']}: {f['detail']}")
+        for f in row["findings"]
+        if f["level"] == "fail"
+    ]
 
 
-def refusals(named: list[Path], lengths: Path | None, repo: Path | None) -> list[dict[str, str]]:
+def refusals(named: list[Path], lengths: Path | None, repo: Path | None,
+             candidate: str | None = None) -> list[dict[str, str]]:  # fmt: skip
     from opentine._holdout_access import promote_refusals
 
-    return promote_refusals(sealed_folders(named, repo), repo) + canary_refusals(lengths, repo)
+    return promote_refusals(sealed_folders(named, repo), repo) + canary_refusals(
+        lengths, repo, candidate
+    )
 
 
 __all__ = ["HOLDOUTS", "canary_refusals", "refusals", "sealed_folders"]

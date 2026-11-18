@@ -40,13 +40,13 @@ def test_a_repo_holdout_is_checked_without_the_flag(hold, tmp_path, capsys):
     assert code == 1 and _codes(row) == {"promote.holdout-exposed"}
 
 
-def _lengths(hold: Hold, capsys, bits: float | None) -> str:
+def _lengths(hold: Hold, capsys, bits: float | None, run: str = RUN_B) -> str:
     code, row = tine(capsys, "dataset", "canary-add", CANARY, "--entropy-bits", "128",
                      "--holdout", "h1", "--key", hold.keys[DATASET], "--repo",
                      hold.root.as_posix(), "--at", AT, "--json")  # fmt: skip
     assert code == 0 and row["canary"]["counted"], row
     scored = {} if bits is None else {row["canary"]["canary_sha256"]: bits}
-    return lengths_file(hold.base / "lengths.json", scored)
+    return lengths_file(hold.base / "lengths.json", scored, run=run)
 
 
 @pytest.mark.parametrize(("bits", "refused"), [(200.0, False), (12.5, True), (None, True)])
@@ -64,3 +64,10 @@ def test_an_unreadable_lengths_file_refuses_promotion(hold, tmp_path, capsys):
     bad.write_bytes(b'{"x": NaN')
     code, row = _promote(hold, tmp_path, capsys, "p", "--canary-lengths", bad.as_posix())
     assert code == 1 and _codes(row) == {"promote.canary-failed"}
+
+
+def test_lengths_for_another_run_refuse_promotion(hold, tmp_path, capsys):
+    """A clean model's signed scores cannot vouch for the candidate (0.60 review)."""
+    lengths = _lengths(hold, capsys, 200.0, run="run-clean-model")
+    code, row = _promote(hold, tmp_path, capsys, "p", "--canary-lengths", lengths)
+    assert code == 1 and _codes(row) == {"promote.canary-run-mismatch"}, row

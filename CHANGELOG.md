@@ -23,7 +23,9 @@
   scored run was named by a non-eval access record, holds an item in clear, or
   contains an item's 5-word shingles at 0.8 or more (threshold recorded).
 - `tine promote --canary-lengths FILE` runs `tine dataset canary-check` and
-  refuses with `promote.canary-failed` when it does not pass.
+  refuses with `promote.canary-failed` when it does not pass, and with
+  `promote.canary-run-mismatch` when the signed lengths are not for the
+  candidate run.
 - New published schema `tine-cli-holdout-1` for `seal`, `unseal` and
   `exposure`. Docs: docs/HOLDOUTS.md.
 - `tine dataset canary-add TEXT --entropy-bits N --key KEY` registers a canary

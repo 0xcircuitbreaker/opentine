@@ -159,7 +159,9 @@ they apply and what a writer can still do.
 `promote.canary-failed` when it does not pass: a counted canary coded below its
 entropy, a lengths file that scores no counted canary, or one that does not
 parse (NaN, infinity, negative or non-numeric lengths). Advisory findings stay
-advisory.
+advisory. The signed lengths must name the candidate being promoted as their
+scoring run; lengths for any other run are refused with
+`promote.canary-run-mismatch`, so a clean model's scores cannot vouch for it.
 
 The lengths file is a signed attestation under the claim convention
 `opentine.integrity.canary-lengths` (`{"convention", "run", "model",
