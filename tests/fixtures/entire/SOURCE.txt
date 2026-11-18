@@ -61,3 +61,30 @@ against this documented shape, not against a live `entire` run.
 tests/test_entire_refs_0_42.py commits it under its ref. `tine export --format
 entire` writes the same layout with a 12-hex (legacy-form) id, which Entire's
 ref naming and parsing accept as well.
+
+0.56: refreshed against v0.13.3
+-------------------------------
+Read from: https://github.com/entireio/cli
+Tag:       v0.13.3 (commit ce16562b9b5a4d7bdb2d61e172f92934b788337d, 2026-11-12)
+Files:     cmd/entire/cli/paths/paths.go       (MetadataBranchName still
+                                                "entire/checkpoints/v1";
+                                                CompactTranscriptFileName
+                                                "transcript.jsonl")
+           cmd/entire/cli/checkpoint/refs_naming.go (CheckpointRefPrefix
+                                                unchanged; shard = last 2 chars,
+                                                both case spellings accepted)
+           api/checkpoint/metadata.go           (SessionFilePaths gains
+                                                compact_transcript; Metadata
+                                                gains compact_transcript_start)
+           transcript/testdata/claude_expected.jsonl (compact line shape)
+           docs/architecture/ref-checkpoint-backend.md (both backends write the
+                                                same subtree: under
+                                                <id[:2]>/<id[2:]>/ on the v1 branch,
+                                                at the root of each per-checkpoint
+                                                ref)
+
+The fixture's cli_version is now 0.13.3; its session lists the compact
+transcript, and 0/transcript.jsonl holds that session in the Entire Transcript
+Format (v 1), built by hand from the testdata line shape. The importer keeps
+reading full.jsonl, the agent's own format its per-agent parsers read. No Entire binary was
+run; tests/test_056_entire_0_13_3.py commits the tree under both backends.
