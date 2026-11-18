@@ -26,6 +26,11 @@
 - Acceptance tests: from a clean home, Copilot CLI, Factory Droid and
   Antigravity fixtures each give a signed run in two commands, and a secret
   seeded into the agent's prompt is absent from every stored object.
+- The Entire importer fixture is refreshed against Entire CLI v0.13.3: it now
+  carries the compact `transcript.jsonl` and `compact_transcript_start`. The
+  importer still reads the raw `full.jsonl`, and the same checkpoint imports
+  to identical events from the `entire/checkpoints/v1` branch and from
+  `refs/entire/checkpoints/*`.
 
 ## 0.55.0 — Code mirror and review runner (2026-11-18)
 
