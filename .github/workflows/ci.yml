@@ -90,14 +90,18 @@ jobs:
     # 0.54: the build and the release inventory still run on Windows and macOS
     # (a CRLF checkout must not break the inventory gate), once per OS and off the
     # test critical path.
-    name: Build and inventory (${{ matrix.os }})
+    # The oldest supported Python also builds and smoke-tests the wheel here.
+    name: Build and inventory (${{ matrix.os }}, Python ${{ matrix.python-version }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30  # a hung step fails the job instead of holding CI for 6 h
     env:
-      UV_PYTHON: "3.14"
+      UV_PYTHON: ${{ matrix.python-version }}
     strategy:
       matrix:
-        os: [macos-latest, windows-latest]
+        include:
+          - {os: macos-latest, python-version: "3.14"}
+          - {os: windows-latest, python-version: "3.14"}
+          - {os: ubuntu-latest, python-version: "3.11"}
       fail-fast: false
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
