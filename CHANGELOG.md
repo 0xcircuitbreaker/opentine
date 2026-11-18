@@ -38,6 +38,9 @@
   (`.tine/integrity/canary-index.sqlite`) means that a repeat scan reads only
   new objects, and `counts` reports how many objects were read and how many
   came from the index.
+- `tine dataset canary-sign LENGTHS.json --run RUN --key KEY [--out FILE]`
+  signs a scorer's per-canary code lengths for one scoring run, the
+  attestation `canary-check` and `promote --canary-lengths` read.
 - `tine dataset canary-check LENGTHS.json` reads the per-canary code lengths
   from a scoring run. It refuses with `dataset.canary-below-entropy` (exit 1)
   when a model codes a counted canary below its declared entropy, which is

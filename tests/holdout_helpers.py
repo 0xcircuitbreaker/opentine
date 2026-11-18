@@ -47,7 +47,7 @@ class Hold:
         (self.repo.path / "key-roles.toml").write_bytes(("\n".join(lines) + "\n").encode())
         pin_roles(self.repo.path)
         self.keys = {seed: write_key(base / f"{seed[:2]}.key", seed).as_posix()
-                     for seed in (DATASET, EVAL, OPTIMIZER)}  # fmt: skip
+                     for seed in (DATASET, EVAL, OPTIMIZER, SCORER)}  # fmt: skip
         self.seal_key = (base / "secret" / "seal.key").as_posix()
         self.items = base / "items.jsonl"
         with open(self.items, "w", encoding="utf-8", newline="\n") as handle:

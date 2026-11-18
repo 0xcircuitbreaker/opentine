@@ -3,7 +3,9 @@
 ``canary-add TEXT --entropy-bits N --key KEY`` signs a canary registration
 (:mod:`opentine._canary`); ``canary-list`` lists registrations without their
 text; ``canary-check LENGTHS.json`` refuses a model that codes a counted canary
-below its declared entropy (:mod:`opentine._canary_check`); ``contamination
+below its declared entropy (:mod:`opentine._canary_check`); ``canary-sign
+LENGTHS.json --run RUN --key KEY`` signs a scorer's code lengths for that run
+(what ``canary-check`` reads); ``contamination
 HOLDOUT.jsonl --against CORPUS.jsonl`` reports exact-oid and MinHash 5-gram
 near-duplicate leaks (:mod:`opentine._contamination`). Each exits 1 when it
 refuses or finds a leak. ``tine integrity scan`` lives in ``_cli_integrity``.
@@ -16,7 +18,7 @@ from pathlib import Path
 from typing import Any
 
 SCHEMA = "tine-cli-canary/1"
-VERBS = ("canary-add", "canary-list", "canary-check", "contamination")
+VERBS = ("canary-add", "canary-list", "canary-check", "canary-sign", "contamination")
 
 
 def add_canary_verbs(verbs: Any) -> None:
@@ -32,11 +34,21 @@ def add_canary_verbs(verbs: Any) -> None:
     check.add_argument("--margin-bits", type=int, default=0, metavar="M")
     check.add_argument("--strict", action="store_true", help="Advisory findings block too")
     check.add_argument("--run", metavar="RUN", help="Require the lengths to name this scoring run")
+    sign = verbs.add_parser("canary-sign", help="Sign a scoring run's canary code lengths")
+    sign.add_argument(
+        "lengths",
+        metavar="LENGTHS.json",
+        help='{"model": NAME, "lengths": [{"canary_sha256", "code_bits"}]}',
+    )
+    sign.add_argument("--run", required=True, metavar="RUN", help="The scoring run id")
+    sign.add_argument("--key", required=True, metavar="KEY", help="A scorer-role Ed25519 key")
+    sign.add_argument("--out", metavar="FILE", help="Default: LENGTHS.signed.json")
+    sign.add_argument("--at", metavar="TIME", help="YYYY-MM-DDTHH:MM:SSZ (default: now)")
     cont = verbs.add_parser("contamination", help="Exact and near-duplicate holdout leaks")
     cont.add_argument("dataset", metavar="HOLDOUT.jsonl")
     cont.add_argument("--against", action="append", default=[], metavar="CORPUS.jsonl")
     cont.add_argument("--threshold", type=float, default=0.8, help="5-gram Jaccard (default 0.8)")
-    for verb in (add, listing, check, cont):
+    for verb in (add, listing, check, sign, cont):
         verb.add_argument("--repo", default=".", metavar="PATH", help="Repository root")
         verb.add_argument("--json", action="store_true", help="Print a JSON object")
 
@@ -60,6 +72,8 @@ def _row(args: argparse.Namespace) -> dict[str, Any]:
 
         return check(root, Path(args.lengths), margin_bits=args.margin_bits, strict=args.strict,
                      run=args.run)  # fmt: skip
+    if verb == "canary-sign":
+        return _sign(args)
     from opentine import _contamination as cont
     from opentine._eval_dataset import read_jsonl
 
@@ -72,6 +86,30 @@ def _row(args: argparse.Namespace) -> dict[str, Any]:
         repo = Repo.open(root)
     return cont.check(read_jsonl(Path(args.dataset)), cont.corpus_rows(args.against),
                       threshold=args.threshold, repo=repo)  # fmt: skip
+
+
+def _sign(args: argparse.Namespace) -> dict[str, Any]:
+    import hashlib
+    import json
+
+    from opentine._canary_check import read_lengths, sign_lengths
+    from opentine._cli_integrity import _key
+    from opentine._promote import _now
+
+    source = Path(args.lengths)
+    try:
+        lengths, model = read_lengths(json.loads(source.read_bytes()))
+    except ValueError as exc:
+        raise ValueError(f"the lengths file does not parse: {exc}") from exc
+    if not args.run:
+        raise ValueError("--run names the scoring run the lengths come from")
+    document = sign_lengths(_key(args), args.run, lengths, model, args.at or _now())
+    data = json.dumps(document, sort_keys=True).encode("utf-8")
+    out = Path(args.out) if args.out else source.with_name(f"{source.stem}.signed.json")
+    out.write_bytes(data)
+    return {"ok": True, "run": args.run, "model": model, "signer": document["signer"],
+            "canaries": len(lengths), "out": out.as_posix(),
+            "sha256": hashlib.sha256(data).hexdigest()}  # fmt: skip
 
 
 def _say(verb: str, row: dict[str, Any]) -> list[str]:
@@ -89,6 +127,8 @@ def _say(verb: str, row: dict[str, Any]) -> list[str]:
             head,
             *(f"  {f['code']} {f['canary_sha256']}: {f['detail']}" for f in row["findings"]),
         ]
+    if verb == "canary-sign":
+        return [f"SIGNED {row['canaries']} lengths for {row['run']} -> {row['out']}"]
     head = "CLEAN" if row["ok"] else "CONTAMINATED"
     return [
         f"{head} {row['counts']}",

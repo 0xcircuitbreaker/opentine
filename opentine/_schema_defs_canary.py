@@ -46,6 +46,10 @@ _CHECK = closed(["command", "schema", "ok", "model", "run", "signer", "margin_bi
         ["level", "code", "canary_sha256", "detail"], {
             "level": {"enum": ["fail", "advisory"]}, "code": {"enum": list(CODES)},
             "canary_sha256": _HEX, "detail": STR})}})  # fmt: skip
+_SIGN = closed(["command", "schema", "ok", "run", "model", "signer", "canaries", "out",
+                "sha256"], {
+    **_HEAD, "command": {"const": "dataset canary-sign"}, "ok": {"const": True}, "run": STR,
+    "model": opt(STR), "signer": STR, "canaries": INT, "out": STR, "sha256": _HEX})  # fmt: skip
 _CONT = closed(["command", "schema", "ok", "method", "counts", "exact", "near", "chunked"], {
     **_HEAD, "command": {"const": "dataset contamination"}, "ok": BOOL,
     "method": closed(["exact", "shingle", "permutations", "bands", "rows", "threshold",
@@ -65,7 +69,7 @@ _CONT = closed(["command", "schema", "ok", "method", "counts", "exact", "near", 
 
 SCHEMAS: dict[str, dict[str, Any]] = {
     "tine-cli-canary-1": doc("tine-cli-canary-1",
-        "tine dataset canary-add|canary-list|canary-check|contamination --json",
+        "tine dataset canary-add|canary-list|canary-check|canary-sign|contamination --json",
         "Canaries and contamination for sealed holdouts. `canary-add` signs a canary "
         "registration (claim convention `opentine.integrity.canary`) with a declared "
         "entropy in bits; `counted` is true when the signer holds the dataset role, not the "
@@ -75,13 +79,15 @@ SCHEMAS: dict[str, dict[str, Any]] = {
         "scorer-role key that is not an optimizer key, bound to the run id in `run`) and refuses "
         "(`dataset.canary-below-entropy`, `ok` false, exit 1) when a counted canary is coded "
         "below `entropy_bits - margin_bits`; other findings are advisory (D12). "
+        "`canary-sign` signs a scorer's per-canary code lengths for one run (`run`) and "
+        "writes the attestation `canary-check` reads to `out` (`sha256` its bytes). "
         "`contamination` reports exact blob-oid matches and word 5-gram MinHash "
         "near-duplicates whose exact Jaccard is at or above the recorded threshold.",
-        {"oneOf": [_ADD, _LIST, _CHECK, _CONT]}),
+        {"oneOf": [_ADD, _LIST, _CHECK, _SIGN, _CONT]}),
 }  # fmt: skip
 COMMAND_SCHEMAS: dict[str, str] = {
     f"dataset {verb}": "tine-cli-canary-1"
-    for verb in ("canary-add", "canary-list", "canary-check", "contamination")
+    for verb in ("canary-add", "canary-list", "canary-check", "canary-sign", "contamination")
 }
 
 __all__ = ["CANARY", "COMMAND_SCHEMAS", "SCAN", "SCHEMAS"]

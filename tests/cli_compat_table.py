@@ -5337,6 +5337,20 @@ ROWS: tuple[tuple, ...] = (
         },  # fmt: skip
     ),
     (
+        "plain:dataset canary-sign l.json --run run-score --key k",
+        "plain",
+        ["dataset", "canary-sign", "l.json", "--run", "run-score", "--key", "k"],
+        "opentine._cli_dataset:cmd_dataset",
+        False,
+        {
+            "command": "dataset",
+            "dataset_command": "canary-sign",
+            "lengths": "l.json",
+            "run": "run-score",
+            "key": "k",
+        },  # fmt: skip
+    ),
+    (
         "plain:dataset contamination h.jsonl --against c.jsonl",
         "plain",
         ["dataset", "contamination", "h.jsonl", "--against", "c.jsonl"],

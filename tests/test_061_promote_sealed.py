@@ -71,3 +71,28 @@ def test_lengths_for_another_run_refuse_promotion(hold, tmp_path, capsys):
     lengths = _lengths(hold, capsys, 200.0, run="run-clean-model")
     code, row = _promote(hold, tmp_path, capsys, "p", "--canary-lengths", lengths)
     assert code == 1 and _codes(row) == {"promote.canary-run-mismatch"}, row
+
+
+def test_canary_sign_writes_lengths_that_promote_accepts(hold, tmp_path, capsys):
+    """`tine dataset canary-sign` produces the signed file promote and canary-check read."""
+    import json
+
+    from tests.holdout_helpers import SCORER
+
+    code, row = tine(capsys, "dataset", "canary-add", CANARY, "--entropy-bits", "128",
+                     "--holdout", "h1", "--key", hold.keys[DATASET], "--repo",
+                     hold.root.as_posix(), "--at", AT, "--json")  # fmt: skip
+    assert code == 0, row
+    raw = hold.base / "raw.json"
+    raw.write_text(json.dumps({"model": "m", "lengths": [
+        {"canary_sha256": row["canary"]["canary_sha256"], "code_bits": 200.25}]}))  # fmt: skip
+    out = hold.base / "signed.json"
+    code, row = tine(capsys, "dataset", "canary-sign", raw.as_posix(), "--run", RUN_B, "--key",
+                     hold.keys[SCORER], "--out", out.as_posix(), "--at", AT, "--repo",
+                     hold.root.as_posix(), "--json")  # fmt: skip
+    assert code == 0 and row["command"] == "dataset canary-sign", row
+    assert (row["run"], row["model"], row["canaries"]) == (RUN_B, "m", 1)
+    code, check = tine(capsys, "dataset", "canary-check", out.as_posix(), "--run", RUN_B,
+                       "--repo", hold.root.as_posix(), "--json")  # fmt: skip
+    assert code == 0 and check["signer"] == row["signer"], check
+    assert _promote(hold, tmp_path, capsys, "p", "--canary-lengths", out.as_posix())[0] == 0

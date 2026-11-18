@@ -327,6 +327,11 @@ DRIVEN = (
         "tine-cli-envelope-1",
     ),
     (
+        ("dataset", "canary-sign", "lengths.json", "--run", "run-score", "--key", "purge.key")
+        + ("--out", "signed.json", "--repo", "repo", "--json"),
+        "tine-cli-canary-1",
+    ),  # 0.60
+    (
         ("dataset", "contamination", "repo/d.jsonl", "--against", "repo/d.jsonl", "--json"),
         "tine-cli-canary-1",
     ),

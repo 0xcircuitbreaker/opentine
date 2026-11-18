@@ -166,7 +166,10 @@ scoring run; lengths for any other run are refused with
 The lengths file is a signed attestation under the claim convention
 `opentine.integrity.canary-lengths` (`{"convention", "run", "model",
 "lengths": [{"canary_sha256", "code_millibits"}]}`, `target_id` the scoring run
-id; `opentine._canary_check.sign_lengths` writes one). Its signer must hold the
+id). `tine dataset canary-sign LENGTHS.json --run RUN --key KEY [--out FILE]`
+writes one from an unsigned `{"model", "lengths": [{"canary_sha256",
+"code_bits"}]}` file (lengths rounded down to millibits; `--json` prints
+`tine-cli-canary/1` with `run`, `signer`, `canaries`, `out` and `sha256`). Its signer must hold the
 `scorer` role, and not the `optimizer` role, in the owner-pinned key roles;
 `canary-check --run RUN` also requires it to name that run. An unsigned,
 unpinned or unbound file is refused with `canary.unsigned`.

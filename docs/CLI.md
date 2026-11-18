@@ -1978,6 +1978,7 @@ promote` (`promote.score-tainted`) and reported by `tine lineage check|why`
 | `tine dataset canary-list --repo PATH` | Lists the registrations (digest, entropy, holdout, signer, `counted`) without their text |
 | `tine integrity scan [--file PATH]... --repo PATH` | Finds registered canaries in runs, prompts, memory and exported packs; a content-addressed index reads only objects not yet scanned; exit 1 on any match |
 | `tine dataset canary-check LENGTHS.json [--margin-bits M] [--strict] [--run RUN] --repo PATH` | Refuses (`dataset.canary-below-entropy`, exit 1) a model that codes a counted canary below its declared entropy; the lengths must be signed by a pinned scorer key (`canary.unsigned`) |
+| `tine dataset canary-sign LENGTHS.json --run RUN --key KEY [--out FILE] [--at TIME]` | Signs a scorer's per-canary code lengths (`{"model", "lengths": [{"canary_sha256", "code_bits"}]}`) as an `opentine.integrity.canary-lengths` attestation bound to `RUN`; writes `FILE` (default `LENGTHS.signed.json`) for `canary-check` and `promote --canary-lengths` |
 | `tine dataset contamination HOLDOUT.jsonl --against CORPUS.jsonl [--threshold J] [--repo PATH]` | Reports exact blob-oid matches and word 5-gram MinHash near-duplicates at or above the threshold (default 0.8); exit 1 on any leak |
 
 The `dataset` verbs print `tine-cli-canary/1` and `scan` prints
