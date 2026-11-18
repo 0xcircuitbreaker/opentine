@@ -1,5 +1,137 @@
 # Changelog
 
+## 0.53.0 — Reason parity (2026-11-17)
+
+0.53 makes every refusal explain itself the same way in all three readers:
+across the pinned conformance set the Python reference, `tine-verify.pyz` and
+the TS verifier each name the pinned reason code of every refusal, and the
+`parity` CI job checks it. It also builds the fuzz harness for the 72-hour
+run, re-runs the CDC bake-off with the gear table stored data really uses, and
+records RFC 4998 as deferred to 1.1. No object kind, wire format, vector
+family or schema was added.
+
+### Behaviour changes
+
+- Every refusal the Python reference reader makes across the pinned
+  conformance set now names its reason code, matching the TS verifier. Codes
+  are mapped by operation and message in `opentine/_refusal_codes.py` and
+  attached as `exc.code` at the conformance adapter. Where the reference
+  cannot tell two rules apart, the code is a member of the published alias
+  group.
+- A reader bug (`TypeError`, `KeyError`, `AttributeError`, `IndexError`,
+  `AssertionError`, `RecursionError`, `MemoryError`) is never reported as a
+  named refusal; it stays unnamed so the parity check surfaces it.
+- tine-verify.pyz: every refusal of a pinned conformance case now names its
+  reason code. The 124 refusals that had no code now carry one, and every code
+  matches the pinned code or its alias group.
+- Browser verifier: a refused zlib-wrapped `.tine` file gets the CLI's reason
+  text and code. When a parse or codec refusal has a code, the verify report
+  carries it as `integrity.code`; integrity failures inside a parsed artifact
+  still report text only.
+
+### Added
+
+- `scripts/check_parity.py --reasons[=python,pyz,ts]` checks that every
+  refusal names its pinned reason code and that the codes agree across
+  implementations. The `parity` CI job runs it for all three columns.
+- Fuzzing for the 72-hour run (1.0 criterion 1): `scripts/fuzz.py` fuzzes
+  OTLP spans and logs, `.tine` v4/v5 (plain and TINEZ1), TINEPACK3/4/5 wire
+  packs, storage-v3 local packs with codec-3 dictionaries, and the in-toto run
+  and `replay/v1` DSSE verifiers. Seeds come from the conformance vectors, the
+  `.tine` fixtures and freshly signed envelopes. An input must read or be
+  refused with the reader's documented error. Verifiers that return a result
+  must never raise, and any envelope a verifier accepts must pass an
+  independent signature check.
+- CI: the `fuzz-otlp` job also runs 20,000 inputs per reader target, with its
+  timeout unchanged. The human run is `OPENTINE_FUZZ_HOURS=72 python
+  scripts/fuzz.py`, documented in docs/RELEASING.md.
+- Crash triage: crashes go to `fuzz-crashes/<target>/<sha16>.bin` with a
+  `.txt` holding the traceback, `slow` or `hang`. A watchdog saves an input
+  that runs over 120 s and ends the run with exit 1. `--reproduce` replays one
+  saved input. Fixed inputs are kept in `tests/fuzz_regressions/<target>/`,
+  where the suite replays them and the fuzzer seeds from them.
+- CDC bake-off re-run, published as `docs/bench/0.53-cdc.md`. The 0.40
+  script's FastCDC gear table had 256 identical entries, and its synthetic
+  corpus left out packed run objects; both are fixed. The script now uses the
+  gear table stored data uses, pinned by SHA-256, and all its inputs are
+  pinned. The page is generated from the committed `docs/bench/0.53-cdc.json`,
+  with a test checking that the two match. CPU and latency numbers for the
+  pinned runner come from the new non-gating "CDC bake-off (pinned runner)"
+  job in `bench.yml`. Stored-data chunking is unchanged.
+- The nightly stress job now runs a multi-process gc/lock contention test
+  (8 workers x 200 rounds) on Linux, macOS and Windows, plus the Windows
+  gc/lock regression tests (`test_049_lock_nlink`, `test_pack_race_0_17_1`,
+  `test_winretry_0_13`).
+- The suite is now **1166 conformance vectors**; 509 of the 1166 refuse input, and the adapter contract still has one entry point: 75 ops.
+
+### Security
+
+- The fuzz oracle treats an accepted forged DSSE envelope as a crash: when the
+  pinned in-toto verifier or the `replay/v1` verifier accepts an envelope, the
+  signature over `PAE(payloadType, payload)` is re-checked independently.
+- Refusal codes are never attached to programming errors, so a reader bug
+  cannot pass as a valid refusal.
+- The browser inflate runs the shared header, size-limit and ratio checks
+  before it allocates.
+
+### Compatibility
+
+- No object kind or wire format was added (the 0.48 cutoff holds;
+  `tests/freeze_inventory.py` allow-lists are empty). No vector family and no
+  schema were added; `opentine-cdc-bakeoff/2` is a string inside the bench
+  report, not a CLI output.
+- The narrow freeze ruling (D1) stays in force with no predicate granted. The
+  owner's sign-off on the pyz excluding the repository storage families is
+  recorded in FREEZE.md.
+- RFC 4998 evidence records are deferred to 1.1 (D2). FREEZE.md and every
+  compliance profile carry the caveat: "up to 16 root-bound tokens; not a
+  hash-tree renewal; does not survive a SHA-256 break". It also appears in the
+  notes `tine compliance check` shows for the timestamp and retention
+  requirements.
+- SPEC 0.53.0: 8.2 documents where reason codes attach and `shape.not-utf8`
+  (a JSON body holding a NUL byte, for example UTF-16 or UTF-32).
+- `docs/api/client-versions.json`: the ts/ clients are built for 0.53.0, and
+  the minimum supported browser verifier stays 0.51.0.
+- `_config.READER_VERSION` stays 0.50.0.
+
+### Deferred
+
+- Reason codes are attached only at the conformance adapter; the product CLI
+  and `--json` outputs do not carry `exc.code` yet. The mapping matches
+  message text, so a reworded kernel message unnames a refusal (the parity
+  check catches it for pinned cases).
+- `shape.not-utf8` is not yet in `docs/conformance/REASON_CODES.md` and no
+  vector pins it.
+- Integrity failures found inside a parsed artifact by the TS verifier carry
+  no `integrity.code`; the `opentine-verify-ts/1` report has no published
+  schema.
+- The nightly workflow still fuzzes OTLP only; only OTLP has a
+  coverage-guided mode; the VSA, OMS and sigstore bundle verifiers are not
+  fuzz targets; a hang ends the run.
+- Whether local packs adopt CDC is a later decision (it would be a new stored
+  form). There is no consented real-user corpus.
+- E1 is decided at 0.56 and E2/E3 at the end of 0.55 (D8).
+- **For humans:** the 72 h fuzz run with 0 untriaged crashes; the CDC numbers
+  on the pinned runner (the bench job has not run yet); the 8 x 200 contention
+  load on Windows; engaging and funding the third-party audit firm; 30
+  consecutive green nightly days; three consecutive green main runs of
+  parity, peer-compat, bench and audit-kit; Firefox and WebKit runs of the
+  browser harness; counsel sign-off on the compliance profiles.
+
+### 1.0 criteria status
+
+1. All P0/P1 items closed and a third-party audit done: **not met** (the fuzz
+   harness is ready; the 72 h run and the audit engagement are human steps).
+2. Formats frozen and Python, TS and pyz pass the same vectors: **not met
+   yet** (verdicts and reason codes agree locally; the `parity` CI job has
+   not run green).
+3. The 0.34 peer compatibility job green for every release: **not met yet**.
+4. The pyz air-gap-tested on Linux, macOS and Windows: **met**.
+5. Nightly stress green for 30 days: **not met** (the streak stands at 0).
+6. Compression bench within 5% of 0.40: **not met yet** (needs a green run
+   on the pinned runner).
+7. The deprecation policy published: **met** (`docs/DEPRECATION.md`).
+
 ## 0.52.0 — Web contract (2026-11-15)
 
 0.52 puts rule 4 into the API: everything the hosted web app needs is
