@@ -33,6 +33,18 @@
   and verifiers report them `unchecked`. A promote, revert, promote sequence
   verifies offline in the Python reference, the pyz and the TS verifier
   (`tests/data/promotion_chain.json`).
+- **Behaviour change**, storage: auto-pack now writes the current local pack
+  format. The first time it packs a version-2 repository (what `tine init`
+  writes) it moves the descriptor to storage version 3, so packs at rest, and
+  each run's own pack after that, are `TINELP3`: read by every release since
+  0.13 (the 0.34 peer-compat job now reads a version-3 repository) and by the
+  TypeScript verifier. Existing packs are not rewritten. `tine repo storage gc
+  --downgrade` pins `"auto_pack": {"format": 1}` so auto-pack never undoes it;
+  `OPENTINE_AUTO_PACK_FORMAT=1` does the same per process.
+- `Repo.pack()` keeps emitting `TINEPACK3`, and bundle and transfer defaults
+  are unchanged: the published 0.34 reader refuses a `TINEPACK5` pack
+  (`invalid pack header`), so that default cannot flip while 0.34 is a
+  supported peer.
 
 ## 0.56.0 — Onboarding and capture breadth (2026-11-18)
 

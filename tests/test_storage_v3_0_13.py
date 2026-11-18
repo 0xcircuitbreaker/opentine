@@ -98,7 +98,10 @@ def test_v3_pack_uses_run_deltas_and_slim_events(tmp_path):
     assert _all_raw(Repo.open(repo.path)) == raw
 
 
-def test_v3_is_never_automatic(tmp_path):
+def test_v3_is_never_automatic_when_autopack_is_pinned_to_format_1(tmp_path, monkeypatch):
+    # 0.58: auto-pack moves a version-2 repository to v3 unless pinned to format 1
+    # (tests/test_058_pack_defaults.py); pinned, the 0.13 guarantee holds.
+    monkeypatch.setenv("OPENTINE_AUTO_PACK_FORMAT", "1")
     repo = Repo.init(tmp_path / "r", compression="zlib")
     _record(repo, "heads/a")
     os.environ["OPENTINE_AUTO_PACK"] = "1"
