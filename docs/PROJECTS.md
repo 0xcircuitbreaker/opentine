@@ -99,6 +99,11 @@ its caches. Only `https://` upstreams are fetched; `--mirror-allow-local`
 also allows `file://` stand-ins (self-host and tests). The full contract is
 SPEC 8.18 and `docs/api/openapi-v1.yaml`.
 
+Each successful sync also spools one push per created, moved or deleted ref
+under the tenant's mirror directory (`pushes/<digest>.json`, source
+`mirror-sync`). Each file is the `--event` input of `tine review runner`;
+see [REVIEW-RUNNERS.md](REVIEW-RUNNERS.md).
+
 ## CLI
 
 `tine project init|link|show|history|verify|push` and `tine remote add

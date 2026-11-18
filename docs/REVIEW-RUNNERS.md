@@ -38,6 +38,11 @@ python tine-verify.pyz runner-out/findings.json --pubkey runner.pub
 python tine-verify.pyz runner-out/evals/smoke --pubkey runner.pub
 ```
 
+A code mirror (`tine serve --mirror`, see [PROJECTS.md](PROJECTS.md#tine-serve))
+writes these push files for you: every successful sync spools one
+`mirror-sync` push per moved ref under the tenant's mirror directory, in
+`pushes/<digest>.json`, ready to pass to `--event`.
+
 ## What the runner emits
 
 Only existing kinds: Review findings, eval verdicts and the admission VSA

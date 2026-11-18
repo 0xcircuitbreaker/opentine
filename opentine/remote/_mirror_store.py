@@ -199,9 +199,10 @@ def sync(root: Path, tenant: str, cfg: dict[str, Any], *, force: bool = False,
         _mirror_state.consistent(_mirror_state.body(state))
         _write(directory(root, tenant) / "state.json", state)
         if status == "synced":  # under the lock, so an unlink cannot race the cache back
-            from opentine.remote import _mirror_search
+            from opentine.remote import _mirror_push, _mirror_search
 
             _mirror_search.rebuild(root, tenant, linked["default_branch"])
+            _mirror_push.spool(directory(root, tenant), _mirror_push.pushes(before, state))
     return state
 
 

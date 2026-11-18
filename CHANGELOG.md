@@ -27,7 +27,9 @@
 - `docs/api/openapi-v1.yaml` and the TS SDK operation table cover the 17 new
   routes (refusals included); the response shapes are API shapes, not object
   kinds.
-
+- A successful mirror sync spools one `mirror-sync` push per created, moved
+  or deleted ref (`pushes/<digest>.json` in the tenant's mirror directory),
+  each checked by the runner and ready for `tine review runner --event`.
 - `tine review runner REVIEW --fleet TOML --event PUSH.json --out DIR` runs the
   reviewer fleet, `.tine/evals.toml` and an admission VSA on one push from a
   mirror sync or a forge webhook. It emits only existing kinds (review
