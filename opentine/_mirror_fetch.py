@@ -15,8 +15,11 @@ environment entries, read only by that one process (see
 from __future__ import annotations
 
 import base64
+import os
 import shutil
+import stat
 import subprocess
+import sys
 import tempfile
 import time
 from pathlib import Path
@@ -24,6 +27,27 @@ from pathlib import Path
 from opentine._mirror_git import GitError, _env, _pinned, command_for, size
 
 SAMPLE_SECONDS = 0.05
+
+
+def _writable_retry(func, path, _exc) -> None:
+    # git writes pack and loose object files read-only; Windows refuses to delete those.
+    os.chmod(path, stat.S_IWRITE | stat.S_IREAD)
+    func(path)
+
+
+def remove_tree(path: Path) -> None:
+    """Delete *path* and everything under it, read-only files included, or raise ``OSError``.
+
+    Never silent: a mirror that could not be deleted must not be reported as gone.
+    """
+    if not os.path.lexists(path):
+        return
+    if sys.version_info >= (3, 12):
+        shutil.rmtree(path, onexc=_writable_retry)
+    else:  # pragma: no cover - Python 3.11
+        shutil.rmtree(path, onerror=_writable_retry)
+    if os.path.lexists(path):
+        raise OSError(f"could not delete {path}")
 
 
 def _auth_env(credential: str | None) -> dict[str, str]:
@@ -52,6 +76,8 @@ def _watch(command: list[str], env: dict[str, str], dest: Path, timeout: float,
                 process.wait()
                 raise reason
             time.sleep(SAMPLE_SECONDS)
+        if size(dest) > max_bytes:  # the limit outranks however git happened to exit
+            raise GitError("the upstream is larger than the mirror limit", "mirror.limit-exceeded")
         if process.returncode != 0:
             errors.seek(0)
             text = errors.read(4096).decode("utf-8", "replace").strip()
@@ -80,8 +106,8 @@ def fetch(upstream: str, dest: Path, *, allow_local: bool, timeout: float, max_b
             raise GitError("the upstream is larger than the mirror limit", "mirror.limit-exceeded")
     except GitError as exc:
         if exc.code == "mirror.limit-exceeded":
-            shutil.rmtree(dest, ignore_errors=True)
+            remove_tree(dest)
         raise
 
 
-__all__ = ["SAMPLE_SECONDS", "fetch"]
+__all__ = ["SAMPLE_SECONDS", "fetch", "remove_tree"]

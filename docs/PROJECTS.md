@@ -100,7 +100,8 @@ also allows `file://` stand-ins (self-host and tests). A private https
 upstream is mirrored with its credential in the URL (`https://user:token@host/
 repo.git`): the credential is split off at link time into `credential` (mode
 `0600`) in the tenant's mirror directory, never written to `link.json` or shown,
-and sent only as an `Authorization` header. The fetch runs under a watchdog that
+and sent only as an `Authorization` header. On Windows, which has no POSIX
+file modes, the credential file relies on the mirror directory's ACLs. The fetch runs under a watchdog that
 kills it once the mirror passes its size limit, and a commit id is served only
 when the mirror's refs reach it. The full contract is
 SPEC 8.18 and `docs/api/openapi-v1.yaml`.

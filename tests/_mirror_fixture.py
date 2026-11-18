@@ -33,8 +33,8 @@ def git(repo: Path, *args: str, when: int = 0) -> str:
            "GIT_AUTHOR_NAME": "Ada", "GIT_AUTHOR_EMAIL": "ada@example.org",
            "GIT_COMMITTER_NAME": "Ada", "GIT_COMMITTER_EMAIL": "ada@example.org",
            "GIT_AUTHOR_DATE": stamp, "GIT_COMMITTER_DATE": stamp}  # fmt: skip
-    done = subprocess.run(["git", "-C", str(repo), *args], env=env, check=True,
-                          capture_output=True, text=True)  # fmt: skip
+    done = subprocess.run(["git", "-c", "core.autocrlf=false", "-C", str(repo), *args],
+                          env=env, check=True, capture_output=True, text=True)  # fmt: skip
     return done.stdout.strip()
 
 

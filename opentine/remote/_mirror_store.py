@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import json
 import os
-import shutil
 import threading
 import time
 from datetime import UTC, datetime
@@ -30,6 +29,7 @@ from typing import Any
 
 from opentine import _mirror_git as gitio
 from opentine import _mirror_state, _project
+from opentine._mirror_fetch import remove_tree
 from opentine.remote import _mirror_secret, _project_store
 from opentine.remote.backend import valid_tenant
 
@@ -165,7 +165,7 @@ def unlink(root: Path, tenant: str) -> bool:
     place = directory(root, tenant)
     with _lock(root, tenant):
         existed = place.exists()
-        shutil.rmtree(place, ignore_errors=True)
+        remove_tree(place)  # raises rather than leave the mirror behind
     return existed
 
 

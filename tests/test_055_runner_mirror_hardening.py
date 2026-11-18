@@ -36,7 +36,7 @@ FLOOD = """\
 import os, subprocess, sys, time
 argv = sys.argv[1:]
 if "fetch" not in argv:
-    os.execv(REAL_GIT, ["git", *argv])
+    sys.exit(subprocess.call([REAL_GIT, *argv]))
 where = argv[argv.index("--git-dir") + 1]
 os.makedirs(os.path.join(where, "objects", "pack"), exist_ok=True)
 with open(os.path.join(where, "objects", "pack", "tmp_pack_flood"), "wb") as out:
@@ -48,22 +48,68 @@ with open(os.path.join(where, "objects", "pack", "tmp_pack_flood"), "wb") as out
 
 
 def test_the_fetch_is_killed_when_the_mirror_passes_its_size_limit(tmp_path, monkeypatch):
-    from opentine import _mirror_git
+    from opentine import _mirror_fetch, _mirror_git
 
-    bin_dir = tmp_path / "bin"
-    bin_dir.mkdir()
-    script = bin_dir / "flood.py"
+    script = tmp_path / "flood.py"
     script.write_text(f"REAL_GIT = {shutil.which('git')!r}\n" + FLOOD, encoding="utf-8")
-    shim = bin_dir / "git"
-    shim.write_text(f'#!/bin/sh\nexec "{sys.executable}" "{script}" "$@"\n', encoding="utf-8")
-    shim.chmod(0o755)
-    monkeypatch.setenv("PATH", f"{bin_dir}{os.pathsep}{os.environ['PATH']}")
+    real = _mirror_fetch.command_for
+
+    def flood(repo, args, pin=()):  # a Python stand-in runs the same on every OS
+        return [sys.executable, str(script), *real(repo, args, pin)[1:]]
+
+    monkeypatch.setattr(_mirror_fetch, "command_for", flood)
     dest = tmp_path / "mirror"
     with pytest.raises(_mirror_git.GitError) as caught:
         _mirror_git.fetch((tmp_path / "up").as_uri(), dest, allow_local=True, timeout=20,
                           max_bytes=256 * 1024)  # fmt: skip
     assert caught.value.code == "mirror.limit-exceeded"
     assert not dest.exists()
+
+
+def test_the_limit_outranks_a_failing_git_exit(tmp_path, monkeypatch):
+    from opentine import _mirror_fetch, _mirror_git
+
+    script = tmp_path / "overshoot.py"  # writes past the limit, then exits non-zero at once
+    script.write_text("import os, sys\nwhere = sys.argv[sys.argv.index('--git-dir') + 1]\n"
+                      "open(os.path.join(where, 'big'), 'wb').write(b'x' * 300000)\n"
+                      "sys.exit(128)\n", encoding="utf-8")  # fmt: skip
+    real = _mirror_fetch.command_for
+    monkeypatch.setattr(_mirror_fetch, "command_for",
+                        lambda repo, args, pin=(): [sys.executable, str(script),
+                                                    *real(repo, args, pin)[1:]])  # fmt: skip
+    dest = tmp_path / "mirror"
+    with pytest.raises(_mirror_git.GitError) as caught:
+        _mirror_git.fetch((tmp_path / "up").as_uri(), dest, allow_local=True, timeout=20,
+                          max_bytes=256 * 1024)  # fmt: skip
+    assert caught.value.code == "mirror.limit-exceeded"
+    assert not dest.exists()
+
+
+def test_remove_tree_deletes_read_only_files_and_never_fails_silently(tmp_path, monkeypatch):
+    from opentine import _mirror_fetch
+
+    pack = tmp_path / "m" / "objects" / "pack"
+    pack.mkdir(parents=True)
+    (pack / "a.pack").write_bytes(b"p")
+    (pack / "a.pack").chmod(0o444)  # git writes packs read-only; Windows will not delete those
+    calls = []
+    real = _mirror_fetch.shutil.rmtree
+
+    def windows_like(path, **kw):  # fail on the read-only file the way Windows does
+        handler = kw.get("onexc") or kw.get("onerror")
+        target = pack / "a.pack"
+        if not target.stat().st_mode & stat.S_IWUSR:
+            calls.append(target)
+            handler(os.unlink, str(target), PermissionError(13, "denied"))
+        real(path)
+
+    monkeypatch.setattr(_mirror_fetch.shutil, "rmtree", windows_like)
+    _mirror_fetch.remove_tree(tmp_path / "m")
+    assert calls and not (tmp_path / "m").exists()
+    (tmp_path / "kept").mkdir()
+    monkeypatch.setattr(_mirror_fetch.shutil, "rmtree", lambda path, **kw: None)
+    with pytest.raises(OSError):
+        _mirror_fetch.remove_tree(tmp_path / "kept")
 
 
 def test_a_commit_the_refs_no_longer_reach_is_not_served(tmp_path):
@@ -99,7 +145,8 @@ def test_upstream_credentials_never_reach_link_json_or_a_response(tmp_path):
     assert "s3cret" not in (place / "link.json").read_text("utf-8")
     secret = place / "credential"
     assert secret.read_text("utf-8") == "alice:s3cret-token"
-    assert stat.S_IMODE(secret.stat().st_mode) == 0o600
+    if os.name == "posix":  # Windows has no POSIX modes; the directory's ACLs guard it there
+        assert stat.S_IMODE(secret.stat().st_mode) == 0o600
     from opentine import _mirror_fetch
 
     env = _mirror_fetch._auth_env("alice:s3cret-token")
