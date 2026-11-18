@@ -1,0 +1,569 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-lineage-1.schema.json",
+  "title": "tine lineage record|check|graph|why|archive|index --json",
+  "description": "The self-modification lineage of a self-improving agent loop. `record` names the variant id it signed (claim convention `opentine.lineage.variant`), the record file, its parents, justifying evals and cited decision. `check` walks the variant's ancestry over the lineage folder: `ancestors` in depth-first order, `findings` each a `lineage.*` code about one variant; `ok` only when there is none (exit 1 otherwise). `graph`, `why`, `archive` and `index` read the derived index `LINEAGE_FOLDER/index/lineage.sqlite` (rebuildable, never authoritative): `graph` lists variants and parent edges with `graph_sha256`, equal for equal graphs; `why` walks one variant to every ancestor and its evidence (evals, judges, dataset commitments, approvers, policies, decisions), reporting the index rows `visited`, and carries `check`'s `ok` and `findings` (exit 1 when not ok); `archive` summarises a population with non-linear parents; `index` builds it.",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "variant",
+        "record",
+        "parents",
+        "evals",
+        "decision"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-lineage/1"
+        },
+        "command": {
+          "const": "lineage record"
+        },
+        "ok": {
+          "const": true
+        },
+        "variant": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "record": {
+          "type": "string"
+        },
+        "parents": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "evals": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "eval",
+              "verdicts_sha256"
+            ],
+            "properties": {
+              "eval": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "verdicts_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            }
+          }
+        },
+        "decision": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "sha256"
+              ],
+              "properties": {
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "variant",
+        "ancestors",
+        "findings"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-lineage/1"
+        },
+        "command": {
+          "const": "lineage check"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "variant": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "ancestors": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "variant",
+              "detail"
+            ],
+            "properties": {
+              "code": {
+                "enum": [
+                  "lineage.variant-unknown",
+                  "lineage.record-invalid",
+                  "lineage.parent-missing",
+                  "lineage.cycle",
+                  "lineage.evidence-missing",
+                  "lineage.decision-mismatch"
+                ]
+              },
+              "variant": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "detail": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "nodes",
+        "edges",
+        "missing_parents",
+        "cyclic",
+        "graph_sha256"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-lineage/1"
+        },
+        "command": {
+          "const": "lineage graph"
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "variant",
+              "oid",
+              "signer",
+              "signed",
+              "loop",
+              "evidence"
+            ],
+            "properties": {
+              "variant": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "oid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "signer": {
+                "type": "string"
+              },
+              "signed": {
+                "type": "boolean"
+              },
+              "loop": {
+                "type": "string"
+              },
+              "evidence": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "child",
+              "parent"
+            ],
+            "properties": {
+              "child": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "parent": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
+            }
+          }
+        },
+        "missing_parents": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "cyclic": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "graph_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "variant",
+        "depth",
+        "ancestors",
+        "evidence",
+        "summary",
+        "missing_parents",
+        "truncated",
+        "store_checked",
+        "visited",
+        "ok",
+        "findings"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-lineage/1"
+        },
+        "command": {
+          "const": "lineage why"
+        },
+        "variant": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "depth": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "variant",
+              "detail"
+            ],
+            "properties": {
+              "code": {
+                "enum": [
+                  "lineage.variant-unknown",
+                  "lineage.record-invalid",
+                  "lineage.parent-missing",
+                  "lineage.cycle",
+                  "lineage.evidence-missing",
+                  "lineage.decision-mismatch"
+                ]
+              },
+              "variant": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "detail": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "ancestors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "variant",
+              "depth",
+              "oid",
+              "signer",
+              "signed",
+              "loop"
+            ],
+            "properties": {
+              "variant": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "depth": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "oid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "signer": {
+                "type": "string"
+              },
+              "signed": {
+                "type": "boolean"
+              },
+              "loop": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "variant",
+              "kind",
+              "ref",
+              "detail"
+            ],
+            "properties": {
+              "variant": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "ref": {
+                "type": "string"
+              },
+              "detail": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "summary": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "missing_parents": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "store_checked": {
+          "type": "boolean"
+        },
+        "rebuilt": {
+          "const": true
+        },
+        "visited": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "queries",
+            "rows"
+          ],
+          "properties": {
+            "queries": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "rows": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "loop",
+        "signed_only",
+        "totals",
+        "members"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-lineage/1"
+        },
+        "command": {
+          "const": "lineage archive"
+        },
+        "loop": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "signed_only": {
+          "type": "boolean"
+        },
+        "totals": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "variants",
+            "signed",
+            "roots",
+            "leaves",
+            "multi_parent",
+            "max_parents"
+          ],
+          "properties": {
+            "variants": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "signed": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "roots": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "leaves": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "multi_parent": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "max_parents": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "members": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "variant",
+              "signed",
+              "loop",
+              "parents",
+              "children"
+            ],
+            "properties": {
+              "variant": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "signed": {
+                "type": "boolean"
+              },
+              "loop": {
+                "type": "string"
+              },
+              "parents": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "children": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "variants",
+        "edges",
+        "graph_sha256",
+        "path"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-lineage/1"
+        },
+        "command": {
+          "const": "lineage index"
+        },
+        "variants": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "edges": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "graph_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "path": {
+          "type": "string"
+        }
+      }
+    }
+  ]
+}

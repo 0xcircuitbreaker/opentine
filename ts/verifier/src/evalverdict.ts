@@ -36,7 +36,7 @@ const EVAL_DOMAIN = "opentine.eval.v1:";
 const PINNED = ["dataset", "scorer", "scorer_version", "threshold", "created_at", "signer"];
 
 /** `sha256:` over `opentine.eval.v1:` + JCS of the verdict's pinned fields. */
-function evalId(verdict: JObject): string {
+export function evalId(verdict: JObject): string {
   const tail = canonicalJson(new Map<string, JValue>(PINNED.map((key) => [key, verdict.get(key) ?? null])));
   const head = encoder.encode(EVAL_DOMAIN);
   const message = new Uint8Array(head.length + tail.length);
