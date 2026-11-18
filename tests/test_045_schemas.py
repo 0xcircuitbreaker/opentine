@@ -290,10 +290,19 @@ DRIVEN = (
     (("serve", "token", "list", "--root", "remote", "--json"), "tine-cli-serve-token-1"),
     (("keys", "lint", "--repo", "repo", "--json"), "tine-cli-keys-lint-1"),  # 0.58
     (("loop", "status", "opt", "--repo", "repo", "--json"), "tine-cli-loop-1"),  # 0.58
+    (("lineage", "graph", "--repo", "repo", "--format", "json"), "tine-cli-lineage-1"),  # 0.59
+    (("lineage", "archive", "--repo", "repo", "--json"), "tine-cli-lineage-1"),  # 0.59
+    (("lineage", "index", "--repo", "repo", "--rebuild", "--json"), "tine-cli-lineage-1"),
     (
         ("loop", "stop", "opt", "--ed25519-key-file", "purge.key", "--repo", "repo", "--json"),
         "tine-cli-loop-1",
     ),  # 0.58
+    (
+        ("lineage", "record", "--run", "run:sha256:" + "a" * 64, "--key", "purge.key")
+        + ("--code-tree", "sha256:" + "1" * 64, "--repo", "repo", "--json"),
+        "tine-cli-lineage-1",
+    ),  # 0.59
+    (("lineage", "check", "sha256:" + "e" * 64, "--repo", "repo", "--json"), "tine-cli-lineage-1"),
 )
 
 
