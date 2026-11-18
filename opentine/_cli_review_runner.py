@@ -27,7 +27,7 @@ def add_runner_parsers(actions: Any) -> list[argparse.ArgumentParser]:
     runner.add_argument("--event", required=True, metavar="JSON",
                         help="The push: {source, ref, before?, after?, at, run?}")  # fmt: skip
     runner.add_argument("--config", metavar="TOML", help="Runner config (.tine/runner.toml)")
-    runner.add_argument("--mode", choices=MODES, default="self-hosted")
+    runner.add_argument("--hosting", choices=MODES, default="self-hosted")
     runner.add_argument("--out", required=True, metavar="DIR", help="Where decisions are written")
     ident = actions.add_parser("runner-identity", help="Print the runner's service identity")
     ident.add_argument("--previous-pubkey", action="append", default=[], metavar="FILE",
@@ -60,14 +60,14 @@ def act(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], str]:
     fleet = _manifest.load(Path(args.fleet), trust_now=args.trust)
     out = Path(args.out)
     report = runner.run_push(repo, args.review_id, fleet, key, event, config=config,
-                             mode=args.mode, out=out, key_id=args.key_id)  # fmt: skip
+                             mode=args.hosting, out=out, key_id=args.key_id)  # fmt: skip
     from opentine import _review_run
 
     _write(out / "findings.json", _review_run.load(repo, args.review_id))
     _write(out / "vsa.json", report["vsa"])
     _write(out / "report.json", report)
     found = len(report["review"]["findings"])
-    text = (f"review runner ({args.mode}): {found} finding(s), VSA "
+    text = (f"review runner ({args.hosting}): {found} finding(s), VSA "
             f"{report['steps'][2]['evidence']['result']}, cost {report['cost']['total']}; "
             f"sandbox {report['sandbox_policy']}")  # fmt: skip
     return {"runner": report}, text

@@ -121,7 +121,7 @@ def _run(capsys, base: Path, name: str, mode: str, monkeypatch) -> tuple[Path, d
     assert code == 0, out
     code, out = _tine(capsys, "review", "runner", "push", "--fleet",
                       (base / f"{name}-fleet" / "fleet.toml").as_posix(), "--trust",
-                      "--event", (base / f"{name}.event.json").as_posix(), "--mode", mode,
+                      "--event", (base / f"{name}.event.json").as_posix(), "--hosting", mode,
                       "--out", (base / f"{name}-out").as_posix(), "--ed25519-key-file",
                       (base / "runner.key").as_posix(), "--repo", root.as_posix(),
                       "--json")  # fmt: skip

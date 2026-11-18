@@ -15,6 +15,6 @@ key=/run/secrets/review-runner.key
 [ -f "$key" ] || { echo "no $key mounted" >&2; exit 2; }
 
 exec tine review runner "$RUNNER_REVIEW" --fleet "$RUNNER_FLEET" --trust \
-    --event "$RUNNER_EVENT" --mode "${RUNNER_MODE:-self-hosted}" \
+    --event "$RUNNER_EVENT" --hosting "${RUNNER_MODE:-self-hosted}" \
     --out "${RUNNER_OUT:-/out}" --ed25519-key-file "$key" \
     --repo "${RUNNER_REPO:-/work}" --json
