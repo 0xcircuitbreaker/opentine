@@ -417,6 +417,7 @@ _KILLERS = {
 }
 
 
+@pytest.mark.serial  # kills the supervisor, so the machine-wide hidden-process sweep runs
 @pytest.mark.skipif(not sys.platform.startswith("linux"), reason="subreaper is Linux-only")
 @pytest.mark.parametrize("how", sorted(_KILLERS))
 def test_killing_the_supervisor_does_not_free_a_setsid_descendant(tmp_path, how):
@@ -460,6 +461,7 @@ _FORGE_OK = (
 )
 
 
+@pytest.mark.serial  # kills the supervisor, so the machine-wide hidden-process sweep runs
 @pytest.mark.skipif(not sys.platform.startswith("linux"), reason="subreaper is Linux-only")
 @pytest.mark.parametrize("hidden", [False, True], ids=["dumpable", "non-dumpable"])
 def test_a_forged_sweep_report_does_not_free_a_setsid_descendant(tmp_path, hidden):
@@ -480,6 +482,7 @@ def test_a_forged_sweep_report_does_not_free_a_setsid_descendant(tmp_path, hidde
     assert not target.exists(), "a forged 'ok' let a setsid() descendant escape"
 
 
+@pytest.mark.serial  # inspects the supervisor process tree, which a parallel sweep can kill
 @pytest.mark.skipif(not sys.platform.startswith("linux"), reason="subreaper is Linux-only")
 def test_the_command_cannot_read_the_supervisors_fds_memory_or_environment(tmp_path):
     from opentine.tools._process import run_bounded
@@ -497,6 +500,7 @@ def test_the_command_cannot_read_the_supervisors_fds_memory_or_environment(tmp_p
     assert result.stdout.split() == [b"fd", b"closed", b"environ", b"closed", b"mem", b"closed"]
 
 
+@pytest.mark.serial  # the hidden-process sweep is machine-wide: it kills other workers' children
 @pytest.mark.skipif(not sys.platform.startswith("linux"), reason="subreaper is Linux-only")
 def test_the_hidden_process_sweep_spares_opentines_own_tree():
     from opentine.tools._subreaper_sweep import boot_ticks, kill_hidden
