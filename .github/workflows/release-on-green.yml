@@ -1,0 +1,105 @@
+name: Release on green
+
+# Tags and publishes a release once CI is green on a release commit pushed to
+# main. Opt-in: does nothing unless the repository variable AUTO_RELEASE is
+# exactly 'true'. Disable this workflow (or unset the variable) to stop it.
+on:
+  # Safe use: no checkout or execution of the triggering code; only pushes to
+  # main from this repository proceed (head_repository and event are checked).
+  workflow_run: # zizmor: ignore[dangerous-triggers]
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: release-on-green
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  tag-and-dispatch:
+    name: Tag the release commit and start publish.yml
+    if: >-
+      vars.AUTO_RELEASE == 'true'
+      && github.event.workflow_run.conclusion == 'success'
+      && github.event.workflow_run.event == 'push'
+      && github.event.workflow_run.head_branch == 'main'
+      && github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write # create the annotated release tag
+      actions: write # dispatch publish.yml for that tag
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+      HEAD_MESSAGE: ${{ github.event.workflow_run.head_commit.message }}
+
+    steps:
+      - name: Decide whether the head commit is a release commit
+        id: decide
+        shell: bash
+        run: |
+          set -euo pipefail
+          subject="${HEAD_MESSAGE%%$'\n'*}"
+          # Release commits are "<X.Y.Z> — <title>" (em dash); squash merges
+          # append " (#NNN)".
+          if [[ ! "$subject" =~ ^([0-9]+\.[0-9]+\.[0-9]+)\ —\  ]]; then
+            echo "Not a release commit: $subject"
+            exit 0
+          fi
+          version="${BASH_REMATCH[1]}"
+          tag="v${version}"
+
+          # main must still point at (or contain) this commit.
+          gh api "repos/$GH_REPO/compare/$HEAD_SHA...main" --jq '.status' | grep -Eqx 'identical|ahead'
+
+          # Version at that exact commit, in both sources of truth.
+          pyproject="$(gh api -H 'Accept: application/vnd.github.raw' "repos/$GH_REPO/contents/pyproject.toml?ref=$HEAD_SHA")"
+          module="$(gh api -H 'Accept: application/vnd.github.raw' "repos/$GH_REPO/contents/opentine/_version.py?ref=$HEAD_SHA")"
+          py_version="$(sed -nE 's/^version = "([^"]+)"$/\1/p' <<<"$pyproject" | head -n1)"
+          mod_version="$(sed -nE 's/^__version__ = "([^"]+)"$/\1/p' <<<"$module" | head -n1)"
+          if [[ "$py_version" != "$version" || "$mod_version" != "$version" ]]; then
+            echo "::error::subject $version, pyproject $py_version, _version.py $mod_version"
+            exit 1
+          fi
+
+          if gh api "repos/$GH_REPO/git/ref/tags/$tag" > /dev/null 2>&1; then
+            echo "Tag $tag already exists; nothing to do."
+            exit 0
+          fi
+
+          # Same gate publish.yml enforces: a successful push run of ci.yml on
+          # main for this exact commit.
+          successful_runs="$(
+            gh api \
+              "/repos/$GH_REPO/actions/workflows/ci.yml/runs?branch=main&event=push&status=completed&head_sha=$HEAD_SHA&per_page=100" \
+              --jq '[.workflow_runs[] | select(.conclusion == "success")] | length'
+          )"
+          test "$successful_runs" -ge 1
+
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Create the annotated tag
+        if: steps.decide.outputs.tag != ''
+        shell: bash
+        env:
+          TAG: ${{ steps.decide.outputs.tag }}
+          VERSION: ${{ steps.decide.outputs.version }}
+        run: |
+          set -euo pipefail
+          tag_object="$(
+            gh api "repos/$GH_REPO/git/tags" \
+              -f tag="$TAG" -f message="opentine $VERSION" \
+              -f object="$HEAD_SHA" -f type=commit --jq '.sha'
+          )"
+          gh api "repos/$GH_REPO/git/refs" -f ref="refs/tags/$TAG" -f sha="$tag_object" > /dev/null
+
+      - name: Dispatch publish.yml for the tag
+        if: steps.decide.outputs.tag != ''
+        shell: bash
+        env:
+          TAG: ${{ steps.decide.outputs.tag }}
+        run: gh workflow run publish.yml --ref "$TAG" -f tag="$TAG"

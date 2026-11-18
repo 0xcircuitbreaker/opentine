@@ -29,7 +29,10 @@ def test_every_workflow_pins_actions_by_commit_and_drops_default_permissions():
         revisions = ACTION.findall(workflow)
         assert all(re.fullmatch(r"[0-9a-f]{40}", rev) for rev in revisions), name
         assert re.search(r"^permissions:( \{\}|\n  contents: read)$", workflow, re.M), name
-        assert "contents: write" not in workflow or name == "publish.yml", name
+        assert "contents: write" not in workflow or name in {
+            "publish.yml",
+            "release-on-green.yml",
+        }, name
         assert "${{ matrix." not in "".join(
             line for line in workflow.splitlines() if line.strip().startswith("run:")
         ), name

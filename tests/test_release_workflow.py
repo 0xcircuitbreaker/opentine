@@ -6,6 +6,8 @@ import re
 import tomllib
 from pathlib import Path
 
+import yaml
+
 ROOT = Path(__file__).resolve().parents[1]
 ACTION = re.compile(r"uses:\s+[^\s@]+@([^\s#]+)")
 
@@ -15,9 +17,9 @@ def _workflow(name: str) -> str:
 
 
 def test_actions_are_pinned_to_full_commit_ids():
-    for name in ("ci.yml", "publish.yml"):
+    for name in ("ci.yml", "publish.yml", "release-on-green.yml"):
         revisions = ACTION.findall(_workflow(name))
-        assert revisions
+        assert revisions or name == "release-on-green.yml"
         assert all(re.fullmatch(r"[0-9a-f]{40}", revision) for revision in revisions)
 
 
@@ -86,3 +88,68 @@ def test_release_toolchain_is_locked_and_sdist_carries_the_lock():
         assert "uv sync --locked --all-extras" in workflow
         assert "uv build --no-build-isolation" in workflow
     assert "UV_PYTHON: ${{ matrix.python-version }}" in _workflow("ci.yml")
+
+
+def _release_subject_regex() -> re.Pattern[str]:
+    # Extract the bash regex from release-on-green.yml and translate the bash
+    # escaped spaces into a Python pattern, so the test checks the shipped one.
+    workflow = _workflow("release-on-green.yml")
+    match = re.search(r'\[\[ ! "\$subject" =~ (\S+\\ —\\ ) \]\]', workflow)
+    assert match, "release subject regex not found"
+    return re.compile(match.group(1).replace("\\ ", " "))
+
+
+def test_release_on_green_runs_only_after_ci_on_main_with_least_privilege():
+
+    workflow = _workflow("release-on-green.yml")
+    data = yaml.safe_load(workflow)
+    triggers = data[True]  # YAML 1.1 parses the `on` key as True
+    assert set(triggers) == {"workflow_run"}
+    run = triggers["workflow_run"]
+    assert run["workflows"] == ["CI"]
+    assert run["types"] == ["completed"]
+    assert run["branches"] == ["main"]
+    assert "pull_request" not in workflow and "pull_request_target" not in workflow
+    assert data["permissions"] == {}
+    (job,) = data["jobs"].values()
+    assert job["permissions"] == {"contents": "write", "actions": "write"}
+    condition = job["if"]
+    assert "vars.AUTO_RELEASE == 'true'" in condition
+    assert "github.event.workflow_run.conclusion == 'success'" in condition
+    assert "github.event.workflow_run.event == 'push'" in condition
+    assert "head_repository.full_name == github.repository" in condition
+    assert "actions/checkout" not in workflow
+    for step in job["steps"]:
+        assert "${{" not in step.get("run", "")
+    assert "contents/opentine/_version.py?ref=$HEAD_SHA" in workflow
+    assert "contents/pyproject.toml?ref=$HEAD_SHA" in workflow
+    assert "actions/workflows/ci.yml/runs?branch=main&event=push" in workflow
+    assert 'message="opentine $VERSION"' in workflow
+    assert 'gh workflow run publish.yml --ref "$TAG" -f tag="$TAG"' in workflow
+
+
+def test_release_subject_regex():
+    pattern = _release_subject_regex()
+    match = pattern.match("0.55.0 — Code mirror and review runner (#109)")
+    assert match and match.group(1) == "0.55.0"
+    assert not pattern.match("0.55.0 - x")
+    assert not pattern.match("Fix 0.55.0 — x")
+
+
+def test_publish_accepts_tag_push_and_dispatch_and_keeps_id_token_scoped():
+
+    data = yaml.safe_load(_workflow("publish.yml"))
+    triggers = data[True]
+    assert set(triggers) == {"push", "workflow_dispatch"}
+    assert triggers["push"]["tags"] == ["v*"]
+    assert triggers["workflow_dispatch"]["inputs"]["tag"]["required"] is True
+    assert "inputs.tag" in data["env"]["RELEASE_TAG"]
+    assert "github.ref_name" in data["env"]["RELEASE_TAG"]
+    workflow = _workflow("publish.yml")
+    assert "GITHUB_REF_NAME" not in workflow
+    assert 'test "$GITHUB_REF" = "refs/tags/$RELEASE_TAG"' in workflow
+    holders = {
+        name for name, job in data["jobs"].items() if "id-token" in job.get("permissions", {})
+    }
+    assert holders == {"github-release", "pypi"}
+    assert data["jobs"]["pypi"]["environment"]["name"] == "pypi"

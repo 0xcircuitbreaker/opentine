@@ -4,12 +4,27 @@ on:
   push:
     tags:
       - "v*"
+  # release-on-green.yml dispatches this workflow after it creates the tag:
+  # a tag pushed with GITHUB_TOKEN does not fire `push`. The dispatch must run
+  # on the tag itself (`--ref v<version>`) and name the same tag as input.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing annotated release tag (v<version>) to publish"
+        required: true
+        type: string
 
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
 permissions: {}
+
+# One tag name for both triggers. A push run takes it from the pushed ref; a
+# dispatch run takes the input, and the gates job refuses the run unless the
+# input equals the tag ref the dispatch runs on.
+env:
+  RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
 
 jobs:
   gates:
@@ -24,10 +39,28 @@ jobs:
       contents: read
 
     steps:
+      - name: Resolve the release tag
+        shell: bash
+        run: |
+          set -x
+          [[ "$RELEASE_TAG" =~ ^v[0-9][0-9A-Za-z.+-]*$ ]]
+          test "$GITHUB_REF_TYPE" = tag
+          test "$GITHUB_REF" = "refs/tags/$RELEASE_TAG"
+
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 0
           persist-credentials: false
+
+      - name: Verify the tag is annotated and on main
+        shell: bash
+        run: |
+          set -x
+          git fetch --no-tags --force origin "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}"
+          test "$(git cat-file -t "$RELEASE_TAG")" = tag
+          test "$(git rev-list -n 1 "$RELEASE_TAG")" = "$(git rev-parse HEAD)"
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+          git merge-base --is-ancestor "$(git rev-list -n 1 "$RELEASE_TAG")" origin/main
 
       - name: Install uv
         uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
@@ -83,16 +116,16 @@ jobs:
           # actions/checkout leaves a lightweight tag pointing at the commit, so
           # re-fetch the real tag object from origin before asserting it is
           # annotated (a signed/dated tag is the release-integrity signal).
-          git fetch --no-tags --force origin "+refs/tags/${GITHUB_REF_NAME}:refs/tags/${GITHUB_REF_NAME}"
-          test "$(git cat-file -t "$GITHUB_REF_NAME")" = tag
-          release_commit="$(git rev-list -n 1 "$GITHUB_REF_NAME")"
+          git fetch --no-tags --force origin "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}"
+          test "$(git cat-file -t "$RELEASE_TAG")" = tag
+          release_commit="$(git rev-list -n 1 "$RELEASE_TAG")"
           # A tag-triggered checkout does not reliably populate the origin/main
           # tracking ref, so fetch it explicitly before the ancestry check.
           git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
           git merge-base --is-ancestor "$release_commit" origin/main
           # --no-sync so uv emits no build chatter that would pollute the capture.
           installed_version="$(uv run --no-sync python -c 'import opentine; print(opentine.__version__)')"
-          test "v${installed_version}" = "$GITHUB_REF_NAME"
+          test "v${installed_version}" = "$RELEASE_TAG"
           echo "RELEASE_COMMIT=$release_commit" >> "$GITHUB_ENV"
           echo "SOURCE_DATE_EPOCH=$(git show -s --format=%ct "$release_commit")" >> "$GITHUB_ENV"
 
@@ -259,7 +292,7 @@ jobs:
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ github.token }}
         run: >-
-          gh release create "$GITHUB_REF_NAME"
+          gh release create "$RELEASE_TAG"
           dist/opentine-*.whl dist/opentine-*.tar.gz dist/tine-verify.pyz
           dist/opentine.cdx.json dist/SHA256SUMS
           --verify-tag --generate-notes
