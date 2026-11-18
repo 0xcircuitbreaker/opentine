@@ -32,6 +32,7 @@ def add_task_parser(subparsers: argparse._SubParsersAction) -> None:
     parser.add_argument("task", nargs="?", help="Task id (lowercase [a-z0-9._-])")
     parser.add_argument("--repo", default=".", metavar="PATH", help="v3 repository")
     parser.add_argument("--title", default="", help="add: a description")
+    parser.add_argument("--loop", help="add: the loop this task is a generation of (0.58)")
     parser.add_argument("--holder", help="claim/heartbeat/done: who holds the lease")
     parser.add_argument("--fencing", type=int, help="heartbeat/done: the token claim printed")
     parser.add_argument("--ttl", type=float, default=60.0, help="Lease seconds (default 60)")
@@ -46,6 +47,8 @@ def _run(args: argparse.Namespace) -> dict | list:
     if args.remote:
         from opentine._cli_task_remote import run
 
+        if args.loop:
+            raise ValueError("--loop is local only: a remote task cannot name a loop yet")
         return run(args)
     repo = Repo.open(args.repo)
     if args.action == "list":
@@ -53,7 +56,7 @@ def _run(args: argparse.Namespace) -> dict | list:
     if not args.task:
         raise ValueError(f"{args.action} needs a task id")
     if args.action == "add":
-        return _tasks.add(repo, args.task, args.title)
+        return _tasks.add(repo, args.task, args.title, loop=args.loop)
     if not args.holder:
         raise ValueError(f"{args.action} needs --holder")
     if args.action == "claim":

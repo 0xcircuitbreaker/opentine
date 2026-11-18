@@ -27,6 +27,8 @@ from opentine._cli_common import BRAND, _terminal, console
 from opentine._cli_errors import error
 from opentine._cli_keys import COMMANDS as KEYS_COMMANDS
 from opentine._cli_keys import add_keys_parser
+from opentine._cli_loop import COMMANDS as LOOP_COMMANDS
+from opentine._cli_loop import add_loop_parser
 from opentine._cli_task import COMMANDS as TASK_COMMANDS
 from opentine._cli_task import add_task_parser
 
@@ -49,6 +51,7 @@ def add_fleet_parser(subparsers: argparse._SubParsersAction) -> None:
     add_record_args(parser)
     add_task_parser(subparsers)
     add_keys_parser(subparsers)  # 0.58: tine keys lint
+    add_loop_parser(subparsers)  # 0.58: tine loop stop|status
 
 
 def _fail(message: object) -> SystemExit:
@@ -189,6 +192,7 @@ COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
     "fleet": cmd_fleet,
     **TASK_COMMANDS,
     **KEYS_COMMANDS,
+    **LOOP_COMMANDS,
 }
 
 __all__ = ["COMMANDS", "add_fleet_parser", "cmd_fleet"]

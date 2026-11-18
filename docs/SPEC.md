@@ -2306,6 +2306,18 @@ or `reject`), `approver` (a name), `approved_at`, and a `tine-sig/3` block
 over `opentine.merge-approval.v1:` + JCS of `{body, header}`. Reason codes
 `merge-approval.malformed|unsigned|no-key|wrong-key|bad-signature`.
 
+**Loop stop (0.58, claim convention).** `tine loop stop LOOP` writes an
+`attestation` (no new kind) whose `claim` is
+`{"convention": "opentine.loop-stop/1", "loop": LOOP, "reason": TEXT,
+"stopped_at": RFC3339}`, `signer` the `sha256:` fingerprint of the Ed25519
+key that signs it (`tine-attest/1` or `/2`), `target_id` a control run
+recording the stop or the run that prompted it. The `opentine-coord/1`
+record `coord/loops/<loop>` (`kind: "loop"`, value `{loop, status: "stopped",
+stop, signer, updated_ms}`, the attestation in `evidence_ids`) indexes it. A
+task whose value carries `loop` (a loop generation) is refused `claim` and
+`heartbeat` with code `stopped` once that record exists, whether or not the
+stop verifies (fail-safe); `done` is allowed. Verifiers read nothing new.
+
 **Merge queue.** A queue is the `opentine-coord/1` record
 `coord/merge-queue/<id>` (`kind: "merge-queue"`) owning one target ref, with
 `queue`, `target`, `gates` (an `opentine-merge-gates/1` policy or null),

@@ -1896,7 +1896,7 @@ carries no content, so nothing is recorded as a write.
 
 | Command | What it does |
 | --- | --- |
-| `tine task add ID [--title T] --repo PATH` | Creates `coord/tasks/ID` (`opentine-coord/1`) |
+| `tine task add ID [--title T] [--loop LOOP] --repo PATH` | Creates `coord/tasks/ID` (`opentine-coord/1`); 0.58: `--loop` makes it a generation of LOOP, fenced by `tine loop stop` |
 | `tine task claim ID --holder NAME [--ttl S] --repo PATH` | Takes the lease by one compare-and-swap ref move; prints the new `fencing` token |
 | `tine task heartbeat ID --holder NAME --fencing N [--ttl S]` | Extends the lease; refused (`stale`) once it expired or was re-claimed |
 | `tine task done ID --holder NAME --fencing N` | Closes the task; refused for a stale holder |
@@ -1911,7 +1911,33 @@ the ref's history is the record's audit trail. Of any number of racing
 claimants exactly one compare-and-swap wins; an expired lease is re-claimed
 with a higher fencing token. With `--json` each `task` verb prints
 `{"command": "task <verb>", "task": {...}}` (`"tasks": [...]` for `list`); a
-refused operation exits 1 with `{"error": {"code": "held|stale|done|exists|missing|contended", ...}}`.
+refused operation exits 1 with `{"error": {"code": "held|stale|done|stopped|exists|missing|contended", ...}}`.
+
+## Self-improving agent loops: key separation and the kill switch (0.58)
+
+| Command | What it does |
+| --- | --- |
+| `tine keys lint [--policy FILE] [--optimizer-key KEY]... [--strict] --repo PATH` | Checks the key-role policy `.tine/key-roles.toml`; exit 1 when the optimizer key (or a candidate signing key given with `--optimizer-key`) also holds a scorer, dataset, verdict or approver key |
+| `tine loop stop LOOP --ed25519-key-file KEY [--reason T] [--run RUN] --repo PATH` | Writes a signed stop for LOOP; every generation task of LOOP is then refused `claim` and `heartbeat` (code `stopped`) |
+| `tine loop status LOOP --repo PATH` | `running`, or `stopped` with the stop attestation, its signer and whether its signature verifies |
+
+The key-role policy names keys by `sha256:` fingerprint (or raw Ed25519 public
+key hex) under `[roles]`: `optimizer`, `scorer`, `dataset`, `verdict` and the
+optional `approver`, with `version = 1`. Findings follow owner decision D12:
+`fail:key-separation.shared` and `fail:key-roles.malformed` block;
+`advisory:key-roles.no-policy`, `advisory:key-roles.no-optimizer` and
+`advisory:key-roles.empty-role` are reported and block only with `--strict`.
+`--json` prints `tine-cli-keys-lint/1`. The same check is a library call
+(`opentine._key_roles.check_separation`) for the promotion gate to refuse a
+candidate signed by a key that holds evaluation keys.
+
+A stop is an attestation with the `opentine.loop-stop/1` claim convention
+(SPEC 4.19), indexed by the coord record `coord/loops/LOOP`. The fence reads
+that record, never a clock, so every member of a fleet is refused at once
+whatever its clock says; the generation holding a lease cannot extend it, so it
+ends within one lease period, and may still `done` its task. The first stop
+stands; a stopped loop restarts under a new loop id. `--json` prints
+`tine-cli-loop/1`. Local repositories only: `--loop` is refused with `--remote`.
 
 A sent message is delivered by the member's `tine hook capture` at its next
 turn end (the hook inherits `OPENTINE_FLEET_ID` and `OPENTINE_FLEET_MEMBER`

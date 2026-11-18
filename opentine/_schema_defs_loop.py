@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from opentine._schema_defs import BOOL, FPR, INT, STR, closed, doc, opt
+from opentine._schema_defs import BOOL, FPR, INT, STR, closed, doc, open_, opt
 
 _ROLE = {"enum": ["optimizer", "scorer", "dataset", "verdict", "approver"]}
 _FINDING = closed(["level", "code", "role", "key", "message"], {
@@ -17,6 +17,12 @@ _FINDING = closed(["level", "code", "role", "key", "message"], {
     "code": {"type": "string", "pattern": "^(fail|advisory):[a-z0-9.-]+$"},
     "role": opt(_ROLE), "key": opt(FPR), "message": STR})  # fmt: skip
 _KEYS = {"type": "array", "items": FPR}
+_LOOP = open_(["loop", "status"], {
+    "loop": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"},
+    "status": {"enum": ["running", "stopped"]},
+    "stop": {"type": "string", "pattern": "^attestation:sha256:[0-9a-f]{64}$"},
+    "signer": FPR, "updated_ms": INT,
+    "verification": {"type": "string", "pattern": "^(verified|unverified: .+)$"}})  # fmt: skip
 
 SCHEMAS: dict[str, dict[str, Any]] = {
     "tine-cli-keys-lint-1": doc("tine-cli-keys-lint-1", "tine keys lint --json",
@@ -30,9 +36,18 @@ SCHEMAS: dict[str, dict[str, Any]] = {
             "roles": {"type": "object", "additionalProperties": False, "properties": {
                 r: _KEYS for r in ("optimizer", "scorer", "dataset", "verdict", "approver")}},
             "findings": {"type": "array", "items": _FINDING}})),
+    "tine-cli-loop-1": doc("tine-cli-loop-1", "tine loop stop|status --json",
+        "A loop's state. `stopped` names the signed stop attestation (claim convention "
+        "`opentine.loop-stop/1`), its signer and whether its Ed25519 signature verifies; "
+        "a stopped loop's generations can no longer take or extend a coord lease.",
+        closed(["command", "schema", "loop"], {
+            "command": {"enum": ["loop stop", "loop status"]},
+            "schema": {"const": "tine-cli-loop/1"}, "loop": _LOOP})),
 }  # fmt: skip
 COMMAND_SCHEMAS: dict[str, str] = {
     "keys lint": "tine-cli-keys-lint-1",
+    "loop stop": "tine-cli-loop-1",
+    "loop status": "tine-cli-loop-1",
 }
 
 __all__ = ["COMMAND_SCHEMAS", "SCHEMAS"]

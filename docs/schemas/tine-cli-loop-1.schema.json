@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-loop-1.schema.json",
+  "title": "tine loop stop|status --json",
+  "description": "A loop's state. `stopped` names the signed stop attestation (claim convention `opentine.loop-stop/1`), its signer and whether its Ed25519 signature verifies; a stopped loop's generations can no longer take or extend a coord lease.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "command",
+    "schema",
+    "loop"
+  ],
+  "properties": {
+    "command": {
+      "enum": [
+        "loop stop",
+        "loop status"
+      ]
+    },
+    "schema": {
+      "const": "tine-cli-loop/1"
+    },
+    "loop": {
+      "type": "object",
+      "required": [
+        "loop",
+        "status"
+      ],
+      "properties": {
+        "loop": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+        },
+        "status": {
+          "enum": [
+            "running",
+            "stopped"
+          ]
+        },
+        "stop": {
+          "type": "string",
+          "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+        },
+        "signer": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "updated_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "verification": {
+          "type": "string",
+          "pattern": "^(verified|unverified: .+)$"
+        }
+      }
+    }
+  }
+}

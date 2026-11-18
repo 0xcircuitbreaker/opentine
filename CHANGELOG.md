@@ -43,6 +43,15 @@
   `opentine._key_roles.check_separation` is the same check for the promotion
   gate.
 
+- `tine loop stop LOOP --ed25519-key-file KEY` is the kill switch: a signed
+  attestation with the `opentine.loop-stop/1` claim convention (no new object
+  kind), indexed by `coord/loops/LOOP`. `tine task add --loop LOOP` marks a task
+  as a generation of LOOP; once stopped, its `claim` and `heartbeat` are refused
+  with code `stopped`. The fence reads the stop record, never a clock, so a
+  clock-skewed fleet is refused at once and the running generation ends within
+  one lease period. `tine loop status LOOP` reports the stop and whether it
+  verifies; `--json` prints `tine-cli-loop/1`.
+
 - **Behaviour change**, storage: auto-pack now writes the current local pack
   format. The first time it packs a version-2 repository (what `tine init`
   writes) it moves the descriptor to storage version 3, so packs at rest, and

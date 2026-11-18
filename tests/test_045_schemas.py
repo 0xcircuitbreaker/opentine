@@ -289,6 +289,11 @@ DRIVEN = (
     ),  # 0.52
     (("serve", "token", "list", "--root", "remote", "--json"), "tine-cli-serve-token-1"),
     (("keys", "lint", "--repo", "repo", "--json"), "tine-cli-keys-lint-1"),  # 0.58
+    (("loop", "status", "opt", "--repo", "repo", "--json"), "tine-cli-loop-1"),  # 0.58
+    (
+        ("loop", "stop", "opt", "--ed25519-key-file", "purge.key", "--repo", "repo", "--json"),
+        "tine-cli-loop-1",
+    ),  # 0.58
 )
 
 
