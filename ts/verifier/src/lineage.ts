@@ -29,7 +29,7 @@ const RUN = /^run:sha256:[0-9a-f]{64}$/;
 const LOOP = /^[a-z0-9][a-z0-9._-]{0,63}$/;
 
 export interface LineageFinding { code: string; variant: string; detail: string }
-/** Who may sign justifying verdicts (from .tine/key-roles.toml and the promotion policy). */
+/** Who may sign justifying verdicts (the pinned scorer role -- 0.59: only from an owner-signed trust bundle, never an unsigned .tine/key-roles.toml -- and the promotion policy). */
 export interface LineageTrust { eval_signers: string[]; optimizer: string[] }
 export interface LineageReport {
   ok: boolean; variant: string; signers: "pinned" | "unpinned"; ancestors: string[]; findings: LineageFinding[];

@@ -2321,8 +2321,8 @@ loop's namespace (`LOOP.` followed by anything) without `loop`, and adding a
 task to a stopped loop is refused. The stop is also kept by a `tine-holds/1`
 row `{"oid": STOP, "target": "loop-stop:LOOP"}` that `tine hold release`
 refuses, and the fence reads it when the coord record is gone or holds no
-stop; an unreadable holds file fences (fail closed). With a `stopper` role in
-`.tine/key-roles.toml`, a stop signed by another key still fences and is
+stop; an unreadable holds file fences (fail closed). With a pinned (0.59: owner-signed
+trust bundle) `stopper` role, a stop signed by another key still fences and is
 reported `unverified`. Verifiers read nothing new.
 
 **Promotion claim conventions (0.57).** `opentine.promotion-approval/1`
@@ -2354,13 +2354,40 @@ justifying eval absent, re-hashing to another digest or holding a verdict that
 is unsigned, does not verify, repeats an item or scores another run than
 `mutation_run`; a variant with parents and no eval). Records, decisions and
 verdicts with a duplicate JSON key are refused, not read last-wins and
-`lineage.decision-mismatch`, and, when `.tine/key-roles.toml` or a promotion
-policy pins eval signers, `lineage.signer-untrusted` (a verdict not signed by an
+`lineage.decision-mismatch`, and, when a pinned `scorer` key role (0.59) or a
+promotion policy pins eval signers, `lineage.signer-untrusted` (a verdict not signed by an
 allowed, non-optimizer eval-signer key; otherwise the output reports signers
 `unpinned`). These are CLI codes: `tine verify`, the pyz and
 the conformance vectors are unchanged, and verifiers report the claim
 `unchecked`. The Python and TS checks answer the shared fixture
 `tests/data/lineage_check.json` (docs/LINEAGE.md).
+
+**Pinned key roles (0.59).** Key roles grant powers (a `policy` key pins a
+promotion policy or the protected list, a `scorer` key pins lineage eval
+signers, a `stopper` key verifies a loop stop) only when they come from the
+`key_roles` of a trust bundle (§8.26) that opens under an owner verifier key
+pinned outside the repository (`$OPENTINE_TRUST_OWNER`, else
+`$XDG_CONFIG_HOME/opentine/trust-owner`); the bundle is
+`$OPENTINE_TRUST_BUNDLE`, else `.tine/trust-bundle.note`, and its serial MUST
+NOT be lower than the highest accepted (kept per owner in
+`$XDG_CONFIG_HOME/opentine/trust-bundle-serials.json`). A pinned owner with a
+bundle that does not open refuses (fail closed). Roles only in the unsigned
+`.tine/key-roles.toml` are *unpinned*: they may refuse (key separation) and
+grant nothing. No kind, claim or wire format changes.
+
+**Integrity taint (0.59, claim convention).** `tine integrity check RUN --key
+KEY` marks a run that tripped a `fail:` with an `attestation` (no new kind) on
+the run (`target_id`), Ed25519-signed, whose claim is
+`{"convention": "opentine.integrity.taint", "run": RUN, "codes": [CODE, ...],
+"findings_sha256": HEX, "protected_sha256": HEX | null}`. It is filed as
+`.tine/integrity/taints/<run hex>.json` and, when the run is stored, also put
+as an object and kept by a `tine-holds/1` row `{"oid": TAINT, "target":
+"integrity-taint:RUN"}` that `tine hold release` refuses. A taint counts when
+its signature verifies and its claim and target name the run, from the file or
+the hold; an unreadable holds file counts as a taint. `tine promote` refuses
+a tainted candidate (`promote.score-tainted`) and `tine lineage check|why`
+report `lineage.score-tainted` (docs/INTEGRITY.md). Verifiers report the claim
+`unchecked`.
 
 **Merge queue.** A queue is the `opentine-coord/1` record
 `coord/merge-queue/<id>` (`kind: "merge-queue"`) owning one target ref, with
@@ -3897,15 +3924,19 @@ kind or wire format:
   owner's verifier key is the signed-note `name+hash+key` form, pinned by the
   reader out of band.
 - **Payload.** `{"trust_bundle": 1, "serial", "issued_at", ["expires_at"],
-  "trust_policy", ["witness_network"], ["log_keys"], ["admission_policies"]}`
-  and no other key. `serial` is a positive integer below 2^53; times are RFC
+  "trust_policy", ["witness_network"], ["log_keys"], ["admission_policies"],
+  ["key_roles"]}` and no other key. `serial` is a positive integer below 2^53; times are RFC
   3339 with an offset, `expires_at` after `issued_at`. `trust_policy` is an
   entry of `trust-policies.json` limited to its portable fields (`pin`,
   `require_receipt`, `cert_identity`, `cert_oidc_issuer`, `require_sct`,
   `key_lifecycle`), with `pin` spelled `sha256:` + 64 lowercase hex;
   `witness_network` is an `opentine-witness-network/1` registry (§8.23);
   `log_keys` are signed-note log verifier keys; `admission_policies` maps names
-  to `opentine.admission-policy` documents (§8.17). Each part is valid exactly
+  to `opentine.admission-policy` documents (§8.17); `key_roles` (0.59) is
+  `{"version": 1, "roles": {ROLE: [FP, ...]}}`, the JSON form of
+  `.tine/key-roles.toml` with each listed role a non-empty, sorted, duplicate-free
+  list of `sha256:` fingerprints (roles `optimizer`, `scorer`, `dataset`,
+  `verdict`, `approver`, `policy`, `stopper`). Each part is valid exactly
   when its own format says so.
 - **Reading.** A reader MUST refuse a bundle that the pinned owner key did not
   sign, whose first line is not that key's name, whose payload is not

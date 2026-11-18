@@ -303,6 +303,10 @@ DRIVEN = (
         "tine-cli-lineage-1",
     ),  # 0.59
     (("lineage", "check", "sha256:" + "e" * 64, "--repo", "repo", "--json"), "tine-cli-lineage-1"),
+    (
+        ("integrity", "check", "run:sha256:" + "a" * 64, "--repo", "repo", "--json"),
+        "tine-cli-integrity-1",
+    ),  # 0.60
 )
 
 

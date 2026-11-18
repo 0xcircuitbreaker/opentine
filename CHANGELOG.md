@@ -1,5 +1,75 @@
 # Changelog
 
+## 0.59.0 — Measuring-stick integrity (2026-11-18)
+
+- `.tine/protected.toml` names the protected surfaces of a self-improving
+  agent loop (graders, tests, holdout manifests, sandbox policy, scorer code)
+  as globs with pinned sha256 digests. The list counts only when pinned by an
+  `opentine.integrity.protected/1` attestation from a `policy`-role key that is
+  not an optimizer key (0.57 key roles), so a loop cannot edit the list:
+  `tine integrity pin` writes current digests, `tine integrity sign` pins the
+  bytes.
+- `tine integrity check RUN` judges the run's tool calls (file tools and shell
+  commands) and every pinned digest and exits 1 on
+  `fail:protected-surface-modified` (a hash fact),
+  `fail:protected-list-unsigned` or `fail:protected-list-missing`.
+  `advisory:test-deleted` and `advisory:holdout-read` are reported and block
+  only with `--strict` (owner decision D12). `--json` prints the new published
+  schema `tine-cli-integrity-1`.
+- `--key` files a signed taint for a failing run, an existing attestation
+  under the claim convention `opentine.integrity.taint`.
+- `tine promote` refuses a tainted candidate, or one that trips a `fail:`
+  against the protected list at promotion time, with `promote.score-tainted`.
+- `tine lineage check` and `why` report `lineage.score-tainted` for a variant
+  whose mutation run is tainted.
+- The TS verifier has the same check (`checkProtected`); both answer the shared
+  fixture `tests/data/integrity_check.json`, outside the frozen vector family.
+  `tine verify`, the pyz, object kinds, wire formats and vectors are unchanged
+  (freeze-safe). See docs/INTEGRITY.md.
+- Advisory reward-hack detectors (`opentine._integrity_advisory`,
+  `opentine._integrity_advisory_evidence`): `advisory:test-deleted`,
+  `advisory:test-skipped-added` (pytest skip/skipif/xfail, unittest skip,
+  JS `.skip`/`.only`), `advisory:special-casing`, `advisory:visible-holdout-gap`,
+  `advisory:judge-ground-truth-disagree`, `advisory:fabricated-tool-evidence`,
+  `advisory:conftest-tampered`, `advisory:timing-fake` and
+  `advisory:env-answer-leak`. Findings print one line each and never block by
+  default (D12); only `fail:` facts block. `tine integrity check RUN --record
+  FILE` runs them over a run record next to the protected-surface check.
+- Red-team corpus `tests/data/integrity_redteam/`: 30 seeded reward hacks with a
+  manifest of their classes and 200 benign refactor runs, regenerated
+  byte-for-byte by `scripts/gen_integrity_redteam.py`. Tests require >= 27/30
+  detected and a false-positive rate <= 5% (count-based).
+- New guide docs/SELF-IMPROVING-LOOPS.md ties 0.57 promotion, 0.58 lineage and
+  0.60 integrity together. `tine verify`, the pyz, object kinds, wire formats
+  and vectors are unchanged.
+- Key roles are anchored in the owner-signed trust bundle (SPEC 8.26). A
+  bundle may carry `key_roles` (`{"version": 1, "roles": {...}}`, the JSON of
+  `.tine/key-roles.toml`); `tine trust bundle create --key-roles FILE` signs
+  existing roles (migration). Roles grant `policy`, `scorer` and `stopper`
+  powers only from a bundle whose owner key is pinned outside the repository
+  (`$OPENTINE_TRUST_OWNER` or `$XDG_CONFIG_HOME/opentine/trust-owner`; bundle
+  at `$OPENTINE_TRUST_BUNDLE` or `.tine/trust-bundle.note`); a lower serial
+  than the highest seen is refused. Roles only in the unsigned
+  `.tine/key-roles.toml` are `roles: unpinned`: they still refuse (key
+  separation), but `promote` with a `policy` role refuses
+  `promote.policy-unsigned`, lineage reports signers `unpinned`, a `stopper`
+  role verifies no stop and no policy key pins the protected list. Closes a
+  red-team finding: a loop that could write the file could add its own key as
+  a policy key. `tine keys lint` prints `roles: pinned|unpinned|absent`
+  (`--json` `pinning`); `tine-cli-trust-bundle-1` gains `key_roles`; the TS
+  `openTrustBundle` returns `keyRoles`. `.tine/trust-bundle.note` is a
+  protected control path.
+- Integrity taints are also held: `--key` stores the signed taint attestation
+  and adds a `tine hold` row `integrity-taint:RUN` that `tine hold release`
+  refuses; promote and lineage read held taints, so deleting
+  `.tine/integrity/taints/` does not launder a score (red-team finding). An
+  unreadable holds file taints (fail closed). `tine-cli-integrity-1` gains
+  `taint.hold`.
+- Detection is stated honestly in docs/INTEGRITY.md and
+  docs/SELF-IMPROVING-LOOPS.md: on a blind held-out set the advisory detectors
+  caught 2 of 13 hacks before tuning; advisories are heuristics, and the
+  `fail:` facts are the guarantee.
+
 ## 0.58.0 — Self-modification lineage (2026-11-18)
 
 - `tine lineage record --run RUN --key KEY --code-tree|--prompt|--config|--weights

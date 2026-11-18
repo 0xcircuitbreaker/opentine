@@ -21,6 +21,11 @@ A key is its ``sha256:`` fingerprint (what ``tine verify`` prints) or its raw
 Ed25519 public key as 64 hex digits. The policy is a local config file, read
 by this command and by ``promote``'s check; it is not an object kind.
 
+0.59: an unsigned file only ever *refuses* (key separation). Powers --
+``policy``, ``scorer``, ``stopper`` -- come only from roles an owner-signed
+trust bundle carries (:mod:`opentine._key_roles_pin`); a file alone is
+``roles: unpinned``.
+
 Findings follow owner decision D12: a ``fail:`` finding is a fact about keys
 and policy (the optimizer key also holds a scorer, dataset, verdict or
 approver key; a malformed policy) and blocks; an ``advisory:`` finding (a role
@@ -70,7 +75,16 @@ def parse(data: bytes) -> dict[str, list[str]]:
         document = tomllib.loads(data.decode("utf-8"))
     except (UnicodeDecodeError, tomllib.TOMLDecodeError) as exc:
         raise KeyRoleError(f"key-role policy is not TOML: {exc}") from exc
-    if set(document) - {"version", "roles"} or document.get("version") != 1:
+    return parse_doc(document)
+
+
+def parse_doc(document: Any) -> dict[str, list[str]]:
+    """``{role: [fingerprints]}`` from a parsed ``{version: 1, roles: {...}}`` document."""
+    if (
+        not isinstance(document, dict)
+        or set(document) - {"version", "roles"}
+        or document.get("version") != 1
+    ):
         raise KeyRoleError("key-role policy needs version = 1 and only a [roles] table")
     roles = document.get("roles", {})
     if not isinstance(roles, dict) or set(roles) - set(ROLES):
@@ -135,7 +149,12 @@ def check_separation(repo_path: Path, signer: str, *, policy: Path | None = None
     is named in a guarded role at all. With no policy file nothing is refused
     (an advisory, by D12).
     """
-    roles = load(policy or policy_path(repo_path))
+    if policy is not None:
+        roles = load(policy)
+    else:
+        from opentine._key_roles_pin import resolve
+
+        roles = resolve(repo_path)["roles"]
     if roles is None:
         return
     shared = blocking(lint(roles, [signer]))
@@ -144,4 +163,4 @@ def check_separation(repo_path: Path, signer: str, *, policy: Path | None = None
 
 
 __all__ = ["FILE_NAME", "KeyRoleError", "ROLES", "blocking", "check_separation", "lint", "load",
-           "normalize_key", "parse", "policy_path"]  # fmt: skip
+           "normalize_key", "parse", "parse_doc", "policy_path"]  # fmt: skip

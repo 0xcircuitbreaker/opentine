@@ -1,0 +1,227 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-integrity-1.schema.json",
+  "title": "tine integrity check|pin|sign --json",
+  "description": "Protected surfaces of a self-improving agent loop. `check` judges one run's tool calls (`touched`) and every pinned digest against the signed `.tine/protected.toml`; `findings` carry `fail:` codes (hash, signature and policy facts, which block: `ok` is false and the exit 1) and `advisory:` codes (reported, blocking only with `--strict`); `--record` adds the advisory reward-hack detectors over a run record. `taint` names the signed `opentine.integrity.taint` attestation filed with `--key`, and `hold` the object id of the same attestation held as `integrity-taint:RUN` (0.59), which `tine hold release` refuses. `pin` writes current digests into the list (`signed` false: re-sign it); `sign` pins the list's bytes with a policy-role key.",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "run",
+        "protected_sha256",
+        "touched",
+        "findings",
+        "blocking",
+        "taint"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-integrity/1"
+        },
+        "command": {
+          "const": "integrity check"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "run": {
+          "type": "string"
+        },
+        "protected_sha256": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "touched": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "op",
+              "step"
+            ],
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "op": {
+                "enum": [
+                  "write",
+                  "delete",
+                  "read"
+                ]
+              },
+              "step": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "level",
+              "code",
+              "surface",
+              "path",
+              "detail"
+            ],
+            "properties": {
+              "level": {
+                "enum": [
+                  "fail",
+                  "advisory"
+                ]
+              },
+              "code": {
+                "enum": [
+                  "fail:protected-surface-modified",
+                  "fail:protected-list-missing",
+                  "fail:protected-list-unsigned",
+                  "advisory:test-deleted",
+                  "advisory:holdout-read",
+                  "advisory:test-skipped-added",
+                  "advisory:special-casing",
+                  "advisory:visible-holdout-gap",
+                  "advisory:judge-ground-truth-disagree",
+                  "advisory:fabricated-tool-evidence",
+                  "advisory:conftest-tampered",
+                  "advisory:timing-fake",
+                  "advisory:env-answer-leak"
+                ]
+              },
+              "surface": {
+                "type": "string"
+              },
+              "path": {
+                "type": "string"
+              },
+              "detail": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "blocking": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "taint": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "path",
+                "signer",
+                "hold"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "signer": {
+                  "type": "string"
+                },
+                "hold": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "pins",
+        "list",
+        "signed"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-integrity/1"
+        },
+        "command": {
+          "const": "integrity pin"
+        },
+        "ok": {
+          "const": true
+        },
+        "pins": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "list": {
+          "type": "string"
+        },
+        "signed": {
+          "const": false
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "protected_sha256",
+        "signer",
+        "pin"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-integrity/1"
+        },
+        "command": {
+          "const": "integrity sign"
+        },
+        "ok": {
+          "const": true
+        },
+        "protected_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "signer": {
+          "type": "string"
+        },
+        "pin": {
+          "type": "string"
+        }
+      }
+    }
+  ]
+}

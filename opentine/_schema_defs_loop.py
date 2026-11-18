@@ -29,12 +29,18 @@ SCHEMAS: dict[str, dict[str, Any]] = {
         "Key separation for self-improving agent loops: the key-role policy "
         "(`.tine/key-roles.toml`) and its findings. A `fail:` finding (the optimizer key also "
         "holds a scorer, dataset, verdict or approver key; a malformed policy) blocks; an "
-        "`advisory:` finding blocks only with `--strict`. `blocking` counts what refused.",
-        closed(["command", "schema", "ok", "policy", "strict", "roles", "findings", "blocking"], {
+        "`advisory:` finding blocks only with `--strict`. `blocking` counts what refused. "
+        "`pinning` (0.59) says where the roles came from: `pinned` (an owner-signed trust "
+        "bundle whose owner key is pinned outside the repository), `unpinned` (only the "
+        "unsigned file: it may refuse, never grant) or `absent`.",
+        closed(["command", "schema", "ok", "policy", "strict", "roles", "findings", "blocking",
+                "pinning"], {
+            "pinning": {"enum": ["pinned", "unpinned", "absent"]},
             "command": {"const": "keys lint"}, "schema": {"const": "tine-cli-keys-lint/1"},
             "ok": BOOL, "policy": opt(STR), "strict": BOOL, "blocking": INT,
             "roles": {"type": "object", "additionalProperties": False, "properties": {
-                r: _KEYS for r in ("optimizer", "scorer", "dataset", "verdict", "approver")}},
+                r: _KEYS for r in ("optimizer", "scorer", "dataset", "verdict", "approver",
+                                   "policy", "stopper")}},
             "findings": {"type": "array", "items": _FINDING}})),
     "tine-cli-loop-1": doc("tine-cli-loop-1", "tine loop stop|status --json",
         "A loop's state. `stopped` names the signed stop attestation (claim convention "

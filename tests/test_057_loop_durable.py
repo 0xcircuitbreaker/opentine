@@ -16,6 +16,7 @@ from opentine.coord import _loop_stop, _tasks
 from opentine.coord._store import swap
 from opentine.coord._tasks import LeaseError
 from opentine.repository import Repo, _holds
+from tests.key_roles_helpers import isolated_trust_config, pin_roles  # noqa: F401
 
 TTL = 30.0
 T0 = 1_800_000_000_000
@@ -74,6 +75,7 @@ def test_an_unreadable_holds_file_fences_a_loop_generation(repo):
 def _roles(repo, **roles) -> None:
     lines = ["version = 1", "[roles]"] + [f"{r} = {json.dumps(k)}" for r, k in roles.items()]
     (repo.path / "key-roles.toml").write_bytes(("\n".join(lines) + "\n").encode())
+    pin_roles(repo.path)  # 0.59: roles grant only from an owner-signed trust bundle
 
 
 def test_a_stop_from_a_key_outside_the_stopper_role_fences_but_is_unverified(repo):

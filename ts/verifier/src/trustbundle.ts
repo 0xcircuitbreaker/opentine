@@ -5,7 +5,8 @@
  * is `<owner name>\n<canonical JSON payload>\n`; the payload carries only
  * existing trust documents (a trust-policy entry's portable fields, an
  * `opentine-witness-network/1` registry, signed-note log keys and
- * `opentine.admission-policy` documents). A viewer pins the owner's verifier
+ * `opentine.admission-policy` documents, and from 0.59 the `key_roles` of a
+ * `.tine/key-roles.toml`). A viewer pins the owner's verifier
  * key (`name+hash+key`) out of band, may cache the bundle by its digest, and
  * keeps the highest serial it has accepted so an older bundle cannot be
  * replayed. `openTrustBundle` refuses anything the Python reader refuses on
@@ -31,7 +32,9 @@ const TOP = new Set([
   "witness_network",
   "log_keys",
   "admission_policies",
+  "key_roles",
 ]);
+const ROLES = new Set(["optimizer", "scorer", "dataset", "verdict", "approver", "policy", "stopper"]);
 const PORTABLE = new Set(["pin", "require_receipt", "cert_identity", "cert_oidc_issuer", "require_sct", "key_lifecycle"]);
 const PIN = /^sha256:[0-9a-f]{64}$/;
 const RFC3339 = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(\.\d+)?(Z|[+-](\d{2}):(\d{2}))$/;
@@ -46,6 +49,9 @@ export interface TrustBundle {
   logKeys: string[];
   witnessNetwork: JObject | null;
   admissionPolicies: string[];
+  /** Key roles the owner signed (0.59): `{role: [fingerprint]}`, or null when the bundle names none.
+   * Only these grant `policy`/`scorer`/`stopper` powers; an unsigned `.tine/key-roles.toml` is unpinned. */
+  keyRoles: Record<string, string[]> | null;
   /** `sha256:` + hex of the bundle bytes: a cache key. */
   digest: string;
 }
@@ -126,7 +132,28 @@ function payloadOf(payload: JValue): JObject {
       if (!isObject(doc) || doc.get("kind") !== "opentine.admission-policy") bad("admission policy is not an opentine.admission-policy");
     }
   }
+  const roles = payload.get("key_roles");
+  if (roles !== undefined) keyRolesOf(roles);
   return payload;
+}
+
+function keyRolesOf(value: JValue): Record<string, string[]> {
+  const doc = isObject(value) ? value : null;
+  const roles = doc?.get("roles");
+  if (!doc || [...doc.keys()].some((k) => k !== "version" && k !== "roles") || doc.get("version") !== 1n || !isObject(roles)) {
+    bad("key_roles: key-role policy needs version = 1 and only a [roles] table");
+  }
+  const out: Record<string, string[]> = {};
+  for (const [role, keys] of roles) {
+    if (!ROLES.has(role)) bad(`key_roles: unknown key role ${role}`);
+    const list = strings(keys, `key_roles.${role}`);
+    const sorted = [...new Set(list)].sort();
+    if (list.length === 0 || list.length > 256 || list.some((k, i) => !PIN.test(k) || k !== sorted[i])) {
+      bad("key_roles must list sorted sha256: fingerprints");
+    }
+    out[role] = list;
+  }
+  return out;
 }
 
 export interface OpenOptions {
@@ -193,6 +220,7 @@ export function openTrustBundle(note: Uint8Array, ownerVkey: string, options: Op
     logKeys: strings(doc.get("log_keys"), "log_keys"),
     witnessNetwork: (doc.get("witness_network") as JObject | undefined) ?? null,
     admissionPolicies: isObject(admission) ? [...admission.keys()].sort() : [],
+    keyRoles: doc.has("key_roles") ? keyRolesOf(doc.get("key_roles") as JValue) : null,
     digest: `sha256:${createHash("sha256").update(note).digest("hex")}`,
   };
 }

@@ -17,6 +17,7 @@ from opentine import _schemas
 from opentine._lineage import LineageTooLarge, read_folder, record
 from opentine._lineage_check import check
 from opentine.repo import Repo
+from tests.key_roles_helpers import isolated_trust_config, pin_roles  # noqa: F401
 from tests.lineage_helpers import RECORDER, art, trust
 from tests.promote_helpers import AT, EVALER, RUN_A, RUN_B, fingerprint, key, make_eval, policy
 
@@ -43,6 +44,7 @@ def loop(tmp_path):
 def _roles(repo: Repo, **roles: list[str]) -> None:
     lines = ["version = 1", "[roles]"] + [f"{r} = {json.dumps(k)}" for r, k in roles.items()]
     (repo.path / "key-roles.toml").write_bytes(("\n".join(lines) + "\n").encode("utf-8"))
+    pin_roles(repo.path)  # 0.59: roles grant only from an owner-signed trust bundle
 
 
 def _check(capsys, repo: Repo, variant: str, *extra: str) -> tuple[int, dict]:

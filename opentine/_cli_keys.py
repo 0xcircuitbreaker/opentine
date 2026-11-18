@@ -4,7 +4,9 @@
 key-role policy (``.tine/key-roles.toml``, :mod:`opentine._key_roles`): exit 1
 on a ``fail:`` finding (the optimizer key also holds a scorer, dataset,
 verdict or approver key; a malformed policy); ``advisory:`` findings never
-block unless ``--strict`` (owner decision D12).
+block unless ``--strict`` (owner decision D12). It reports ``roles: pinned``
+when the roles come from an owner-signed trust bundle (0.59,
+:mod:`opentine._key_roles_pin`), else ``roles: unpinned`` (or ``absent``).
 """
 
 from __future__ import annotations
@@ -31,8 +33,9 @@ def add_keys_parser(subparsers: argparse._SubParsersAction) -> None:
     lint.add_argument("--json", action="store_true", help="Machine-readable output")
 
 
-def _policy(args: argparse.Namespace) -> tuple[Path, dict | None]:
+def _policy(args: argparse.Namespace) -> tuple[Path, dict | None, str]:
     from opentine import _key_roles
+    from opentine._key_roles_pin import BUNDLE_NAME, resolve
     from opentine.repo import Repo
 
     if args.policy:
@@ -40,16 +43,19 @@ def _policy(args: argparse.Namespace) -> tuple[Path, dict | None]:
         roles = _key_roles.load(path)
         if roles is None:
             raise FileNotFoundError(f"no key-role policy at {args.policy}")
-        return path, roles
-    path = _key_roles.policy_path(Repo.open(args.repo).path)
-    return path, _key_roles.load(path)
+        return path, roles, "unpinned"
+    store = Repo.open(args.repo).path
+    found = resolve(store)
+    name = BUNDLE_NAME if found["status"] == "pinned" else _key_roles.FILE_NAME
+    return store / name, found["roles"], found["status"]
 
 
 def cmd_keys(args: argparse.Namespace) -> None:
     from opentine import _key_roles
 
+    pinning = "absent"
     try:
-        path, roles = _policy(args)
+        path, roles, pinning = _policy(args)
         findings = _key_roles.lint(roles or {}, args.optimizer_key)
     except _key_roles.KeyRoleError as exc:
         path, roles = Path(args.policy or _key_roles.FILE_NAME), None
@@ -65,11 +71,13 @@ def cmd_keys(args: argparse.Namespace) -> None:
     if args.json:
         body = {"command": "keys lint", "schema": "tine-cli-keys-lint/1", "ok": not blocking,
                 "policy": path.as_posix() if roles is not None else None, "strict": args.strict,
-                "roles": roles or {}, "findings": findings, "blocking": len(blocking)}  # fmt: skip
+                "roles": roles or {}, "findings": findings, "blocking": len(blocking),
+                "pinning": pinning}  # fmt: skip
         sys.stdout.write(json.dumps(body, sort_keys=True) + "\n")
     else:
         for row in findings:
             console.print(_terminal(f"{row['code']}: {row['message']}"), markup=False)
+        console.print(f"roles: {pinning}", markup=False)
         console.print("key separation: " + ("refused" if blocking else "ok"), markup=False)
     if blocking:
         raise SystemExit(1)

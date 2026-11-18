@@ -138,7 +138,10 @@ def promote(key: Any, policy: dict[str, Any], candidate: str, label: str, *, sta
     from opentine._promote_pins import policy_pin
 
     pin, unsigned = policy_pin(repo_path, policy, _who(key), list(policy_attestations))
+    from opentine._integrity_run import promote_refusals
+
     refusals = unsigned + guards(repo_path, _who(key), loop, candidate) + refusals
+    refusals += promote_refusals(repo_path, candidate)
     if record["current"] == candidate:
         refusals.append(refusal("promote.already-current", f"{candidate} already holds {label}"))
     if refusals:
