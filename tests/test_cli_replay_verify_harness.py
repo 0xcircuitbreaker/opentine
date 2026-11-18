@@ -85,6 +85,11 @@ def _invoke(monkeypatch, capsys, *argv: str) -> tuple[int, str]:
 def workspace(monkeypatch, tmp_path: Path) -> Path:
     monkeypatch.setattr(cli, "RUNS_DIR", tmp_path / ".tine_runs")
     monkeypatch.chdir(tmp_path)
+    # A private temp root: the leftover-directory check must not see the
+    # tine-verify-* directories of tests running beside this one (pytest-xdist).
+    (tmp_path / "tmp").mkdir()
+    monkeypatch.setattr(tempfile, "tempdir", str(tmp_path / "tmp"))
+    monkeypatch.setenv("TMPDIR", str(tmp_path / "tmp"))
     return tmp_path
 
 
