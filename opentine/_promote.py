@@ -100,13 +100,17 @@ def _move(state: Path, record: dict[str, Any], action: str, candidate: str | Non
     _write(Path(state) / f"{record['label']}.json", record)
 
 
-def approve(key: Any, candidate: str, label: str, *, at: str | None = None) -> dict[str, Any]:
-    """A signed approval: an attestation on the candidate, claim ``promotion-approval/1``."""
+def approve(key: Any, candidate: str, label: str, *, state: Path | None = None,
+            at: str | None = None) -> dict[str, Any]:  # fmt: skip
+    """A signed approval on the candidate, bound to the label's holder and sequence."""
     from opentine.attest_signing import sign_attestation
 
     if not RUN_RE.fullmatch(candidate):
         raise ValueError("CANDIDATE must be a run:sha256: oid")
-    payload = {"claim": {"schema": APPROVAL, "candidate": candidate, "label": label},
+    record = read_state(state, label) if state is not None else {"current": None, "history": []}
+    claim = {"schema": APPROVAL, "candidate": candidate, "label": label,
+             "previous": record["current"], "sequence": len(record["history"])}  # fmt: skip
+    payload = {"claim": claim,
                "evidence_ids": [], "signer": _who(key), "target_id": candidate}  # fmt: skip
     return {**payload, "signature": sign_attestation(payload, key, algorithm="ed25519",
                                                       signed_at=at or _now())}  # fmt: skip
@@ -115,7 +119,8 @@ def approve(key: Any, candidate: str, label: str, *, at: str | None = None) -> d
 def promote(key: Any, policy: dict[str, Any], candidate: str, label: str, *, state: Path,
             out: Path, baseline: Path, evals: Path, holdout: tuple[Path, Path] | None,
             approvals: list[Path], spent: str = "0", at: str | None = None,
-            repo_path: Path | None = None, loop: str | None = None) -> dict:  # fmt: skip
+            repo_path: Path | None = None, loop: str | None = None,
+            policy_attestations: list[Path] = ()) -> dict:  # fmt: skip
     from opentine._eval_compare import attest
     from opentine.intoto import sign_statement
     from opentine.remote._vsa import build_vsa
@@ -128,15 +133,19 @@ def promote(key: Any, policy: dict[str, Any], candidate: str, label: str, *, sta
     evidence, refusals = gate(policy, candidate=candidate, label=label, current=record["current"],
                               baseline=baseline, evals=evals, holdout=holdout,
                               approval_files=approvals, spent=spent,
-                              promoter=_who(key))  # fmt: skip
+                              promoter=_who(key), sequence=len(record["history"]))  # fmt: skip
     from opentine._promote_guards import guards
+    from opentine._promote_pins import policy_pin
 
-    refusals = guards(repo_path, _who(key), loop) + refusals
+    pin, unsigned = policy_pin(repo_path, policy, _who(key), list(policy_attestations))
+    refusals = unsigned + guards(repo_path, _who(key), loop, candidate) + refusals
     if record["current"] == candidate:
         refusals.append(refusal("promote.already-current", f"{candidate} already holds {label}"))
     if refusals:
         raise PromotionRefused(refusals)
     inputs, files = [], {}
+    if pin is not None:
+        inputs.append({"uri": f"policy:{pin['signer']}", "digest": {"sha256": pin["sha256"]}})
     for name, side in evidence["evals"].items():
         inputs.append(
             {"uri": f"eval:{side['eval']}", "digest": {"sha256": side["verdicts_sha256"]}}
@@ -157,7 +166,9 @@ def promote(key: Any, policy: dict[str, Any], candidate: str, label: str, *, sta
         "action": "promote", "label": label, "candidate": candidate,
         "previous": record["current"], "vsa_sha256": _sha(vsa), "inputs": inputs,
         "stats": stats, "spent_usd": evidence["spent_usd"],
-        "budget_usd": evidence["budget_usd"], "policy_sha256": policy["sha256"]}, at)  # fmt: skip
+        "budget_usd": evidence["budget_usd"], "policy_sha256": policy["sha256"],
+        "label_policy_sha256": policy["label_policy_sha256"], "policy_attestation": pin,
+        "sequence": len(record["history"])}, at)  # fmt: skip
     _write(out / "vsa.json", vsa)
     _write(out / "decision.json", decision)
     for name, document in files.items():
@@ -169,18 +180,9 @@ def promote(key: Any, policy: dict[str, Any], candidate: str, label: str, *, sta
             "refusals": []}  # fmt: skip
 
 
-def revert(
-    key: Any,
-    policy: dict[str, Any],
-    candidate: str,
-    label: str,
-    *,
-    state: Path,
-    out: Path,
-    reason: str,
-    stats: dict | None = None,
-    at: str | None = None,
-) -> dict:
+def revert(key: Any, policy: dict[str, Any], candidate: str, label: str, *, state: Path,
+           out: Path, reason: str, stats: dict | None = None,
+           at: str | None = None) -> dict:  # fmt: skip
     """The label goes back to the holder before *candidate*; a signed decision says why."""
     at = at or _now()
     record = read_state(state, label)
@@ -202,24 +204,20 @@ def revert(
             "current": back, "out": out.as_posix(), "reason": reason, "refusals": []}  # fmt: skip
 
 
-def canary(
-    key: Any,
-    policy: dict[str, Any],
-    candidate: str,
-    label: str,
-    *,
-    state: Path,
-    out: Path,
-    baseline: Path,
-    canary_evals: Path,
-    at: str | None = None,
-) -> dict:
+def canary(key: Any, policy: dict[str, Any], candidate: str, label: str, *, state: Path,
+           out: Path, baseline: Path, canary_evals: Path,
+           at: str | None = None) -> dict:  # fmt: skip
     """Post-promotion canary: a signed, significant regression reverts the label."""
     from opentine._eval_compare import statistical
     from opentine._promote_checks import _eval
 
     refusals: list[dict[str, str]] = []
     _eval(canary_evals, policy, candidate, "canary candidate", refusals)
+    record = read_state(state, label)  # the baseline is the holder the candidate replaced
+    moved = [h for h in record["history"]
+             if h["action"] == "promote" and h["candidate"] == candidate]  # fmt: skip
+    _eval(baseline, policy, moved[-1]["previous"] if moved else None, "canary baseline", refusals,
+          avoid=candidate)  # fmt: skip
     if refusals:
         raise PromotionRefused(refusals)
     row = statistical(baseline, canary_evals, method=policy["test"], alpha=policy["alpha"],

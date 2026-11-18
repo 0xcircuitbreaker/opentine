@@ -10,6 +10,12 @@ play which part in a loop::
     dataset   = ["sha256:<fingerprint>"]   # seals and signs datasets
     verdict   = ["sha256:<fingerprint>"]   # signs promotion verdicts
     approver  = ["sha256:<fingerprint>"]   # approves promotions (optional)
+    policy    = ["sha256:<fingerprint>"]   # signs promotion policies (optional)
+    stopper   = ["sha256:<fingerprint>"]   # may stop a loop (optional)
+
+With a ``policy`` role, ``promote`` needs a signed policy
+(:mod:`opentine._promote_pins`); with a ``stopper`` role, a loop stop signed by
+any other key still fences but reports ``unverified``.
 
 A key is its ``sha256:`` fingerprint (what ``tine verify`` prints) or its raw
 Ed25519 public key as 64 hex digits. The policy is a local config file, read
@@ -31,8 +37,9 @@ from typing import Any
 
 FILE_NAME = "key-roles.toml"
 OPTIMIZER = "optimizer"
-GUARDED = ("scorer", "dataset", "verdict", "approver")
-ROLES = (OPTIMIZER, *GUARDED)
+GUARDED = ("scorer", "dataset", "verdict", "approver", "policy")
+STOPPER = "stopper"
+ROLES = (OPTIMIZER, *GUARDED, STOPPER)
 REQUIRED = ("scorer", "dataset", "verdict")
 MAX_KEYS = 256
 _FPR = re.compile(r"sha256:[0-9a-f]{64}")

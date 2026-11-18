@@ -20,8 +20,13 @@ skewed clocks is refused at once on every member; the generation already
 holding a lease cannot extend it, so it ends within one lease period by the
 holder's own clock. ``done`` stays allowed so a holder can close its work.
 The fence is fail-safe: a stop record whose signature does not verify still
-refuses (``loop_state`` reports it as ``unverified``). There is no un-stop: a
-stopped loop restarts under a new loop id.
+refuses (``loop_state`` reports it as ``unverified``), and so does one signed
+by a key outside the optional ``stopper`` role of ``.tine/key-roles.toml``.
+There is no un-stop: a stopped loop restarts under a new loop id. The stop is
+also kept by a ``tine hold`` that cannot be released
+(:mod:`opentine.coord._loop_hold`), so deleting or rewriting the coord record
+does not un-stop the loop. A task in a loop's namespace (``LOOP.*``) is fenced
+even when it was added without ``loop=``.
 """
 
 from __future__ import annotations
@@ -31,6 +36,7 @@ import time
 from datetime import UTC, datetime
 from typing import Any
 
+from opentine.coord import _loop_hold
 from opentine.coord._store import history, read, swap
 
 KIND = "loop"
@@ -72,10 +78,8 @@ def _stop_record(repo: Any, loop: str) -> tuple[str | None, dict[str, Any] | Non
     stands as the docstring above promises.
     """
     oid, value = read(repo, ref_name(loop), KIND)
-    if value is None:
-        return oid, None
-    stops = [row for row in history(repo, oid) if row.get("status") == "stopped"]
-    return oid, (stops[-1] if stops else None)
+    stops = [r for r in history(repo, oid) if r.get("status") == "stopped"] if value else []
+    return oid, (stops[-1] if stops else _loop_hold.held_stop(repo, loop))
 
 
 def stop(
@@ -95,6 +99,8 @@ def stop(
         raise ValueError(f"a stop reason is text of at most {MAX_REASON} bytes")
     oid, value = _stop_record(repo, loop)
     if value is not None:
+        if value.get("source") != "hold" and isinstance(value.get("stop"), str):
+            _loop_hold.record(repo, loop, value["stop"])  # a stop from before the hold
         return value
     moment = int(time.time() * 1000) if now is None else now
     raw = key.public_key().public_bytes_raw()
@@ -105,6 +111,7 @@ def stop(
     attestation = attest(repo, target, claim, signer=signer, key=key, algorithm="ed25519")
     new = {"loop": loop, "status": "stopped", "stop": attestation, "signer": signer,
            "updated_ms": moment}  # fmt: skip
+    _loop_hold.record(repo, loop, attestation)  # first: a lost race still leaves a stop
     if swap(repo, name, KIND, new, oid, links=[attestation]) is None:
         return stop(repo, loop, key, reason=reason, run=run, now=now)  # a racing stop
     return new
@@ -134,19 +141,30 @@ def verify_stop(repo: Any, loop: str, oid: Any) -> str:
     result = verify_attestation(payload, trust_embedded=True)
     if not result.ok or result.algorithm != "ed25519":
         return f"unverified: {result.state}"
+    return _stopper(repo, payload.get("signer"))
+
+
+def _stopper(repo: Any, signer: Any) -> str:
+    from opentine._key_roles import STOPPER, KeyRoleError, load, policy_path
+
+    try:
+        roles = load(policy_path(repo.path))
+    except KeyRoleError as exc:
+        return f"unverified: key-role policy: {exc}"
+    if roles and roles.get(STOPPER) and signer not in roles[STOPPER]:
+        return "unverified: the signer is not a stopper key"
     return "verified"
 
 
 def fence(repo: Any, task: dict[str, Any]) -> None:
     """Refuse (:class:`LoopStopped`) a lease on a generation of a stopped loop."""
-    loop = task.get("loop")
-    if not loop:
-        return
-    _, value = _stop_record(repo, loop)
-    if value is not None:
-        state = verify_stop(repo, loop, value.get("stop"))
-        raise LoopStopped(f"loop {loop} was stopped by {value.get('signer')} ({state}); "
-                          f"no further generation may take or extend a lease")  # fmt: skip
+    loops = [task["loop"]] if task.get("loop") else _loop_hold.namespace(task.get("task", ""))
+    for loop in loops:
+        _, value = _stop_record(repo, loop)
+        if value is not None:
+            state = verify_stop(repo, loop, value.get("stop"))
+            raise LoopStopped(f"loop {loop} was stopped by {value.get('signer')} ({state}); "
+                              f"no further generation may take or extend a lease")  # fmt: skip
 
 
 def loop_history(repo: Any, loop: str) -> list[dict[str, Any]]:

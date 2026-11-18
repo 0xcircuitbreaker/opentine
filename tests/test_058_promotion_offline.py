@@ -45,7 +45,7 @@ def _b64url(raw: bytes) -> str:
 
 
 def _promote_one(base: Path, pol: dict, run: str, out: Path) -> None:
-    signed = _promote.approve(key(APPROVER), run, "prod", at=AT)
+    signed = _promote.approve(key(APPROVER), run, "prod", state=base / "state", at=AT)
     (base / f"approve-{run[-1]}.json").write_bytes(json.dumps(signed).encode())
     sides = [make_eval(base / f"{n}-{run[-1]}", r, f, dataset=d) for n, r, f, d in (
         ("base", RUN_A, lambda i: i % 2 == 0, "main"), ("cand", run, lambda i: i % 10 != 0, "main"),

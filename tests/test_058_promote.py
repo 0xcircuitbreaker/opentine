@@ -60,7 +60,7 @@ class Room:
         out = self.base / f"approval-{run[-4:]}-{label}.json"
         code, row = _tine(capsys, "promote", run, "--baseline", label, "--approve", "--key",
                           (seed or self.approver).as_posix(), "--out", out.as_posix(),
-                          "--at", AT, "--json")  # fmt: skip
+                          "--state", self.state.as_posix(), "--at", AT, "--json")  # fmt: skip
         assert code == 0, row["refusals"]
         return out
 

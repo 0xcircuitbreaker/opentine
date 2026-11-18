@@ -198,7 +198,8 @@ def _cas_refusal(repo: Repo, ref: str, expected_old: str | None) -> ValueError:
 
 
 def cmd_promote(args: argparse.Namespace, console) -> None:
-    if args.baseline:  # 0.58: the signed promotion gate (opentine._cli_promote)
+    # 0.58: the signed promotion gate (opentine._cli_promote)
+    if args.baseline or getattr(args, "sign_policy", False):
         from opentine._cli_promote import cmd_signed_promote
 
         return cmd_signed_promote(args)

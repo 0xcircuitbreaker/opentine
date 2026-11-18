@@ -1923,7 +1923,8 @@ refused operation exits 1 with `{"error": {"code": "held|stale|done|stopped|exis
 
 The key-role policy names keys by `sha256:` fingerprint (or raw Ed25519 public
 key hex) under `[roles]`: `optimizer`, `scorer`, `dataset`, `verdict` and the
-optional `approver`, with `version = 1`. Findings follow owner decision D12:
+optional `approver`, `policy` (signs promotion policies) and `stopper` (may
+stop a loop), with `version = 1`. Findings follow owner decision D12:
 `fail:key-separation.shared` and `fail:key-roles.malformed` block;
 `advisory:key-roles.no-policy`, `advisory:key-roles.no-optimizer` and
 `advisory:key-roles.empty-role` are reported and block only with `--strict`.
@@ -1936,7 +1937,10 @@ A stop is an attestation with the `opentine.loop-stop/1` claim convention
 that record, never a clock, so every member of a fleet is refused at once
 whatever its clock says; the generation holding a lease cannot extend it, so it
 ends within one lease period, and may still `done` its task. The first stop
-stands; a stopped loop restarts under a new loop id. `--json` prints
+stands; a stopped loop restarts under a new loop id. The stop is also kept by
+a hold (`loop-stop:LOOP`) that `tine hold release` refuses, so deleting or
+rewriting `coord/loops/LOOP` does not un-stop the loop. A task whose id starts
+with `LOOP.` is fenced with or without `--loop`. `--json` prints
 `tine-cli-loop/1`. Local repositories only: `--loop` is refused with `--remote`.
 
 A sent message is delivered by the member's `tine hook capture` at its next

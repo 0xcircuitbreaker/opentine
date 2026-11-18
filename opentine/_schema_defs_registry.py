@@ -150,12 +150,14 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     "tine-cli-promote-1": doc("tine-cli-promote-1", "tine promote --json",
         "`tine promote TARGET --name NAME` moves a `promotions/<name>` ref (`run_id`, `ref`, "
         "`created`). With `--baseline LABEL` (0.58) it is the signed promotion gate: "
-        "`action` is `promote`, `revert`, `canary`, `approve` or `refused`; `refusals` "
+        "`action` is `promote`, `revert`, `canary`, `approve`, `sign-policy` (`--sign-policy`, "
+        "the `opentine.promotion-policy/1` attestation) or `refused`; `refusals` "
         "lists each named reason (`promote.*`); `previous` and `current` are the label's "
         "holder before and after; `stats` holds the `opentine.eval-compare/1` statistics.",
         open_(["command"], {
             "command": {"const": "promote"}, "ok": BOOL,
-            "action": {"enum": ["promote", "revert", "canary", "approve", "refused"]},
+            "action": {"enum": ["promote", "revert", "canary", "approve", "sign-policy",
+                                "refused"]},
             "label": _ID, "candidate": STR, "previous": opt(STR), "current": opt(STR),
             "out": STR, "reason": STR, "refusals": {"type": "array", "items": closed(
                 ["code", "detail"], {"code": {"type": "string", "pattern": "^promote\\.[a-z-]+$"},

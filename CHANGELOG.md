@@ -52,6 +52,25 @@
   one lease period. `tine loop status LOOP` reports the stop and whether it
   verifies; `--json` prints `tine-cli-loop/1`.
 
+- The promotion gate and the kill switch close the ways a loop could route
+  around them. With a `policy` role in `.tine/key-roles.toml`, `tine promote`
+  needs `--policy-attestation`: an `opentine.promotion-policy/1` attestation
+  (`tine promote promote.toml --sign-policy`) over the policy and its label
+  policy from a `policy` key that is not the promoting or an optimizer key
+  (`promote.policy-unsigned`). Approvals name the holder they replace and
+  the label's sequence, so a revert retires them (`promote.approval-stale`).
+  A first promotion's baseline must score one run other than the candidate,
+  and the canary checks its baseline's run and signer like the gate. The
+  candidate run's `opentine.loop` or `opentine.task` metadata names its loop,
+  so a stopped loop is refused without `--loop`.
+- A loop stop is also kept by a hold that `tine hold release` refuses; the
+  fence and `promote` read it, so deleting or rewriting `coord/loops/LOOP`
+  does not un-stop the loop. An optional `stopper` role reports a stop from
+  another key as `unverified` (it still fences). A task whose id starts with
+  `LOOP.` is fenced without `--loop`, and adding a task to a stopped loop is
+  refused. Limits: `--spent` is declared, label state is local, and there is
+  no remote loop stop.
+
 - **Behaviour change**, storage: auto-pack now writes the current local pack
   format. The first time it packs a version-2 repository (what `tine init`
   writes) it moves the descriptor to storage version 3, so packs at rest, and

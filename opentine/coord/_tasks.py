@@ -21,7 +21,9 @@ version), so downstream writes can be ordered and fenced by it.
 
 0.58: a task added with ``loop=LOOP`` is one generation of a self-improving
 agent loop; once ``tine loop stop LOOP`` recorded a signed stop, its claim and
-heartbeat are refused (``code="stopped"``, :mod:`opentine.coord._loop_stop`).
+heartbeat are refused (``code="stopped"``, :mod:`opentine.coord._loop_stop`),
+and so is adding one. A task whose id is in a loop's namespace (``LOOP.*``)
+is treated the same with or without ``loop=``.
 """
 
 from __future__ import annotations
@@ -82,6 +84,7 @@ def add(
     if loop is not None:  # 0.58: only then, so other tasks keep their bytes
         value["loop"] = _loop_stop.ref_name(loop).removeprefix(_loop_stop.PREFIX)
     name = ref_name(task)
+    _stopped(repo, value)  # no new generation of a stopped loop, --loop or its namespace
     if read(repo, name, KIND)[0] is not None or swap(repo, name, KIND, value, None) is None:
         raise LeaseError("exists", f"task {task} already exists")
     return value

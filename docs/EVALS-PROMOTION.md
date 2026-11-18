@@ -66,10 +66,12 @@ Ed25519. Its claim is:
 ## `tine promote TARGET --baseline LABEL`
 
 ```
-tine promote RUN --baseline LABEL --approve --key KEY --out APPROVAL.json
+tine promote RUN --baseline LABEL --approve --key KEY --out APPROVAL.json [--state DIR]
+tine promote promote.toml --sign-policy --key POLICY_KEY --out POLICY.json
 tine promote RUN --baseline LABEL --key KEY --policy promote.toml --out DIR \
     --baseline-evals DIR --evals DIR --holdout BASE_DIR CAND_DIR \
-    --approval APPROVAL.json --spent USD [--loop LOOP] [--state DIR] [--at TIME]
+    --approval APPROVAL.json --spent USD [--policy-attestation POLICY.json]
+    [--loop LOOP] [--state DIR] [--at TIME]
 tine promote RUN --baseline LABEL --revert --reason TEXT --key KEY --policy promote.toml --out DIR
 tine promote RUN --baseline LABEL --canary DIR --baseline-evals DIR --key KEY --policy promote.toml --out DIR
 ```
@@ -105,7 +107,7 @@ A label moves only when every check passes. Each refusal names its reason:
 | `promote.eval-invalid` | an eval folder does not verify |
 | `promote.untrusted-eval` | a verdict is signed by a key not in `eval_signers` |
 | `promote.evals-not-candidate` | the candidate's verdicts do not all score the candidate run |
-| `promote.evals-not-baseline` | the baseline's verdicts do not all score the label's current holder |
+| `promote.evals-not-baseline` | the baseline's verdicts do not all score the label's current holder; on a first promotion (no holder), they do not all score one run other than the candidate |
 | `promote.dataset-mismatch` | the two sides scored different datasets |
 | `promote.n-below-minimum` | there are fewer than `min_n` paired items |
 | `promote.ci-crosses-zero` | the bootstrap interval of the delta does not lie above 0 |
@@ -113,10 +115,12 @@ A label moves only when every check passes. Each refusal names its reason:
 | `promote.missing-holdout` | the policy requires a holdout and none was given |
 | `promote.holdout-not-held-out` | the holdout is the main dataset |
 | `promote.missing-approver` | there are fewer valid approvals than `min_approvals` from keys in `approvers`, for this run and this label; an approval signed by the promoting key or by an `eval_signers` key never counts, so a loop cannot approve itself |
+| `promote.approval-stale` | an approval for this run and label names another holder (`previous`) or label `sequence` than the label state now has: every move appends to the history, so an approval counts for one move and a revert retires it |
+| `promote.policy-unsigned` | the key-role policy names a `policy` role and no `--policy-attestation` is an `opentine.promotion-policy/1` attestation, signed by a `policy` key that is neither the promoting key nor an `optimizer` key, over this policy file and its label admission policy (both sha256) |
 | `promote.over-budget` | `--spent` is above `budget_usd` (`--spent` is required and must be a non-negative decimal) |
 | `promote.item-mismatch` | the two sides of a pair scored different item sets: n is always the full paired set, so a candidate cannot drop the items it fails |
 | `promote.key-separation` | the repository's key-role policy (`.tine/key-roles.toml`, see `tine keys lint`) lists the promoting key in a scorer, dataset, verdict or approver role; with no policy file nothing is refused |
-| `promote.loop-stopped` | `--loop LOOP` names a loop with a stop in its coord record (`tine loop stop`); `--revert` stays allowed |
+| `promote.loop-stopped` | `--loop LOOP`, or the candidate run's metadata (`opentine.loop`, or `opentine.task` naming a loop generation), names a stopped loop (`tine loop stop`: its coord record or the hold that keeps the stop); `--revert` stays allowed |
 | `promote.label-policy` | the admission policy does not cover `labels/LABEL`, or its `subjects` do not list the promoting key |
 | `promote.already-current` | the run already holds the label |
 | `promote.not-current` | the run to revert does not hold the label |
@@ -124,6 +128,33 @@ A label moves only when every check passes. Each refusal names its reason:
 The holdout must beat the baseline under the same test as the main set.
 Advisory findings never block by default (owner decision D12). Only these
 facts do: hashes, signatures and the policy.
+
+### Signing the policy
+
+The promotion policy and the label admission policy are files a
+self-improving loop may be able to edit. When `.tine/key-roles.toml` names a
+`policy` role, only a signed policy counts. A holder of a `policy` key signs
+the exact files:
+
+```
+tine promote promote.toml --sign-policy --key POLICY_KEY --out policy.json
+tine promote RUN --baseline prod ... --policy promote.toml --policy-attestation policy.json
+```
+
+The attestation covers the sha256 of `promote.toml` and of the label policy
+it names, so any edit (a raised `budget_usd`, a new approver, a wider
+`labels/*`) needs a new signature. The promoting key and `optimizer` keys
+never count, and `tine keys lint` refuses an optimizer key that also holds a
+`policy` key. The decision records the attestation (`policy_attestation`) and
+the VSA lists it as `policy:<signer>` in `inputAttestations`.
+
+### Approvals are bound to one move
+
+`--approve` reads the label state (`--state`, default `.tine/promotion/`) and
+signs the holder the candidate would replace (`previous`) and the state's
+`sequence` (the length of its history). The gate counts an approval only when
+both still match, so an approval cannot be replayed after a revert or reused
+for a second move.
 
 ### What a promotion writes
 
@@ -143,6 +174,9 @@ facts do: hashes, signatures and the policy.
 `--revert` writes only a `decision.json` with `action: "revert"` and the
 `reason`. The label goes back to the run it held before. A canary
 (`--canary DIR`) compares a trusted, signed canary eval against the baseline.
+The baseline eval is checked like the gate's: signed by an `eval_signers` key
+and scoring the run the candidate replaced (or, when it replaced none, one
+run other than the candidate).
 On a significant regression in the policy's metric, it reverts automatically
 and signs a decision with `reason: "canary-regression"` that carries the
 statistics.
@@ -154,15 +188,32 @@ It is local state, like the merge queue's, not a wire format.
 ### Claim conventions
 
 ```json
-{"schema": "opentine.promotion-approval/1", "candidate": "run:sha256:…", "label": "prod"}
+{"schema": "opentine.promotion-approval/1", "candidate": "run:sha256:…", "label": "prod",
+ "previous": "run:sha256:…" | null, "sequence": 2}
+{"schema": "opentine.promotion-policy/1", "policy_sha256": HEX, "label_policy_sha256": HEX}
 {"schema": "opentine.promotion-decision/1", "action": "promote" | "revert",
  "label": "prod", "candidate": "run:sha256:…", "previous": "run:sha256:…" | null,
  "vsa_sha256": "…", "inputs": [ … ], "stats": {"main": { … }, "holdout": { … }},
- "spent_usd": "…", "budget_usd": "…", "policy_sha256": HEX}
+ "spent_usd": "…", "budget_usd": "…", "policy_sha256": HEX,
+ "label_policy_sha256": HEX, "policy_attestation": {"signer", "sha256"} | null,
+ "sequence": 2}
 ```
+
+A policy attestation's `target_id` is `sha256:` + the policy's sha256.
 
 A revert decision carries `reason` and `stats`, and no `vsa_sha256` or
 `inputs`.
+
+### Limits
+
+- `--spent` is a declared value: the gate checks it against the cap but does
+  not measure spend.
+- Label state is local state. Approval binding and the history are as
+  trustworthy as the directory that holds them.
+- A loop is stopped in one repository; there is no remote loop stop.
+- The loop stop's hold lives in `.tine/holds`: `tine hold release` refuses it,
+  but a process that can write that file directly can remove it, as it can
+  any local file.
 
 ### Offline verification
 

@@ -21,6 +21,8 @@ def add_signed_promote_args(p: Any) -> None:
                    help="Holdout eval folders: baseline, then candidate")  # fmt: skip
     p.add_argument("--approval", action="append", default=[], metavar="FILE",
                    help="A signed approval (--approve); repeatable")  # fmt: skip
+    p.add_argument("--policy-attestation", action="append", default=[], metavar="FILE",
+                   help="A signed policy (--sign-policy), for a 'policy' role")  # fmt: skip
     p.add_argument("--spent", metavar="USD", help="Spend to check against the cap (required)")
     p.add_argument("--loop", metavar="LOOP", help="Refuse when LOOP is stopped (tine loop stop)")
     p.add_argument("--state", metavar="DIR", help="Label state (default REPO/.tine/promotion)")
@@ -28,6 +30,8 @@ def add_signed_promote_args(p: Any) -> None:
     p.add_argument("--at", metavar="TIME", help="YYYY-MM-DDTHH:MM:SSZ (default: now)")
     mode = p.add_mutually_exclusive_group()
     mode.add_argument("--approve", action="store_true", help="Sign an approval for TARGET")
+    mode.add_argument("--sign-policy", action="store_true",
+                      help="Sign TARGET, a [promote] policy file")  # fmt: skip
     mode.add_argument("--revert", action="store_true", help="Revert LABEL from TARGET")
     mode.add_argument("--canary", metavar="DIR", help="Canary eval folder; revert on regression")
     p.add_argument("--reason", default="manual", help="Why --revert (recorded, signed)")
@@ -41,18 +45,24 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
     if not args.key:
         raise ValueError("--baseline needs --key KEY")
     key = ed25519_private_from_file(args.key, signer=False)
-    if args.approve:
+    state = Path(args.state) if args.state else Path(args.repo) / promotion.STATE
+    if args.approve or args.sign_policy:
         if not args.out:
-            raise ValueError("--approve needs --out FILE")
-        document = promotion.approve(key, args.target, args.baseline, at=args.at)
+            raise ValueError("--approve and --sign-policy need --out FILE")
+        if args.sign_policy:
+            from opentine._promote_pins import sign_policy
+
+            document = sign_policy(key, load_policy(Path(args.target)), args.at or promotion._now())
+        else:
+            document = promotion.approve(key, args.target, args.baseline, state=state, at=args.at)
         Path(args.out).parent.mkdir(parents=True, exist_ok=True)
         Path(args.out).write_bytes((json.dumps(document, indent=2, sort_keys=True) + "\n").encode())
-        return {"action": "approve", "label": args.baseline, "candidate": args.target,
-                "out": args.out, "refusals": []}  # fmt: skip
+        action = "sign-policy" if args.sign_policy else "approve"
+        row = {"action": action, "candidate": args.target, "out": args.out, "refusals": []}
+        return row | ({"label": args.baseline} if args.baseline else {})
     if not (args.policy and args.out):
         raise ValueError("--policy and --out are required")
     policy = load_policy(Path(args.policy))
-    state = Path(args.state) if args.state else Path(args.repo) / promotion.STATE
     common = {"state": state, "out": Path(args.out),
               "at": args.at}  # fmt: skip
     if args.revert:
@@ -73,7 +83,8 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
                              baseline=Path(args.baseline_evals), evals=Path(args.evals),
                              holdout=holdout, approvals=[Path(a) for a in args.approval],
                              spent=args.spent, repo_path=Path(args.repo),
-                             loop=args.loop, **common)  # fmt: skip
+                             loop=args.loop, **common, policy_attestations=[
+                                 Path(a) for a in args.policy_attestation])  # fmt: skip
 
 
 def cmd_signed_promote(args: argparse.Namespace) -> None:
@@ -94,7 +105,8 @@ def cmd_signed_promote(args: argparse.Namespace) -> None:
         emit({"command": "promote", **row})
     elif row["ok"]:
         holder = row.get("current", row["candidate"])
-        console.print(f"{row['action'].upper()} {row['label']}: {holder}", markup=False)
+        label = row.get("label", "policy")
+        console.print(f"{row['action'].upper()} {label}: {holder}", markup=False)
     else:
         console.print(f"REFUSED {args.baseline} -> {args.target}", highlight=False, markup=False)
         for item in row["refusals"]:

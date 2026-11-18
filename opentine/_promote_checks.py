@@ -17,6 +17,8 @@ another run than the candidate / the label's current holder;
 over the main dataset; the holdout must beat the baseline under the same test;
 ``promote.item-mismatch`` the two sides of a pair scored different item sets (no
 cherry-picking: n is the full paired set, never a convenient subset);
+``promote.approval-stale`` approvals that name another holder, label state or
+label (each is bound to ``previous`` and ``sequence``, so a revert retires it);
 ``promote.missing-approver`` fewer valid approvals from listed approvers than required
 (approvals signed by the promoting key or by an eval signer never count);
 ``promote.over-budget`` the declared spend exceeds the cap.
@@ -78,12 +80,15 @@ def load_policy(path: Path) -> dict[str, Any]:
     if not isinstance(out.get("label_policy"), str):
         raise ValueError("label_policy names the opentine.admission-policy file for labels/*")
     target = (Path(path).parent / out["label_policy"]).resolve()
-    out["admission"] = parse_policy("promotion", target.read_bytes())
+    label_bytes = target.read_bytes()
+    out["admission"] = parse_policy("promotion", label_bytes)
+    out["label_policy_sha256"] = hashlib.sha256(label_bytes).hexdigest()
     out["sha256"] = hashlib.sha256(Path(path).read_bytes()).hexdigest()
     return out
 
 
-def _eval(folder: Path, policy: dict[str, Any], runs: str | None, side: str, out: list) -> dict:
+def _eval(folder: Path, policy: dict[str, Any], runs: str | None, side: str, out: list,
+          avoid: str | None = None) -> dict:  # fmt: skip
     from opentine._eval_run import read_verdicts, verify_eval
 
     checked = verify_eval(folder)
@@ -97,6 +102,12 @@ def _eval(folder: Path, policy: dict[str, Any], runs: str | None, side: str, out
         code = "promote.evals-not-candidate" if side.endswith("candidate") else (
             "promote.evals-not-baseline")  # fmt: skip
         out.append(refusal(code, f"{side} verdicts do not all score {runs}"))
+    scored = {row["run"] for row in rows}
+    if runs is None and avoid is not None and rows and (len(scored) != 1 or avoid in scored):
+        # A first promotion (or a canary over one): no holder to match, so the
+        # baseline must still score one run, and not the candidate itself.
+        out.append(refusal("promote.evals-not-baseline",
+                           f"{side} verdicts must score one run other than {avoid}"))  # fmt: skip
     datasets = {row["dataset"] for row in rows}
     summary = Path(folder) / "eval.json"
     sha = (
@@ -138,36 +149,10 @@ def _beats(pair: str, a: Path, b: Path, policy: dict[str, Any], out: list) -> di
     return row
 
 
-def approvals(paths: list[Path], candidate: str, label: str, policy: dict[str, Any],
-              exclude: frozenset[str] = frozenset()) -> list:  # fmt: skip
-    """Valid approvals from listed approvers; *exclude* (promoter, eval signers) never counts."""
-    from opentine._signing_pins import key_fingerprint
-    from opentine.attest_signing import verify_attestation
-
-    found: dict[str, str] = {}
-    for path in paths:
-        raw = Path(path).read_bytes()
-        doc = json.loads(raw.decode("utf-8"))
-        claim = doc.get("claim") if isinstance(doc, dict) else None
-        if not (
-            isinstance(claim, dict)
-            and claim.get("schema") == APPROVAL
-            and claim.get("candidate") == candidate
-            and claim.get("label") == label
-        ):
-            continue
-        if not verify_attestation(doc, trust_embedded=True).ok:
-            continue
-        who = key_fingerprint(bytes.fromhex(doc["signature"]["public_key"]))
-        if who in policy["approvers"] and who not in exclude and doc.get("signer") == who:
-            found[who] = hashlib.sha256(raw).hexdigest()  # the file's bytes
-    return sorted(found.items())
-
-
 def gate(policy: dict[str, Any], *, candidate: str, label: str, current: str | None,
          baseline: Path, evals: Path, holdout: tuple[Path, Path] | None,
          approval_files: list[Path], spent: str,
-         promoter: str = "") -> tuple[dict[str, Any], list]:  # fmt: skip
+         promoter: str = "", sequence: int = 0) -> tuple[dict[str, Any], list]:  # fmt: skip
     out: list[dict[str, str]] = []
     try:
         cost = Decimal(spent)
@@ -175,7 +160,7 @@ def gate(policy: dict[str, Any], *, candidate: str, label: str, current: str | N
         raise ValueError(f"--spent {spent!r} is not a decimal") from exc
     if not cost.is_finite() or cost < 0:
         raise ValueError("--spent must be a non-negative decimal")
-    sides = {"baseline": _eval(baseline, policy, current, "baseline", out),
+    sides = {"baseline": _eval(baseline, policy, current, "baseline", out, avoid=candidate),
              "candidate": _eval(evals, policy, candidate, "candidate", out)}  # fmt: skip
     if sides["baseline"]["dataset"] != sides["candidate"]["dataset"]:
         out.append(
@@ -187,7 +172,8 @@ def gate(policy: dict[str, Any], *, candidate: str, label: str, current: str | N
         if policy["require_holdout"]:
             out.append(refusal("promote.missing-holdout", "the policy requires a holdout pair"))
     else:
-        sides["holdout_baseline"] = _eval(holdout[0], policy, current, "holdout baseline", out)
+        sides["holdout_baseline"] = _eval(holdout[0], policy, current, "holdout baseline", out,
+                                          avoid=candidate)  # fmt: skip
         sides["holdout_candidate"] = _eval(holdout[1], policy, candidate, "holdout candidate", out)
         if sides["holdout_candidate"]["dataset"] == sides["candidate"]["dataset"]:
             out.append(refusal("promote.holdout-not-held-out", "the holdout is the main dataset"))
@@ -195,9 +181,15 @@ def gate(policy: dict[str, Any], *, candidate: str, label: str, current: str | N
             out.append(refusal("promote.dataset-mismatch", "the holdout sides differ"))
         elif all(s["ok"] for s in sides.values()):
             held = _beats("holdout", holdout[0], holdout[1], policy, out)
+    from opentine._promote_pins import approvals
+
     exclude = frozenset({promoter, *policy["eval_signers"]})
-    signed = approvals(approval_files, candidate, label, policy, exclude)
-    if len(signed) < policy["min_approvals"]:
+    signed, stale = approvals(approval_files, candidate, label, policy, exclude,
+                              previous=current, sequence=sequence)  # fmt: skip
+    if len(signed) < policy["min_approvals"] and stale:
+        out.append(refusal("promote.approval-stale", f"{stale} approval(s) were signed for "
+                           "another holder or label state (a revert or later move)"))  # fmt: skip
+    elif len(signed) < policy["min_approvals"]:
         out.append(
             refusal(
                 "promote.missing-approver",
@@ -215,5 +207,5 @@ def gate(policy: dict[str, Any], *, candidate: str, label: str, current: str | N
     return evidence, out
 
 
-__all__ = ["APPROVAL", "DECISION", "LABEL_RE", "RUN_RE", "approvals", "gate", "load_policy",
+__all__ = ["APPROVAL", "DECISION", "LABEL_RE", "RUN_RE", "gate", "load_policy",
            "refusal"]  # fmt: skip

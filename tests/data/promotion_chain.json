@@ -8,12 +8,12 @@
       "op": "vsa.verify",
       "value": {
         "envelope": {
-          "payload": "eyJfdHlwZSI6Imh0dHBzOi8vaW4tdG90by5pby9TdGF0ZW1lbnQvdjEiLCJwcmVkaWNhdGUiOnsiaW5wdXRBdHRlc3RhdGlvbnMiOlt7ImRpZ2VzdCI6eyJzaGEyNTYiOiI4YzdiMGYzMzBkNmNiY2VlMDg4YmFkM2M1Y2JhMTEwMTVhNTQ4MmEyZDEzN2Y0YjMyNmMyZTlkOWM5YzJiODhkIn0sInVyaSI6ImV2YWw6c2hhMjU2OjkxYzY3Mzk3NTM2NjkxOTc2NTg5ZGQzN2JlMTA4YWZhMTEwMDQ4ZWUwYzNmZTFlNTc1MjVlNjVhM2I1MDU4NTUifSx7ImRpZ2VzdCI6eyJzaGEyNTYiOiJhZmEyMDVmZDUzZjA2MjEzM2QxYjAxOWIyOTkyZGE5OWNiZjRlNTUxMzliNGUzOTE5NDMxMmU1OGNhZGQ0YTJkIn0sInVyaSI6ImV2YWw6c2hhMjU2OjkxYzY3Mzk3NTM2NjkxOTc2NTg5ZGQzN2JlMTA4YWZhMTEwMDQ4ZWUwYzNmZTFlNTc1MjVlNjVhM2I1MDU4NTUifSx7ImRpZ2VzdCI6eyJzaGEyNTYiOiIzZGQ1NTlmMWMxNDNiNTRmZWFhZjdiYzIwMWFiNzI0ZDgyN2NlZTdmYTMxZjViZTE5MzZhYjllMjU5NTYyMzk3In0sInVyaSI6ImV2YWw6c2hhMjU2OjllZTc2Njg0YzNlYzA0MzRlYmRkZDc0Y2ZmZDQxMDE3MzRkNzk2M2Q4Mzk5MzQ3NmIzNzhkY2M3NTE2NGE5NmEifSx7ImRpZ2VzdCI6eyJzaGEyNTYiOiJhMzEzNmU3MDQyN2ViYWI1MzZiNDgzMmQ0YzBhNTBkZDE1NTdmNThhMzRiZmY3NTcwZTM0OTk4ODE4NzZmYzYzIn0sInVyaSI6ImV2YWw6c2hhMjU2OjllZTc2Njg0YzNlYzA0MzRlYmRkZDc0Y2ZmZDQxMDE3MzRkNzk2M2Q4Mzk5MzQ3NmIzNzhkY2M3NTE2NGE5NmEifSx7ImRpZ2VzdCI6eyJzaGEyNTYiOiJhNGI3ODdiNjc0OGIwNmEyMzhhNzhhY2ZiMTYyNTdmM2U1NzJiOGFiZGVhOTVkZTg5Y2MwMWFjNGMxNWFkMTg3In0sInVyaSI6ImFwcHJvdmFsOnNoYTI1NjoxYmU4ZTBhNzc3OWZjOTA5NTY5NThiYTg0ZWI5ZDI2ZTMzNjRjNmNmMTEzYzAwZWM3NDc0MTM5NTdkMzQxMjI5In0seyJkaWdlc3QiOnsic2hhMjU2IjoiOTdkZTc2ZjM1YTU3MzM5NWMyYjkxMmIzNmZiODZkMDliZTk1YzY5NDMxODA2ZDVlYTVlOTAzMzY2NTQ5OGMwMSJ9LCJ1cmkiOiJjb21wYXJlOm1haW4ifSx7ImRpZ2VzdCI6eyJzaGEyNTYiOiJjYzg5ZjBlMWM2Zjc1YmY0NzAxZGQwZWIzYzFlYjhlNjg3MzJkNGRhMzRjNzAzNzRmY2JhYzRiODc4YmMxNDY1In0sInVyaSI6ImNvbXBhcmU6aG9sZG91dCJ9XSwicG9saWN5Ijp7ImRpZ2VzdCI6eyJzaGEyNTYiOiI0NzNhYTNmZjk5Nzk5OTVmMDE1NjFhNWY2NDYzZmY5NGM5ZTY1ODhlYWYxMzQ4ZmQ5NWUyMWYzNjY4NzUwY2JlIn0sInVyaSI6Im9wZW50aW5lOnRydXN0LXBvbGljeS9wcm9tb3Rpb24ifSwicmVzb3VyY2VVcmkiOiJ0aW5lOi8vcHJvbW90aW9uL2xhYmVscy9wcm9kIiwidGltZVZlcmlmaWVkIjoiMjAyNi0xMS0wMVQxMjowMDowMFoiLCJ2ZXJpZmljYXRpb25SZXN1bHQiOiJQQVNTRUQiLCJ2ZXJpZmllZExldmVscyI6WyJPUEVOVElORV9QUk9NT1RFRCJdLCJ2ZXJpZmllciI6eyJpZCI6Im9wZW50aW5lOnByb21vdGUifX0sInByZWRpY2F0ZVR5cGUiOiJodHRwczovL3Nsc2EuZGV2L3ZlcmlmaWNhdGlvbl9zdW1tYXJ5L3YxIiwic3ViamVjdCI6W3siZGlnZXN0Ijp7InNoYTI1NiI6ImJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmIifSwibmFtZSI6InJ1bjpzaGEyNTY6YmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYiJ9XX0=",
+          "payload": "eyJfdHlwZSI6Imh0dHBzOi8vaW4tdG90by5pby9TdGF0ZW1lbnQvdjEiLCJwcmVkaWNhdGUiOnsiaW5wdXRBdHRlc3RhdGlvbnMiOlt7ImRpZ2VzdCI6eyJzaGEyNTYiOiI4YzdiMGYzMzBkNmNiY2VlMDg4YmFkM2M1Y2JhMTEwMTVhNTQ4MmEyZDEzN2Y0YjMyNmMyZTlkOWM5YzJiODhkIn0sInVyaSI6ImV2YWw6c2hhMjU2OjkxYzY3Mzk3NTM2NjkxOTc2NTg5ZGQzN2JlMTA4YWZhMTEwMDQ4ZWUwYzNmZTFlNTc1MjVlNjVhM2I1MDU4NTUifSx7ImRpZ2VzdCI6eyJzaGEyNTYiOiJhZmEyMDVmZDUzZjA2MjEzM2QxYjAxOWIyOTkyZGE5OWNiZjRlNTUxMzliNGUzOTE5NDMxMmU1OGNhZGQ0YTJkIn0sInVyaSI6ImV2YWw6c2hhMjU2OjkxYzY3Mzk3NTM2NjkxOTc2NTg5ZGQzN2JlMTA4YWZhMTEwMDQ4ZWUwYzNmZTFlNTc1MjVlNjVhM2I1MDU4NTUifSx7ImRpZ2VzdCI6eyJzaGEyNTYiOiIzZGQ1NTlmMWMxNDNiNTRmZWFhZjdiYzIwMWFiNzI0ZDgyN2NlZTdmYTMxZjViZTE5MzZhYjllMjU5NTYyMzk3In0sInVyaSI6ImV2YWw6c2hhMjU2OjllZTc2Njg0YzNlYzA0MzRlYmRkZDc0Y2ZmZDQxMDE3MzRkNzk2M2Q4Mzk5MzQ3NmIzNzhkY2M3NTE2NGE5NmEifSx7ImRpZ2VzdCI6eyJzaGEyNTYiOiJhMzEzNmU3MDQyN2ViYWI1MzZiNDgzMmQ0YzBhNTBkZDE1NTdmNThhMzRiZmY3NTcwZTM0OTk4ODE4NzZmYzYzIn0sInVyaSI6ImV2YWw6c2hhMjU2OjllZTc2Njg0YzNlYzA0MzRlYmRkZDc0Y2ZmZDQxMDE3MzRkNzk2M2Q4Mzk5MzQ3NmIzNzhkY2M3NTE2NGE5NmEifSx7ImRpZ2VzdCI6eyJzaGEyNTYiOiIwNjdmMTEyZWExZDBiNGZkOGFiOTU0YWUzM2I2YTA1YmYyNGM3ZTQ2NTUzYTM4ZTE1OGM0NWVkZjRlN2QzZjFlIn0sInVyaSI6ImFwcHJvdmFsOnNoYTI1NjoxYmU4ZTBhNzc3OWZjOTA5NTY5NThiYTg0ZWI5ZDI2ZTMzNjRjNmNmMTEzYzAwZWM3NDc0MTM5NTdkMzQxMjI5In0seyJkaWdlc3QiOnsic2hhMjU2IjoiOTdkZTc2ZjM1YTU3MzM5NWMyYjkxMmIzNmZiODZkMDliZTk1YzY5NDMxODA2ZDVlYTVlOTAzMzY2NTQ5OGMwMSJ9LCJ1cmkiOiJjb21wYXJlOm1haW4ifSx7ImRpZ2VzdCI6eyJzaGEyNTYiOiJjYzg5ZjBlMWM2Zjc1YmY0NzAxZGQwZWIzYzFlYjhlNjg3MzJkNGRhMzRjNzAzNzRmY2JhYzRiODc4YmMxNDY1In0sInVyaSI6ImNvbXBhcmU6aG9sZG91dCJ9XSwicG9saWN5Ijp7ImRpZ2VzdCI6eyJzaGEyNTYiOiI0NzNhYTNmZjk5Nzk5OTVmMDE1NjFhNWY2NDYzZmY5NGM5ZTY1ODhlYWYxMzQ4ZmQ5NWUyMWYzNjY4NzUwY2JlIn0sInVyaSI6Im9wZW50aW5lOnRydXN0LXBvbGljeS9wcm9tb3Rpb24ifSwicmVzb3VyY2VVcmkiOiJ0aW5lOi8vcHJvbW90aW9uL2xhYmVscy9wcm9kIiwidGltZVZlcmlmaWVkIjoiMjAyNi0xMS0wMVQxMjowMDowMFoiLCJ2ZXJpZmljYXRpb25SZXN1bHQiOiJQQVNTRUQiLCJ2ZXJpZmllZExldmVscyI6WyJPUEVOVElORV9QUk9NT1RFRCJdLCJ2ZXJpZmllciI6eyJpZCI6Im9wZW50aW5lOnByb21vdGUifX0sInByZWRpY2F0ZVR5cGUiOiJodHRwczovL3Nsc2EuZGV2L3ZlcmlmaWNhdGlvbl9zdW1tYXJ5L3YxIiwic3ViamVjdCI6W3siZGlnZXN0Ijp7InNoYTI1NiI6ImJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmIifSwibmFtZSI6InJ1bjpzaGEyNTY6YmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYiJ9XX0=",
           "payloadType": "application/vnd.in-toto+json",
           "signatures": [
             {
               "keyid": "did:key:z6MkoH8KpHkZQyDREP8Jpy6xKHiH5bGsh3UBsstBXfeDehU5",
-              "sig": "kCKtAoBtIin54bx1MP15ZL5hklq1DNQNdc773xnRqgYEtBwmBeQj/HckkdXEbUi7WrorZ0RWHyG1OWfobqrUAA=="
+              "sig": "Occ24CMe3l6C9PStZ2kqXyefSH/wJyDGJ25JT2tsGqP3jfsaWUeOxkUtrZoseKauNWuKH/mdueZoRzGrppNCBA=="
             }
           ]
         },
@@ -66,7 +66,7 @@
             },
             {
               "digest": {
-                "sha256": "a4b787b6748b06a238a78acfb16257f3e572b8abdea95de89cc01ac4c15ad187"
+                "sha256": "067f112ea1d0b4fd8ab954ae33b6a05bf24c7e46553a38e158c45edf4e7d3f1e"
               },
               "uri": "approval:sha256:1be8e0a7779fc90956958ba84eb9d26e3364c6cf113c00ec747413957d341229"
             },
@@ -84,9 +84,12 @@
             }
           ],
           "label": "prod",
+          "label_policy_sha256": "473aa3ff9979995f01561a5f6463ff94c9e6588eaf1348fd95e21f3668750cbe",
+          "policy_attestation": null,
           "policy_sha256": "4d0c5a4670a3168c25330988336fd65301097a83fc6b7bfd116e1cbaa006ca09",
           "previous": null,
           "schema": "opentine.promotion-decision/1",
+          "sequence": 0,
           "spent_usd": "0",
           "stats": {
             "holdout": {
@@ -164,7 +167,7 @@
               "seed": 7
             }
           },
-          "vsa_sha256": "e5cc5b6211e39401a3ec0498c43c74b4dccd780410df59aefc8a7bddec21ffec"
+          "vsa_sha256": "9f14bf6b0b84ab485de975797a859bcc7235f39c2cb3b581efeee86aaa01381b"
         },
         "evidence_ids": [],
         "signature": {
@@ -173,7 +176,7 @@
           "scheme": "tine-attest/2",
           "signed_at": "2026-11-01T12:00:00Z",
           "signer": "sha256:cd8fa86afd6bf20d66d6c248647e5ecd5e778c2f78a30699d52506ce021baca8",
-          "value": "d9c6fa2254c17af3df5bf4780c913e9cd7daa85e3d16fdac7014039550600f3fcc399a322641e148391052eb986be5f82be3c0e39a9b702a37f8c696a3535501"
+          "value": "9a3818797459946dbe8e0b35d06ca4c2a1ca71b982d56548372e08805290dc7fce21f5d3ebe0b7f5df7f4ad872a87c20de2a95233d5296703c3ca736fbe96b0c"
         },
         "signer": "sha256:cd8fa86afd6bf20d66d6c248647e5ecd5e778c2f78a30699d52506ce021baca8",
         "target_id": "run:sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
@@ -321,7 +324,9 @@
         "claim": {
           "candidate": "run:sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
           "label": "prod",
-          "schema": "opentine.promotion-approval/1"
+          "previous": null,
+          "schema": "opentine.promotion-approval/1",
+          "sequence": 0
         },
         "evidence_ids": [],
         "signature": {
@@ -330,7 +335,7 @@
           "scheme": "tine-attest/2",
           "signed_at": "2026-11-01T12:00:00Z",
           "signer": "sha256:1be8e0a7779fc90956958ba84eb9d26e3364c6cf113c00ec747413957d341229",
-          "value": "1c891bc1a7f2157e6ef61d25d7462bdd72d34b2877523f9a066c5f539685fff85d3f71d842ab9d3430df9577e8d817abba816aad2282f0feeb1a052989a70a04"
+          "value": "9e59796ef7c5a2d2c2a958a141a4e8c36b149963edac5a09494f5da1880e8abafe45098d5680719dd35be6a4dc97950052d9e9e2366dda9d88fdc21a9829bc0a"
         },
         "signer": "sha256:1be8e0a7779fc90956958ba84eb9d26e3364c6cf113c00ec747413957d341229",
         "target_id": "run:sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
@@ -343,12 +348,12 @@
       "op": "vsa.verify",
       "value": {
         "envelope": {
-          "payload": "eyJfdHlwZSI6Imh0dHBzOi8vaW4tdG90by5pby9TdGF0ZW1lbnQvdjEiLCJwcmVkaWNhdGUiOnsiaW5wdXRBdHRlc3RhdGlvbnMiOlt7ImRpZ2VzdCI6eyJzaGEyNTYiOiI4YzdiMGYzMzBkNmNiY2VlMDg4YmFkM2M1Y2JhMTEwMTVhNTQ4MmEyZDEzN2Y0YjMyNmMyZTlkOWM5YzJiODhkIn0sInVyaSI6ImV2YWw6c2hhMjU2OjkxYzY3Mzk3NTM2NjkxOTc2NTg5ZGQzN2JlMTA4YWZhMTEwMDQ4ZWUwYzNmZTFlNTc1MjVlNjVhM2I1MDU4NTUifSx7ImRpZ2VzdCI6eyJzaGEyNTYiOiIyM2MxMTM4ZDliOGUwNTU0YjA2ZTM4MzY2MWE2MjNlNjM2ZDFjNjRhMzE4MTFlMDA5NGY5ZDJlODBhZDRkNDRkIn0sInVyaSI6ImV2YWw6c2hhMjU2OjkxYzY3Mzk3NTM2NjkxOTc2NTg5ZGQzN2JlMTA4YWZhMTEwMDQ4ZWUwYzNmZTFlNTc1MjVlNjVhM2I1MDU4NTUifSx7ImRpZ2VzdCI6eyJzaGEyNTYiOiIzZGQ1NTlmMWMxNDNiNTRmZWFhZjdiYzIwMWFiNzI0ZDgyN2NlZTdmYTMxZjViZTE5MzZhYjllMjU5NTYyMzk3In0sInVyaSI6ImV2YWw6c2hhMjU2OjllZTc2Njg0YzNlYzA0MzRlYmRkZDc0Y2ZmZDQxMDE3MzRkNzk2M2Q4Mzk5MzQ3NmIzNzhkY2M3NTE2NGE5NmEifSx7ImRpZ2VzdCI6eyJzaGEyNTYiOiJjOTIyYjcxNDMxYTI2OGQ4MmRhZTVjNTMzOTdlMzEzYWI2NWI4MTRiOTAwZDU4NTI4ZTc0MTQwZmRlMDY4NTJmIn0sInVyaSI6ImV2YWw6c2hhMjU2OjllZTc2Njg0YzNlYzA0MzRlYmRkZDc0Y2ZmZDQxMDE3MzRkNzk2M2Q4Mzk5MzQ3NmIzNzhkY2M3NTE2NGE5NmEifSx7ImRpZ2VzdCI6eyJzaGEyNTYiOiIzOGNlNzFlYjgzNTA0OTIyNDZiOWU5YmZmNmI0OGZjZjBkN2RlMDZiNzNkYTZhOTU5ZDAwN2FlY2YxYzQ5MmUyIn0sInVyaSI6ImFwcHJvdmFsOnNoYTI1NjoxYmU4ZTBhNzc3OWZjOTA5NTY5NThiYTg0ZWI5ZDI2ZTMzNjRjNmNmMTEzYzAwZWM3NDc0MTM5NTdkMzQxMjI5In0seyJkaWdlc3QiOnsic2hhMjU2IjoiOTdkZTc2ZjM1YTU3MzM5NWMyYjkxMmIzNmZiODZkMDliZTk1YzY5NDMxODA2ZDVlYTVlOTAzMzY2NTQ5OGMwMSJ9LCJ1cmkiOiJjb21wYXJlOm1haW4ifSx7ImRpZ2VzdCI6eyJzaGEyNTYiOiJjYzg5ZjBlMWM2Zjc1YmY0NzAxZGQwZWIzYzFlYjhlNjg3MzJkNGRhMzRjNzAzNzRmY2JhYzRiODc4YmMxNDY1In0sInVyaSI6ImNvbXBhcmU6aG9sZG91dCJ9XSwicG9saWN5Ijp7ImRpZ2VzdCI6eyJzaGEyNTYiOiI0NzNhYTNmZjk5Nzk5OTVmMDE1NjFhNWY2NDYzZmY5NGM5ZTY1ODhlYWYxMzQ4ZmQ5NWUyMWYzNjY4NzUwY2JlIn0sInVyaSI6Im9wZW50aW5lOnRydXN0LXBvbGljeS9wcm9tb3Rpb24ifSwicmVzb3VyY2VVcmkiOiJ0aW5lOi8vcHJvbW90aW9uL2xhYmVscy9wcm9kIiwidGltZVZlcmlmaWVkIjoiMjAyNi0xMS0wMVQxMjowMDowMFoiLCJ2ZXJpZmljYXRpb25SZXN1bHQiOiJQQVNTRUQiLCJ2ZXJpZmllZExldmVscyI6WyJPUEVOVElORV9QUk9NT1RFRCJdLCJ2ZXJpZmllciI6eyJpZCI6Im9wZW50aW5lOnByb21vdGUifX0sInByZWRpY2F0ZVR5cGUiOiJodHRwczovL3Nsc2EuZGV2L3ZlcmlmaWNhdGlvbl9zdW1tYXJ5L3YxIiwic3ViamVjdCI6W3siZGlnZXN0Ijp7InNoYTI1NiI6ImNjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2MifSwibmFtZSI6InJ1bjpzaGEyNTY6Y2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjYyJ9XX0=",
+          "payload": "eyJfdHlwZSI6Imh0dHBzOi8vaW4tdG90by5pby9TdGF0ZW1lbnQvdjEiLCJwcmVkaWNhdGUiOnsiaW5wdXRBdHRlc3RhdGlvbnMiOlt7ImRpZ2VzdCI6eyJzaGEyNTYiOiI4YzdiMGYzMzBkNmNiY2VlMDg4YmFkM2M1Y2JhMTEwMTVhNTQ4MmEyZDEzN2Y0YjMyNmMyZTlkOWM5YzJiODhkIn0sInVyaSI6ImV2YWw6c2hhMjU2OjkxYzY3Mzk3NTM2NjkxOTc2NTg5ZGQzN2JlMTA4YWZhMTEwMDQ4ZWUwYzNmZTFlNTc1MjVlNjVhM2I1MDU4NTUifSx7ImRpZ2VzdCI6eyJzaGEyNTYiOiIyM2MxMTM4ZDliOGUwNTU0YjA2ZTM4MzY2MWE2MjNlNjM2ZDFjNjRhMzE4MTFlMDA5NGY5ZDJlODBhZDRkNDRkIn0sInVyaSI6ImV2YWw6c2hhMjU2OjkxYzY3Mzk3NTM2NjkxOTc2NTg5ZGQzN2JlMTA4YWZhMTEwMDQ4ZWUwYzNmZTFlNTc1MjVlNjVhM2I1MDU4NTUifSx7ImRpZ2VzdCI6eyJzaGEyNTYiOiIzZGQ1NTlmMWMxNDNiNTRmZWFhZjdiYzIwMWFiNzI0ZDgyN2NlZTdmYTMxZjViZTE5MzZhYjllMjU5NTYyMzk3In0sInVyaSI6ImV2YWw6c2hhMjU2OjllZTc2Njg0YzNlYzA0MzRlYmRkZDc0Y2ZmZDQxMDE3MzRkNzk2M2Q4Mzk5MzQ3NmIzNzhkY2M3NTE2NGE5NmEifSx7ImRpZ2VzdCI6eyJzaGEyNTYiOiJjOTIyYjcxNDMxYTI2OGQ4MmRhZTVjNTMzOTdlMzEzYWI2NWI4MTRiOTAwZDU4NTI4ZTc0MTQwZmRlMDY4NTJmIn0sInVyaSI6ImV2YWw6c2hhMjU2OjllZTc2Njg0YzNlYzA0MzRlYmRkZDc0Y2ZmZDQxMDE3MzRkNzk2M2Q4Mzk5MzQ3NmIzNzhkY2M3NTE2NGE5NmEifSx7ImRpZ2VzdCI6eyJzaGEyNTYiOiIyNDQ1NDM0MzQxMTFkOTk3YThhMTliNTQwZjZhNmM2ZDRhMGJkNGFjYTZhMzViZjYyNWM1ZDVlNWE2YjQ3ZWI2In0sInVyaSI6ImFwcHJvdmFsOnNoYTI1NjoxYmU4ZTBhNzc3OWZjOTA5NTY5NThiYTg0ZWI5ZDI2ZTMzNjRjNmNmMTEzYzAwZWM3NDc0MTM5NTdkMzQxMjI5In0seyJkaWdlc3QiOnsic2hhMjU2IjoiOTdkZTc2ZjM1YTU3MzM5NWMyYjkxMmIzNmZiODZkMDliZTk1YzY5NDMxODA2ZDVlYTVlOTAzMzY2NTQ5OGMwMSJ9LCJ1cmkiOiJjb21wYXJlOm1haW4ifSx7ImRpZ2VzdCI6eyJzaGEyNTYiOiJjYzg5ZjBlMWM2Zjc1YmY0NzAxZGQwZWIzYzFlYjhlNjg3MzJkNGRhMzRjNzAzNzRmY2JhYzRiODc4YmMxNDY1In0sInVyaSI6ImNvbXBhcmU6aG9sZG91dCJ9XSwicG9saWN5Ijp7ImRpZ2VzdCI6eyJzaGEyNTYiOiI0NzNhYTNmZjk5Nzk5OTVmMDE1NjFhNWY2NDYzZmY5NGM5ZTY1ODhlYWYxMzQ4ZmQ5NWUyMWYzNjY4NzUwY2JlIn0sInVyaSI6Im9wZW50aW5lOnRydXN0LXBvbGljeS9wcm9tb3Rpb24ifSwicmVzb3VyY2VVcmkiOiJ0aW5lOi8vcHJvbW90aW9uL2xhYmVscy9wcm9kIiwidGltZVZlcmlmaWVkIjoiMjAyNi0xMS0wMVQxMjowMDowMFoiLCJ2ZXJpZmljYXRpb25SZXN1bHQiOiJQQVNTRUQiLCJ2ZXJpZmllZExldmVscyI6WyJPUEVOVElORV9QUk9NT1RFRCJdLCJ2ZXJpZmllciI6eyJpZCI6Im9wZW50aW5lOnByb21vdGUifX0sInByZWRpY2F0ZVR5cGUiOiJodHRwczovL3Nsc2EuZGV2L3ZlcmlmaWNhdGlvbl9zdW1tYXJ5L3YxIiwic3ViamVjdCI6W3siZGlnZXN0Ijp7InNoYTI1NiI6ImNjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2MifSwibmFtZSI6InJ1bjpzaGEyNTY6Y2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjYyJ9XX0=",
           "payloadType": "application/vnd.in-toto+json",
           "signatures": [
             {
               "keyid": "did:key:z6MkoH8KpHkZQyDREP8Jpy6xKHiH5bGsh3UBsstBXfeDehU5",
-              "sig": "WDcdHOXSVlefwFY+XRIbgp8srEjLFnwJ2zqJeWFXb5w9fyV6ux1DDvRdI9oBy61+b9FMznHqzbEOGakuvOKFCw=="
+              "sig": "wv1I6h1JTAROaddgCyXdh6jbBa9Ja7Myv7jL6MSpWRHmB7jqiPmkAMdQlBRRkWuAg8k58siWUSvNQkqmmMt8AQ=="
             }
           ]
         },
@@ -401,7 +406,7 @@
             },
             {
               "digest": {
-                "sha256": "38ce71eb8350492246b9e9bff6b48fcf0d7de06b73da6a959d007aecf1c492e2"
+                "sha256": "244543434111d997a8a19b540f6a6c6d4a0bd4aca6a35bf625c5d5e5a6b47eb6"
               },
               "uri": "approval:sha256:1be8e0a7779fc90956958ba84eb9d26e3364c6cf113c00ec747413957d341229"
             },
@@ -419,9 +424,12 @@
             }
           ],
           "label": "prod",
+          "label_policy_sha256": "473aa3ff9979995f01561a5f6463ff94c9e6588eaf1348fd95e21f3668750cbe",
+          "policy_attestation": null,
           "policy_sha256": "4d0c5a4670a3168c25330988336fd65301097a83fc6b7bfd116e1cbaa006ca09",
           "previous": null,
           "schema": "opentine.promotion-decision/1",
+          "sequence": 2,
           "spent_usd": "0",
           "stats": {
             "holdout": {
@@ -499,7 +507,7 @@
               "seed": 7
             }
           },
-          "vsa_sha256": "f9d3d45bef3e7ede240d8ef6ef0583364813c913449f906ba895008f8c69bc71"
+          "vsa_sha256": "ca98c50951551233daef5f383c91e3e17fe3b4e424769756f238a8c77d6036eb"
         },
         "evidence_ids": [],
         "signature": {
@@ -508,7 +516,7 @@
           "scheme": "tine-attest/2",
           "signed_at": "2026-11-01T12:00:00Z",
           "signer": "sha256:cd8fa86afd6bf20d66d6c248647e5ecd5e778c2f78a30699d52506ce021baca8",
-          "value": "6ab9718eaa1a5d4e5be73b2c7089cf4bb24a15c724c0fe633b9de0b34f8bae2eb2b74635029cdcc45a711804ed9755de7343ec8b84df99162185cebee13db807"
+          "value": "9d9aeb185f5df01a728cd2c07e2852056cea119796d5b7cf31b55dcbc2dd4adc70db5df1cd340f6be98b24a31ed480eafd50054750bc76cd2cc0f6ed86fcb309"
         },
         "signer": "sha256:cd8fa86afd6bf20d66d6c248647e5ecd5e778c2f78a30699d52506ce021baca8",
         "target_id": "run:sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
@@ -656,7 +664,9 @@
         "claim": {
           "candidate": "run:sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
           "label": "prod",
-          "schema": "opentine.promotion-approval/1"
+          "previous": null,
+          "schema": "opentine.promotion-approval/1",
+          "sequence": 2
         },
         "evidence_ids": [],
         "signature": {
@@ -665,7 +675,7 @@
           "scheme": "tine-attest/2",
           "signed_at": "2026-11-01T12:00:00Z",
           "signer": "sha256:1be8e0a7779fc90956958ba84eb9d26e3364c6cf113c00ec747413957d341229",
-          "value": "f8dc6f94d238380d929d96530e931a1ef6a01df947637c98b53a524c4c0585a7c646a972af6bad00ecaee0716c1233068c7883e0665084cd61ef7fb8dcff3d04"
+          "value": "4dbda4e4cba54aa25e92c48a490dd18ef255b3a826157fbc2dfaacac810528fab1c2246b837ae9e188b49df27b56306915aba41eb1416c413e3fb0419f025904"
         },
         "signer": "sha256:1be8e0a7779fc90956958ba84eb9d26e3364c6cf113c00ec747413957d341229",
         "target_id": "run:sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
