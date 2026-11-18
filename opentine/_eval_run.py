@@ -87,10 +87,12 @@ def run_eval(
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     body = "".join(lines)
-    atomic_write_text(out / VERDICTS, body)
+    atomic_write_text(out / VERDICTS, body, newline="\n")  # hashed bytes: LF on every OS
     summary = {"schema": SCHEMA, "eval": ident, **pinned, **_tally(lines),
                "verdicts_sha256": hashlib.sha256(body.encode("utf-8")).hexdigest()}  # fmt: skip
-    atomic_write_text(out / SUMMARY, json.dumps(summary, indent=2, sort_keys=True) + "\n")
+    atomic_write_text(
+        out / SUMMARY, json.dumps(summary, indent=2, sort_keys=True) + "\n", newline="\n"
+    )
     return summary
 
 

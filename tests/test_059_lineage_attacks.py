@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import sqlite3
 from contextlib import closing
+from pathlib import Path
 
 import pytest
 
@@ -103,3 +105,63 @@ def test_a_huge_ancestry_is_capped_and_marked_truncated(tmp_path):
         body = query.why(db, "n399", max_nodes=50)
     assert body["truncated"] is True and len(body["ancestors"]) == 50
     assert body["visited"]["queries"] == 3 * 50
+
+
+class _Tracked(sqlite3.Connection):
+    """A connection that remembers it is open, as Windows' file lock does."""
+
+    live: set = set()
+
+    def __init__(self, path, *args, **kwargs):
+        super().__init__(path, *args, **kwargs)
+        self.target = str(path)
+        _Tracked.live.add(self)
+
+    def close(self):
+        _Tracked.live.discard(self)
+        super().close()
+
+
+def test_why_closes_the_poisoned_index_before_replacing_it(monkeypatch, capsys, chain):
+    """Windows refuses os.replace over an open sqlite file; simulate that on any OS."""
+    import os
+
+    store, v0, v1 = chain
+    vx = put(store, 203, [v1], signed=False)
+    with closing(index.open_index(store)) as db:
+        db.execute("DELETE FROM edges WHERE child = :v1", {"v1": v1})
+        db.commit()
+    real_connect, real_replace = sqlite3.connect, os.replace
+    monkeypatch.setattr(
+        sqlite3, "connect", lambda p, *a, **k: real_connect(p, *a, factory=_Tracked, **k)
+    )
+
+    def replace(src, dst):
+        if any(os.path.samefile(c.target, dst) for c in _Tracked.live if os.path.exists(dst)):
+            raise PermissionError(f"[WinError 32] {dst} is open")
+        real_replace(src, dst)
+
+    monkeypatch.setattr(os, "replace", replace)
+    _Tracked.live.clear()
+    code, out = tine(capsys, "lineage", "why", vx, "--json", "--dir", str(store))
+    assert json.loads(out)["rebuilt"] is True and code == 1
+
+
+def test_eval_files_are_written_with_lf_on_every_os(monkeypatch, tmp_path):
+    """verdicts_sha256 hashes LF bytes; a text-mode CRLF write (Windows) would break it."""
+    from opentine import _canon
+    from tests.promote_helpers import RUN_A, make_eval
+
+    seen, real = [], _canon.atomic_write_text
+
+    def spy(path, text, **kwargs):
+        seen.append((Path(path).name, kwargs.get("newline")))
+        return real(path, text, **kwargs)
+
+    monkeypatch.setattr(_canon, "atomic_write_text", spy)
+    folder = make_eval(tmp_path / "e", RUN_A, lambda i: True, dataset="main")
+    written = dict(seen)
+    assert written["verdicts.jsonl"] == "\n" and written["eval.json"] == "\n"
+    raw = (folder / "verdicts.jsonl").read_bytes()
+    summary = json.loads((folder / "eval.json").read_bytes())
+    assert b"\r" not in raw and summary["verdicts_sha256"] == hashlib.sha256(raw).hexdigest()

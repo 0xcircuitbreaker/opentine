@@ -60,6 +60,7 @@ def _why(args: argparse.Namespace, folder: Path, files: dict[str, bytes], db: An
     try:
         out = walk(db)
     except query.IndexMismatch:
+        db.close()  # Windows cannot replace a sqlite file that is still open
         index.rebuild(folder, files)
         with closing(index.open_index(folder, refresh=False)) as fresh:
             out = {**walk(fresh), "rebuilt": True}
