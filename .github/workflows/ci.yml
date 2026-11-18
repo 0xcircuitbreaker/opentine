@@ -156,10 +156,9 @@ jobs:
       - name: Compare every case across the three implementations
         run: uv run python scripts/check_parity.py --require-ts
 
-      # 0.53: every pyz and TS refusal names its pinned reason code. The python
-      # column joins (plain --reasons) once the reference names all of its own.
+      # 0.53: every python, pyz and TS refusal names its pinned reason code.
       - name: Compare the reason code of every refusal
-        run: uv run python scripts/check_parity.py --require-ts --reasons=pyz,ts
+        run: uv run python scripts/check_parity.py --require-ts --reasons
 
   leave-service:
     # 0.50 (ROADMAP "leave the hosted service"): export a tenant from one tine serve,
