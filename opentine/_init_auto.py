@@ -156,6 +156,9 @@ def run(path: str, *, push_beside_git: bool = False, dry_run: bool = False,
                       "detail": "install one, then run `tine init --auto` again"})  # fmt: skip
     steps += _hooks(repo, names, dry_run)
     steps += wiring(repo)
+    from opentine import _init_frameworks
+
+    steps += _init_frameworks.rows(Path(path), OTLP_ENDPOINT)
     steps.append(_push(Path(path), push_beside_git, dry_run))
     failed = any(s["status"] == "refused" for s in steps)
     return {"repo": str(repo), "agents": names, "dry_run": dry_run, "steps": steps,

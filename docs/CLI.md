@@ -1999,7 +1999,11 @@ enable` does (same backups, same `tine disable` restore), then sets
 `hooks.capture`. Captured payloads are redacted when they are written, so a
 secret an agent sees never reaches an object, and the pre-push gate re-scans
 before any push. The OTLP receiver (`tine serve --otlp`) and MCP proxy
-(`tine mcp-proxy`) commands are printed, not started. Inside a git work tree it
+(`tine mcp-proxy`) commands are printed, not started. When the project's
+dependency manifests (`pyproject.toml`, `requirements.txt`, `uv.lock`,
+`poetry.lock`, `package.json`) name the Claude Agent SDK, OpenAI Agents SDK,
+LangGraph or Pydantic AI, one `framework:<name>` row prints that framework's
+OTLP recipe from docs/CAPTURE.md; nothing is imported or installed. Inside a git work tree it
 offers the run push beside git; `--push-beside-git` installs the same
 `pre-push` hook as `tine git install-hook --push`. `--dry-run` reports every
 step and writes nothing.

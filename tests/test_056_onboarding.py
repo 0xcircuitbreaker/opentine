@@ -172,3 +172,23 @@ def test_doctor_tarball_refuses_a_surviving_secret(home, monkeypatch):
     monkeypatch.setattr("opentine.redaction.redact_value", lambda value: value)
     with pytest.raises(ValueError, match="not written"):
         _doctor_tar.tarball({"detail": f"OPENAI_API_KEY={SECRET}"})
+
+
+def test_init_auto_prints_a_recipe_for_each_framework_the_project_depends_on(tmp_path, monkeypatch):
+    from opentine import _init_auto
+
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "cfg"))
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    proj = tmp_path / "proj"
+    proj.mkdir()
+    (proj / "pyproject.toml").write_bytes(
+        b'[project]\ndependencies = ["langgraph>=0.2", "pydantic-ai-slim", "openai-agents-extra"]\n'
+    )
+    result = _init_auto.run(str(proj), dry_run=True, agents=[])
+    rows = {r["step"]: r for r in result["steps"] if r["step"].startswith("framework:")}
+    assert set(rows) == {"framework:langgraph", "framework:pydantic-ai"}
+    assert all(_init_auto.OTLP_ENDPOINT in r["detail"] for r in rows.values())
+    bare = tmp_path / "bare"
+    bare.mkdir()
+    steps = _init_auto.run(str(bare), dry_run=True, agents=[])["steps"]
+    assert not [r for r in steps if r["step"].startswith("framework:")]

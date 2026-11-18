@@ -13,13 +13,14 @@
 - Framework recipes and conformance fixtures for the Claude Agent SDK, OpenAI
   Agents SDK, LangGraph and Pydantic AI over OTLP (docs/CAPTURE.md), each
   round-tripped and checked for redaction of a seeded secret in the prompt.
-
 - `tine init --auto` sets up a repository, a local encrypted signing key and
   the per-turn hooks of every agent CLI found on the machine (the same
   reversible edit as `tine enable`), turns capture on, prints the OTLP and MCP
   proxy commands, and offers the run push beside git (`--push-beside-git`
   installs the pre-push hook, gated by the pre-push redaction scan).
-  `--dry-run` writes nothing.
+  `--dry-run` writes nothing. When the project's dependency manifests name
+  one of the four framework-recipe frameworks, it also prints that
+  framework's OTLP recipe.
 - `tine doctor --bundle PATH.tar.gz` writes a redacted diagnostics tarball
   (`doctor.json`, `agents.json`, `hooks/<agent>.json`); each member is
   re-scanned and nothing is written if a credential shape survives.
