@@ -1,5 +1,62 @@
 # Changelog
 
+## 0.54.0 — CI speedup (2026-11-18)
+
+0.54 cuts the time CI takes without dropping any check. The Python suite now
+runs in parallel under pytest-xdist, Windows is split into four shards, the
+once-per-run checks run once instead of in every matrix cell, and pull
+requests get a smaller matrix while main keeps the full one. It also adds
+opt-in support for the owner's own ephemeral runners, off by default and never
+used for pull requests. No object kind, wire format, vector family, schema or
+CLI behaviour changed.
+
+### CI
+
+- New `prep` job (Lint, build and inventory): ruff check, ruff format,
+  `check_architecture.py`, `check_copy.py`, build, release inventory, twine and
+  the wheel smoke test run once per run. The test matrix needs it, so a lint
+  error fails the run in minutes. `package-os` keeps the build and release
+  inventory running on Windows and macOS.
+- The test cells run pytest only: a parallel pass
+  (`-n auto --dist loadgroup -m "not serial"`) and a serial pass
+  (`-m serial -p no:xdist`).
+- `scripts/ci_plan.py` picks the matrix. Push to main, a new nightly schedule
+  and `workflow_dispatch` get the full 3 OS x 4 Python matrix; a pull request
+  gets Ubuntu 3.11 and 3.14, Windows 3.12 and macOS 3.13; a pull request that
+  changes only `ts/`, `ide/` and prose gets one Ubuntu cell; one that changes
+  only Markdown under `docs/` or at the root skips the matrix.
+- Every Windows cell is split into four `pytest-split` shards using the
+  committed `tests/test_durations.json`, with the workspace excluded from
+  Defender scanning.
+- New `Python tests` job: one stable check name for branch protection that
+  passes when every needed job passed or the plan skipped the matrix.
+- Home runners: the Linux jobs `prep`, the Ubuntu test cells, `fuzz-otlp` and
+  `peer-compat-034` resolve to the `opentine-home` label only when the
+  repository variable `USE_HOME_RUNNERS` is the string `true` and the run is a
+  push to main or a `workflow_dispatch`. Everything else, including every
+  pull request, runs hosted. The bench gate stays on hosted `ubuntu-24.04`;
+  publish, CodeQL, Scorecard and supply-chain stay hosted.
+
+### Tests
+
+- `pytest-xdist` and `pytest-split` are dev dependencies; the `serial` marker
+  is registered for tests that cannot run beside others.
+- The replay `--verify` leftover-directory tests use a private temp root, so
+  other workers' temp directories do not count against them.
+- The four subreaper tests that kill their supervisor (which starts the
+  machine-wide hidden-process sweep) are marked `serial`.
+- `tests/test_054_ci_runner_policy.py` evaluates every `runs-on` in
+  `.github/workflows` for every pull-request event, both switch settings and
+  every matrix OS, and fails if any job can resolve to a non-hosted label. It
+  also checks that home runners are off unless the switch is set.
+- `tests/test_054_ci_plan.py` pins the matrix plan and the `prep` hoist.
+
+### Docs
+
+- `docs/CI-RUNNERS.md`: the CI layout, the runner selection rule, and the
+  home-runner setup (ARC on k3s, ephemeral just-in-time runners, the runner
+  image, read-through caches, network isolation and repository settings).
+
 ## 0.53.0 — Reason parity (2026-11-17)
 
 0.53 makes every refusal explain itself the same way in all three readers:
