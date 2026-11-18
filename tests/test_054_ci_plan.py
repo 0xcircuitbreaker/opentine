@@ -110,3 +110,11 @@ def test_the_durations_file_covers_the_suite_and_the_serial_marker_is_registered
     assert all(isinstance(v, (int, float)) and v >= 0 for v in durations.values())
     pyproject = (ROOT / "pyproject.toml").read_text("utf-8")
     assert '"serial: ' in pyproject and "pytest-xdist" in pyproject and "pytest-split" in pyproject
+
+
+def test_the_durations_file_holds_no_credential_shaped_test_ids():
+    spec = importlib.util.spec_from_file_location("scrub", ROOT / "scripts" / "scrub_durations.py")
+    scrub = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(scrub)
+    data = json.loads((ROOT / "tests" / "test_durations.json").read_text("utf-8"))
+    assert data and not [k for k in data if scrub.credential_shaped(k)]

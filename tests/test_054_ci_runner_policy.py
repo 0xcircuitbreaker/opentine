@@ -70,11 +70,10 @@ def _labels(runs_on, context) -> list[str]:
 
 
 def _resolutions(job: dict, events, refs, switches):
-    for event, ref, switch, os_name in itertools.product(
-        events, refs, switches, _matrix_oses(job)
-    ):
-        yield (event, ref, switch, os_name), _labels(
-            job["runs-on"], _context(event, ref, switch, os_name)
+    for event, ref, switch, os_name in itertools.product(events, refs, switches, _matrix_oses(job)):
+        yield (
+            (event, ref, switch, os_name),
+            _labels(job["runs-on"], _context(event, ref, switch, os_name)),
         )
 
 
@@ -139,8 +138,12 @@ def test_the_bench_gate_stays_on_hosted_ubuntu_24_04():
 
 
 def test_the_policy_check_catches_an_unguarded_expression():
-    job = {"runs-on": "${{ vars.USE_HOME_RUNNERS == 'true' && 'opentine-home' || 'ubuntu-latest' }}"}
-    labels = [lab for _c, lab in _resolutions(job, ["pull_request"], ["refs/pull/1/merge"], ["true"])]
+    job = {
+        "runs-on": "${{ vars.USE_HOME_RUNNERS == 'true' && 'opentine-home' || 'ubuntu-latest' }}"
+    }
+    labels = [
+        lab for _c, lab in _resolutions(job, ["pull_request"], ["refs/pull/1/merge"], ["true"])
+    ]
     assert ["opentine-home"] in labels
     with pytest.raises(ValueError):
         _gha_expr.evaluate("contains(github.ref, 'main')", {"github.ref": "x"})
