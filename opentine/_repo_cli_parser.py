@@ -6,6 +6,7 @@ import argparse
 
 from opentine._cli_push_preview import add_push_parser
 from opentine._cli_search_index import add_index_arguments
+from opentine._init_auto_cli import add_init_parser
 from opentine._repo_cli_keys import add_key_args
 
 
@@ -13,9 +14,7 @@ def add_repo_parsers(subparsers: argparse._SubParsersAction) -> None:
     from opentine._cli_git import add_git_parsers
 
     add_git_parsers(subparsers)
-    init = subparsers.add_parser("init", help="Initialize a v3 .tine repository")
-    init.add_argument("path", nargs="?", default=".")
-    init.add_argument("--bare", action="store_true")
+    add_init_parser(subparsers)  # 0.56: with --auto
 
     fsck = subparsers.add_parser("fsck", help="Verify every object, ref, and causal link")
     fsck.add_argument("--repo", default=".")

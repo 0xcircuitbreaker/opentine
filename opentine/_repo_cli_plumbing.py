@@ -24,6 +24,7 @@ from opentine._cli_git_sync import (
     resolve_remote,
 )
 from opentine._cli_search_index import remote_search, run_search
+from opentine._init_auto_cli import cmd_init_auto
 from opentine._repo_cli_json import (
     emit_context,
     emit_repo_diff,
@@ -45,6 +46,8 @@ from opentine.repository.store import _atomic_bytes
 
 #: A bearer token file is one line; anything larger is not a token.
 def cmd_init(args: argparse.Namespace, console) -> None:
+    if getattr(args, "auto", False):
+        return cmd_init_auto(args, console)
     repo = Repo.init(args.path, bare=args.bare)
     console.print(f"Initialized OpenTine repository in {_terminal(repo.path)}")
 
