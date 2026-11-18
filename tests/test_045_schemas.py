@@ -50,7 +50,7 @@ def room(monkeypatch, tmp_path: Path) -> Path:
     signed = next(case["report"] for case in vectors if case["id"].endswith("ed25519"))
     (tmp_path / "report.json").write_text(json.dumps(signed), encoding="utf-8")
     (tmp_path / "purge.key").write_text("ab" * 32, encoding="utf-8")  # 0.46: tine purge
-    (tmp_path / "lengths.json").write_bytes(b'{"lengths": []}\n')  # 0.61: canary-check
+    (tmp_path / "lengths.json").write_bytes(b'{"lengths": []}\n')  # 0.60: canary-check
     item = {"id": "q", "input": "1", "expected": "1", "output": "1", "run": "run:x"}  # 0.47
     (tmp_path / "repo" / "d.jsonl").write_text(json.dumps(item) + "\n", encoding="utf-8")
     (tmp_path / "evals.toml").write_text(
@@ -313,15 +313,19 @@ DRIVEN = (
         + ("1", "--max-items", "1", "--key", "purge.key", "--seal-key", "seal.key")
         + ("--repo", "repo", "--json"),
         "tine-cli-holdout-1",
-    ),  # 0.61: refused (no pinned dataset role), still a schema'd output
+    ),  # 0.60: refused (no pinned dataset role), still a schema'd output
     (
         ("dataset", "canary-add", "tine-canary 0123456789ab", "--entropy-bits", "48")
         + ("--key", "purge.key", "--repo", "repo", "--json"),
         "tine-cli-canary-1",
-    ),  # 0.61
+    ),  # 0.60
     (("integrity", "scan", "--repo", "repo", "--json"), "tine-cli-integrity-1"),
     (("dataset", "canary-list", "--repo", "repo", "--json"), "tine-cli-canary-1"),
-    (("dataset", "canary-check", "lengths.json", "--repo", "repo", "--json"), "tine-cli-canary-1"),
+    # 0.60: an unsigned lengths file is refused (canary.unsigned); test_061 validates the success.
+    (
+        ("dataset", "canary-check", "lengths.json", "--repo", "repo", "--json"),
+        "tine-cli-envelope-1",
+    ),
     (
         ("dataset", "contamination", "repo/d.jsonl", "--against", "repo/d.jsonl", "--json"),
         "tine-cli-canary-1",

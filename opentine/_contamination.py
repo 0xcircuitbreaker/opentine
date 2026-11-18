@@ -1,4 +1,4 @@
-"""``tine dataset contamination`` (0.61): holdout items found in a training corpus.
+"""``tine dataset contamination`` (0.60): holdout items found in a training corpus.
 
 Two checks, both recorded in the result so a reader can redo them:
 

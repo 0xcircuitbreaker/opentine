@@ -1,4 +1,4 @@
-"""0.61: ``tine dataset contamination``: exact oid and MinHash 5-gram near-duplicates.
+"""0.60: ``tine dataset contamination``: exact oid and MinHash 5-gram near-duplicates.
 
 A planted paraphrase leak (Jaccard >= 0.8 on word 5-grams) is detected with the
 threshold recorded; an exact copy is reported by its blob oid, also when it is

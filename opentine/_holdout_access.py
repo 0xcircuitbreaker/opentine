@@ -1,4 +1,4 @@
-"""Access records and exposure budgets for sealed holdouts (0.61).
+"""Access records and exposure budgets for sealed holdouts (0.60).
 
 ``tine dataset unseal`` writes, *before* it decrypts anything, an attestation
 whose claim follows ``opentine.holdout.access/1``::
@@ -24,53 +24,74 @@ from __future__ import annotations
 
 import hashlib
 import json
-import re
-import unicodedata
 from pathlib import Path
 from typing import Any
 
-from opentine._holdout import HoldoutError, dump, load, open_items, require_role, sign, signer
+from opentine._holdout import HoldoutError, load, open_items, require_role, sign, signer
+from opentine._holdout_hold import access_target, keep
+from opentine._holdout_touch import CONTAINMENT, norm, run_flat, run_text, touched
 
 ACCESS = "opentine.holdout.access/1"
 PURPOSES = ("eval", "other")
-CONTAINMENT = 0.8
-SHINGLE = 5
-MIN_EXACT = 16
-_WORD = re.compile(r"\w+")
-# Common Cyrillic/Greek letters that render like Latin ones (casefolded forms).
-_LOOKALIKE = str.maketrans("аеорсухіјѕԁɡοαν", "aeopcyxijsdgoav")
+
+
+def _raw_records(folder: Path, repo: Path | None, root_hex: str) -> list[bytes]:
+    """The access records in the folder and their held copies, one per distinct byte string."""
+    from opentine._holdout_hold import kept
+    from opentine.repository._holds import HOLDOUT_ACCESS, HoldError
+
+    found = {}
+    for path in sorted((Path(folder) / "access").glob("*.json")):
+        raw = path.read_bytes()
+        found[hashlib.sha256(raw).hexdigest()] = raw
+    try:
+        for _, raw in kept(repo, f"{HOLDOUT_ACCESS}{root_hex}:"):
+            found[hashlib.sha256(raw).hexdigest()] = raw
+    except HoldError as exc:  # fail closed: never count fewer records than were held
+        raise HoldoutError("holdout.holds", str(exc)) from exc
+    return [found[k] for k in sorted(found)]
+
+
+def _parse(raw: bytes) -> Any:
+    try:
+        return json.loads(raw.decode("utf-8"))
+    except ValueError:
+        return None
 
 
 def exposure(folder: Path, repo: Path | None = None) -> dict[str, Any]:
-    """``{unseals, revealed, over_budget, chain_ok, records}`` from the valid records."""
+    """``{unseals, revealed, over_budget, chain_ok, records}`` from the valid records.
+
+    The records are the union of the folder's files and their held copies
+    (:mod:`opentine._holdout_hold`), so deleting a file lowers nothing. A
+    record that is not validly signed by an allowed key is ignored; two valid
+    records that claim one sequence break the chain (fail closed).
+    """
     found = load(folder)
     require_role(repo, found["signer"], "dataset")  # a re-signed budget counts for nothing
     claim = found["claim"]
     allowed = _eval_keys(repo)
-    revealed: set[int] = set()
-    rows, previous, chain_ok, over = [], None, True, False
-    for path in sorted((Path(folder) / "access").glob("*.json")):
-        raw = path.read_bytes()
-        try:
-            doc = json.loads(raw.decode("utf-8"))
-        except ValueError:
-            chain_ok = False
-            continue
+    valid = []
+    for raw in _raw_records(folder, repo, claim["root"]):
+        doc = _parse(raw)
         rec = doc.get("claim") if isinstance(doc, dict) else None
         who = signer(doc)
-        good = (isinstance(rec, dict) and rec.get("schema") == ACCESS
+        if (isinstance(rec, dict) and rec.get("schema") == ACCESS
                 and rec.get("root") == claim["root"] and who is not None
-                and (allowed is None or who in allowed))  # fmt: skip
-        if not good:
-            continue
-        if rec.get("sequence") != len(rows) or rec.get("previous") != previous:
+                and type(rec.get("sequence")) is int
+                and (allowed is None or who in allowed)):  # fmt: skip
+            valid.append((rec["sequence"], hashlib.sha256(raw).hexdigest(), rec, who))
+    revealed: set[int] = set()
+    rows, previous, chain_ok, over = [], None, True, False
+    for sequence, sha, rec, who in sorted(valid, key=lambda v: (v[0], v[1])):
+        if sequence != len(rows) or rec.get("previous") != previous:
             chain_ok = False
-        previous = hashlib.sha256(raw).hexdigest()
+        previous = sha
         revealed |= {int(i) for i in rec.get("items", [])}
         over = over or bool(rec.get("over_budget"))
-        rows.append({"sequence": rec.get("sequence"), "run": rec.get("run"), "signer": who,
+        rows.append({"sequence": sequence, "run": rec.get("run"), "signer": who,
                      "purpose": rec.get("purpose"), "items": len(rec.get("items", [])),
-                     "sha256": previous})  # fmt: skip
+                     "sha256": sha})  # fmt: skip
     budget = claim["budget"]
     over = over or len(rows) > budget["max_unseals"] or len(revealed) > budget["max_items"]
     return {"holdout": claim["holdout"], "root": claim["root"], "unseals": len(rows),
@@ -117,9 +138,14 @@ def unseal(folder: Path, master: bytes, key: Any, *, repo: Path | None, run: str
               "sequence": state["unseals"], "previous": state["_previous"], "run": run,
               "why": why, "purpose": purpose, "items": wanted, "over_budget": over}  # fmt: skip
     path = Path(folder) / "access" / f"{state['unseals']:06d}.json"
-    if path.exists():
+    valid = {row["sha256"] for row in state["records"]}
+    if path.exists() and hashlib.sha256(path.read_bytes()).hexdigest() in valid:
         raise HoldoutError("holdout.access", f"{path} exists: a concurrent unseal")
-    data = dump(path, sign(key, record, f"sha256:{claim['root']}", at))
+    # A file there that no allowed key signed is a squatter: it is replaced, never obeyed.
+    data = _record_bytes(sign(key, record, f"sha256:{claim['root']}", at))
+    keep(repo, access_target(claim["root"], state["unseals"]), data)  # first: a lost file counts
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(data)
     items = open_items(folder, master, wanted)
     out.parent.mkdir(parents=True, exist_ok=True)
     with open(out, "w", encoding="utf-8", newline="\n") as handle:
@@ -129,6 +155,10 @@ def unseal(folder: Path, master: bytes, key: Any, *, repo: Path | None, run: str
             "items": len(items), "out": Path(out).as_posix(), "over_budget": over,
             "access": path.as_posix(), "access_sha256": hashlib.sha256(data).hexdigest(),
             "signer": who}  # fmt: skip
+
+
+def _record_bytes(document: Any) -> bytes:
+    return (json.dumps(document, indent=2, sort_keys=True) + "\n").encode("utf-8")
 
 
 def promote_refusals(folders: list[Path], repo: Path | None) -> list[dict[str, str]]:
@@ -150,95 +180,13 @@ def promote_refusals(folders: list[Path], repo: Path | None) -> list[dict[str, s
     return out
 
 
-def norm(text: str) -> str:
-    """NFKC, casefolded, lookalikes folded, only letters and digits: what a match compares."""
-    folded = unicodedata.normalize("NFKC", text).casefold().translate(_LOOKALIKE)
-    return "".join(ch for ch in folded if ch.isalnum())
-
-
-def shingles(text: str) -> set[tuple[str, ...]]:
-    folded = unicodedata.normalize("NFKC", text).casefold().translate(_LOOKALIKE)
-    words = _WORD.findall(folded)
-    return {tuple(words[i : i + SHINGLE]) for i in range(len(words) - SHINGLE + 1)}
-
-
-def item_texts(item: dict[str, Any]) -> list[str]:
-    values = [item.get("input"), item.get("expected")]
-    return [v if isinstance(v, str) else json.dumps(v, sort_keys=True)
-            for v in values if v is not None]  # fmt: skip
-
-
-def run_text(run: Any) -> str:
-    parts = [run.user_prompt or ""] if hasattr(run, "user_prompt") else []
-    for step in run.steps:
-        parts.append(json.dumps([step.inputs, step.outputs, step.error, step.tool_info],
-                                sort_keys=True, ensure_ascii=False, default=str))  # fmt: skip
-    return "\n".join(parts)
-
-
-def _strings(value: Any) -> list[str]:
-    """Leaf strings of nested dicts and lists, depth first, without recursion."""
-    out, stack = [], [value]
-    while stack:
-        item = stack.pop()
-        if isinstance(item, str):
-            out.append(item)
-        elif isinstance(item, dict):
-            stack.extend(reversed(list(item.values())))
-        elif isinstance(item, (list, tuple)):
-            stack.extend(reversed(item))
-    return out
-
-
-def run_flat(run: Any) -> str:
-    """:func:`norm` of a run's string values only, so a marker split across fields joins."""
-    parts = [run.user_prompt or ""] if hasattr(run, "user_prompt") else []
-    for step in run.steps:
-        parts += _strings([step.inputs, step.outputs, step.error, step.tool_info])
-    return norm("".join(parts))
-
-
-def touched(folder: Path, items: list[dict[str, Any]], runs: dict[str, str],
-            repo: Path | None) -> list[dict[str, str]]:  # fmt: skip
-    """``eval.holdout-touched`` refusals: *runs* maps run id to its closure's text."""
-    state = exposure(folder, repo)
-    readers = {row["run"] for row in state["records"] if row["purpose"] != "eval"}
-    out = []
-    for run, text in sorted(runs.items()):
-        if run in readers:
-            out.append(
-                {
-                    "code": "eval.holdout-touched",
-                    "run": run,
-                    "detail": "a non-eval access record unsealed holdout items for it",
-                }
-            )
-            continue
-        grams, flat = shingles(text), norm(text)
-        for item in items:
-            for value in item_texts(item):
-                key = norm(value)
-                exact = len(key) >= MIN_EXACT and key in flat
-                mine = shingles(value)
-                share = len(mine & grams) / len(mine) if mine else 0.0
-                if exact or share >= CONTAINMENT:
-                    how = "in clear" if exact else f"5-gram containment {share:.2f}"
-                    out.append({"code": "eval.holdout-touched", "run": run,
-                                "detail": f"item {item.get('id')} {how} (threshold "
-                                          f"{CONTAINMENT})"})  # fmt: skip
-                    break
-            else:
-                continue
-            break
-    return out
-
-
 __all__ = [
     "ACCESS",
     "CONTAINMENT",
     "exposure",
     "norm",
     "run_flat",
+    "run_text",
     "promote_refusals",
     "touched",
     "unseal",

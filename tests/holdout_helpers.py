@@ -1,4 +1,4 @@
-"""Shared fixtures for the 0.61 sealed-holdout tests (deterministic keys, no sleeps).
+"""Shared fixtures for the 0.60 sealed-holdout tests (deterministic keys, no sleeps).
 
 ``hold(tmp_path)`` makes a repository whose owner-pinned key roles name a
 ``dataset`` key, an ``eval`` key and an ``optimizer`` key, writes the item file
@@ -13,9 +13,10 @@ from pathlib import Path
 from opentine import _schemas, cli
 from opentine.repository import Repo
 from tests.key_roles_helpers import pin_roles
-from tests.promote_helpers import AT, fingerprint, write_key
+from tests.promote_helpers import AT, fingerprint, key, write_key
 
 DATASET, EVAL, OPTIMIZER = "1d" * 32, "2e" * 32, "3f" * 32
+SCORER = "4c" * 32  # 0.60: signs canary code lengths
 ITEMS = [{"id": f"h-{i:02d}", "input": f"holdout question number {i} about the quiet violet "
           f"lighthouse keeper {i}", "expected": f"sealed answer {i} zebra quartz"}
          for i in range(6)]  # fmt: skip
@@ -40,7 +41,8 @@ class Hold:
         self.root = base / "repo"
         self.repo = Repo.init(self.root)
         roles = {"dataset": [fingerprint(DATASET)], "eval": [fingerprint(EVAL)],
-                 "optimizer": [fingerprint(OPTIMIZER)]}  # fmt: skip
+                 "optimizer": [fingerprint(OPTIMIZER)],
+                 "scorer": [fingerprint(SCORER)]}  # fmt: skip
         lines = ["version = 1", "[roles]"] + [f"{r} = {json.dumps(k)}" for r, k in roles.items()]
         (self.repo.path / "key-roles.toml").write_bytes(("\n".join(lines) + "\n").encode())
         pin_roles(self.repo.path)
@@ -70,8 +72,28 @@ class Hold:
                     self.root.as_posix(), "--at", AT, "--json", *extra)  # fmt: skip
 
 
+def lengths_file(path: Path, scores: dict, *, run: str = "run-score", seed: str = SCORER,
+                 model: str | None = None) -> str:  # fmt: skip
+    """A scorer's signed code-lengths file (0.60: canary-check refuses an unsigned one)."""
+    from opentine._canary_check import sign_lengths
+
+    document = sign_lengths(key(seed), run, scores, model, AT)
+    path.write_bytes(json.dumps(document, sort_keys=True).encode("utf-8"))
+    return path.as_posix()
+
+
 def codes(row: dict) -> set[str]:
     return {item["code"] for item in row.get("refusals", [])}
 
 
-__all__ = ["DATASET", "EVAL", "ITEMS", "OPTIMIZER", "Hold", "codes", "tine"]
+__all__ = [
+    "DATASET",
+    "EVAL",
+    "ITEMS",
+    "OPTIMIZER",
+    "SCORER",
+    "Hold",
+    "codes",
+    "lengths_file",
+    "tine",
+]

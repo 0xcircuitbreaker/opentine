@@ -1,4 +1,4 @@
-"""``tine dataset seal|unseal|exposure`` (0.61).
+"""``tine dataset seal|unseal|exposure`` (0.60).
 
 Canaries live in :mod:`opentine._cli_canary` (``canary-add|canary-list|canary-check``)."""
 

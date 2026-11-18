@@ -1,4 +1,4 @@
-"""``tine dataset canary-add|canary-list|canary-check|contamination`` (0.61).
+"""``tine dataset canary-add|canary-list|canary-check|contamination`` (0.60).
 
 ``canary-add TEXT --entropy-bits N --key KEY`` signs a canary registration
 (:mod:`opentine._canary`); ``canary-list`` lists registrations without their
@@ -31,6 +31,7 @@ def add_canary_verbs(verbs: Any) -> None:
     check.add_argument("lengths", metavar="LENGTHS.json", help="Per-canary code lengths in bits")
     check.add_argument("--margin-bits", type=int, default=0, metavar="M")
     check.add_argument("--strict", action="store_true", help="Advisory findings block too")
+    check.add_argument("--run", metavar="RUN", help="Require the lengths to name this scoring run")
     cont = verbs.add_parser("contamination", help="Exact and near-duplicate holdout leaks")
     cont.add_argument("dataset", metavar="HOLDOUT.jsonl")
     cont.add_argument("--against", action="append", default=[], metavar="CORPUS.jsonl")
@@ -57,7 +58,8 @@ def _row(args: argparse.Namespace) -> dict[str, Any]:
     if verb == "canary-check":
         from opentine._canary_check import check
 
-        return check(root, Path(args.lengths), margin_bits=args.margin_bits, strict=args.strict)
+        return check(root, Path(args.lengths), margin_bits=args.margin_bits, strict=args.strict,
+                     run=args.run)  # fmt: skip
     from opentine import _contamination as cont
     from opentine._eval_dataset import read_jsonl
 

@@ -25,7 +25,7 @@ def add_signed_promote_args(p: Any) -> None:
                    help="A signed policy (--sign-policy), for a 'policy' role")  # fmt: skip
     p.add_argument("--spent", metavar="USD", help="Spend to check against the cap (required)")
     p.add_argument("--sealed-holdout", action="append", default=[], metavar="DIR",
-                   help="A sealed holdout whose exposure budget must hold (0.61)")  # fmt: skip
+                   help="A sealed holdout whose exposure budget must hold (0.60)")  # fmt: skip
     p.add_argument("--canary-lengths", metavar="FILE",
                    help="Canary code lengths; a failed canary-check refuses")  # fmt: skip
     p.add_argument("--loop", metavar="LOOP", help="Refuse when LOOP is stopped (tine loop stop)")

@@ -1,4 +1,4 @@
-"""0.61 review: an optimizer with write access tries to dodge canaries and contamination.
+"""0.60 review: an optimizer with write access tries to dodge canaries and contamination.
 
 Mutated canaries (case, whitespace, zero-width, lookalike letters, JSON
 ``\\u`` escapes) are still found; a lengths file that scores no counted canary
@@ -16,6 +16,7 @@ import pytest
 from opentine import _contamination as cont
 from opentine._canary import digest
 from opentine.repository import Repo
+from tests.holdout_helpers import lengths_file
 from tests.key_roles_helpers import isolated_trust_config  # noqa: F401
 from tests.test_061_canary import CANARY, _cli, _register, _scan, root  # noqa: F401
 from tests.test_061_contamination import WORDS, _jsonl
@@ -44,9 +45,8 @@ def test_a_mutated_canary_is_still_found(capsys, root: Path, index: int) -> None
 
 def test_scoring_no_counted_canary_is_refused(capsys, root: Path, tmp_path: Path) -> None:  # noqa: F811
     _register(capsys, root, CANARY, 96)
-    path = tmp_path / "empty.json"
-    path.write_bytes(b"{}")
-    args = ("dataset", "canary-check", path.as_posix(), "--repo", root.as_posix(), "--json")
+    path = lengths_file(tmp_path / "empty.json", {})
+    args = ("dataset", "canary-check", path, "--repo", root.as_posix(), "--json")
     code, row = _cli(capsys, *args)
     assert code == 1
     assert [f["code"] for f in row["findings"]] == [
@@ -63,9 +63,8 @@ def test_a_margin_that_erases_the_floor_is_an_error(
     margin: str,
 ) -> None:
     _register(capsys, root, CANARY, 96)
-    path = tmp_path / "l.json"
-    path.write_bytes(json.dumps({digest(CANARY): 1}).encode("utf-8"))
-    argv = ["dataset", "canary-check", path.as_posix(), f"--margin-bits={margin}"]
+    path = lengths_file(tmp_path / "l.json", {digest(CANARY): 1})
+    argv = ["dataset", "canary-check", path, f"--margin-bits={margin}"]
     code, row = _cli(capsys, *argv, "--repo", root.as_posix(), "--json")
     assert code != 0 and "error" in row and "margin-bits" in row["error"]["message"]
 

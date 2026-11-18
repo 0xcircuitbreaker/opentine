@@ -1,4 +1,4 @@
-"""Promotion refusals for sealed holdouts and canaries (0.61).
+"""Promotion refusals for sealed holdouts and canaries (0.60).
 
 ``tine promote`` refuses with:
 

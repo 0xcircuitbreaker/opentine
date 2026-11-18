@@ -1,4 +1,4 @@
-"""Fold text so a mutated copy of a canary or holdout item still matches (0.61 review).
+"""Fold text so a mutated copy of a canary or holdout item still matches (0.60 review).
 
 A copier that wants to dodge a byte-exact search changes letter case, inserts
 or removes whitespace, adds zero-width characters, or swaps letters for

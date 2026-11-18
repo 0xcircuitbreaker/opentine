@@ -1,4 +1,4 @@
-"""0.61: canaries with declared entropy, ``tine integrity scan`` and ``canary-check``.
+"""0.60: canaries with declared entropy, ``tine integrity scan`` and ``canary-check``.
 
 A canary registration counts only when a pinned dataset-role key signs it. The
 scan finds canaries in runs, prompts, memory and exported packs, and its
@@ -19,6 +19,7 @@ import pytest
 from opentine import Run, StepKind, cli
 from opentine._canary import digest
 from opentine.repository import Repo
+from tests.holdout_helpers import SCORER, lengths_file
 from tests.key_roles_helpers import isolated_trust_config, pin_roles  # noqa: F401
 from tests.promote_helpers import AT, fingerprint
 
@@ -49,7 +50,7 @@ def root(tmp_path: Path) -> Path:
     root = tmp_path / "repo"
     Repo.init(root)
     roles = f'version = 1\n[roles]\ndataset = ["{fingerprint(DATASET)}"]\n'
-    roles += f'optimizer = ["{fingerprint(OPTIMIZER)}"]\n'
+    roles += f'optimizer = ["{fingerprint(OPTIMIZER)}"]\nscorer = ["{fingerprint(SCORER)}"]\n'
     (root / ".tine" / "key-roles.toml").write_bytes(roles.encode("ascii"))
     pin_roles(root / ".tine")
     return root
@@ -177,10 +178,8 @@ class StubModel:
 
 
 def _lengths(tmp: Path, model: StubModel, name: str) -> str:
-    path = tmp / f"{name}.json"
-    rows = [{"canary_sha256": digest(CANARY), "code_bits": model.code_bits(CANARY)}]
-    path.write_bytes(json.dumps({"model": name, "lengths": rows}).encode("utf-8"))
-    return path.as_posix()
+    scores = {digest(CANARY): model.code_bits(CANARY)}
+    return lengths_file(tmp / f"{name}.json", scores, model=name)
 
 
 def test_a_model_primed_on_the_canary_is_refused_and_an_unprimed_one_is_not(
@@ -206,10 +205,9 @@ def test_only_counted_canaries_judge_and_advisories_never_block(
 ) -> None:
     _register(capsys, root, CANARY, 96)
     _register(capsys, root, OTHER, 200, seed=OPTIMIZER)  # not counted
-    path = tmp_path / "l.json"
     scores = {digest(CANARY): 500, digest(OTHER): 1, "ab" * 32: 1}
-    path.write_bytes(json.dumps(scores).encode("utf-8"))
-    args = ("dataset", "canary-check", path.as_posix(), "--repo", root.as_posix(), "--json")
+    path = lengths_file(tmp_path / "l.json", scores)
+    args = ("dataset", "canary-check", path, "--repo", root.as_posix(), "--json")
     code, row = _cli(capsys, *args)
     codes = sorted(f["code"] for f in row["findings"])
     assert code == 0 and row["ok"] and row["blocking"] == 0

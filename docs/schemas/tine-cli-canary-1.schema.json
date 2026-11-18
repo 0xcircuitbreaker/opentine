@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opentine.com/schemas/tine-cli-canary-1.schema.json",
   "title": "tine dataset canary-add|canary-list|canary-check|contamination --json",
-  "description": "Canaries and contamination for sealed holdouts. `canary-add` signs a canary registration (claim convention `opentine.integrity.canary`) with a declared entropy in bits; `counted` is true when the signer holds the dataset role, not the optimizer role, in pinned key roles. Outputs never repeat a canary's text. `canary-check` reads per-canary code lengths from a scoring run and refuses (`dataset.canary-below-entropy`, `ok` false, exit 1) when a counted canary is coded below `entropy_bits - margin_bits`; other findings are advisory (D12). `contamination` reports exact blob-oid matches and word 5-gram MinHash near-duplicates whose exact Jaccard is at or above the recorded threshold.",
+  "description": "Canaries and contamination for sealed holdouts. `canary-add` signs a canary registration (claim convention `opentine.integrity.canary`) with a declared entropy in bits; `counted` is true when the signer holds the dataset role, not the optimizer role, in pinned key roles. Outputs never repeat a canary's text. `canary-check` reads per-canary code lengths from a scoring run (a signed attestation, claim convention `opentine.integrity.canary-lengths`, from a pinned scorer-role key that is not an optimizer key, bound to the run id in `run`) and refuses (`dataset.canary-below-entropy`, `ok` false, exit 1) when a counted canary is coded below `entropy_bits - margin_bits`; other findings are advisory (D12). `contamination` reports exact blob-oid matches and word 5-gram MinHash near-duplicates whose exact Jaccard is at or above the recorded threshold.",
   "oneOf": [
     {
       "type": "object",
@@ -147,6 +147,8 @@
         "schema",
         "ok",
         "model",
+        "run",
+        "signer",
         "margin_bits",
         "judged",
         "findings",
@@ -171,6 +173,12 @@
               "type": "null"
             }
           ]
+        },
+        "run": {
+          "type": "string"
+        },
+        "signer": {
+          "type": "string"
         },
         "margin_bits": {
           "type": "integer"

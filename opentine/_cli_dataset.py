@@ -1,6 +1,6 @@
 """``tine dataset add|import|export|show``: eval datasets as JSON Lines (0.45).
 
-0.61 adds sealed holdouts (``seal|unseal|exposure``, :mod:`opentine._cli_holdout`) and
+0.60 adds sealed holdouts (``seal|unseal|exposure``, :mod:`opentine._cli_holdout`) and
 ``canary-add|canary-list|canary-check|contamination`` (:mod:`opentine._cli_canary`).
 """
 
@@ -41,12 +41,12 @@ def add_dataset_parser(sub: Any) -> None:
     show.add_argument("dataset", metavar="DATASET.jsonl")
     from opentine._cli_holdout import add_holdout_parsers
 
-    sealed = add_holdout_parsers(verbs)  # 0.61: sealed holdouts
+    sealed = add_holdout_parsers(verbs)  # 0.60: sealed holdouts
     for verb in (add, importer, exporter, show, *sealed):
         verb.add_argument("--json", action="store_true", help="Print a JSON object")
     from opentine._cli_canary import add_canary_verbs
 
-    add_canary_verbs(verbs)  # 0.61: canaries and contamination
+    add_canary_verbs(verbs)  # 0.60: canaries and contamination
 
 
 def _load_run(name: str, repo: str | None) -> tuple[Any, str]:

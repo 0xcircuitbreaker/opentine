@@ -1,4 +1,4 @@
-"""Canary registration (0.61): a holdout's planted strings, each with a declared entropy.
+"""Canary registration (0.60): a holdout's planted strings, each with a declared entropy.
 
 A canary is a string planted in a holdout so that a later copy of it, or a
 model that codes it too cheaply, is evidence the holdout leaked. Registration
@@ -17,6 +17,12 @@ owner-signed trust bundle (:mod:`opentine._key_roles_pin`). Others are listed
 with ``counted: false``: ``tine integrity scan`` still looks for them (finding
 more never weakens a check), ``tine dataset canary-check`` does not judge by
 them, so an optimizer cannot lower a declared entropy by filing its own copy.
+
+0.60: each registration is also held (:mod:`opentine._holdout_hold`, target
+``holdout-canary:HEX``), and readers take the union of the file and its held
+copies, so deleting the file does not stop a canary counting. A file whose
+bytes match none of its held copies was overwritten: it is marked tampered,
+and ``canary-check`` refuses (``canary.tampered``).
 """
 
 from __future__ import annotations
@@ -62,14 +68,18 @@ def register(root: Path, key: Any, text: str, entropy_bits: int, holdout: str | 
     claim = {"convention": CONVENTION, "canary": text, "canary_sha256": hexdigest,
              "entropy_bits": entropy_bits, "holdout": holdout}  # fmt: skip
     document = _sign(key, claim, f"sha256:{hexdigest}", at)
+    from opentine._holdout_hold import canary_target, keep
+
     path = Path(root) / CANARIES / f"{hexdigest}.json"
+    data = (json.dumps(document, indent=2, sort_keys=True) + "\n").encode("utf-8")
+    keep(Path(root), canary_target(hexdigest), data)  # first: a lost file still counts
     _dump(path, document)
     row = _row(document, _counting_keys(Path(root)))
     assert row is not None
     return {**row, "path": path.as_posix()}
 
 
-def _counting_keys(root: Path) -> set[str]:
+def _counting_keys(root: Path, role: str = "dataset") -> set[str]:
     from opentine._key_roles import KeyRoleError
     from opentine._key_roles_pin import resolve
 
@@ -78,7 +88,7 @@ def _counting_keys(root: Path) -> set[str]:
     except KeyRoleError:
         return set()
     roles = (found["roles"] or {}) if found["status"] == "pinned" else {}
-    return set(roles.get("dataset", [])) - set(roles.get("optimizer", []))
+    return set(roles.get(role, [])) - set(roles.get("optimizer", []))
 
 
 def _row(document: Any, counting: set[str]) -> dict[str, Any] | None:
@@ -106,19 +116,53 @@ def _row(document: Any, counting: set[str]) -> dict[str, Any] | None:
             "counted": signer in counting, "_text": text}  # fmt: skip
 
 
-def load(root: Path) -> list[dict[str, Any]]:
-    """Every verifying registration, sorted by digest; ``_text`` holds the canary."""
-    folder = Path(root) / CANARIES
-    counting = _counting_keys(Path(root))
-    rows: dict[tuple[str, str], dict[str, Any]] = {}
+def _held(root: Path) -> dict[str, list[bytes]]:
+    from opentine._holdout_hold import kept
+    from opentine.repository._holds import CANARY_HOLD, HoldError
+
+    out: dict[str, list[bytes]] = {}
+    try:
+        for target, data in kept(Path(root), CANARY_HOLD):
+            out.setdefault(target[len(CANARY_HOLD) :], []).append(data)
+    except HoldError as exc:  # fail closed: never count fewer registrations than were held
+        raise CanaryError(f"canary.tampered: {exc}") from exc
+    return out
+
+
+def _files(folder: Path) -> dict[str, bytes]:
+    out = {}
     for path in sorted(folder.glob("*.json")) if folder.is_dir() else []:
         try:
-            document = json.loads(path.read_bytes())
-        except (OSError, ValueError):
+            out[path.stem] = path.read_bytes()
+        except OSError:
             continue
-        row = _row(document, counting)
-        if row is not None and path.stem == row["canary_sha256"]:
-            rows[(row["canary_sha256"], row["signer"])] = row
+    return out
+
+
+def load(root: Path) -> list[dict[str, Any]]:
+    """Every verifying registration, sorted by digest; ``_text`` holds the canary.
+
+    Files and held copies both count; ``_tampered`` marks a digest whose file
+    matches none of its held copies.
+    """
+    counting = _counting_keys(Path(root))
+    files, held = _files(Path(root) / CANARIES), _held(Path(root))
+    rows: dict[tuple[str, str], dict[str, Any]] = {}
+    for stem in sorted(set(files) | set(held)):
+        copies = held.get(stem, [])
+        raw = files.get(stem)
+        tampered = raw is not None and bool(copies) and raw not in copies
+        for data in ([raw] if raw is not None else []) + copies:
+            try:
+                row = _row(json.loads(data), counting)
+            except ValueError:
+                continue
+            if row is None or row["canary_sha256"] != stem:
+                continue
+            row["_tampered"] = tampered
+            old = rows.get((stem, row["signer"]))
+            if old is None or row["entropy_bits"] > old["entropy_bits"]:
+                rows[(stem, row["signer"])] = row  # the stricter of two copies judges
     return [rows[k] for k in sorted(rows)]
 
 

@@ -5262,7 +5262,7 @@ ROWS: tuple[tuple, ...] = (
         "opentine._cli_dataset:cmd_dataset",
         False,
         {"command": "dataset", "dataset_command": "seal", "dataset": "d", "name": "h"},
-    ),  # 0.61
+    ),  # 0.60
     (
         "plain:dataset unseal h --out o.jsonl --run r --why w --key k --seal-key s",
         "plain",
@@ -5284,7 +5284,7 @@ ROWS: tuple[tuple, ...] = (
         "opentine._cli_dataset:cmd_dataset",
         False,
         {"command": "dataset", "dataset_command": "unseal", "folder": "h", "purpose": "eval"},
-    ),  # 0.61
+    ),  # 0.60
     (
         "plain:dataset exposure h --json",
         "plain",
@@ -5292,7 +5292,7 @@ ROWS: tuple[tuple, ...] = (
         "opentine._cli_dataset:cmd_dataset",
         False,
         {"command": "dataset", "dataset_command": "exposure", "folder": "h", "json": True},
-    ),  # 0.61
+    ),  # 0.60
     (
         "plain:integrity scan --file p.bin --json",
         "plain",

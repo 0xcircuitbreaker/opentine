@@ -1,4 +1,4 @@
-"""JSON Schema for ``tine dataset seal|unseal|exposure`` (0.61).
+"""JSON Schema for ``tine dataset seal|unseal|exposure`` (0.60).
 
 CLI outputs, not object kinds: the commitment and access records are existing
 attestations under claim conventions

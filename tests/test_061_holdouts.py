@@ -1,4 +1,4 @@
-"""0.61: sealed holdouts, signed access records, exposure budgets and rotation.
+"""0.60: sealed holdouts, signed access records, exposure budgets and rotation.
 
 Every hashed file is bytes; nothing sleeps; each repository lives under the
 test's own ``tmp_path``; the trust config is per test (key_roles_helpers).
@@ -94,11 +94,23 @@ def test_the_budget_is_enforced_at_unseal_and_checked_by_promote(hold, capsys) -
     assert code == 1 and row["over_budget"] is True and row["unseals"] == 3
 
 
-def test_a_deleted_access_record_breaks_the_chain(hold: Hold, capsys) -> None:
+def test_a_deleted_access_record_changes_nothing(hold: Hold, capsys) -> None:
     assert hold.seal(capsys, unseals=5, items=6)[0] == 0
     for _ in range(3):
         assert hold.unseal(capsys, "--items", "0")[0] == 0
-    (hold.folder() / "access" / "000001.json").unlink()
+    before = exposure(hold.folder(), hold.root)
+    (hold.folder() / "access" / "000001.json").unlink()  # 0.60: its held copy still counts
+    after = exposure(hold.folder(), hold.root)
+    assert after["chain_ok"] and after["records"] == before["records"]
+    assert hold.unseal(capsys, "--items", "1")[0] == 0
+
+
+def test_a_record_altered_in_place_breaks_the_chain(hold: Hold, capsys) -> None:
+    assert hold.seal(capsys, unseals=5, items=6)[0] == 0
+    for _ in range(2):
+        assert hold.unseal(capsys, "--items", "0")[0] == 0
+    path = hold.folder() / "access" / "000000.json"
+    path.write_bytes(path.read_bytes().replace(b'"why": "scoring"', b'"why":  "scoring"'))
     assert exposure(hold.folder(), hold.root)["chain_ok"] is False
     assert [r["code"] for r in promote_refusals([hold.folder()], hold.root)] == [
         "promote.holdout-exposed"]  # fmt: skip

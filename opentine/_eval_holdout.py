@@ -1,4 +1,4 @@
-"""``tine eval run --holdout DIR``: refuse runs that touched the holdout (0.61).
+"""``tine eval run --holdout DIR``: refuse runs that touched the holdout (0.60).
 
 The runs scored are those the outputs file and the items name, plus ``--run``.
 Each is read from ``--repo`` (a run not stored there is judged by its access

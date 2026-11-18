@@ -1970,14 +1970,14 @@ reading it. See docs/LINEAGE.md.
 promote` (`promote.score-tainted`) and reported by `tine lineage check|why`
 (`lineage.score-tainted`). See docs/INTEGRITY.md.
 
-## Canaries and contamination (0.61)
+## Canaries and contamination (0.60)
 
 | Command | What it does |
 | --- | --- |
 | `tine dataset canary-add TEXT --entropy-bits N --key KEY [--holdout NAME] [--at TIME] --repo PATH` | Signs an `opentine.integrity.canary` registration; it counts only for a pinned `dataset`-role, non-optimizer key |
 | `tine dataset canary-list --repo PATH` | Lists the registrations (digest, entropy, holdout, signer, `counted`) without their text |
 | `tine integrity scan [--file PATH]... --repo PATH` | Finds registered canaries in runs, prompts, memory and exported packs; a content-addressed index reads only objects not yet scanned; exit 1 on any match |
-| `tine dataset canary-check LENGTHS.json [--margin-bits M] [--strict] --repo PATH` | Refuses (`dataset.canary-below-entropy`, exit 1) a model that codes a counted canary below its declared entropy |
+| `tine dataset canary-check LENGTHS.json [--margin-bits M] [--strict] [--run RUN] --repo PATH` | Refuses (`dataset.canary-below-entropy`, exit 1) a model that codes a counted canary below its declared entropy; the lengths must be signed by a pinned scorer key (`canary.unsigned`) |
 | `tine dataset contamination HOLDOUT.jsonl --against CORPUS.jsonl [--threshold J] [--repo PATH]` | Reports exact blob-oid matches and word 5-gram MinHash near-duplicates at or above the threshold (default 0.8); exit 1 on any leak |
 
 The `dataset` verbs print `tine-cli-canary/1` and `scan` prints
@@ -2022,7 +2022,7 @@ JSON Lines splits (`<split>.jsonl` or `data/<split>*.jsonl`, with
 `dataset_info.json` and a dataset card on export); nothing is downloaded and
 Parquet is not read.
 
-Sealed holdouts (0.61, docs/HOLDOUTS.md):
+Sealed holdouts (0.60, docs/HOLDOUTS.md):
 
 ```text
 tine dataset seal DATASET.jsonl --out DIR --name NAME --max-unseals 4 --max-items 50 --key KEY --seal-key FILE

@@ -1,4 +1,4 @@
-"""0.61 red-team: a loop with only its own key tries to reset budgets and dodge checks.
+"""0.60 red-team: a loop with only its own key tries to reset budgets and dodge checks.
 
 Each test plays one attack and asserts the refusal. No wall-clock time is used.
 """

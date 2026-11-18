@@ -1,4 +1,4 @@
-"""``tine integrity check|pin|sign|scan`` (0.60; scan 0.61): protected surfaces.
+"""``tine integrity check|pin|sign|scan`` (0.59; scan 0.60): protected surfaces.
 
 ``check RUN`` judges the run's tool calls and every pinned digest against the
 signed ``.tine/protected.toml`` (:mod:`opentine._integrity_run`) and exits 1 on
@@ -8,7 +8,7 @@ over a run record. ``advisory:`` findings never block unless ``--strict``
 by a signed ``opentine.integrity.taint`` attestation. ``pin`` writes the
 current digests of every protected file into the list (which must then be
 re-signed); ``sign`` pins the list's bytes with a ``policy``-role key.
-``scan`` (0.61) finds registered canaries (:mod:`opentine._canary_scan`).
+``scan`` (0.60) finds registered canaries (:mod:`opentine._canary_scan`).
 """
 
 from __future__ import annotations

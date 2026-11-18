@@ -183,7 +183,7 @@ def cmd_eval(args: argparse.Namespace) -> None:
         emit({"command": f"eval {verb}", **row})
     else:
         _human(verb, row)
-    if "refusals" in row:  # 0.61 eval.holdout-touched: refused, nothing signed
+    if "refusals" in row:  # 0.60 eval.holdout-touched: refused, nothing signed
         raise SystemExit(1)
     if verb == "ci" and not row["ok"]:
         raise SystemExit(1)

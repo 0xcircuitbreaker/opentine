@@ -1,4 +1,4 @@
-"""Sealed holdouts (0.61): a Merkle-root commitment and TINEAES-sealed items.
+"""Sealed holdouts (0.60): a Merkle-root commitment and TINEAES-sealed items.
 
 ``tine dataset seal ITEMS.jsonl --out DIR`` writes a folder that holds no item
 in clear::

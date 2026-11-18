@@ -1,9 +1,9 @@
-# Sealed holdouts, canaries and exposure budgets (0.61)
+# Sealed holdouts, canaries and exposure budgets (0.60)
 
 A holdout only measures generalization while the system being measured has
 not seen it. In a self-improving agent loop the optimizer can read the
 repository, so a holdout kept in clear next to the code is one `cat` away from
-becoming training data. OpenTine 0.61 keeps holdouts sealed, records every
+becoming training data. OpenTine 0.60 keeps holdouts sealed, records every
 access, limits how much of a holdout may be revealed, and refuses evals and
 promotions that the custody record does not support.
 
@@ -21,7 +21,7 @@ Two roles from the owner-pinned trust bundle (0.59, `tine trust bundle create
 | role      | may                                           |
 |-----------|-----------------------------------------------|
 | `dataset` | seal a holdout, register canaries             |
-| `eval`    | unseal items (0.61, new optional role)        |
+| `eval`    | unseal items (0.60, new optional role)        |
 
 A key in the `optimizer` role never qualifies, and roles that only appear in an
 unsigned `.tine/key-roles.toml` grant nothing: the command refuses with
@@ -90,6 +90,16 @@ with `holdout.budget-exceeded` when the next unseal would go past either
 budget. `--exceed-budget` performs the unseal anyway and records
 `"over_budget": true`; from then on the holdout is exposed.
 
+Every access record is also stored as a `blob` object and held (a `tine hold`
+row whose target starts with `holdout-access:ROOT:`), and `tine hold release`
+refuses those rows, as it does for 0.57 loop stops and 0.59 taints. Exposure is
+computed from the union of the folder's records and the held copies, so
+deleting `access/` (or one record) lowers nothing. An unreadable holds file
+refuses (`holdout.holds`). A record that is not validly signed by an allowed
+`eval` key is ignored, including when `unseal` picks the next sequence: a
+forged `NNNNNN.json` in the next slot is replaced, not obeyed. Two validly
+signed records that claim one sequence break the chain (fail closed).
+
 `tine dataset exposure DIR --json` reports the counts, the records and the
 chain. `tine promote ... --sealed-holdout DIR` (repeatable) refuses with
 `promote.holdout-exposed` when a named holdout is over budget or its access
@@ -149,8 +159,19 @@ they apply and what a writer can still do.
 `promote.canary-failed` when it does not pass: a counted canary coded below its
 entropy, a lengths file that scores no counted canary, or one that does not
 parse (NaN, infinity, negative or non-numeric lengths). Advisory findings stay
-advisory. The lengths file is not signed; the check is only as good as the
-scoring run that produced it.
+advisory.
+
+The lengths file is a signed attestation under the claim convention
+`opentine.integrity.canary-lengths` (`{"convention", "run", "model",
+"lengths": [{"canary_sha256", "code_millibits"}]}`, `target_id` the scoring run
+id; `opentine._canary_check.sign_lengths` writes one). Its signer must hold the
+`scorer` role, and not the `optimizer` role, in the owner-pinned key roles;
+`canary-check --run RUN` also requires it to name that run. An unsigned,
+unpinned or unbound file is refused with `canary.unsigned`.
+
+Canary registrations are held like access records (`holdout-canary:HEX`), so
+deleting a registration file does not stop the canary counting, and a file
+whose bytes match none of its held copies is refused as `canary.tampered`.
 
 The in-clear check of `eval.holdout-touched` compares item and run text after
 NFKC normalization, casefolding, folding common Cyrillic and Greek lookalike
@@ -175,9 +196,16 @@ with `refusals: [{code, detail}]` and exit 1.
 
 ## Limits
 
-- Exposure counts live in the holdout folder. A record removed from the end
-  of the chain is not detectable from the folder alone; keep the folder under
-  the repository's retention and holds, and rotate after an incident.
+- Held copies need a repository: a holdout used with no `--repo` counts only
+  the records in its folder. A writer who can rewrite `.tine/holds` and the
+  object store directly is outside this model, as for loop stops and taints.
 - `eval.holdout-touched` reads a run's recorded steps and prompt. Content a
   run used without recording it is not seen.
-- The canary check depends on the code lengths the scoring run reports.
+- The canary check depends on the code lengths a pinned scorer signs; a
+  scorer key in the optimizer's hands defeats it.
+- Out of scope for 0.60: a canary split across several objects (each object
+  is scanned on its own); real paraphrases of an item (word 5-gram containment
+  and MinHash catch near copies only, until embeddings in 0.74); compressed
+  packs passed to `integrity scan --file` as raw files (they are searched as
+  stored bytes); and the full Unicode confusables table (only common Cyrillic
+  and Greek lookalikes are folded).

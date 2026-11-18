@@ -1,4 +1,4 @@
-"""``tine integrity scan`` (0.61): find registered canaries in runs, prompts, memory, packs.
+"""``tine integrity scan`` (0.60): find registered canaries in runs, prompts, memory, packs.
 
 Every object in the repository (loose or in a pack) is read once, decoded and
 searched for every registered canary in one pass (one compiled alternation,
@@ -95,13 +95,30 @@ def _open_index(root: Path) -> sqlite3.Connection:
     return db
 
 
+def _registrations(repo: Any) -> set[str]:
+    """Held canary registrations (0.60): they hold the canary by design, never a leak."""
+    from opentine._canary import _row
+    from opentine.repository._holds import CANARY_HOLD, holds_path, read_holds
+
+    out = set()
+    for row in read_holds(holds_path(repo)):
+        if row["target"].startswith(CANARY_HOLD):
+            try:
+                if _row(json.loads(repo.get(row["oid"]).body), set()) is not None:
+                    out.add(row["oid"])
+            except Exception:  # noqa: BLE001 - not a registration: it is scanned
+                continue
+    return out
+
+
 def _scan_objects(root: Path, rows: list[dict[str, Any]], key: str) -> tuple[list, dict]:
     from opentine.kernel import ObjectEnvelope
     from opentine.repo import Repo
 
     pattern, spelled = _pattern(rows)
     repo = Repo.open(root)
-    oids = repo.iter_oids()
+    held = _registrations(repo)
+    oids = [oid for oid in repo.iter_oids() if oid not in held]
     counts = {"objects": len(oids), "read": 0, "cached": 0}
     found: list[tuple[str, str]] = []
     db = _open_index(root)

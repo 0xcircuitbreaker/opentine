@@ -49,6 +49,25 @@
   also reports items chunked across several corpus items (`chunked`, by
   shingle coverage). `canary-check` refuses a run that scores no counted
   canary (`dataset.canary-none-scored`) and a margin that leaves no floor.
+- Access records and canary registrations survive their files: each is also
+  stored as a blob and held (`holdout-access:ROOT:SEQ`,
+  `holdout-canary:HEX`), and `tine hold release` refuses those rows, as for
+  0.57 loop stops and 0.59 taints. Exposure is computed from the union of the
+  folder's records and the held copies, so deleting records cannot lower it;
+  a registration file that matches none of its held copies is refused as
+  `canary.tampered`, and a deleted one still counts.
+- `canary-check` requires the lengths file to be a signed attestation (claim
+  convention `opentine.integrity.canary-lengths`, integer `code_millibits`)
+  from a `scorer`-role key in the owner-pinned roles that is not an optimizer
+  key, bound to the scoring run id (`target_id`; `--run RUN` checks it);
+  anything else is refused with `canary.unsigned`. `run` and `signer` are
+  reported.
+- `unseal` ignores records not validly signed by an allowed key when it picks
+  the next sequence, so a forged file in the next slot no longer blocks it;
+  two validly signed records for one sequence still break the chain.
+- Out of scope, documented in docs/HOLDOUTS.md: canaries split across
+  objects, real paraphrases (until embeddings in 0.74), compressed packs
+  passed as raw files, and the full confusables table.
 - New published schema `tine-cli-canary-1`. `tine-cli-integrity-1` gains
   `integrity scan`. There are no new object kinds, wire formats or vector
   families.

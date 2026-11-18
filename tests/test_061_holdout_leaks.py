@@ -1,4 +1,4 @@
-"""0.61: eval.holdout-touched, canaries with a declared entropy, and the clear-text scanner.
+"""0.60: eval.holdout-touched, canaries with a declared entropy, and the clear-text scanner.
 
 Scaling is asserted with operation counts, never wall-clock time.
 """
@@ -14,7 +14,7 @@ import pytest
 
 from opentine import Run, StepKind, _bundle
 from opentine.repository import Repo
-from tests.holdout_helpers import DATASET, EVAL, ITEMS, Hold, codes, tine
+from tests.holdout_helpers import DATASET, EVAL, ITEMS, Hold, codes, lengths_file, tine
 from tests.key_roles_helpers import isolated_trust_config  # noqa: F401
 from tests.promote_helpers import AT
 
@@ -99,9 +99,8 @@ def _code_length(text: str, corpus: str) -> float:
 def test_a_model_primed_on_the_holdout_is_refused(hold, capsys, primed, refused) -> None:
     digest = _register(hold, capsys)
     corpus = (CANARY * 20) if primed else ""
-    lengths = hold.base / "lengths.json"
-    lengths.write_bytes(json.dumps({digest: _code_length(CANARY, corpus)}).encode())
-    code, row = tine(capsys, "dataset", "canary-check", lengths.as_posix(), "--repo",
+    lengths = lengths_file(hold.base / "lengths.json", {digest: _code_length(CANARY, corpus)})
+    code, row = tine(capsys, "dataset", "canary-check", lengths, "--repo",
                      hold.root.as_posix(), "--json")  # fmt: skip
     found = {f["code"] for f in row["findings"]}
     assert (code == 1) is refused and (found == {"dataset.canary-below-entropy"}) is refused

@@ -1,4 +1,4 @@
-"""JSON Schema for ``tine dataset canary-*|contamination`` and ``integrity scan`` (0.61).
+"""JSON Schema for ``tine dataset canary-*|contamination`` and ``integrity scan`` (0.60).
 
 CLI outputs, not object kinds: a canary registration is an existing
 attestation under the ``opentine.integrity.canary`` claim convention
@@ -33,9 +33,10 @@ _ADD = closed(["command", "schema", "ok", "canary"], {
 _LIST = closed(["command", "schema", "ok", "canaries"], {
     **_HEAD, "command": {"const": "dataset canary-list"}, "ok": {"const": True},
     "canaries": {"type": "array", "items": CANARY}})  # fmt: skip
-_CHECK = closed(["command", "schema", "ok", "model", "margin_bits", "judged", "findings",
-                 "blocking"], {
+_CHECK = closed(["command", "schema", "ok", "model", "run", "signer", "margin_bits", "judged",
+                 "findings", "blocking"], {
     **_HEAD, "command": {"const": "dataset canary-check"}, "ok": BOOL, "model": opt(STR),
+    "run": STR, "signer": STR,
     "margin_bits": {"type": "integer"}, "blocking": INT,
     "judged": {"type": "array", "items": closed(
         ["canary_sha256", "holdout", "code_bits", "entropy_bits", "below"], {
@@ -69,7 +70,9 @@ SCHEMAS: dict[str, dict[str, Any]] = {
         "registration (claim convention `opentine.integrity.canary`) with a declared "
         "entropy in bits; `counted` is true when the signer holds the dataset role, not the "
         "optimizer role, in pinned key roles. Outputs never repeat a canary's text. "
-        "`canary-check` reads per-canary code lengths from a scoring run and refuses "
+        "`canary-check` reads per-canary code lengths from a scoring run (a signed "
+        "attestation, claim convention `opentine.integrity.canary-lengths`, from a pinned "
+        "scorer-role key that is not an optimizer key, bound to the run id in `run`) and refuses "
         "(`dataset.canary-below-entropy`, `ok` false, exit 1) when a counted canary is coded "
         "below `entropy_bits - margin_bits`; other findings are advisory (D12). "
         "`contamination` reports exact blob-oid matches and word 5-gram MinHash "

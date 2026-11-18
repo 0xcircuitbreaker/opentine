@@ -1,14 +1,13 @@
-"""0.61: promote refuses an exposed holdout (named or kept in the repo) and a failed canary."""
+"""0.60: promote refuses an exposed holdout (named or kept in the repo) and a failed canary."""
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import pytest
 
 from opentine._promote_holdout import sealed_folders
-from tests.holdout_helpers import DATASET, Hold, tine
+from tests.holdout_helpers import DATASET, Hold, lengths_file, tine
 from tests.key_roles_helpers import isolated_trust_config  # noqa: F401
 from tests.promote_helpers import AT, RUN_B
 from tests.test_058_promote import Room, _codes, _good
@@ -47,9 +46,7 @@ def _lengths(hold: Hold, capsys, bits: float | None) -> str:
                      hold.root.as_posix(), "--at", AT, "--json")  # fmt: skip
     assert code == 0 and row["canary"]["counted"], row
     scored = {} if bits is None else {row["canary"]["canary_sha256"]: bits}
-    path = hold.base / "lengths.json"
-    path.write_bytes(json.dumps(scored).encode("utf-8"))
-    return path.as_posix()
+    return lengths_file(hold.base / "lengths.json", scored)
 
 
 @pytest.mark.parametrize(("bits", "refused"), [(200.0, False), (12.5, True), (None, True)])

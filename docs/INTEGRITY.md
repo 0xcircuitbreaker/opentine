@@ -155,7 +155,7 @@ the repository, where only the file records it).
   mutation run has a filed or held taint, and exit 1: a tainted score cannot justify
   a lineage step.
 
-## Canaries and contamination (0.61)
+## Canaries and contamination (0.60)
 
 A *canary* is a string planted in a holdout so that a later copy of it, or a
 model that codes it too cheaply, is evidence that the holdout leaked.
@@ -208,14 +208,22 @@ object once.
 
 ### `tine dataset canary-check LENGTHS.json`
 
-A scoring run reports the code length, in bits, that the model under test
-assigns each canary (`-log2 P(canary)` summed over its tokens):
+A scoring run reports the code length that the model under test assigns each
+canary (`-log2 P(canary)` summed over its tokens). Since 0.60 the file is a
+signed attestation (no new object kind) whose claim follows the convention
+`opentine.integrity.canary-lengths`, with `target_id` the scoring run id:
 
 ```json
-{"model": "candidate-7", "lengths": [{"canary_sha256": "HEX", "code_bits": 31.5}]}
+{"convention": "opentine.integrity.canary-lengths", "run": "RUN", "model": "candidate-7",
+ "lengths": [{"canary_sha256": "HEX", "code_millibits": 31500}]}
 ```
 
-A plain `{"HEX": bits}` object is also accepted. A counted canary that is coded
+Lengths are integer millibits, rounded down (a signed claim holds no floats).
+The signer must hold the `scorer` role, and not the `optimizer` role, in the
+owner-pinned key roles; `--run RUN` also requires the claim to name that run.
+An unsigned, unpinned or unbound file is refused with `canary.unsigned`, and a
+registration file that matches none of its held copies with `canary.tampered`
+(both exit nonzero). A counted canary that is coded
 below `entropy_bits - margin_bits` (`--margin-bits`, default 0) is evidence
 that the model saw the holdout. The command refuses it with
 `dataset.canary-below-entropy`, sets `ok` false and exits 1. The following are
@@ -263,14 +271,19 @@ lookalike letters is still found (`tests/test_061_canary_review.py`).
 (`dataset.canary-none-scored`), and `--margin-bits` must leave every judged
 canary a positive floor.
 
-These checks are evidence, not a seal. A process with write access to the
-repository can still: split one canary across two objects; delete or
-overwrite registration files (a dataset-role registration replaced by an
-optimizer copy stops counting); edit the derived scan index so objects look
-already scanned (delete `.tine/integrity/canary-index.sqlite` to rescan
-everything); and submit a lengths file with inflated code lengths, since the
-file is not tied to a signed scoring run. Sealing, access records and exposure
-budgets are the parts of 0.61 meant to close those.
+Since 0.60 each registration is also held (`tine hold` target
+`holdout-canary:HEX`, never released), and readers take the union of the file
+and its held copies: deleting a registration does not stop it counting, and
+overwriting one is refused as `canary.tampered`. The held copies are skipped
+by `integrity scan` (a registration holds its canary by design).
+
+These checks are evidence, not a seal. Out of scope for 0.60: a canary split
+across two objects (each object is scanned on its own); real paraphrases
+(5-gram containment and MinHash see near copies only, until embeddings in
+0.74); compressed packs passed as raw files (`--file` searches stored bytes);
+and the full Unicode confusables table. A writer can also edit the derived
+scan index so objects look already scanned (delete
+`.tine/integrity/canary-index.sqlite` to rescan everything).
 
 ## Python and TypeScript
 
@@ -284,7 +297,7 @@ vector family. `tests/test_060_integrity.py` regenerates the fixture from
 
 ## Not yet
 
-- Canaries (0.61): sealed holdout items (TINEAES), `tine dataset unseal`
+- Canaries (0.60): sealed holdout items (TINEAES), `tine dataset unseal`
   access records, exposure budgets and holdout rotation are separate plan
   items. The scan reads repository objects and raw files, so it does not
   inflate compressed exports. Embedding near-duplicates wait for a pinned

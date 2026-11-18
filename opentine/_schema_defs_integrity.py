@@ -1,4 +1,4 @@
-"""JSON Schema for ``tine integrity check|pin|sign|scan --json`` (0.60; scan 0.61).
+"""JSON Schema for ``tine integrity check|pin|sign|scan --json`` (0.59; scan 0.60).
 
 A CLI output, not an object kind: the protected-list pin and the taint are
 existing attestations under claim conventions (docs/INTEGRITY.md).
@@ -47,7 +47,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
         "`--key`, and `hold` the object id of the same attestation held as "
         "`integrity-taint:RUN` (0.59), which `tine hold release` refuses. `pin` writes "
         "current digests into the list (`signed` false: re-sign it); "
-        "`sign` pins the list's bytes with a policy-role key. `scan` (0.61) lists where "
+        "`sign` pins the list's bytes with a policy-role key. `scan` (0.60) lists where "
         "registered canaries occur (`ok` false when any does); `counts` shows how many "
         "objects were read and how many answered from the content-addressed index.",
         {"oneOf": [_CHECK, _PIN, _SIGN, SCAN]}),
