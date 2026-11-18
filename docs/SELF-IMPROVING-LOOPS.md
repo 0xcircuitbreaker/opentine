@@ -96,10 +96,16 @@ benign runs. Both are counts; nothing in them depends on time.
 
 ## What this does not claim
 
+Detection is weak and we say so: on a blind held-out set of reward hacks the
+detectors were not tuned on, the advisory detectors caught **2 of 13** before
+tuning. The red-team corpus numbers above are on seeded hacks the detectors
+were tuned against, so they measure regression, not generalization.
+
 Advisory detectors are heuristics: a determined optimizer can evade them, and
 an honest change can trip them. They exist to route attention, not to judge.
 The guarantees come from the `fail:` facts, signed evals, key separation and
-the promotion policy.
+the promotion policy -- with key roles pinned by an owner-signed trust bundle
+(0.59), and taints held so they cannot be deleted.
 
 Known evasions the detectors do not catch: an answer-key environment
 variable read through a computed name (`os.environ[prefix + suffix]`), a

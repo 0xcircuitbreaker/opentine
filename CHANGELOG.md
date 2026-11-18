@@ -42,6 +42,33 @@
 - New guide docs/SELF-IMPROVING-LOOPS.md ties 0.57 promotion, 0.58 lineage and
   0.60 integrity together. `tine verify`, the pyz, object kinds, wire formats
   and vectors are unchanged.
+- Key roles are anchored in the owner-signed trust bundle (SPEC 8.26). A
+  bundle may carry `key_roles` (`{"version": 1, "roles": {...}}`, the JSON of
+  `.tine/key-roles.toml`); `tine trust bundle create --key-roles FILE` signs
+  existing roles (migration). Roles grant `policy`, `scorer` and `stopper`
+  powers only from a bundle whose owner key is pinned outside the repository
+  (`$OPENTINE_TRUST_OWNER` or `$XDG_CONFIG_HOME/opentine/trust-owner`; bundle
+  at `$OPENTINE_TRUST_BUNDLE` or `.tine/trust-bundle.note`); a lower serial
+  than the highest seen is refused. Roles only in the unsigned
+  `.tine/key-roles.toml` are `roles: unpinned`: they still refuse (key
+  separation), but `promote` with a `policy` role refuses
+  `promote.policy-unsigned`, lineage reports signers `unpinned`, a `stopper`
+  role verifies no stop and no policy key pins the protected list. Closes a
+  red-team finding: a loop that could write the file could add its own key as
+  a policy key. `tine keys lint` prints `roles: pinned|unpinned|absent`
+  (`--json` `pinning`); `tine-cli-trust-bundle-1` gains `key_roles`; the TS
+  `openTrustBundle` returns `keyRoles`. `.tine/trust-bundle.note` is a
+  protected control path.
+- Integrity taints are also held: `--key` stores the signed taint attestation
+  and adds a `tine hold` row `integrity-taint:RUN` that `tine hold release`
+  refuses; promote and lineage read held taints, so deleting
+  `.tine/integrity/taints/` does not launder a score (red-team finding). An
+  unreadable holds file taints (fail closed). `tine-cli-integrity-1` gains
+  `taint.hold`.
+- Detection is stated honestly in docs/INTEGRITY.md and
+  docs/SELF-IMPROVING-LOOPS.md: on a blind held-out set the advisory detectors
+  caught 2 of 13 hacks before tuning; advisories are heuristics, and the
+  `fail:` facts are the guarantee.
 
 ## 0.58.0 — Self-modification lineage (2026-11-18)
 

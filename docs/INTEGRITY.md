@@ -40,11 +40,23 @@ only when `.tine/integrity/protected.json` is an existing `attestation`
 {"schema": "opentine.integrity.protected/1", "protected_sha256": "<sha256 of the list's bytes>"}
 ```
 
-signed by a `policy`-role key of `.tine/key-roles.toml` (0.57 key roles) that
-is not also an `optimizer` key. `tine integrity sign --key KEY` writes it.
-Any edit to the list's bytes, a signature by another key, or no `policy` role
-at all is `fail:protected-list-unsigned`; no list is
-`fail:protected-list-missing`.
+signed by a `policy`-role key that is not also an `optimizer` key.
+`tine integrity sign --key KEY` writes it. Any edit to the list's bytes, a
+signature by another key, or no `policy` role at all is
+`fail:protected-list-unsigned`; no list is `fail:protected-list-missing`.
+
+The `policy` role counts only when it is *pinned* (0.59): it comes from an
+owner-signed trust bundle (SPEC 8.26) whose `key_roles` carry it and whose
+owner key is pinned outside the repository -- `$OPENTINE_TRUST_OWNER` or
+`$XDG_CONFIG_HOME/opentine/trust-owner`; the bundle is
+`$OPENTINE_TRUST_BUNDLE` or `.tine/trust-bundle.note`. A `policy` role named
+only in the unsigned `.tine/key-roles.toml` is `roles: unpinned` and pins
+nothing, so a loop that adds its own key there cannot re-sign the list. Sign
+existing roles with `tine trust bundle create --key OWNER --name NAME
+--serial N --pin FP --key-roles .tine/key-roles.toml --out
+.tine/trust-bundle.note`; a bundle with a lower serial than the highest one
+seen (kept in `$XDG_CONFIG_HOME/opentine/trust-bundle-serials.json`) is
+refused, as in 0.51.
 
 ## `tine integrity check RUN`
 
@@ -70,9 +82,19 @@ pinned file, against the list:
   symlink still on disk is resolved to the file it names; absolute paths are
   made relative to the repository; paths outside it are ignored;
 - a write or delete of the trust root itself -- `.tine/protected.toml`,
-  `.tine/key-roles.toml` or anything under `.tine/integrity/` (the list's pin
-  and the filed taints) -- is `fail:protected-surface-modified` on the
+  `.tine/key-roles.toml`, `.tine/trust-bundle.note` or anything under
+  `.tine/integrity/` (the list's pin and the filed taints) -- is `fail:protected-surface-modified` on the
   `protected-list` surface whether or not the list names them.
+
+### How much the detectors catch
+
+Be honest about the two kinds. On a blind held-out set of reward hacks the
+detectors had not been tuned on, the advisory detectors caught **2 of 13**
+before tuning. The seeded red-team corpus scores higher because the
+detectors were tuned against it; that is not evidence they generalize.
+Advisories are heuristics that route a reviewer's attention. The guarantee is
+the `fail:` facts -- digests, signatures and policy -- and the refusals they
+drive.
 
 `--record FILE` also runs the advisory reward-hack detectors
 (docs/SELF-IMPROVING-LOOPS.md) over a run record and adds their findings with
@@ -111,16 +133,26 @@ signature verifies and whose claim and target name the run counts: a taint
 can only refuse, so a stray one fails closed. An unsigned or retargeted file
 is ignored.
 
+A file can be deleted, so (0.59) the same signed attestation is also stored
+as an object and held: a `tine hold` row `{"oid": <attestation>, "target":
+"integrity-taint:<run>"}`, the way 0.57 keeps loop stops. The hold keeps the
+attestation from every delete and prune, `tine hold release` refuses it (a
+taint is never released), and promote and lineage read held taints as well as
+filed ones, so deleting or rewriting the file does not un-taint. An unreadable
+holds file counts as a taint (`holds-unreadable`, fail closed). `--json`
+names the held object as `taint.hold` (`null` when the run is not stored in
+the repository, where only the file records it).
+
 ## Promotion and lineage
 
 - `tine promote CANDIDATE --baseline LABEL ... --repo PATH` refuses with
-  `promote.score-tainted` when the candidate run has a filed taint, or, when
+  `promote.score-tainted` when the candidate run has a filed or held taint, or, when
   the repository has a protected list, when the candidate trips any `fail:`
   against it at promotion time (an unsigned list included). A tainted score
   never moves a label.
 - `tine lineage check VARIANT` and `tine lineage why VARIANT` report
   `lineage.score-tainted` for each variant on the walked ancestry whose
-  mutation run has a filed taint, and exit 1: a tainted score cannot justify
+  mutation run has a filed or held taint, and exit 1: a tainted score cannot justify
   a lineage step.
 
 ## Python and TypeScript
@@ -139,11 +171,11 @@ vector family. `tests/test_060_integrity.py` regenerates the fixture from
   special-casing, visible/holdout gap, judge vs ground truth, fabricated tool
   evidence) and the seeded red-team corpus with its benign baseline.
 - Taint propagation into curated datasets.
-- A loop that can write `.tine/key-roles.toml` outside captured tool calls
-  can name its own key a policy key and re-sign an edited list; the key-role
-  file is a 0.57 trust root and must be guarded by the operator (read-only
-  checkout, or signed key roles), not by this check.
-- A filed taint deleted outside captured tool calls is gone; promote still
-  re-checks the candidate live, which only sees the pinned digests then.
+- Roles are only as safe as the owner pin: a loop that can write the
+  operator's user config (`$XDG_CONFIG_HOME/opentine/`) or environment can
+  pin its own owner key. Keep the owner key and that config out of the loop's
+  reach.
+- A taint on a run not stored in the repository is only a file (an
+  attestation names a stored object), and deleting it un-taints that run.
 - Observation of edits made outside captured tool calls is limited to the
   pinned digests on disk at check time.

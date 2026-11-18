@@ -116,7 +116,7 @@ A label moves only when every check passes. Each refusal names its reason:
 | `promote.holdout-not-held-out` | the holdout is the main dataset |
 | `promote.missing-approver` | there are fewer valid approvals than `min_approvals` from keys in `approvers`, for this run and this label; an approval signed by the promoting key or by an `eval_signers` key never counts, so a loop cannot approve itself |
 | `promote.approval-stale` | an approval for this run and label names another holder (`previous`) or label `sequence` than the label state now has: every move appends to the history, so an approval counts for one move and a revert retires it |
-| `promote.policy-unsigned` | the key-role policy names a `policy` role and no `--policy-attestation` is an `opentine.promotion-policy/1` attestation, signed by a `policy` key that is neither the promoting key nor an `optimizer` key, over this policy file and its label admission policy (both sha256) |
+| `promote.policy-unsigned` | the key roles name a `policy` role only in the unsigned `.tine/key-roles.toml` (`roles: unpinned`, 0.59: no policy key counts), or the pinned roles name one and no `--policy-attestation` is an `opentine.promotion-policy/1` attestation, signed by a `policy` key that is neither the promoting key nor an `optimizer` key, over this policy file and its label admission policy (both sha256) |
 | `promote.over-budget` | `--spent` is above `budget_usd` (`--spent` is required and must be a non-negative decimal) |
 | `promote.item-mismatch` | the two sides of a pair scored different item sets: n is always the full paired set, so a candidate cannot drop the items it fails |
 | `promote.key-separation` | the repository's key-role policy (`.tine/key-roles.toml`, see `tine keys lint`) lists the promoting key in a scorer, dataset, verdict or approver role; with no policy file nothing is refused |
@@ -132,8 +132,8 @@ facts do: hashes, signatures and the policy.
 ### Signing the policy
 
 The promotion policy and the label admission policy are files a
-self-improving loop may be able to edit. When `.tine/key-roles.toml` names a
-`policy` role, only a signed policy counts. A holder of a `policy` key signs
+self-improving loop may be able to edit. When the key roles name a `policy`
+role, only a signed policy counts. A holder of a `policy` key signs
 the exact files:
 
 ```
@@ -147,6 +147,33 @@ it names, so any edit (a raised `budget_usd`, a new approver, a wider
 never count, and `tine keys lint` refuses an optimizer key that also holds a
 `policy` key. The decision records the attestation (`policy_attestation`) and
 the VSA lists it as `policy:<signer>` in `inputAttestations`.
+
+### Pinning the key roles (0.59)
+
+`.tine/key-roles.toml` is a file in the repository, so a loop that can write
+it could name its own key a `policy`, `scorer` or `stopper` key. Roles grant
+those powers only when an owner-signed trust bundle (SPEC 8.26) carries them
+and the owner key is pinned outside the repository:
+
+```
+tine trust bundle create --key OWNER_KEY --name example.com/trust --serial 1 \
+  --pin SIGNER_FP --key-roles .tine/key-roles.toml --out .tine/trust-bundle.note
+export OPENTINE_TRUST_OWNER='example.com/trust+...'   # or $XDG_CONFIG_HOME/opentine/trust-owner
+```
+
+The bundle is read from `$OPENTINE_TRUST_BUNDLE` or `.tine/trust-bundle.note`;
+a lower serial than the highest one seen is refused (rollback, as in 0.51)
+and a pinned owner with a bad bundle refuses outright. With only the unsigned
+file the roles are `unpinned` (`tine keys lint` prints `roles: unpinned`,
+`--json` `pinning`): they still refuse (key separation), but a `policy` role
+refuses every policy with `promote.policy-unsigned`, a `scorer` role pins no
+lineage signer (`signers: unpinned`), a `stopper` role verifies no stop, and
+no policy key can pin the integrity protected list.
+
+A run with an integrity taint (docs/INTEGRITY.md) is refused with
+`promote.score-tainted` whether the taint is filed or held: from 0.59 the taint
+is also a `tine hold` that `tine hold release` refuses, so deleting the file
+does not launder the score.
 
 ### Approvals are bound to one move
 
