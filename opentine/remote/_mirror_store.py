@@ -20,6 +20,7 @@ public project over private code is refused when the mirror is linked.
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import threading
 import time
@@ -86,8 +87,14 @@ def _read(path: Path) -> dict[str, Any] | None:
 
 
 def _write(path: Path, value: dict[str, Any]) -> None:
+    """Owner-only (0600): a private slot's upstream URL is in link.json."""
     temp = path.with_suffix(".tmp")
-    temp.write_text(json.dumps(value, sort_keys=True), encoding="utf-8")
+    temp.unlink(missing_ok=True)
+    handle = os.open(
+        temp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600
+    )
+    with os.fdopen(handle, "w", encoding="utf-8") as out:
+        out.write(json.dumps(value, sort_keys=True))
     temp.replace(path)
 
 
@@ -147,7 +154,7 @@ def link(root: Path, tenant: str, request: dict[str, Any], cfg: dict[str, Any]) 
               "manifest": _project.digest(manifest), "default_branch": slot["default_branch"],
               "project_id": manifest["project_id"]}  # fmt: skip
     place = directory(root, tenant)
-    place.mkdir(parents=True, exist_ok=True)
+    place.mkdir(mode=0o700, parents=True, exist_ok=True)
     _mirror_secret.save(place, credential)
     _write(place / "link.json", record)
     return record

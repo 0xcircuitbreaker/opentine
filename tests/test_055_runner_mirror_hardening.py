@@ -190,3 +190,14 @@ def test_eval_judges_get_the_model_credential_and_count_in_the_cost(tmp_path, mo
     review = {"cost": {"total": "1.5", "unknown_members": 0}}
     cost = _review_runner._cost(review, found)
     assert Decimal(cost["total"]) == Decimal("1.75") and Decimal(cost["evals"]) == Decimal("0.25")
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX file modes")
+def test_mirror_records_are_owner_only(tmp_path):
+    from opentine.remote import _mirror_store
+
+    target = tmp_path / "link.json"
+    _mirror_store._write(target, {"upstream": "https://example.invalid/private.git"})
+    assert target.stat().st_mode & 0o777 == 0o600
+    _mirror_store._write(target, {"upstream": "https://example.invalid/other.git"})
+    assert target.stat().st_mode & 0o777 == 0o600
