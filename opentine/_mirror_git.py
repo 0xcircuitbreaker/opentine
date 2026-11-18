@@ -16,6 +16,7 @@ from __future__ import annotations
 import os
 import re
 import shutil
+import socket
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -53,8 +54,10 @@ def _env(allow_local: bool) -> dict[str, str]:
     }
 
 
-def git(repo: Path, *args: str, timeout: float = 30, allow_local: bool = False) -> bytes:
+def git(repo: Path, *args: str, timeout: float = 30, allow_local: bool = False,
+        pin: tuple[str, ...] = ()) -> bytes:  # fmt: skip
     command = ["git", "-c", "core.hooksPath=" + os.devnull, "-c", "credential.helper=",
+               "-c", "http.followRedirects=false", *pin,
                "--git-dir", str(repo), *args]  # fmt: skip
     try:
         done = subprocess.run(command, capture_output=True, timeout=timeout,
@@ -72,19 +75,42 @@ def size(path: Path) -> int:
     return sum(p.stat().st_size for p in Path(path).rglob("*") if p.is_file())
 
 
+def _pinned(upstream: str, allow_private: bool) -> tuple[str, ...]:
+    """Refuse an upstream on a private, loopback or reserved address (SSRF), and pin the
+    connection to the address checked so a DNS rebind cannot move it."""
+    from urllib.parse import urlsplit
+
+    from opentine.remote._webhooks import _address, blocked
+
+    parts = urlsplit(upstream)
+    try:
+        port = parts.port or 443
+        host = parts.hostname or ""
+        infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+        address = [_address(str(info[4][0])) for info in infos]
+    except (OSError, ValueError, UnicodeError) as exc:
+        raise GitError("the upstream host did not resolve") from exc
+    if not address or (not allow_private and any(blocked(ip) for ip in address)):
+        raise GitError("the upstream is a private, loopback or reserved address",
+                       "mirror.upstream-unverifiable")  # fmt: skip
+    shown = f"[{address[0]}]" if address[0].version == 6 else str(address[0])
+    return ("-c", f"http.curloptResolve={host}:{port}:{shown}")
+
+
 def fetch(upstream: str, dest: Path, *, allow_local: bool, timeout: float, max_bytes: int):
     """Mirror *upstream*'s heads and tags into the bare repo *dest*, or raise ``GitError``."""
     if upstream.startswith("-") or not (
         upstream.startswith("https://") or (allow_local and upstream.startswith("file://"))
     ):
         raise GitError("the upstream must be an https:// URL", "mirror.upstream-unverifiable")
+    pin = () if upstream.startswith("file://") else _pinned(upstream, allow_local)
     if not (dest / "HEAD").is_file():
         dest.mkdir(parents=True, exist_ok=True)
         subprocess.run(["git", "init", "-q", "--bare", str(dest)], env=_env(False),
                        capture_output=True, check=True, timeout=30)  # fmt: skip
     git(dest, "fetch", "--quiet", "--prune", "--no-tags", "--no-recurse-submodules",
         "--end-of-options", upstream, "+refs/heads/*:refs/heads/*", "+refs/tags/*:refs/tags/*",
-        timeout=timeout, allow_local=allow_local)  # fmt: skip
+        timeout=timeout, allow_local=allow_local, pin=pin)  # fmt: skip
     if size(dest) > max_bytes:
         shutil.rmtree(dest, ignore_errors=True)
         raise GitError("the upstream is larger than the mirror limit", "mirror.limit-exceeded")

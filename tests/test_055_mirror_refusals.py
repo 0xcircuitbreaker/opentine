@@ -132,3 +132,26 @@ def test_a_private_project_links_by_commitment_and_never_shows_the_url(tmp_path)
     raw = call(app, "GET", T + "code/raw", query="path=README.md")
     assert raw.status == 200 and str(tmp_path) not in str(raw.headers)
     assert str(tmp_path) not in call(app, "GET", T + "mirror").body.decode()
+
+
+def test_an_upstream_on_a_private_address_is_refused_before_git_runs(tmp_path):
+    from opentine import _mirror_git
+
+    for url in ("https://127.0.0.1/x.git", "https://169.254.169.254/x.git",
+                "https://[::1]/x.git", "https://localhost/x.git"):  # fmt: skip
+        try:
+            _mirror_git.fetch(url, tmp_path / "m", allow_local=False, timeout=5, max_bytes=1)
+        except _mirror_git.GitError as exc:
+            assert exc.code in ("mirror.upstream-unverifiable", "mirror.upstream-unreachable")
+        else:
+            raise AssertionError(url)
+        assert not (tmp_path / "m").exists()
+
+
+def test_a_public_upstream_is_pinned_to_the_checked_address_without_redirects(monkeypatch):
+    from opentine import _mirror_git
+
+    answer = [(2, 1, 6, "", ("93.184.216.34", 443))]
+    monkeypatch.setattr(_mirror_git.socket, "getaddrinfo", lambda *a, **k: answer)
+    pin = _mirror_git._pinned("https://code.example/x.git", allow_private=False)
+    assert pin == ("-c", "http.curloptResolve=code.example:443:93.184.216.34")
