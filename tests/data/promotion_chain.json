@@ -1,0 +1,704 @@
+{
+  "about": "0.58 promote/revert/promote, only existing kinds; regenerate with tests/test_058_promotion_offline.py",
+  "cases": [
+    {
+      "args": {},
+      "expect": "valid",
+      "id": "one/vsa",
+      "op": "vsa.verify",
+      "value": {
+        "envelope": {
+          "payload": "eyJfdHlwZSI6Imh0dHBzOi8vaW4tdG90by5pby9TdGF0ZW1lbnQvdjEiLCJwcmVkaWNhdGUiOnsiaW5wdXRBdHRlc3RhdGlvbnMiOlt7ImRpZ2VzdCI6eyJzaGEyNTYiOiI4YzdiMGYzMzBkNmNiY2VlMDg4YmFkM2M1Y2JhMTEwMTVhNTQ4MmEyZDEzN2Y0YjMyNmMyZTlkOWM5YzJiODhkIn0sInVyaSI6ImV2YWw6c2hhMjU2OjkxYzY3Mzk3NTM2NjkxOTc2NTg5ZGQzN2JlMTA4YWZhMTEwMDQ4ZWUwYzNmZTFlNTc1MjVlNjVhM2I1MDU4NTUifSx7ImRpZ2VzdCI6eyJzaGEyNTYiOiJhZmEyMDVmZDUzZjA2MjEzM2QxYjAxOWIyOTkyZGE5OWNiZjRlNTUxMzliNGUzOTE5NDMxMmU1OGNhZGQ0YTJkIn0sInVyaSI6ImV2YWw6c2hhMjU2OjkxYzY3Mzk3NTM2NjkxOTc2NTg5ZGQzN2JlMTA4YWZhMTEwMDQ4ZWUwYzNmZTFlNTc1MjVlNjVhM2I1MDU4NTUifSx7ImRpZ2VzdCI6eyJzaGEyNTYiOiIzZGQ1NTlmMWMxNDNiNTRmZWFhZjdiYzIwMWFiNzI0ZDgyN2NlZTdmYTMxZjViZTE5MzZhYjllMjU5NTYyMzk3In0sInVyaSI6ImV2YWw6c2hhMjU2OjllZTc2Njg0YzNlYzA0MzRlYmRkZDc0Y2ZmZDQxMDE3MzRkNzk2M2Q4Mzk5MzQ3NmIzNzhkY2M3NTE2NGE5NmEifSx7ImRpZ2VzdCI6eyJzaGEyNTYiOiJhMzEzNmU3MDQyN2ViYWI1MzZiNDgzMmQ0YzBhNTBkZDE1NTdmNThhMzRiZmY3NTcwZTM0OTk4ODE4NzZmYzYzIn0sInVyaSI6ImV2YWw6c2hhMjU2OjllZTc2Njg0YzNlYzA0MzRlYmRkZDc0Y2ZmZDQxMDE3MzRkNzk2M2Q4Mzk5MzQ3NmIzNzhkY2M3NTE2NGE5NmEifSx7ImRpZ2VzdCI6eyJzaGEyNTYiOiJhNGI3ODdiNjc0OGIwNmEyMzhhNzhhY2ZiMTYyNTdmM2U1NzJiOGFiZGVhOTVkZTg5Y2MwMWFjNGMxNWFkMTg3In0sInVyaSI6ImFwcHJvdmFsOnNoYTI1NjoxYmU4ZTBhNzc3OWZjOTA5NTY5NThiYTg0ZWI5ZDI2ZTMzNjRjNmNmMTEzYzAwZWM3NDc0MTM5NTdkMzQxMjI5In0seyJkaWdlc3QiOnsic2hhMjU2IjoiOTdkZTc2ZjM1YTU3MzM5NWMyYjkxMmIzNmZiODZkMDliZTk1YzY5NDMxODA2ZDVlYTVlOTAzMzY2NTQ5OGMwMSJ9LCJ1cmkiOiJjb21wYXJlOm1haW4ifSx7ImRpZ2VzdCI6eyJzaGEyNTYiOiJjYzg5ZjBlMWM2Zjc1YmY0NzAxZGQwZWIzYzFlYjhlNjg3MzJkNGRhMzRjNzAzNzRmY2JhYzRiODc4YmMxNDY1In0sInVyaSI6ImNvbXBhcmU6aG9sZG91dCJ9XSwicG9saWN5Ijp7ImRpZ2VzdCI6eyJzaGEyNTYiOiI0NzNhYTNmZjk5Nzk5OTVmMDE1NjFhNWY2NDYzZmY5NGM5ZTY1ODhlYWYxMzQ4ZmQ5NWUyMWYzNjY4NzUwY2JlIn0sInVyaSI6Im9wZW50aW5lOnRydXN0LXBvbGljeS9wcm9tb3Rpb24ifSwicmVzb3VyY2VVcmkiOiJ0aW5lOi8vcHJvbW90aW9uL2xhYmVscy9wcm9kIiwidGltZVZlcmlmaWVkIjoiMjAyNi0xMS0wMVQxMjowMDowMFoiLCJ2ZXJpZmljYXRpb25SZXN1bHQiOiJQQVNTRUQiLCJ2ZXJpZmllZExldmVscyI6WyJPUEVOVElORV9QUk9NT1RFRCJdLCJ2ZXJpZmllciI6eyJpZCI6Im9wZW50aW5lOnByb21vdGUifX0sInByZWRpY2F0ZVR5cGUiOiJodHRwczovL3Nsc2EuZGV2L3ZlcmlmaWNhdGlvbl9zdW1tYXJ5L3YxIiwic3ViamVjdCI6W3siZGlnZXN0Ijp7InNoYTI1NiI6ImJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmIifSwibmFtZSI6InJ1bjpzaGEyNTY6YmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYiJ9XX0=",
+          "payloadType": "application/vnd.in-toto+json",
+          "signatures": [
+            {
+              "keyid": "did:key:z6MkoH8KpHkZQyDREP8Jpy6xKHiH5bGsh3UBsstBXfeDehU5",
+              "sig": "kCKtAoBtIin54bx1MP15ZL5hklq1DNQNdc773xnRqgYEtBwmBeQj/HckkdXEbUi7WrorZ0RWHyG1OWfobqrUAA=="
+            }
+          ]
+        },
+        "key": "gyClGXfYw4yopJJ8Zw31gh5El2GUXhXp77JqFQnSMOo",
+        "levels": [
+          "OPENTINE_PROMOTED"
+        ],
+        "policy": "opentine:trust-policy/promotion",
+        "resource": "tine://promotion/labels/prod",
+        "subject": "run:sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    {
+      "args": {
+        "family": "attestation",
+        "public_key": "8320a51977d8c38ca8a4927c670df5821e449761945e15e9efb26a1509d230ea"
+      },
+      "expect": "verified",
+      "id": "one/decision",
+      "op": "sig.verify",
+      "value": {
+        "claim": {
+          "action": "promote",
+          "budget_usd": "10",
+          "candidate": "run:sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "inputs": [
+            {
+              "digest": {
+                "sha256": "8c7b0f330d6cbcee088bad3c5cba11015a5482a2d137f4b326c2e9d9c9c2b88d"
+              },
+              "uri": "eval:sha256:91c67397536691976589dd37be108afa110048ee0c3fe1e57525e65a3b505855"
+            },
+            {
+              "digest": {
+                "sha256": "afa205fd53f062133d1b019b2992da99cbf4e55139b4e39194312e58cadd4a2d"
+              },
+              "uri": "eval:sha256:91c67397536691976589dd37be108afa110048ee0c3fe1e57525e65a3b505855"
+            },
+            {
+              "digest": {
+                "sha256": "3dd559f1c143b54feaaf7bc201ab724d827cee7fa31f5be1936ab9e259562397"
+              },
+              "uri": "eval:sha256:9ee76684c3ec0434ebddd74cffd4101734d7963d83993476b378dcc75164a96a"
+            },
+            {
+              "digest": {
+                "sha256": "a3136e70427ebab536b4832d4c0a50dd1557f58a34bff7570e3499881876fc63"
+              },
+              "uri": "eval:sha256:9ee76684c3ec0434ebddd74cffd4101734d7963d83993476b378dcc75164a96a"
+            },
+            {
+              "digest": {
+                "sha256": "a4b787b6748b06a238a78acfb16257f3e572b8abdea95de89cc01ac4c15ad187"
+              },
+              "uri": "approval:sha256:1be8e0a7779fc90956958ba84eb9d26e3364c6cf113c00ec747413957d341229"
+            },
+            {
+              "digest": {
+                "sha256": "97de76f35a573395c2b912b36fb86d09be95c69431806d5ea5e9033665498c01"
+              },
+              "uri": "compare:main"
+            },
+            {
+              "digest": {
+                "sha256": "cc89f0e1c6f75bf4701dd0eb3c1eb8e68732d4da34c70374fcbac4b878bc1465"
+              },
+              "uri": "compare:holdout"
+            }
+          ],
+          "label": "prod",
+          "previous": null,
+          "schema": "opentine.promotion-decision/1",
+          "spent_usd": "0",
+          "stats": {
+            "holdout": {
+              "alpha": "0.05",
+              "convention": "opentine.eval-compare/1",
+              "method": "paired-bootstrap",
+              "metrics": {
+                "pass_rate": {
+                  "a": "0.500000",
+                  "b": "0.900000",
+                  "ci": [
+                    "0.200000",
+                    "0.600000"
+                  ],
+                  "delta": "0.400000",
+                  "improvement": true,
+                  "p_value": null,
+                  "regression": false,
+                  "significant": true
+                },
+                "score": {
+                  "a": "0.500000",
+                  "b": "0.900000",
+                  "ci": [
+                    "0.175000",
+                    "0.575000"
+                  ],
+                  "delta": "0.400000",
+                  "improvement": true,
+                  "p_value": null,
+                  "regression": false,
+                  "significant": true
+                }
+              },
+              "n": 40,
+              "regressions": [],
+              "resamples": 500,
+              "seed": 7
+            },
+            "main": {
+              "alpha": "0.05",
+              "convention": "opentine.eval-compare/1",
+              "method": "paired-bootstrap",
+              "metrics": {
+                "pass_rate": {
+                  "a": "0.500000",
+                  "b": "0.900000",
+                  "ci": [
+                    "0.200000",
+                    "0.600000"
+                  ],
+                  "delta": "0.400000",
+                  "improvement": true,
+                  "p_value": null,
+                  "regression": false,
+                  "significant": true
+                },
+                "score": {
+                  "a": "0.500000",
+                  "b": "0.900000",
+                  "ci": [
+                    "0.175000",
+                    "0.575000"
+                  ],
+                  "delta": "0.400000",
+                  "improvement": true,
+                  "p_value": null,
+                  "regression": false,
+                  "significant": true
+                }
+              },
+              "n": 40,
+              "regressions": [],
+              "resamples": 500,
+              "seed": 7
+            }
+          },
+          "vsa_sha256": "e5cc5b6211e39401a3ec0498c43c74b4dccd780410df59aefc8a7bddec21ffec"
+        },
+        "evidence_ids": [],
+        "signature": {
+          "alg": "ed25519",
+          "public_key": "8320a51977d8c38ca8a4927c670df5821e449761945e15e9efb26a1509d230ea",
+          "scheme": "tine-attest/2",
+          "signed_at": "2026-11-01T12:00:00Z",
+          "signer": "sha256:cd8fa86afd6bf20d66d6c248647e5ecd5e778c2f78a30699d52506ce021baca8",
+          "value": "9c4db9eb16b2ebd28f6b7f14eb3fb01ba494a4110a17f08a7b53fc027fc4a9fd2882cd400820132b263b8d3301ffc1234145fa0e88e5a05674bc80f90d750d0e"
+        },
+        "signer": "sha256:cd8fa86afd6bf20d66d6c248647e5ecd5e778c2f78a30699d52506ce021baca8",
+        "target_id": "run:sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    {
+      "args": {
+        "family": "attestation",
+        "public_key": "8320a51977d8c38ca8a4927c670df5821e449761945e15e9efb26a1509d230ea"
+      },
+      "expect": "verified",
+      "id": "one/compare",
+      "op": "sig.verify",
+      "value": {
+        "claim": {
+          "a": "sha256:91c67397536691976589dd37be108afa110048ee0c3fe1e57525e65a3b505855",
+          "b": "sha256:91c67397536691976589dd37be108afa110048ee0c3fe1e57525e65a3b505855",
+          "export_sha256": "3d49f2715d159e854757e9f83a999e94059b4845b73a837006949a06b4b2d5b5",
+          "schema": "opentine.eval-compare/1",
+          "stats": {
+            "alpha": "0.05",
+            "convention": "opentine.eval-compare/1",
+            "method": "paired-bootstrap",
+            "metrics": {
+              "pass_rate": {
+                "a": "0.500000",
+                "b": "0.900000",
+                "ci": [
+                  "0.200000",
+                  "0.600000"
+                ],
+                "delta": "0.400000",
+                "improvement": true,
+                "p_value": null,
+                "regression": false,
+                "significant": true
+              },
+              "score": {
+                "a": "0.500000",
+                "b": "0.900000",
+                "ci": [
+                  "0.175000",
+                  "0.575000"
+                ],
+                "delta": "0.400000",
+                "improvement": true,
+                "p_value": null,
+                "regression": false,
+                "significant": true
+              }
+            },
+            "n": 40,
+            "regressions": [],
+            "resamples": 500,
+            "seed": 7
+          }
+        },
+        "evidence_ids": [],
+        "signature": {
+          "alg": "ed25519",
+          "public_key": "8320a51977d8c38ca8a4927c670df5821e449761945e15e9efb26a1509d230ea",
+          "scheme": "tine-attest/1",
+          "signed_at": "2026-11-01T12:00:00Z",
+          "signer": "sha256:cd8fa86afd6bf20d66d6c248647e5ecd5e778c2f78a30699d52506ce021baca8",
+          "value": "0e931f6784c211b052cb7acdcc596347b185abc1cecf7b1369513dd2189025ec565cf0c6f45455464d9214423ed13233c143d4683b788a341d08e5250e999a09"
+        },
+        "signer": "sha256:cd8fa86afd6bf20d66d6c248647e5ecd5e778c2f78a30699d52506ce021baca8",
+        "target_id": "sha256:91c67397536691976589dd37be108afa110048ee0c3fe1e57525e65a3b505855"
+      }
+    },
+    {
+      "args": {
+        "family": "attestation",
+        "public_key": "8320a51977d8c38ca8a4927c670df5821e449761945e15e9efb26a1509d230ea"
+      },
+      "expect": "verified",
+      "id": "one/holdout-compare",
+      "op": "sig.verify",
+      "value": {
+        "claim": {
+          "a": "sha256:9ee76684c3ec0434ebddd74cffd4101734d7963d83993476b378dcc75164a96a",
+          "b": "sha256:9ee76684c3ec0434ebddd74cffd4101734d7963d83993476b378dcc75164a96a",
+          "export_sha256": "2cdcbaba1788a6a7d188b0736b09634a13d3c90886dbae7260962bca6c11a4f5",
+          "schema": "opentine.eval-compare/1",
+          "stats": {
+            "alpha": "0.05",
+            "convention": "opentine.eval-compare/1",
+            "method": "paired-bootstrap",
+            "metrics": {
+              "pass_rate": {
+                "a": "0.500000",
+                "b": "0.900000",
+                "ci": [
+                  "0.200000",
+                  "0.600000"
+                ],
+                "delta": "0.400000",
+                "improvement": true,
+                "p_value": null,
+                "regression": false,
+                "significant": true
+              },
+              "score": {
+                "a": "0.500000",
+                "b": "0.900000",
+                "ci": [
+                  "0.175000",
+                  "0.575000"
+                ],
+                "delta": "0.400000",
+                "improvement": true,
+                "p_value": null,
+                "regression": false,
+                "significant": true
+              }
+            },
+            "n": 40,
+            "regressions": [],
+            "resamples": 500,
+            "seed": 7
+          }
+        },
+        "evidence_ids": [],
+        "signature": {
+          "alg": "ed25519",
+          "public_key": "8320a51977d8c38ca8a4927c670df5821e449761945e15e9efb26a1509d230ea",
+          "scheme": "tine-attest/1",
+          "signed_at": "2026-11-01T12:00:00Z",
+          "signer": "sha256:cd8fa86afd6bf20d66d6c248647e5ecd5e778c2f78a30699d52506ce021baca8",
+          "value": "9b7284253b440c29a07cdf202d2841c9e6f795caa529cae65952de69de954876f558a288b98bcb9de7241f01dd54e9d291c8845ea391e14ee7d89c91c1c2930b"
+        },
+        "signer": "sha256:cd8fa86afd6bf20d66d6c248647e5ecd5e778c2f78a30699d52506ce021baca8",
+        "target_id": "sha256:9ee76684c3ec0434ebddd74cffd4101734d7963d83993476b378dcc75164a96a"
+      }
+    },
+    {
+      "args": {
+        "family": "attestation",
+        "public_key": "f78b1da9b3dfb3fa3a3e54c43e79389d2f04d6bccb62984f28bd6f91798a750d"
+      },
+      "expect": "verified",
+      "id": "one/approval",
+      "op": "sig.verify",
+      "value": {
+        "claim": {
+          "candidate": "run:sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "label": "prod",
+          "schema": "opentine.promotion-approval/1"
+        },
+        "evidence_ids": [],
+        "signature": {
+          "alg": "ed25519",
+          "public_key": "f78b1da9b3dfb3fa3a3e54c43e79389d2f04d6bccb62984f28bd6f91798a750d",
+          "scheme": "tine-attest/2",
+          "signed_at": "2026-11-01T12:00:00Z",
+          "signer": "sha256:1be8e0a7779fc90956958ba84eb9d26e3364c6cf113c00ec747413957d341229",
+          "value": "1c891bc1a7f2157e6ef61d25d7462bdd72d34b2877523f9a066c5f539685fff85d3f71d842ab9d3430df9577e8d817abba816aad2282f0feeb1a052989a70a04"
+        },
+        "signer": "sha256:1be8e0a7779fc90956958ba84eb9d26e3364c6cf113c00ec747413957d341229",
+        "target_id": "run:sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    {
+      "args": {},
+      "expect": "valid",
+      "id": "three/vsa",
+      "op": "vsa.verify",
+      "value": {
+        "envelope": {
+          "payload": "eyJfdHlwZSI6Imh0dHBzOi8vaW4tdG90by5pby9TdGF0ZW1lbnQvdjEiLCJwcmVkaWNhdGUiOnsiaW5wdXRBdHRlc3RhdGlvbnMiOlt7ImRpZ2VzdCI6eyJzaGEyNTYiOiI4YzdiMGYzMzBkNmNiY2VlMDg4YmFkM2M1Y2JhMTEwMTVhNTQ4MmEyZDEzN2Y0YjMyNmMyZTlkOWM5YzJiODhkIn0sInVyaSI6ImV2YWw6c2hhMjU2OjkxYzY3Mzk3NTM2NjkxOTc2NTg5ZGQzN2JlMTA4YWZhMTEwMDQ4ZWUwYzNmZTFlNTc1MjVlNjVhM2I1MDU4NTUifSx7ImRpZ2VzdCI6eyJzaGEyNTYiOiIyM2MxMTM4ZDliOGUwNTU0YjA2ZTM4MzY2MWE2MjNlNjM2ZDFjNjRhMzE4MTFlMDA5NGY5ZDJlODBhZDRkNDRkIn0sInVyaSI6ImV2YWw6c2hhMjU2OjkxYzY3Mzk3NTM2NjkxOTc2NTg5ZGQzN2JlMTA4YWZhMTEwMDQ4ZWUwYzNmZTFlNTc1MjVlNjVhM2I1MDU4NTUifSx7ImRpZ2VzdCI6eyJzaGEyNTYiOiIzZGQ1NTlmMWMxNDNiNTRmZWFhZjdiYzIwMWFiNzI0ZDgyN2NlZTdmYTMxZjViZTE5MzZhYjllMjU5NTYyMzk3In0sInVyaSI6ImV2YWw6c2hhMjU2OjllZTc2Njg0YzNlYzA0MzRlYmRkZDc0Y2ZmZDQxMDE3MzRkNzk2M2Q4Mzk5MzQ3NmIzNzhkY2M3NTE2NGE5NmEifSx7ImRpZ2VzdCI6eyJzaGEyNTYiOiJjOTIyYjcxNDMxYTI2OGQ4MmRhZTVjNTMzOTdlMzEzYWI2NWI4MTRiOTAwZDU4NTI4ZTc0MTQwZmRlMDY4NTJmIn0sInVyaSI6ImV2YWw6c2hhMjU2OjllZTc2Njg0YzNlYzA0MzRlYmRkZDc0Y2ZmZDQxMDE3MzRkNzk2M2Q4Mzk5MzQ3NmIzNzhkY2M3NTE2NGE5NmEifSx7ImRpZ2VzdCI6eyJzaGEyNTYiOiIzOGNlNzFlYjgzNTA0OTIyNDZiOWU5YmZmNmI0OGZjZjBkN2RlMDZiNzNkYTZhOTU5ZDAwN2FlY2YxYzQ5MmUyIn0sInVyaSI6ImFwcHJvdmFsOnNoYTI1NjoxYmU4ZTBhNzc3OWZjOTA5NTY5NThiYTg0ZWI5ZDI2ZTMzNjRjNmNmMTEzYzAwZWM3NDc0MTM5NTdkMzQxMjI5In0seyJkaWdlc3QiOnsic2hhMjU2IjoiOTdkZTc2ZjM1YTU3MzM5NWMyYjkxMmIzNmZiODZkMDliZTk1YzY5NDMxODA2ZDVlYTVlOTAzMzY2NTQ5OGMwMSJ9LCJ1cmkiOiJjb21wYXJlOm1haW4ifSx7ImRpZ2VzdCI6eyJzaGEyNTYiOiJjYzg5ZjBlMWM2Zjc1YmY0NzAxZGQwZWIzYzFlYjhlNjg3MzJkNGRhMzRjNzAzNzRmY2JhYzRiODc4YmMxNDY1In0sInVyaSI6ImNvbXBhcmU6aG9sZG91dCJ9XSwicG9saWN5Ijp7ImRpZ2VzdCI6eyJzaGEyNTYiOiI0NzNhYTNmZjk5Nzk5OTVmMDE1NjFhNWY2NDYzZmY5NGM5ZTY1ODhlYWYxMzQ4ZmQ5NWUyMWYzNjY4NzUwY2JlIn0sInVyaSI6Im9wZW50aW5lOnRydXN0LXBvbGljeS9wcm9tb3Rpb24ifSwicmVzb3VyY2VVcmkiOiJ0aW5lOi8vcHJvbW90aW9uL2xhYmVscy9wcm9kIiwidGltZVZlcmlmaWVkIjoiMjAyNi0xMS0wMVQxMjowMDowMFoiLCJ2ZXJpZmljYXRpb25SZXN1bHQiOiJQQVNTRUQiLCJ2ZXJpZmllZExldmVscyI6WyJPUEVOVElORV9QUk9NT1RFRCJdLCJ2ZXJpZmllciI6eyJpZCI6Im9wZW50aW5lOnByb21vdGUifX0sInByZWRpY2F0ZVR5cGUiOiJodHRwczovL3Nsc2EuZGV2L3ZlcmlmaWNhdGlvbl9zdW1tYXJ5L3YxIiwic3ViamVjdCI6W3siZGlnZXN0Ijp7InNoYTI1NiI6ImNjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2MifSwibmFtZSI6InJ1bjpzaGEyNTY6Y2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjYyJ9XX0=",
+          "payloadType": "application/vnd.in-toto+json",
+          "signatures": [
+            {
+              "keyid": "did:key:z6MkoH8KpHkZQyDREP8Jpy6xKHiH5bGsh3UBsstBXfeDehU5",
+              "sig": "WDcdHOXSVlefwFY+XRIbgp8srEjLFnwJ2zqJeWFXb5w9fyV6ux1DDvRdI9oBy61+b9FMznHqzbEOGakuvOKFCw=="
+            }
+          ]
+        },
+        "key": "gyClGXfYw4yopJJ8Zw31gh5El2GUXhXp77JqFQnSMOo",
+        "levels": [
+          "OPENTINE_PROMOTED"
+        ],
+        "policy": "opentine:trust-policy/promotion",
+        "resource": "tine://promotion/labels/prod",
+        "subject": "run:sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      }
+    },
+    {
+      "args": {
+        "family": "attestation",
+        "public_key": "8320a51977d8c38ca8a4927c670df5821e449761945e15e9efb26a1509d230ea"
+      },
+      "expect": "verified",
+      "id": "three/decision",
+      "op": "sig.verify",
+      "value": {
+        "claim": {
+          "action": "promote",
+          "budget_usd": "10",
+          "candidate": "run:sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "inputs": [
+            {
+              "digest": {
+                "sha256": "8c7b0f330d6cbcee088bad3c5cba11015a5482a2d137f4b326c2e9d9c9c2b88d"
+              },
+              "uri": "eval:sha256:91c67397536691976589dd37be108afa110048ee0c3fe1e57525e65a3b505855"
+            },
+            {
+              "digest": {
+                "sha256": "23c1138d9b8e0554b06e383661a623e636d1c64a31811e0094f9d2e80ad4d44d"
+              },
+              "uri": "eval:sha256:91c67397536691976589dd37be108afa110048ee0c3fe1e57525e65a3b505855"
+            },
+            {
+              "digest": {
+                "sha256": "3dd559f1c143b54feaaf7bc201ab724d827cee7fa31f5be1936ab9e259562397"
+              },
+              "uri": "eval:sha256:9ee76684c3ec0434ebddd74cffd4101734d7963d83993476b378dcc75164a96a"
+            },
+            {
+              "digest": {
+                "sha256": "c922b71431a268d82dae5c53397e313ab65b814b900d58528e74140fde06852f"
+              },
+              "uri": "eval:sha256:9ee76684c3ec0434ebddd74cffd4101734d7963d83993476b378dcc75164a96a"
+            },
+            {
+              "digest": {
+                "sha256": "38ce71eb8350492246b9e9bff6b48fcf0d7de06b73da6a959d007aecf1c492e2"
+              },
+              "uri": "approval:sha256:1be8e0a7779fc90956958ba84eb9d26e3364c6cf113c00ec747413957d341229"
+            },
+            {
+              "digest": {
+                "sha256": "97de76f35a573395c2b912b36fb86d09be95c69431806d5ea5e9033665498c01"
+              },
+              "uri": "compare:main"
+            },
+            {
+              "digest": {
+                "sha256": "cc89f0e1c6f75bf4701dd0eb3c1eb8e68732d4da34c70374fcbac4b878bc1465"
+              },
+              "uri": "compare:holdout"
+            }
+          ],
+          "label": "prod",
+          "previous": null,
+          "schema": "opentine.promotion-decision/1",
+          "spent_usd": "0",
+          "stats": {
+            "holdout": {
+              "alpha": "0.05",
+              "convention": "opentine.eval-compare/1",
+              "method": "paired-bootstrap",
+              "metrics": {
+                "pass_rate": {
+                  "a": "0.500000",
+                  "b": "0.900000",
+                  "ci": [
+                    "0.200000",
+                    "0.600000"
+                  ],
+                  "delta": "0.400000",
+                  "improvement": true,
+                  "p_value": null,
+                  "regression": false,
+                  "significant": true
+                },
+                "score": {
+                  "a": "0.500000",
+                  "b": "0.900000",
+                  "ci": [
+                    "0.175000",
+                    "0.575000"
+                  ],
+                  "delta": "0.400000",
+                  "improvement": true,
+                  "p_value": null,
+                  "regression": false,
+                  "significant": true
+                }
+              },
+              "n": 40,
+              "regressions": [],
+              "resamples": 500,
+              "seed": 7
+            },
+            "main": {
+              "alpha": "0.05",
+              "convention": "opentine.eval-compare/1",
+              "method": "paired-bootstrap",
+              "metrics": {
+                "pass_rate": {
+                  "a": "0.500000",
+                  "b": "0.900000",
+                  "ci": [
+                    "0.200000",
+                    "0.600000"
+                  ],
+                  "delta": "0.400000",
+                  "improvement": true,
+                  "p_value": null,
+                  "regression": false,
+                  "significant": true
+                },
+                "score": {
+                  "a": "0.500000",
+                  "b": "0.900000",
+                  "ci": [
+                    "0.175000",
+                    "0.575000"
+                  ],
+                  "delta": "0.400000",
+                  "improvement": true,
+                  "p_value": null,
+                  "regression": false,
+                  "significant": true
+                }
+              },
+              "n": 40,
+              "regressions": [],
+              "resamples": 500,
+              "seed": 7
+            }
+          },
+          "vsa_sha256": "f9d3d45bef3e7ede240d8ef6ef0583364813c913449f906ba895008f8c69bc71"
+        },
+        "evidence_ids": [],
+        "signature": {
+          "alg": "ed25519",
+          "public_key": "8320a51977d8c38ca8a4927c670df5821e449761945e15e9efb26a1509d230ea",
+          "scheme": "tine-attest/2",
+          "signed_at": "2026-11-01T12:00:00Z",
+          "signer": "sha256:cd8fa86afd6bf20d66d6c248647e5ecd5e778c2f78a30699d52506ce021baca8",
+          "value": "3ab2ed336cba628ef33bc0d9d622bb58a6bd904b3b93309af0ebea7123b13afd86deed9f456384c0cddc703ca479e0e0e6cd2874f1974ce50b0a1d81fbe5e501"
+        },
+        "signer": "sha256:cd8fa86afd6bf20d66d6c248647e5ecd5e778c2f78a30699d52506ce021baca8",
+        "target_id": "run:sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      }
+    },
+    {
+      "args": {
+        "family": "attestation",
+        "public_key": "8320a51977d8c38ca8a4927c670df5821e449761945e15e9efb26a1509d230ea"
+      },
+      "expect": "verified",
+      "id": "three/compare",
+      "op": "sig.verify",
+      "value": {
+        "claim": {
+          "a": "sha256:91c67397536691976589dd37be108afa110048ee0c3fe1e57525e65a3b505855",
+          "b": "sha256:91c67397536691976589dd37be108afa110048ee0c3fe1e57525e65a3b505855",
+          "export_sha256": "3d49f2715d159e854757e9f83a999e94059b4845b73a837006949a06b4b2d5b5",
+          "schema": "opentine.eval-compare/1",
+          "stats": {
+            "alpha": "0.05",
+            "convention": "opentine.eval-compare/1",
+            "method": "paired-bootstrap",
+            "metrics": {
+              "pass_rate": {
+                "a": "0.500000",
+                "b": "0.900000",
+                "ci": [
+                  "0.200000",
+                  "0.600000"
+                ],
+                "delta": "0.400000",
+                "improvement": true,
+                "p_value": null,
+                "regression": false,
+                "significant": true
+              },
+              "score": {
+                "a": "0.500000",
+                "b": "0.900000",
+                "ci": [
+                  "0.175000",
+                  "0.575000"
+                ],
+                "delta": "0.400000",
+                "improvement": true,
+                "p_value": null,
+                "regression": false,
+                "significant": true
+              }
+            },
+            "n": 40,
+            "regressions": [],
+            "resamples": 500,
+            "seed": 7
+          }
+        },
+        "evidence_ids": [],
+        "signature": {
+          "alg": "ed25519",
+          "public_key": "8320a51977d8c38ca8a4927c670df5821e449761945e15e9efb26a1509d230ea",
+          "scheme": "tine-attest/1",
+          "signed_at": "2026-11-01T12:00:00Z",
+          "signer": "sha256:cd8fa86afd6bf20d66d6c248647e5ecd5e778c2f78a30699d52506ce021baca8",
+          "value": "0e931f6784c211b052cb7acdcc596347b185abc1cecf7b1369513dd2189025ec565cf0c6f45455464d9214423ed13233c143d4683b788a341d08e5250e999a09"
+        },
+        "signer": "sha256:cd8fa86afd6bf20d66d6c248647e5ecd5e778c2f78a30699d52506ce021baca8",
+        "target_id": "sha256:91c67397536691976589dd37be108afa110048ee0c3fe1e57525e65a3b505855"
+      }
+    },
+    {
+      "args": {
+        "family": "attestation",
+        "public_key": "8320a51977d8c38ca8a4927c670df5821e449761945e15e9efb26a1509d230ea"
+      },
+      "expect": "verified",
+      "id": "three/holdout-compare",
+      "op": "sig.verify",
+      "value": {
+        "claim": {
+          "a": "sha256:9ee76684c3ec0434ebddd74cffd4101734d7963d83993476b378dcc75164a96a",
+          "b": "sha256:9ee76684c3ec0434ebddd74cffd4101734d7963d83993476b378dcc75164a96a",
+          "export_sha256": "2cdcbaba1788a6a7d188b0736b09634a13d3c90886dbae7260962bca6c11a4f5",
+          "schema": "opentine.eval-compare/1",
+          "stats": {
+            "alpha": "0.05",
+            "convention": "opentine.eval-compare/1",
+            "method": "paired-bootstrap",
+            "metrics": {
+              "pass_rate": {
+                "a": "0.500000",
+                "b": "0.900000",
+                "ci": [
+                  "0.200000",
+                  "0.600000"
+                ],
+                "delta": "0.400000",
+                "improvement": true,
+                "p_value": null,
+                "regression": false,
+                "significant": true
+              },
+              "score": {
+                "a": "0.500000",
+                "b": "0.900000",
+                "ci": [
+                  "0.175000",
+                  "0.575000"
+                ],
+                "delta": "0.400000",
+                "improvement": true,
+                "p_value": null,
+                "regression": false,
+                "significant": true
+              }
+            },
+            "n": 40,
+            "regressions": [],
+            "resamples": 500,
+            "seed": 7
+          }
+        },
+        "evidence_ids": [],
+        "signature": {
+          "alg": "ed25519",
+          "public_key": "8320a51977d8c38ca8a4927c670df5821e449761945e15e9efb26a1509d230ea",
+          "scheme": "tine-attest/1",
+          "signed_at": "2026-11-01T12:00:00Z",
+          "signer": "sha256:cd8fa86afd6bf20d66d6c248647e5ecd5e778c2f78a30699d52506ce021baca8",
+          "value": "9b7284253b440c29a07cdf202d2841c9e6f795caa529cae65952de69de954876f558a288b98bcb9de7241f01dd54e9d291c8845ea391e14ee7d89c91c1c2930b"
+        },
+        "signer": "sha256:cd8fa86afd6bf20d66d6c248647e5ecd5e778c2f78a30699d52506ce021baca8",
+        "target_id": "sha256:9ee76684c3ec0434ebddd74cffd4101734d7963d83993476b378dcc75164a96a"
+      }
+    },
+    {
+      "args": {
+        "family": "attestation",
+        "public_key": "f78b1da9b3dfb3fa3a3e54c43e79389d2f04d6bccb62984f28bd6f91798a750d"
+      },
+      "expect": "verified",
+      "id": "three/approval",
+      "op": "sig.verify",
+      "value": {
+        "claim": {
+          "candidate": "run:sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "label": "prod",
+          "schema": "opentine.promotion-approval/1"
+        },
+        "evidence_ids": [],
+        "signature": {
+          "alg": "ed25519",
+          "public_key": "f78b1da9b3dfb3fa3a3e54c43e79389d2f04d6bccb62984f28bd6f91798a750d",
+          "scheme": "tine-attest/2",
+          "signed_at": "2026-11-01T12:00:00Z",
+          "signer": "sha256:1be8e0a7779fc90956958ba84eb9d26e3364c6cf113c00ec747413957d341229",
+          "value": "f8dc6f94d238380d929d96530e931a1ef6a01df947637c98b53a524c4c0585a7c646a972af6bad00ecaee0716c1233068c7883e0665084cd61ef7fb8dcff3d04"
+        },
+        "signer": "sha256:1be8e0a7779fc90956958ba84eb9d26e3364c6cf113c00ec747413957d341229",
+        "target_id": "run:sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      }
+    },
+    {
+      "args": {
+        "family": "attestation",
+        "public_key": "8320a51977d8c38ca8a4927c670df5821e449761945e15e9efb26a1509d230ea"
+      },
+      "expect": "verified",
+      "id": "two/decision",
+      "op": "sig.verify",
+      "value": {
+        "claim": {
+          "action": "revert",
+          "candidate": "run:sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "label": "prod",
+          "previous": null,
+          "reason": "rollback",
+          "schema": "opentine.promotion-decision/1",
+          "stats": {}
+        },
+        "evidence_ids": [],
+        "signature": {
+          "alg": "ed25519",
+          "public_key": "8320a51977d8c38ca8a4927c670df5821e449761945e15e9efb26a1509d230ea",
+          "scheme": "tine-attest/2",
+          "signed_at": "2026-11-01T12:00:00Z",
+          "signer": "sha256:cd8fa86afd6bf20d66d6c248647e5ecd5e778c2f78a30699d52506ce021baca8",
+          "value": "3765c63d87b07fa817458dc6442e78eba3d9c7bb7337a0ce5a2b805f4f53a7826a02bfaeb0b7f5288d74f4dfd5739ebbff5c8dba8f670b2a38a454e2c3aaa502"
+        },
+        "signer": "sha256:cd8fa86afd6bf20d66d6c248647e5ecd5e778c2f78a30699d52506ce021baca8",
+        "target_id": "run:sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    }
+  ]
+}
