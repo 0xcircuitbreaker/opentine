@@ -57,6 +57,42 @@ All workflows declare `permissions: {}` or `contents: read` at the top and grant
 anything more per job, with a comment saying why. Run `uvx zizmor .github`
 before changing a workflow.
 
+## Automatic release on green (`release-on-green.yml`)
+
+With the repository variable `AUTO_RELEASE` set to exactly `true`, no manual
+tag is needed. A release ships like this:
+
+1. Prepare the release commit as in the checklist below (version in
+   `pyproject.toml` and `opentine/_version.py`, changelog date, pinned URLs) and
+   merge its PR with a squash subject of the form `X.Y.Z — Title`, with an em
+   dash; GitHub's appended ` (#NNN)` is fine.
+2. When the `CI` workflow completes on the resulting push to `main`,
+   `release-on-green.yml` runs. It proceeds only if that CI run succeeded, was a
+   `push` to `main` from this repository (never a pull request or fork), the
+   head commit's subject matches `^(\d+\.\d+\.\d+) — `, that version equals
+   the version in both `pyproject.toml` and `opentine/_version.py` at that exact
+   commit, the commit is still on `main`, the tag `vX.Y.Z` does not exist yet,
+   and the same successful-`ci.yml` query `publish.yml` uses passes.
+3. It then creates the annotated tag `vX.Y.Z` (message `opentine X.Y.Z`) on that
+   commit through the API and dispatches `publish.yml` on the tag
+   (`gh workflow run publish.yml --ref vX.Y.Z -f tag=vX.Y.Z`): a tag created with
+   `GITHUB_TOKEN` does not fire `push` workflows. The job holds only
+   `contents: write` (the tag) and `actions: write` (the dispatch), and checks
+   out no code.
+4. `publish.yml` runs exactly as for a pushed tag. Every job resolves the tag
+   from `RELEASE_TAG` (the dispatch input, or the pushed ref), and `gates`
+   refuses a dispatch unless it runs on `refs/tags/<input>`, the tag is
+   annotated and points at the checked-out commit, and that commit is on
+   `main`. All other gates, the attestation and the `pypi` environment are
+   unchanged.
+
+Any non-release commit simply ends the job green with nothing done. To stop
+automatic releases, set `AUTO_RELEASE` to anything but `true` (or delete it) or
+disable the workflow; it is off by default. Manual tagging (step 5 of the
+checklist) still works exactly as before. For a release with no human step at
+all, the `pypi` environment must have no required reviewers; with a reviewer it
+still waits for approval at step 6.
+
 ## Release checklist
 
 1. Confirm the working tree is clean and the version in `pyproject.toml` and
