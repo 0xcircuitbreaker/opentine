@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Code mirror and review runner
+## 0.55.0 — Code mirror and review runner (2026-11-18)
 
 - `tine serve --mirror` serves a read-only code mirror (`caps.project.mirror`,
   SPEC 8.18): link a slot of the current project manifest with `PUT
