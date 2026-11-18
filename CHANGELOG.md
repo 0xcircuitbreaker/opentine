@@ -1,5 +1,39 @@
 # Changelog
 
+## Unreleased — Signed promotion and eval statistics
+
+- `tine eval compare A B --ci paired-bootstrap|permutation [--alpha] [--seed]
+  [--resamples]` adds per-metric statistics (`score`, `pass_rate`): both means,
+  the delta, a paired-bootstrap interval or a sign-flip permutation p-value, and
+  the regressions. The arithmetic is exact (integer micro-units) and the result
+  is deterministic given the seed. It prints a table, or `--json` under the new
+  published schema `tine-cli-eval-compare-1`.
+- `--export FILE` writes the paired items the numbers come from;
+  `scripts/eval_compare_reproduce.py FILE` (standard library only) reproduces
+  `stats` from it byte for byte. `--attest KEY --out FILE` signs the result as an
+  existing `attestation` whose claim follows the documented convention
+  `opentine.eval-compare/1`.
+- `tine promote TARGET --baseline LABEL` is a signed promotion gate. A label moves
+  only when trusted, signed eval verdicts beat the baseline under the policy's
+  test, with a minimum n and a holdout. It also needs approvals from listed
+  approvers, a spend under the budget cap, and an `opentine.admission-policy`
+  that covers `labels/LABEL`. Every refusal is named (`promote.n-below-minimum`,
+  `promote.ci-crosses-zero`, `promote.missing-approver`, `promote.over-budget`
+  and others).
+- A promotion emits the existing admission VSA. Its `inputAttestations` list
+  the eval folders, approvals and signed comparisons (the frozen-safe lineage),
+  and a signed decision attestation goes with it.
+- `--approve` signs an approval, `--revert --reason` writes a signed revert
+  decision, and `--canary DIR` reverts automatically on a signed, significant
+  regression. `tine promote TARGET --name NAME` (the `promotions/<name>` ref)
+  is unchanged.
+- No new object kinds, wire formats or vector families. The claim conventions
+  `opentine.eval-compare/1`, `opentine.promotion-approval/1` and
+  `opentine.promotion-decision/1` are documented in `docs/EVALS-PROMOTION.md`,
+  and verifiers report them `unchecked`. A promote, revert, promote sequence
+  verifies offline in the Python reference, the pyz and the TS verifier
+  (`tests/data/promotion_chain.json`).
+
 ## 0.56.0 — Onboarding and capture breadth (2026-11-18)
 
 - OTLP import maps OpenInference attributes (span kind, model, provider, token

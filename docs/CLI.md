@@ -1594,6 +1594,30 @@ same file offline, one row per finding. `--json` follows `tine-cli-review-1`;
 the `74-review-finding.json` conformance family pins Python, the TS verifier and
 the pyz.
 
+## Eval statistics and signed promotion: `tine eval compare --ci`, `tine promote --baseline` (0.58)
+
+`tine eval compare A B --ci paired-bootstrap|permutation [--alpha 0.05]
+[--seed 0] [--resamples 2000]` adds per-metric deltas (`score`, `pass_rate`),
+a bootstrap interval or a permutation p-value, and the regressions. It is
+deterministic given the seed. `--export FILE` writes the paired items, and
+`scripts/eval_compare_reproduce.py FILE` reproduces the numbers exactly.
+`--attest KEY --out FILE` signs the result as an attestation. `--json`
+follows `tine-cli-eval-compare-1`.
+
+`tine promote RUN --baseline LABEL --policy promote.toml --key KEY --out DIR
+--baseline-evals DIR --evals DIR --holdout BASE CAND --approval FILE` moves a
+label only when trusted, signed verdicts beat the baseline under the stated
+test (with a minimum n and a holdout). It also needs enough approvals, a
+spend under the budget cap and an admission policy that covers
+`labels/LABEL`. A refusal names each reason (`promote.*`) and exits 1.
+
+- `--approve` signs an approval.
+- `--revert --reason TEXT` writes a signed revert decision.
+- `--canary DIR` reverts automatically on a signed regression.
+
+`--json` follows `tine-cli-promote-1`. Conventions, refusal codes and outputs:
+[EVALS-PROMOTION.md](EVALS-PROMOTION.md).
+
 ## Code map: `tine code-graph` (0.48)
 
 ```
