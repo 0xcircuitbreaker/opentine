@@ -64,7 +64,9 @@ def _why(args: argparse.Namespace, folder: Path, files: dict[str, bytes], db: An
         index.rebuild(folder, files)
         with closing(index.open_index(folder, refresh=False)) as fresh:
             out = {**walk(fresh), "rebuilt": True}
-    verdict = check(files, args.variant, trust(args))
+    from opentine._cli_lineage import tainted
+
+    verdict = tainted(args, files, check(files, args.variant, trust(args)))
     return {**out, "ok": verdict["ok"], "signers": verdict["signers"],
             "findings": verdict["findings"]}  # fmt: skip
 

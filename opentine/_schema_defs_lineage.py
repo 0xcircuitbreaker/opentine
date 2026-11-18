@@ -30,7 +30,7 @@ _TOTALS = closed(["variants", "signed", "roots", "leaves", "multi_parent", "max_
                   "multi_parent": INT, "max_parents": INT})  # fmt: skip
 _HEAD = {"schema": {"const": "tine-cli-lineage/1"}}
 _CODES = ("variant-unknown", "record-invalid", "parent-missing", "cycle", "evidence-missing",
-          "decision-mismatch", "signer-untrusted")  # fmt: skip
+          "decision-mismatch", "signer-untrusted", "score-tainted")  # fmt: skip
 _SIGNERS = {"enum": ["pinned", "unpinned"]}
 _FINDING = closed(
     ["code", "variant", "detail"],

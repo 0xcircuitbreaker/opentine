@@ -142,7 +142,8 @@
                   "lineage.cycle",
                   "lineage.evidence-missing",
                   "lineage.decision-mismatch",
-                  "lineage.signer-untrusted"
+                  "lineage.signer-untrusted",
+                  "lineage.score-tainted"
                 ]
               },
               "variant": {
@@ -317,7 +318,8 @@
                   "lineage.cycle",
                   "lineage.evidence-missing",
                   "lineage.decision-mismatch",
-                  "lineage.signer-untrusted"
+                  "lineage.signer-untrusted",
+                  "lineage.score-tainted"
                 ]
               },
               "variant": {
