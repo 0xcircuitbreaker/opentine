@@ -94,7 +94,8 @@ SCHEMAS: dict[str, dict[str, Any]] = {
         open_(["command", "action", "ok"], {
             "command": {"const": "review"},
             "action": {"enum": ["create", "add", "gate", "show", "export", "verify", "import",
-                                "push", "run", "findings"]},
+                                "push", "run", "findings", "runner",
+                                "runner-identity"]},
             "ok": BOOL, "version": _VERSION, "decision": _DECISION, "digest": _BLOB,
             "gate": open_(["review_id", "gate", "decision", "seq", "state"], {
                 "review_id": _ID, "gate": _ID, "decision": STR, "seq": INT, "state": STR}),

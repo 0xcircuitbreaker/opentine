@@ -10,7 +10,7 @@ bundle that ``tine-verify.pyz --offline`` checks air-gapped; ``verify`` checks
 such a file and exits 4 when it fails; ``import`` adopts one; ``push`` sends
 what a remote's ``caps.reviews`` lacks (:mod:`opentine._cli_review_remote`).
 ``run`` and ``findings`` (0.48: reviewer fleets, signed findings) live in
-:mod:`opentine._cli_review_run`.
+:mod:`opentine._cli_review_run` (0.55's ``runner*`` in ``_cli_review_runner``).
 """
 
 from __future__ import annotations
@@ -26,7 +26,7 @@ from opentine._cli_remote_target import add_remote_args
 from opentine._review_rules import SEVERITIES
 
 ACTIONS = ("create", "add", "gate", "show", "export", "verify", "import", "push", "run",
-           "findings")  # fmt: skip
+           "findings", "runner", "runner-identity")  # fmt: skip
 
 
 def _key_args(parser: argparse.ArgumentParser) -> None:
@@ -87,8 +87,9 @@ def add_review_parser(sub: Any) -> None:
     push.add_argument("review_id")
     add_remote_args(push)
     from opentine._cli_review_run import add_run_parsers
+    from opentine._cli_review_runner import add_runner_parsers
 
-    fleet = add_run_parsers(actions)
+    fleet = add_run_parsers(actions) + add_runner_parsers(actions)
     for parser in (show, export, verify):
         parser.add_argument("--reviewer-key", metavar="HEX", help="Pin the first reviewer")
     for parser in (create, add, gate, show, export, verify, imported, push, *fleet):
@@ -198,11 +199,11 @@ def _act(args: argparse.Namespace) -> tuple[dict[str, Any], str]:
     from opentine.repository import _review_store as store
 
     action = args.review_action
-    repo = None if action == "verify" else Repo.open(args.repo)
+    repo = None if action in ("verify", "runner-identity") else Repo.open(args.repo)
     if action in ("create", "add", "gate"):
         body = _write(args, repo)
         return body, f"review {args.review_id}: {body['digest']}"
-    if action in ("run", "findings"):
+    if action in ("run", "findings", "runner", "runner-identity"):
         from opentine._cli_review_run import act
 
         return act(args, repo)

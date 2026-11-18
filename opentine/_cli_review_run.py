@@ -68,6 +68,10 @@ def _findings(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], str]
 
 
 def act(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], str]:
+    if args.review_action.startswith("runner"):
+        from opentine._cli_review_runner import act as runner
+
+        return runner(args, repo)
     return (_run if args.review_action == "run" else _findings)(args, repo)
 
 
