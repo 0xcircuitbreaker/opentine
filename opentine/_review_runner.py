@@ -85,7 +85,8 @@ def check_trigger(event: Any) -> dict[str, Any]:
     run = event.get("run")
     if run is not None and not (isinstance(run, str) and _RUN.fullmatch(run)):
         raise ValueError("the trigger's run must be a run:sha256: oid")
-    return event
+    # only the push's own fields travel on: a webhook body may carry anything else
+    return {k: event[k] for k in ("source", "ref", "before", "after", "at", "run") if k in event}
 
 
 def identity(key: Any, previous: list[bytes] = ()) -> dict[str, Any]:  # type: ignore[assignment]
@@ -151,7 +152,10 @@ def run_push(repo: Any, review_id: str, fleet: Any, key: Any, event: dict[str, A
                            extra_env=credentials, created_at=event["at"])  # fmt: skip
         evals = None
         if config["evals"]:
-            evals = run_ci(root / config["evals"], key, out / "evals", repo_path=root,
+            target = (root / config["evals"]).resolve()
+            if not target.is_relative_to(root.resolve()):
+                raise ValueError("[runner] evals must be a path inside the repository")
+            evals = run_ci(target, key, out / "evals", repo_path=root,
                            created_at=event["at"])  # fmt: skip
     signed = review.pop("signed")
     critical = any(r["severity"] == "critical" for r in signed)

@@ -61,12 +61,14 @@ def digest(document: dict[str, Any]) -> str:
 
 
 _LOCK = threading.Lock()
+# sendto/sendmsg too: a UDP datagram (say, a hand-rolled DNS query) needs no connect
+_EVENTS = ("socket.getaddrinfo", "socket.connect", "socket.sendto", "socket.sendmsg")
 _ACTIVE: list[EgressGuard] = []
 _HOOKED = False
 
 
 def _hook(event: str, args: tuple[Any, ...]) -> None:
-    if not _ACTIVE or event not in ("socket.getaddrinfo", "socket.connect"):
+    if not _ACTIVE or event not in _EVENTS:
         return
     guard = _ACTIVE[-1]
     if event == "socket.getaddrinfo":
@@ -74,7 +76,7 @@ def _hook(event: str, args: tuple[Any, ...]) -> None:
         if host is not None and str(host).lower() not in guard.hosts:
             raise EgressRefused(f"egress to {host} is outside the runner's sandbox policy")
         return
-    address = args[1]
+    address = args[-1] if event == "socket.sendmsg" else args[1]
     if isinstance(address, tuple) and len(address) >= 2:
         where = (str(address[0]), int(address[1]))
         if where not in guard.addresses and where not in guard.resolve():

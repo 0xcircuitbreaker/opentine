@@ -232,3 +232,13 @@ def test_the_runner_identity_is_published_and_rotatable(keys, capsys):
     found = out["identity"]
     assert found["label"] == "review runner" and found["trusted_by_default"] is False
     assert found["rotated_from"] == [_review_runner.identity(_key(USER))["fingerprint"]]
+
+
+def test_the_sandbox_refuses_udp_datagrams_and_triggers_drop_extra_fields():
+    policy = _runner_sandbox.policy(["http://127.0.0.1:9/v1"], [])
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udp:
+        with _runner_sandbox.EgressGuard(policy):
+            with pytest.raises(_runner_sandbox.EgressRefused):
+                udp.sendto(b"q", ("127.0.0.2", 53))
+    event = {"source": "webhook", "ref": "heads/main", "at": AT, "token": "secret"}
+    assert "token" not in _review_runner.check_trigger(event)

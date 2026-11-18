@@ -76,8 +76,10 @@ configured model endpoints and nothing else. Its digest
 (`sandbox_policy`) is recorded in every step's evidence and in the VSA's
 policy, so a reader knows which policy produced a decision.
 
-* Inside the runner's own process, any lookup or connect outside the allowlist
-  is refused.
+* Inside the runner's own process, any lookup, connect or UDP datagram outside
+  the allowlist is refused.
+* Only the push's own fields (`source`, `ref`, `before`, `after`, `at`, `run`)
+  reach the report; anything else in a webhook body is dropped.
 * Reviewer processes are held to the same allowlist by the container's network:
   run it on a network with no route out except through an egress proxy that
   allows only those hosts (`--network` with an internal network, a Kubernetes
@@ -93,10 +95,16 @@ docker build -f deploy/review-runner/Dockerfile -t opentine-review-runner .
 docker run --rm --network review-runner-net \
     -v "$PWD:/work" -v "$PWD/runner-out:/out" \
     -v "$PWD/runner.key:/run/secrets/review-runner.key:ro" \
-    -e RUNNER_REVIEW=push -e RUNNER_FLEET=/work/reviewers/fleet.toml \
+    -e RUNNER_REVIEW=push \
     -e RUNNER_EVENT=/work/push.json -e RUNNER_MODE=self-hosted \
+    -v "$PWD/reviewers:/fleet:ro" -e RUNNER_FLEET=/fleet/fleet.toml -e RUNNER_TRUST_FLEET=1 \
     -e MODEL_API_KEY opentine-review-runner
 ```
+
+The image does not trust the fleet manifest by default. Set
+`RUNNER_TRUST_FLEET=1` only for a manifest you control and mount from outside
+the pushed tree: a manifest taken from the push would let whoever pushed choose
+the commands the runner key signs for.
 
 `RUNNER_MODE=hosted` and `RUNNER_MODE=self-hosted` sign byte-identical
 findings for the same push and the same deterministic reviewers: every
