@@ -26,6 +26,21 @@
   fixture `tests/data/integrity_check.json`, outside the frozen vector family.
   `tine verify`, the pyz, object kinds, wire formats and vectors are unchanged
   (freeze-safe). See docs/INTEGRITY.md.
+- Advisory reward-hack detectors (`opentine._integrity_advisory`,
+  `opentine._integrity_advisory_evidence`): `advisory:test-deleted`,
+  `advisory:test-skipped-added` (pytest skip/skipif/xfail, unittest skip,
+  JS `.skip`/`.only`), `advisory:special-casing`, `advisory:visible-holdout-gap`,
+  `advisory:judge-ground-truth-disagree`, `advisory:fabricated-tool-evidence`,
+  `advisory:conftest-tampered`, `advisory:timing-fake` and
+  `advisory:env-answer-leak`. Findings print one line each and never block by
+  default (D12); only `fail:` facts block.
+- Red-team corpus `tests/data/integrity_redteam/`: 30 seeded reward hacks with a
+  manifest of their classes and 200 benign refactor runs, regenerated
+  byte-for-byte by `scripts/gen_integrity_redteam.py`. Tests require >= 27/30
+  detected and a false-positive rate <= 5% (count-based).
+- New guide docs/SELF-IMPROVING-LOOPS.md ties 0.57 promotion, 0.58 lineage and
+  0.60 integrity together. `tine verify`, the pyz, object kinds, wire formats
+  and vectors are unchanged.
 
 ## 0.58.0 — Self-modification lineage (2026-11-18)
 
