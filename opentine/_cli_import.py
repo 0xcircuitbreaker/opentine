@@ -245,6 +245,6 @@ def cmd_import(args: argparse.Namespace) -> None:
         f"{_terminal(args.source)} [{BRAND}]as[/] {_terminal(run.id)}"
     )
     if output is not None:
-        console.print(f"[{BRAND}]Saved:[/] {_terminal(output)}")
+        console.print(f"[{BRAND}]Saved:[/] {_terminal(output)}", soft_wrap=True)
     if repo_path is not None:
         console.print(f"[{BRAND}]Repo:[/] {_terminal(repo_path)} ref={_terminal(ref)}")

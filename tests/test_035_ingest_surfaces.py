@@ -24,7 +24,9 @@ def otlp():
 
 
 def _post(port, body, headers=None):
-    conn = http.client.HTTPConnection("127.0.0.1", port, timeout=10)
+    # A hang guard, not a speed limit: a loaded CI runner (xdist workers on every
+    # core) can stall one of the 2000 fuzz posts past a few seconds.
+    conn = http.client.HTTPConnection("127.0.0.1", port, timeout=60)
     data = body if isinstance(body, bytes) else json.dumps(body).encode()
     conn.request(
         "POST",

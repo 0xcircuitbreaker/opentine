@@ -2,6 +2,22 @@
 
 import os
 
+# Pin the terminal environment at conftest *import*, before anything imports
+# opentine. ``pytest_plugins`` below imports tests._schema_guard, which imports
+# the CLI modules and so builds the shared Rich ``console`` before
+# pytest_configure runs. Rich decides the console's colour system (and so
+# whether bold/italic/underline styles are emitted at all) once, in
+# Console.__init__, from is_terminal: TTY_COMPATIBLE, FORCE_COLOR, then
+# isatty() of the stream current at that moment. In an xdist worker that import
+# happens on the worker's own stdio (on Windows runners a stream that reports a
+# tty), so the console froze "terminal" and later wrote style codes into every
+# captured output. NO_COLOR strips only colour, not styles; TTY_COMPATIBLE=0
+# makes Rich treat the stream as a non-terminal regardless of the handle.
+os.environ.pop("FORCE_COLOR", None)
+os.environ["NO_COLOR"] = "1"
+os.environ["TTY_COMPATIBLE"] = "0"
+os.environ["COLUMNS"] = "200"
+
 #: 0.45: every --json output a test drives must meet its published schema.
 pytest_plugins = ("tests._schema_guard",)
 
@@ -20,6 +36,7 @@ def pytest_configure(config):
     """
     os.environ.pop("FORCE_COLOR", None)
     os.environ["NO_COLOR"] = "1"
+    os.environ["TTY_COMPATIBLE"] = "0"
     # 0.11 compresses .tine files and new repositories by default. Most tests
     # read or corrupt stored bytes directly, so they pin the plain form; the
     # compression tests (test_compression_0_11.py) turn it back on themselves.
@@ -45,6 +62,11 @@ def pytest_configure(config):
     from opentine import _cli_common
 
     _cli_common.console._width = 200
+    # The console may have been built before the pins above (see module top);
+    # assert it is not a terminal so a regression fails loudly here, not as
+    # stray ANSI in dozens of unrelated assertions.
+    assert not _cli_common.console.is_terminal
+    assert _cli_common.console.color_system is None, _cli_common.console.color_system
 
 
 def pytest_addoption(parser):

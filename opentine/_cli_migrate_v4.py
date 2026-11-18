@@ -179,7 +179,9 @@ def cmd_migrate_v4(args: argparse.Namespace) -> None:
         _fail(f"Refusing to overwrite existing file: {_terminal(output)}. Pass --force.")
     write_artifact(output, encoded.decode("utf-8"))
     console.print(f"[{BRAND}]# Migrated[/] {_terminal(args.run_id)} -> format v4 root {root}")
-    console.print(f"[dim]Saved:[/] {_terminal(output)} (source signature at upgrade: {state})")
+    console.print(
+        f"[dim]Saved:[/] {_terminal(output)} (source signature at upgrade: {state})", soft_wrap=True
+    )
     if args.in_place:
         console.print(
             f"[yellow]Backup: {_terminal(backup)}. Signatures, attestations and evidence "

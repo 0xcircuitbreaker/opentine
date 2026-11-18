@@ -432,3 +432,13 @@ def test_harness_mode_still_writes_its_run(monkeypatch, tmp_path):
 
     saved = Run.load(tmp_path / ".tine_runs" / "run_model_harness.tine")
     assert saved.steps[0].inputs["text"] == PROMPT
+
+
+def test_the_saved_receipt_never_splits_a_long_path(monkeypatch, tmp_path, capsys):
+    deep = tmp_path / ("d" * 120) / ("e" * 120)
+    deep.mkdir(parents=True)
+    _mock_the_model_call(monkeypatch, "anthropic")
+    _invoke(monkeypatch, deep, "run", "--model", "anthropic", "--prompt", PROMPT)
+    run = Run.load(next((deep / ".tine_runs").glob("*.tine")))
+    line = next(x for x in capsys.readouterr().out.splitlines() if x.startswith("Saved:"))
+    assert line.endswith(f"{run.id}.tine") and len(line) > 200
