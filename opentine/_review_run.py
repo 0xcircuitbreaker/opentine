@@ -115,8 +115,14 @@ def save(repo: Any, review_id: str, records: list[dict[str, Any]]) -> None:
 
 
 def sign_all(head: dict[str, Any], members: list[dict[str, Any]], read: Any, key: Any,
-             key_id: str | None) -> tuple[list[dict[str, Any]], int]:  # fmt: skip
-    """Signed findings for every member's file (``read(member) -> text``)."""
+             key_id: str | None, created_at: str | None = None,
+             ) -> tuple[list[dict[str, Any]], int]:  # fmt: skip
+    """Signed findings for every member's file (``read(member) -> text``).
+
+    *created_at* (the push time, for the review runner) pins every finding's
+    time, so the same change and the same deterministic reviewers sign the same
+    bytes wherever they run; without it the time is now.
+    """
     signed, skipped = [], 0
     for member in members:
         rows, bad = parse(read(member))
@@ -126,7 +132,8 @@ def sign_all(head: dict[str, Any], members: list[dict[str, Any]], read: Any, key
         for row in rows:
             draft = _review_finding.build(head["review_id"], "rf-pending", row["severity"],
                                           row["message"], reviewer=member["name"],
-                                          path=row["path"], line=row["line"], run=run)  # fmt: skip
+                                          path=row["path"], line=row["line"], run=run,
+                                          created_at=created_at)  # fmt: skip
             draft["finding_id"] = "rf-" + _review_finding.digest(draft)[12:24]
             signed.append(_review_finding.sign(draft, key, key_id=key_id))
     return signed, skipped
