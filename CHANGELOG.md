@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Monitor verdicts and intervention log
+## 0.62.0 — Monitor verdicts and intervention log (2026-11-19)
 
 - Inline monitors on the MCP proxy (`tine mcp-proxy --monitor CONFIG
   --monitor-repo PATH --monitor-key KEY`, stdio and Streamable HTTP) and on
