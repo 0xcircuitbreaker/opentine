@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Query and experiments
+## 0.65.0 — Query and experiments (2026-11-19)
 
 - `tine query "SELECT ..." [--repo PATH]` runs one read-only SQL statement
   over a derived SQLite index at `.tine/query/index.sqlite`: `runs`, `steps`,
