@@ -1,5 +1,36 @@
 # Changelog
 
+## Unreleased — Merging run histories
+
+- `tine merge-history snapshot|plan|apply|verify` merges what parallel loops
+  hold around their runs: `heads/` and `tags/` refs, label states
+  (promotions), lineage records and holds, three-way from a base snapshot
+  (`opentine-history-snapshot/1`). docs/MERGE.md.
+- Conflicts are reported, sorted by kind and key, and never auto-resolved:
+  `ref-diverged`, `label-moved`, `promotion-diverged`, `lineage-id`,
+  `hold-weakened` (a base hold dropped on one side is kept) and `held-target`
+  (a ref or label moved onto a run that a loop-stop, integrity-taint or memory
+  quarantine hold added on one side names stays at its base value). A merge
+  never deletes a ref, a lineage record or a hold. The merge is symmetric:
+  which side is "ours" changes neither the result nor the conflicts.
+- `apply` lands a conflict-free merge as ref updates by one compare-and-swap
+  plus a signed `opentine.history-merge/1` attestation (a claim convention: no
+  new object kind, no new `tine verify` code), held under `history-merge:` and
+  never released. A ref owned by a merge queue is enqueued, not moved. Label
+  states and lineage records from the other side are checked against the
+  merged snapshot (lineage records must also verify) before anything is
+  written.
+- `verify` re-runs the merge from the three snapshots and checks the record;
+  with pinned key roles the signer must be a `policy` key and not an
+  `optimizer` key. The Python reference, the pyz (`_pyz/_histmerge.py`) and
+  the TS verifier (`histmerge.ts`) answer the shared fixture
+  `tests/data/history_merge.json` field for field.
+- A seeded 1,000-case branch/merge property test checks commutativity,
+  determinism under key order, that conflict-free merges keep both sides'
+  changes and that no hold is ever lost. Schemas `tine-cli-merge-history-1`,
+  `opentine-history-snapshot-1` and `opentine-history-merge-1`; README count
+  138.
+
 ## 0.66.0 — Elicitation and sabotage analytics (2026-11-19)
 
 - `tine elicit link DRAFT --key KEY` signs an `opentine.elicit-link/1` record:

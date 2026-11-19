@@ -2067,6 +2067,19 @@ Records count only when signed by a pinned `scorer` or `eval` key. Catch rates
 are statistical evidence, not proof of intent. `--json` prints
 `tine-cli-sabotage/1`; see docs/SABOTAGE.md.
 
+## Merging run histories (0.69)
+
+| Command | What it does |
+| --- | --- |
+| `tine merge-history snapshot [--repo PATH] [--state DIR] [--lineage DIR]` | Prints this repository's `opentine-history-snapshot/1`: `heads/` and `tags/` refs, label states, lineage records and holds |
+| `tine merge-history plan --base FILE --theirs FILE` | Three-way merge of the base, this repository and the other side; lists conflicts (`ref-diverged`, `label-moved`, `promotion-diverged`, `lineage-id`, `hold-weakened`, `held-target`) and exits 1 on any |
+| `tine merge-history apply --base FILE --theirs FILE --key KEY [--target REF \| --subject RUN] [--theirs-state DIR] [--theirs-lineage DIR] [--at TIME]` | Lands a conflict-free merge: refs by one compare-and-swap (or enqueued on the merge queue that owns them), label states and lineage records checked against the merged snapshot, holds only added, and a signed, held `opentine.history-merge/1` attestation |
+| `tine merge-history verify RECORD --base FILE --ours FILE --theirs FILE [--public-key HEX]` | Re-runs the merge and checks the record's digests, conflicts and signature; with pinned roles the signer must be a `policy` key and not an `optimizer` key |
+
+A merge never deletes a ref, a lineage record or a hold, and never resolves a
+conflict toward the side that weakens a hold. `--json` prints
+`tine-cli-merge-history/1`; see docs/MERGE.md.
+
 ## Self-modification lineage (0.58)
 
 | Command | What it does |

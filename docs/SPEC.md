@@ -2389,6 +2389,31 @@ a tainted candidate (`promote.score-tainted`) and `tine lineage check|why`
 report `lineage.score-tainted` (docs/INTEGRITY.md). Verifiers report the claim
 `unchecked`.
 
+**History merge (0.69, claim convention).** `tine merge-history` merges
+`opentine-history-snapshot/1` documents (`heads/`/`tags/` refs, label states
+with each decision row by the SHA-256 of its JCS, lineage records by the
+SHA-256 of their file, and `[target, oid]` hold rows) three-way: a key changed
+on one side takes that side, the same change on both is taken once, anything
+else is a conflict that keeps the base value. Refs and lineage records missing
+on one side are not deletions, and holds are the union of all three. Conflict
+kinds: `ref-diverged`, `label-moved`, `promotion-diverged`, `lineage-id`,
+`hold-weakened` (a base hold missing on one side; kept) and `held-target` (a
+ref or label moved onto an object a `loop-stop:`, `integrity-taint:` or
+`memory-quarantine:` hold added on one side names; kept at the base value).
+Each conflict is `{kind, key, base, sides}` with `sides` sorted by JCS bytes;
+conflicts sort by kind, then key, so the merge is symmetric. A snapshot's
+digest is `sha256:` over `opentine.history-snapshot.v1:` + JCS. A landed merge
+is ref updates (a ref a merge queue owns is enqueued instead) plus an
+`attestation` (no new kind) on a run, Ed25519-signed (`tine-attest/2`), whose
+claim has exactly `{"convention": "opentine.history-merge/1", "base": DIGEST,
+"sides": [DIGEST, DIGEST], "merged": DIGEST, "conflicts": [...], "target":
+REF | null}`, held by a `tine-holds/1` row `history-merge:<merged digest>`
+that `tine hold release` refuses. `tine merge-history verify` re-runs the
+merge and compares; these are CLI checks: `tine verify`, the pyz `verify` and
+the conformance vectors are unchanged and report the claim `unchecked`. The
+Python, pyz and TS implementations answer the shared fixture
+`tests/data/history_merge.json` (docs/MERGE.md).
+
 **Merge queue.** A queue is the `opentine-coord/1` record
 `coord/merge-queue/<id>` (`kind: "merge-queue"`) owning one target ref, with
 `queue`, `target`, `gates` (an `opentine-merge-gates/1` policy or null),

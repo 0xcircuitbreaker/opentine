@@ -2,7 +2,9 @@
 
 Status: 0.43 shipped the `parents` run field; 0.47 ships `tine merge`, `tine
 pick` and `tine merge-queue` (SPEC 4.19, the normative text; vectors
-`68-merge.json`). Where 0.47 departs from this design:
+`68-merge.json`). 0.69 adds `tine merge-history`, the three-way merge of
+refs, labels, lineage records and holds across branches and remotes
+(docs/MERGE.md). Where 0.47 departs from this design:
 
 - Conflicts are listed in the merge event's output blob (content-addressed in
   the merge run itself), not in a separate `kind: "conflict"` annotation.
