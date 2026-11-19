@@ -5774,6 +5774,12 @@ ROWS: tuple[tuple, ...] = (
             "prefix": "P",
             "log_format": "json",
             "output": "o",
+            "repo": ".",
+            "json": True,
+            "member_command": [],
+        },  # fmt: skip
+    ),
+    (
         "plain:auditor import-petri t.json --blind s.json --json",
         "plain",
         ["auditor", "import-petri", "t.json", "--blind", "s.json", "--json"],
