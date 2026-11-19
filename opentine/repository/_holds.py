@@ -49,6 +49,9 @@ AUDIT_GAME = "audit-game:"
 #: 0.68: rows that keep a sabotage task record (opentine._sabotage): released never,
 #: so a loop cannot delete the record of an attempted or achieved side task.
 SABOTAGE_TASK = "sabotage-task:"
+#: 0.69: rows that keep a signed history-merge record (opentine._history_merge_repo):
+#: released never, so a loop cannot delete the record of what a merge kept or weakened.
+HISTORY_MERGE = "history-merge:"
 MAX_HOLDS_BYTES = 4 * 1024 * 1024
 
 
@@ -158,6 +161,8 @@ def release(repo, target: str) -> list[dict[str, str]]:
             raise HoldError(f"{target} keeps an audit-game record: it is never released")
         if any(r["target"].startswith(SABOTAGE_TASK) for r in gone):
             raise HoldError(f"{target} keeps a sabotage task record: it is never released")
+        if any(r["target"].startswith(HISTORY_MERGE) for r in gone):
+            raise HoldError(f"{target} keeps a history-merge record: it is never released")
         return [r for r in rows if r not in gone]
 
     edit_holds(holds_path(repo), change)
