@@ -31,7 +31,8 @@ def _script():
 
 
 def test_the_targets_cover_every_reader_criterion_1_names():
-    assert set(TARGETS) == {"otlp-spans", "otlp-logs", "tine", "pack", "localpack", "dsse"}
+    assert set(TARGETS) == {
+        "otlp-spans", "otlp-logs", "tine", "pack", "localpack", "dsse", "inspect"}  # fmt: skip
 
 
 @pytest.mark.parametrize("target", SCRIPT_TARGETS)

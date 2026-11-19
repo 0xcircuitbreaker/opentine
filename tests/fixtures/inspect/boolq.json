@@ -1,0 +1,237 @@
+{
+  "version": 2,
+  "status": "success",
+  "eval": {
+    "eval_id": "fixture-boolq",
+    "run_id": "fixture-run-boolq",
+    "created": "2026-11-01T12:00:00+00:00",
+    "task": "inspect_evals/boolq",
+    "task_id": "fixture-task-boolq",
+    "task_version": 0,
+    "model": "mockllm/model",
+    "dataset": {
+      "name": "boolq",
+      "samples": 3,
+      "sample_ids": [
+        0,
+        1,
+        2
+      ]
+    },
+    "task_args": {},
+    "config": {
+      "epochs": 1
+    },
+    "packages": {
+      "inspect_ai": "0.3.140",
+      "inspect_evals": "c2d3d5e1335c"
+    }
+  },
+  "results": {
+    "total_samples": 3,
+    "completed_samples": 3,
+    "scores": [
+      {
+        "name": "pattern",
+        "scorer": "pattern",
+        "metrics": {
+          "accuracy": {
+            "name": "accuracy",
+            "value": 0.6666666666666666
+          }
+        }
+      }
+    ]
+  },
+  "samples": [
+    {
+      "id": 0,
+      "epoch": 1,
+      "input": "Synthetic question 0 for boolq.",
+      "target": "A",
+      "messages": [
+        {
+          "id": "m0-0",
+          "role": "system",
+          "content": "Answer the question.",
+          "source": "input"
+        },
+        {
+          "id": "m0-1",
+          "role": "user",
+          "content": "Synthetic question 0 for boolq.",
+          "source": "input"
+        },
+        {
+          "id": "m0-9",
+          "role": "assistant",
+          "content": "ANSWER: A",
+          "model": "mockllm/model",
+          "source": "generate"
+        }
+      ],
+      "output": {
+        "model": "mockllm/model",
+        "choices": [
+          {
+            "message": {
+              "id": "m0-9",
+              "role": "assistant",
+              "content": "ANSWER: A",
+              "model": "mockllm/model",
+              "source": "generate"
+            },
+            "stop_reason": "stop"
+          }
+        ],
+        "completion": "ANSWER: A"
+      },
+      "scores": {
+        "pattern": {
+          "value": "C",
+          "answer": "A",
+          "explanation": "ANSWER: A",
+          "metadata": {}
+        },
+        "confidence": {
+          "value": 0.25
+        },
+        "breakdown": {
+          "value": {
+            "exact": 1,
+            "partial": 0.5
+          }
+        }
+      },
+      "metadata": {
+        "synthetic": true
+      }
+    },
+    {
+      "id": 1,
+      "epoch": 1,
+      "input": "Synthetic question 1 for boolq.",
+      "target": "A",
+      "messages": [
+        {
+          "id": "m1-0",
+          "role": "system",
+          "content": "Answer the question.",
+          "source": "input"
+        },
+        {
+          "id": "m1-1",
+          "role": "user",
+          "content": "Synthetic question 1 for boolq.",
+          "source": "input"
+        },
+        {
+          "id": "m1-9",
+          "role": "assistant",
+          "content": "ANSWER: A",
+          "model": "mockllm/model",
+          "source": "generate"
+        }
+      ],
+      "output": {
+        "model": "mockllm/model",
+        "choices": [
+          {
+            "message": {
+              "id": "m1-9",
+              "role": "assistant",
+              "content": "ANSWER: A",
+              "model": "mockllm/model",
+              "source": "generate"
+            },
+            "stop_reason": "stop"
+          }
+        ],
+        "completion": "ANSWER: A"
+      },
+      "scores": {
+        "pattern": {
+          "value": "C",
+          "answer": "A",
+          "explanation": "ANSWER: A",
+          "metadata": {}
+        },
+        "confidence": {
+          "value": 0.5
+        },
+        "breakdown": {
+          "value": {
+            "exact": 1,
+            "partial": 0.5
+          }
+        }
+      },
+      "metadata": {
+        "synthetic": true
+      }
+    },
+    {
+      "id": 2,
+      "epoch": 1,
+      "input": "Synthetic question 2 for boolq.",
+      "target": "A",
+      "messages": [
+        {
+          "id": "m2-0",
+          "role": "system",
+          "content": "Answer the question.",
+          "source": "input"
+        },
+        {
+          "id": "m2-1",
+          "role": "user",
+          "content": "Synthetic question 2 for boolq.",
+          "source": "input"
+        },
+        {
+          "id": "m2-9",
+          "role": "assistant",
+          "content": "ANSWER: B",
+          "model": "mockllm/model",
+          "source": "generate"
+        }
+      ],
+      "output": {
+        "model": "mockllm/model",
+        "choices": [
+          {
+            "message": {
+              "id": "m2-9",
+              "role": "assistant",
+              "content": "ANSWER: B",
+              "model": "mockllm/model",
+              "source": "generate"
+            },
+            "stop_reason": "stop"
+          }
+        ],
+        "completion": "ANSWER: B"
+      },
+      "scores": {
+        "pattern": {
+          "value": "I",
+          "answer": "B",
+          "explanation": "ANSWER: B",
+          "metadata": {}
+        },
+        "confidence": {
+          "value": 0.75
+        },
+        "breakdown": {
+          "value": {
+            "exact": 1,
+            "partial": 0.5
+          }
+        }
+      },
+      "metadata": {
+        "synthetic": true
+      }
+    }
+  ]
+}

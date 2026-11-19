@@ -1,0 +1,50 @@
+{
+  "inspect_evals": "https://github.com/UKGovernmentBEIS/inspect_evals",
+  "inspect_evals_commit": "c2d3d5e1335c07fb8032bcfc7869e9437e635c4c",
+  "content": "synthetic; shapes follow the Inspect EvalLog format (version 2)",
+  "generator": "scripts/gen_inspect_fixtures.py",
+  "fixtures": [
+    {
+      "task": "inspect_evals/gsm8k",
+      "file": "gsm8k.json",
+      "samples": 3,
+      "scorers": [
+        "match"
+      ]
+    },
+    {
+      "task": "inspect_evals/arc_easy",
+      "file": "arc_easy.eval",
+      "samples": 3,
+      "scorers": [
+        "choice"
+      ]
+    },
+    {
+      "task": "inspect_evals/humaneval",
+      "file": "humaneval.eval",
+      "samples": 3,
+      "scorers": [
+        "verify"
+      ]
+    },
+    {
+      "task": "inspect_evals/gpqa_diamond",
+      "file": "gpqa_diamond.json",
+      "samples": 4,
+      "scorers": [
+        "choice"
+      ]
+    },
+    {
+      "task": "inspect_evals/boolq",
+      "file": "boolq.json",
+      "samples": 3,
+      "scorers": [
+        "breakdown",
+        "confidence",
+        "pattern"
+      ]
+    }
+  ]
+}
