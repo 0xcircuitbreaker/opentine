@@ -36,7 +36,6 @@ from typing import Any
 from opentine import _monitor_stop, _monitor_verdict
 from opentine._monitor_verdict import CONVENTION, input_digest, text_digest
 from opentine._monitors import MonitorError
-from opentine.kernel import canonical_json
 
 
 def run_with_deadline(fn: Callable[[], Any], seconds: float) -> tuple[bool, Any, Any]:
@@ -62,7 +61,7 @@ def command_alternate(argv: list[str], timeout: float = 60.0) -> Callable[..., A
     import json
 
     def alternate(role: str, request: dict[str, Any]) -> dict[str, Any] | None:
-        body = canonical_json({**request, "role": role})
+        body = json.dumps({**request, "role": role}, sort_keys=True).encode("utf-8")
         done = subprocess.run(argv, input=body, capture_output=True, timeout=timeout,
                               check=False)  # fmt: skip
         reply = json.loads(done.stdout.decode("utf-8")) if done.returncode == 0 else {}

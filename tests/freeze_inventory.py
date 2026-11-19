@@ -105,6 +105,8 @@ NOT_KINDS = (
     "tine-share-1", "tine-verify-dataset-1", "tine-watch-1", "tine-graph-1",
     "opentine-compliance-profile-1",
     "opentine-witness-network-1",  # 0.49: a pinned config, like --witness-vkey flags
+    # 0.63: claim conventions carried on existing attestations / hook config, not kinds
+    "opentine-monitor-verdict-1", "opentine-monitor-stop-1", "opentine-monitor-hook-1",
 )  # fmt: skip
 DEFERRED_SCHEMAS: dict[str, str] = {}
 #: Backticked SPEC heading words that are not kinds (capabilities, commands, fields).

@@ -48,7 +48,7 @@ def add_monitor_parser(subparsers: argparse._SubParsersAction) -> None:
     gate.add_argument("--config", required=True, metavar="CONFIG", help="Monitor config")
     gate.add_argument("--repo", default=".", metavar="PATH", help="Where verdicts go")
     gate.add_argument("--key", required=True, metavar="KEY", help="Monitor Ed25519 key")
-    gate.add_argument("--agent", choices=AGENTS, default="generic", help="Payload dialect")
+    gate.add_argument("--agent", choices=AGENTS, help="Payload dialect (default generic)")
     gate.add_argument("--fail-closed", action="store_true",
                       help="Block when the payload or config cannot be read")  # fmt: skip
 

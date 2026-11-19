@@ -5388,4 +5388,77 @@ ROWS: tuple[tuple, ...] = (
             "against": ["c.jsonl"],
         },  # fmt: skip
     ),
+    (
+        "plain:monitor stop --scope loop --key k --reason r",
+        "plain",
+        ["monitor", "stop", "--scope", "loop", "--key", "k", "--reason", "r"],
+        "opentine._cli_monitor:cmd_monitor",
+        False,
+        {
+            "command": "monitor",
+            "monitor_command": "stop",
+            "scope": "loop",
+            "key": "k",
+            "reason": "r",
+            "json": False,
+            "member_command": [],
+        },  # fmt: skip
+    ),
+    (
+        "plain:monitor stops --json",
+        "plain",
+        ["monitor", "stops", "--json"],
+        "opentine._cli_monitor:cmd_monitor",
+        False,
+        {
+            "command": "monitor",
+            "monitor_command": "stops",
+            "json": True,
+            "member_command": [],
+        },  # fmt: skip
+    ),
+    (
+        "plain:monitor verdicts",
+        "plain",
+        ["monitor", "verdicts"],
+        "opentine._cli_monitor:cmd_monitor",
+        False,
+        {
+            "command": "monitor",
+            "monitor_command": "verdicts",
+            "json": False,
+            "member_command": [],
+        },  # fmt: skip
+    ),
+    (
+        "plain:monitor verify --run r.tine --strict",
+        "plain",
+        ["monitor", "verify", "--run", "r.tine", "--strict"],
+        "opentine._cli_monitor:cmd_monitor",
+        False,
+        {
+            "command": "monitor",
+            "monitor_command": "verify",
+            "run": ["r.tine"],
+            "strict": True,
+            "json": False,
+            "member_command": [],
+        },  # fmt: skip
+    ),
+    (
+        "plain:monitor gate --config g.toml --key k --fail-closed",
+        "plain",
+        ["monitor", "gate", "--config", "g.toml", "--key", "k", "--fail-closed"],
+        "opentine._cli_monitor:cmd_monitor",
+        False,
+        {
+            "command": "monitor",
+            "monitor_command": "gate",
+            "config": "g.toml",
+            "key": "k",
+            "fail_closed": True,
+            "json": False,
+            "member_command": [],
+        },  # fmt: skip
+    ),
 )

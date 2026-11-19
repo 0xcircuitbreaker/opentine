@@ -85,7 +85,7 @@ def decide(raw: bytes, args: Any) -> dict[str, Any]:
         event = normalize(json.loads(raw.decode("utf-8")))
         config = load(args.config)
         gate = Gate(config, repo=Repo.open(args.repo), key=ed25519_private(args.key),
-                    session=event["session"], agent=args.agent)  # fmt: skip
+                    session=event["session"], agent=args.agent or "generic")  # fmt: skip
     except Exception as exc:  # noqa: BLE001 - a hook never crashes the agent
         return {**unreadable, "reason": f"cannot gate: {type(exc).__name__}: {exc}"}
     if args.agent == "gemini":
