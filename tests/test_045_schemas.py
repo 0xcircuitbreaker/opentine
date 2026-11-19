@@ -298,6 +298,8 @@ DRIVEN = (
     (("monitor", "stops", "--repo", "repo", "--json"), "tine-cli-monitor-1"),  # 0.63
     (("oversight", "queue", "--repo", "repo", "--json"), "tine-cli-oversight-1"),  # 0.64
     (("auditor", "check", "--repo", "repo", "--json"), "tine-cli-auditor-1"),  # 0.65
+    (("query", "SELECT oid FROM runs", "--repo", "repo", "--json"), "tine-cli-query-1"),  # 0.65
+    (("query", "index", "--repo", "repo", "--json"), "tine-cli-query-1"),  # 0.65
     (("oversight", "policy", "--repo", "repo", "--json"), "tine-cli-oversight-1"),  # 0.64
     (
         ("oversight", "fatigue", "--repo", "repo", "--at", "2026-12-03T10:00:00Z", "--json"),

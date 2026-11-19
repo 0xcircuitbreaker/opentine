@@ -5922,4 +5922,48 @@ ROWS: tuple[tuple, ...] = (
             "member_command": [],
         },  # fmt: skip
     ),
+    (
+        "plain:query SELECT oid FROM runs --verify --strict --json",
+        "plain",
+        ["query", "SELECT oid FROM runs", "--verify", "--strict", "--json"],
+        "opentine._cli_query:cmd_query",
+        False,
+        {
+            "command": "query",
+            "sql": "SELECT oid FROM runs",
+            "repo": ".",
+            "verify": True,
+            "strict": True,
+            "limit": 1000,
+            "max_steps": 1000000,
+            "refresh": False,
+            "rebuild": False,
+            "check": False,
+            "evals": None,
+            "json": True,
+            "member_command": [],
+        },  # fmt: skip
+    ),
+    (
+        "plain:query index --rebuild --evals ev --repo r",
+        "plain",
+        ["query", "index", "--rebuild", "--evals", "ev", "--repo", "r"],
+        "opentine._cli_query:cmd_query",
+        False,
+        {
+            "command": "query",
+            "sql": "index",
+            "repo": "r",
+            "verify": False,
+            "strict": False,
+            "limit": 1000,
+            "max_steps": 1000000,
+            "refresh": False,
+            "rebuild": True,
+            "check": False,
+            "evals": ["ev"],
+            "json": False,
+            "member_command": [],
+        },  # fmt: skip
+    ),
 )

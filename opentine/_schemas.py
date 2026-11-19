@@ -67,6 +67,8 @@ from opentine._schema_defs_project import KIND_SCHEMAS as _PROJECT_KINDS
 from opentine._schema_defs_project import SCHEMAS as _PROJECT
 from opentine._schema_defs_publish import COMMAND_SCHEMAS as _PUBLISH_COMMANDS
 from opentine._schema_defs_publish import SCHEMAS as _PUBLISH
+from opentine._schema_defs_query import COMMAND_SCHEMAS as _QUERY_COMMANDS
+from opentine._schema_defs_query import SCHEMAS as _QUERY
 from opentine._schema_defs_redact import COMMAND_SCHEMAS as _REDACT_COMMANDS
 from opentine._schema_defs_redact import KIND_SCHEMAS as _REDACT_KINDS
 from opentine._schema_defs_redact import KIND_VERSION_SCHEMAS
@@ -114,6 +116,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     **_OVERSIGHT,
     **_INSPECT,
     **_AUDITOR,
+    **_QUERY,
 }
 COMMAND_SCHEMAS: dict[str, str] = {
     **_CLI_COMMANDS,
@@ -143,6 +146,7 @@ COMMAND_SCHEMAS: dict[str, str] = {
     **_OVERSIGHT_COMMANDS,
     **_INSPECT_COMMANDS,
     **_AUDITOR_COMMANDS,
+    **_QUERY_COMMANDS,
 }
 KIND_SCHEMAS: dict[str, str] = {
     **_REDACT_KINDS,
