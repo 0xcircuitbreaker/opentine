@@ -33,6 +33,9 @@ TAINT = "integrity-taint:"
 #: (opentine._holdout_hold): released never, so deleting the file lowers nothing.
 HOLDOUT_ACCESS = "holdout-access:"
 CANARY_HOLD = "holdout-canary:"
+#: 0.61: rows that keep a memory quarantine (opentine._memory_quarantine): released
+#: never, so deleting the quarantine's ref cannot serve the note again.
+MEMORY_QUARANTINE = "memory-quarantine:"
 MAX_HOLDS_BYTES = 4 * 1024 * 1024
 
 
@@ -132,6 +135,8 @@ def release(repo, target: str) -> list[dict[str, str]]:
         if any(r["target"].startswith((HOLDOUT_ACCESS, CANARY_HOLD)) for r in gone):
             raise HoldError(f"{target} keeps a holdout access record or canary registration: "
                             "it is never released")  # fmt: skip
+        if any(r["target"].startswith(MEMORY_QUARANTINE) for r in gone):
+            raise HoldError(f"{target} keeps a memory quarantine: it is never released")
         return [r for r in rows if r not in gone]
 
     edit_holds(holds_path(repo), change)
