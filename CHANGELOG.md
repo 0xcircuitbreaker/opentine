@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Oversight queue
+## 0.63.0 — Oversight queue (2026-11-19)
 
 - `.tine/oversight.toml` defines risk tiers, each a k-of-n set of approver
   keys, and routes that send lineage promotions, threshold-crossing evals
