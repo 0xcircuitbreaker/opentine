@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 import json
+import os
 import subprocess
 import sys
 import urllib.request
@@ -85,11 +86,12 @@ def _verify(capsys, repo_dir: Path, *runs: Path):
 def test_stdio_gate_blocks_and_every_block_verifies_offline(env, capsys):
     tmp, repo, key = env
     (tmp / "server.py").write_bytes(FAKE_SERVER.encode("utf-8"))
+    env = {**os.environ, "PYTHONPATH": str(Path(__file__).resolve().parents[1])}
     argv = [sys.executable, "-m", "opentine.cli", "mcp-proxy", "--monitor", "gate.toml",
             "--monitor-repo", "r", "--monitor-key", key.as_posix(), "--save", "run.tine",
             "--", sys.executable, "server.py"]  # fmt: skip
     proc = subprocess.run(argv, input=_msg(1, "initialize") + _shell(2, "rm -rf /")
-                          + _shell(3, "ls"), capture_output=True, cwd=tmp,
+                          + _shell(3, "ls"), capture_output=True, cwd=tmp, env=env,
                           timeout=600)  # fmt: skip
     assert proc.returncode == 0, proc.stderr
     replies = {r["id"]: r for r in map(json.loads, proc.stdout.splitlines())}
