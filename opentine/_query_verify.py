@@ -26,7 +26,13 @@ from pathlib import Path
 from typing import Any
 
 from opentine import _query_rows as qr
-from opentine._query_build import eval_source
+from opentine._query_build import eval_files, eval_source, remembered_dirs
+
+#: The pinned role a signer needs for a row of these tables to be ``verified``;
+#: a signer that also holds ``optimizer`` never verifies them (key separation).
+ROLE_FOR = {"evals": "scorer", "monitor_verdicts": "monitor",
+            "oversight_decisions": "approver"}  # fmt: skip
+_HEX = set("0123456789abcdef")
 
 
 def _roles(store: Path) -> dict[str, list[str]]:
@@ -51,6 +57,8 @@ def _derive(repo: Any, oid: str, table: str | None, db: Any) -> tuple[dict | Non
         return (rows[0] if rows else None), None if rows else "the object is not indexable"
     if table == "evals":
         source, line = db.execute("SELECT source, line FROM evals WHERE oid = ?", (oid,)).fetchone()
+        if source not in eval_files(store, remembered_dirs(store)):
+            return None, "the source is not an indexed eval file"
         raw = eval_source(store, source).read_bytes().split(b"\n")[line - 1].rstrip(b"\r")
         if "sha256:" + hashlib.sha256(raw).hexdigest() != oid:
             return None, "the verdict line changed"
@@ -58,6 +66,8 @@ def _derive(repo: Any, oid: str, table: str | None, db: Any) -> tuple[dict | Non
     if table == "lineage_variants":
         (variant,) = db.execute("SELECT variant FROM lineage_variants WHERE oid = ?",
                                 (oid,)).fetchone()  # fmt: skip
+        if not (len(variant) == 71 and variant.startswith("sha256:") and set(variant[7:]) <= _HEX):
+            raise ValueError("not a variant id")
         raw = (store / "lineage" / "variants" / f"{variant[7:]}.json").read_bytes()
         if "sha256:" + hashlib.sha256(raw).hexdigest() != oid:
             return None, "the lineage record changed"
@@ -66,8 +76,21 @@ def _derive(repo: Any, oid: str, table: str | None, db: Any) -> tuple[dict | Non
     return None, "no source holds this oid"
 
 
+def _step_place(repo: Any, oid: str, row: dict[str, Any]) -> str | None:
+    """Why the row's ``run``/``seq`` do not hold this step, or ``None`` when they do."""
+    run, seq = row.get("run"), row.get("seq")
+    if run is None and seq is None:
+        return None
+    try:
+        events = repo.get(run).payload().get("events") or []
+        held = oid in events if seq is None else events[seq] == oid
+    except Exception:  # noqa: BLE001 - an unreadable run cannot hold the step
+        held = False
+    return None if held else "the step is not at that place in that run"
+
+
 def _table_of(db: Any, oid: str) -> str | None:
-    for table in ("evals", "lineage_variants"):
+    for table in ("evals", "lineage_variants", "monitor_verdicts", "oversight_decisions"):
         if db.execute(f"SELECT 1 FROM {table} WHERE oid = ? LIMIT 1", (oid,)).fetchone():
             return table
     return None
@@ -78,13 +101,18 @@ def check(repo: Any, oid: str, row: dict[str, Any], db: Any,
     """``{"oid", "status", "reason", "signer", "roles"}`` for one returned row."""
     out: dict[str, Any] = {"oid": oid, "signer": None, "roles": []}
     try:
-        derived, why = _derive(repo, oid, _table_of(db, oid), db)
+        table = _table_of(db, oid)
+        derived, why = _derive(repo, oid, table, db)
+        if derived is not None and oid.startswith("event:"):
+            why = _step_place(repo, oid, row)
+            derived = None if why else derived
     except Exception as exc:  # noqa: BLE001 - any read failure fails the row
         derived, why = None, f"the source cannot be read ({type(exc).__name__})"
     if derived is None:
         return {**out, "status": "failed", "reason": why or "the source derives no row"}
     for column, value in row.items():
-        if column in derived and column not in qr.CONTEXT and derived[column] != value:
+        context = qr.CONTEXT - {"run"} if table == "evals" else qr.CONTEXT
+        if column in derived and column not in context and derived[column] != value:
             return {**out, "status": "failed",
                     "reason": f"the index row disagrees with the source on {column}"}  # fmt: skip
     signer = derived.get("signer")
@@ -96,6 +124,9 @@ def check(repo: Any, oid: str, row: dict[str, Any], db: Any,
                 "reason": "the signature does not verify" if signer else "not signed"}  # fmt: skip
     if not out["roles"]:
         return {**out, "status": "unverified", "reason": "the signer holds no pinned role"}
+    need = ROLE_FOR.get(table or "")
+    if need and (need not in out["roles"] or "optimizer" in out["roles"]):
+        return {**out, "status": "unverified", "reason": f"the signer holds no {need} role"}
     return {**out, "status": "verified", "reason": "signature valid, signer pinned"}
 
 
@@ -113,4 +144,4 @@ def verify_rows(repo: Any, rows: list[dict[str, Any]], db: Any) -> list[dict[str
     return out
 
 
-__all__ = ["check", "verify_rows"]
+__all__ = ["ROLE_FOR", "check", "verify_rows"]

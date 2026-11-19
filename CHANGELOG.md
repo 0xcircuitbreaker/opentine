@@ -30,6 +30,8 @@
 - `scripts/bench/query_index.py` times a synthetic one-million-run index and
   typical aggregate queries; results are in docs/bench/0.65-query.md.
 - `--json` prints `tine-cli-query/1`. See docs/QUERY.md.
+- `tine query --verify` asks for the role a table needs (`scorer` for evals, `monitor` for monitor verdicts, `approver` for oversight decisions; never an `optimizer` key), checks a step's `run`/`seq` and an eval's `run` against their objects, and fails eval sources outside the indexed folders.
+- `tine query` refuses values over 1,000,000 bytes (`query.too-large`) and repeated result column names (`query.duplicate-column`).
 
 ## 0.64.0 — Inspect and Petri interop (2026-11-19)
 

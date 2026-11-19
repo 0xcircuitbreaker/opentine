@@ -70,7 +70,10 @@ Each statement may run at most `--max-steps` thousand SQLite virtual-machine
 steps (default 1,000,000), then stops with `query.too-many-steps`. The limit
 counts work, not time, so the same statement stops at the same place on
 every machine. `--limit` (default 1000) caps the rows returned; `truncated`
-says when more were left.
+says when more were left. A string or blob longer than 1,000,000 bytes stops
+the statement with `query.too-large` (`SELECT randomblob(500000000)` would
+otherwise allocate it), and a result that names a column twice is refused
+with `query.duplicate-column`, so every row has one `oid`.
 
 ## Staleness
 
@@ -95,14 +98,23 @@ again and derives the row it would index now:
 
 | Status | Meaning |
 | --- | --- |
-| `verified` | the source is intact, gives the values the row shows, its Ed25519 signature verifies, and its signer holds a role in the owner-pinned key roles (docs/SECURITY_MODEL.md, `tine keys`) |
-| `unverified` | intact and consistent, but unsigned (runs and steps are content-addressed, not signed), or signed by a key with no pinned role, or the row has no `oid` |
+| `verified` | the source is intact, gives the values the row shows, its Ed25519 signature verifies, and its signer holds the role the table needs in the owner-pinned key roles (docs/SECURITY_MODEL.md, `tine keys`): `scorer` for `evals`, `monitor` for `monitor_verdicts`, `approver` for `oversight_decisions`, any role for lineage records; a signer that also holds `optimizer` never verifies the first three |
+| `unverified` | intact and consistent, but unsigned (runs and steps are content-addressed, not signed), or signed by a key without that role, or the row has no `oid` |
 | `failed` | the object or record is missing or changed, its signature does not verify, or the index row disagrees with what the source gives |
 
 Only columns named like an index column are compared. `SUM(cost) AS total`
 is not checked; `cost` is. Roles come only from the owner-pinned trust
 bundle: a `key-roles.toml` without a pinned bundle gives no roles, so its
-signers are `unverified`.
+signers are `unverified`. Columns that place a row are checked too: a step's
+`run`/`seq` must hold that step in the run object, an eval row's `run` must
+match its verdict, and an eval row's `source` must be one of the indexed eval
+files (a planted path is `failed`, not read).
+
+`--verify` checks rows, not aggregates. An edited index answers an
+aggregate (`AVG(score)`) with whatever the file holds, and staleness only
+compares the index's own `meta` with the repository, so an index edited
+together with its `meta` is not reported stale. Read a number you will act
+on as rows with `--verify --strict`, or rebuild with `--rebuild` first.
 
 `unverified` is advisory and does not change the exit code unless `--strict`
 is given (D12). `failed` exits 1.

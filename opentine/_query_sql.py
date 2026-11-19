@@ -23,6 +23,8 @@ _ALLOWED = {sqlite3.SQLITE_SELECT, sqlite3.SQLITE_READ, sqlite3.SQLITE_FUNCTION,
             getattr(sqlite3, "SQLITE_RECURSIVE", 33)}  # fmt: skip
 _REFUSED_FUNCTIONS = {"load_extension", "readfile", "writefile", "edit", "fts3_tokenizer"}
 STEP_UNIT = 1000
+#: The largest string or blob a statement may build (bounds memory, not time).
+MAX_LENGTH = 1_000_000
 
 
 class QueryError(ValueError):
@@ -43,6 +45,7 @@ def connect_ro(path: Path) -> sqlite3.Connection:
     uri = f"{Path(path).resolve().as_uri()}?mode=ro"
     db = sqlite3.connect(uri, uri=True)
     db.execute("PRAGMA query_only = ON")
+    db.setlimit(sqlite3.SQLITE_LIMIT_LENGTH, MAX_LENGTH)
     db.set_authorizer(_authorizer)
     return db
 
@@ -70,6 +73,9 @@ def run(path: Path, sql: str, *, limit: int = 1000, max_steps: int = 1_000_000,
                 raise QueryError("query.too-many-steps",
                                  f"the statement ran past {max_steps} thousand steps "
                                  "(raise --max-steps)") from exc  # fmt: skip
+            if "too big" in text or "too large" in text:
+                raise QueryError("query.too-large",
+                                 f"a value is over {MAX_LENGTH} bytes") from exc  # fmt: skip
             if "not authorized" in text or "readonly" in text or "query_only" in text:
                 raise QueryError("query.refused", f"only reading is allowed ({text})") from exc
             raise QueryError("query.sql", text) from exc
@@ -79,8 +85,11 @@ def run(path: Path, sql: str, *, limit: int = 1000, max_steps: int = 1_000_000,
             raise QueryError("query.sql", str(exc)) from exc
     if not columns:
         raise QueryError("query.refused", "only a statement that returns rows is allowed")
+    if len(set(columns)) != len(columns):
+        raise QueryError("query.duplicate-column",
+                         "name each result column once (use AS)")  # fmt: skip
     rows = [dict(zip(columns, values, strict=True)) for values in fetched[:limit]]
     return {"columns": columns, "rows": rows, "truncated": len(fetched) > limit}
 
 
-__all__ = ["QueryError", "STEP_UNIT", "connect_ro", "run"]
+__all__ = ["MAX_LENGTH", "QueryError", "STEP_UNIT", "connect_ro", "run"]
