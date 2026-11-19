@@ -1,0 +1,263 @@
+{
+  "version": 2,
+  "status": "success",
+  "eval": {
+    "eval_id": "fixture-gpqa_diamond",
+    "run_id": "fixture-run-gpqa_diamond",
+    "created": "2026-11-01T12:00:00+00:00",
+    "task": "inspect_evals/gpqa_diamond",
+    "task_id": "fixture-task-gpqa_diamond",
+    "task_version": 0,
+    "model": "mockllm/model",
+    "dataset": {
+      "name": "gpqa_diamond",
+      "samples": 2,
+      "sample_ids": [
+        "rec06pnAkLOr2t2mp",
+        "rec0Arme2jcXQZnAW"
+      ]
+    },
+    "task_args": {},
+    "config": {
+      "epochs": 2
+    },
+    "packages": {
+      "inspect_ai": "0.3.140",
+      "inspect_evals": "c2d3d5e1335c"
+    }
+  },
+  "results": {
+    "total_samples": 4,
+    "completed_samples": 4,
+    "scores": [
+      {
+        "name": "choice",
+        "scorer": "choice",
+        "metrics": {
+          "accuracy": {
+            "name": "accuracy",
+            "value": 0.75
+          }
+        }
+      }
+    ]
+  },
+  "samples": [
+    {
+      "id": "rec06pnAkLOr2t2mp",
+      "epoch": 1,
+      "input": "Synthetic question 0 for gpqa_diamond.",
+      "target": "A",
+      "messages": [
+        {
+          "id": "m0-0",
+          "role": "system",
+          "content": "Answer the question.",
+          "source": "input"
+        },
+        {
+          "id": "m0-1",
+          "role": "user",
+          "content": "Synthetic question 0 for gpqa_diamond.",
+          "source": "input"
+        },
+        {
+          "id": "m0-9",
+          "role": "assistant",
+          "content": "ANSWER: A",
+          "model": "mockllm/model",
+          "source": "generate"
+        }
+      ],
+      "output": {
+        "model": "mockllm/model",
+        "choices": [
+          {
+            "message": {
+              "id": "m0-9",
+              "role": "assistant",
+              "content": "ANSWER: A",
+              "model": "mockllm/model",
+              "source": "generate"
+            },
+            "stop_reason": "stop"
+          }
+        ],
+        "completion": "ANSWER: A"
+      },
+      "scores": {
+        "choice": {
+          "value": "C",
+          "answer": "A",
+          "explanation": "ANSWER: A",
+          "metadata": {}
+        }
+      },
+      "metadata": {
+        "synthetic": true
+      }
+    },
+    {
+      "id": "rec0Arme2jcXQZnAW",
+      "epoch": 1,
+      "input": "Synthetic question 1 for gpqa_diamond.",
+      "target": "A",
+      "messages": [
+        {
+          "id": "m1-0",
+          "role": "system",
+          "content": "Answer the question.",
+          "source": "input"
+        },
+        {
+          "id": "m1-1",
+          "role": "user",
+          "content": "Synthetic question 1 for gpqa_diamond.",
+          "source": "input"
+        },
+        {
+          "id": "m1-9",
+          "role": "assistant",
+          "content": "ANSWER: A",
+          "model": "mockllm/model",
+          "source": "generate"
+        }
+      ],
+      "output": {
+        "model": "mockllm/model",
+        "choices": [
+          {
+            "message": {
+              "id": "m1-9",
+              "role": "assistant",
+              "content": "ANSWER: A",
+              "model": "mockllm/model",
+              "source": "generate"
+            },
+            "stop_reason": "stop"
+          }
+        ],
+        "completion": "ANSWER: A"
+      },
+      "scores": {
+        "choice": {
+          "value": "C",
+          "answer": "A",
+          "explanation": "ANSWER: A",
+          "metadata": {}
+        }
+      },
+      "metadata": {
+        "synthetic": true
+      }
+    },
+    {
+      "id": "rec06pnAkLOr2t2mp",
+      "epoch": 2,
+      "input": "Synthetic question 0 for gpqa_diamond.",
+      "target": "A",
+      "messages": [
+        {
+          "id": "m0-0",
+          "role": "system",
+          "content": "Answer the question.",
+          "source": "input"
+        },
+        {
+          "id": "m0-1",
+          "role": "user",
+          "content": "Synthetic question 0 for gpqa_diamond.",
+          "source": "input"
+        },
+        {
+          "id": "m0-9",
+          "role": "assistant",
+          "content": "ANSWER: A",
+          "model": "mockllm/model",
+          "source": "generate"
+        }
+      ],
+      "output": {
+        "model": "mockllm/model",
+        "choices": [
+          {
+            "message": {
+              "id": "m0-9",
+              "role": "assistant",
+              "content": "ANSWER: A",
+              "model": "mockllm/model",
+              "source": "generate"
+            },
+            "stop_reason": "stop"
+          }
+        ],
+        "completion": "ANSWER: A"
+      },
+      "scores": {
+        "choice": {
+          "value": "C",
+          "answer": "A",
+          "explanation": "ANSWER: A",
+          "metadata": {}
+        }
+      },
+      "metadata": {
+        "synthetic": true
+      }
+    },
+    {
+      "id": "rec0Arme2jcXQZnAW",
+      "epoch": 2,
+      "input": "Synthetic question 1 for gpqa_diamond.",
+      "target": "A",
+      "messages": [
+        {
+          "id": "m1-0",
+          "role": "system",
+          "content": "Answer the question.",
+          "source": "input"
+        },
+        {
+          "id": "m1-1",
+          "role": "user",
+          "content": "Synthetic question 1 for gpqa_diamond.",
+          "source": "input"
+        },
+        {
+          "id": "m1-9",
+          "role": "assistant",
+          "content": "ANSWER: B",
+          "model": "mockllm/model",
+          "source": "generate"
+        }
+      ],
+      "output": {
+        "model": "mockllm/model",
+        "choices": [
+          {
+            "message": {
+              "id": "m1-9",
+              "role": "assistant",
+              "content": "ANSWER: B",
+              "model": "mockllm/model",
+              "source": "generate"
+            },
+            "stop_reason": "stop"
+          }
+        ],
+        "completion": "ANSWER: B"
+      },
+      "scores": {
+        "choice": {
+          "value": "I",
+          "answer": "B",
+          "explanation": "ANSWER: B",
+          "metadata": {}
+        }
+      },
+      "metadata": {
+        "synthetic": true
+      }
+    }
+  ]
+}

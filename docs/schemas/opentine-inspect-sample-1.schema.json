@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-inspect-sample-1.schema.json",
+  "title": "inspect run annotation value",
+  "description": "The `inspect` value of an imported run's annotation: the Inspect sample id (JSON type kept), epoch, raw scores and the eval header. A claim convention, not a kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "sample_id",
+    "epoch",
+    "index",
+    "input",
+    "target",
+    "scores",
+    "output",
+    "metadata",
+    "eval",
+    "status",
+    "version",
+    "results"
+  ],
+  "properties": {
+    "sample_id": {
+      "type": [
+        "string",
+        "integer"
+      ]
+    },
+    "epoch": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "index": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "input": {},
+    "target": {},
+    "scores": {
+      "type": "object"
+    },
+    "output": {
+      "type": "object"
+    },
+    "metadata": {
+      "type": "object"
+    },
+    "eval": {
+      "type": "object",
+      "required": [
+        "task"
+      ],
+      "properties": {
+        "task": {
+          "type": "string"
+        }
+      }
+    },
+    "status": {
+      "type": "string"
+    },
+    "version": {
+      "type": "integer"
+    },
+    "results": {
+      "anyOf": [
+        {
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

@@ -15,6 +15,7 @@ play which part in a loop::
     eval      = ["sha256:<fingerprint>"]   # unseals sealed holdouts (0.60, optional)
     curator   = ["sha256:<fingerprint>"]   # signs memory quarantines (0.61, optional)
     monitor   = ["sha256:<fingerprint>"]   # signs monitor verdicts (0.63, optional)
+    auditor   = ["sha256:<fingerprint>"]   # signs audit-game findings (0.65, optional)
 
 With a ``policy`` role, ``promote`` needs a signed policy
 (:mod:`opentine._promote_pins`); with a ``stopper`` role, a loop stop signed by
@@ -45,7 +46,18 @@ from typing import Any
 
 FILE_NAME = "key-roles.toml"
 OPTIMIZER = "optimizer"
-GUARDED = ("scorer", "dataset", "verdict", "approver", "policy", "eval", "curator", "monitor")
+GUARDED = (
+    "scorer",
+    "dataset",
+    "verdict",
+    "approver",
+    "policy",
+    "eval",
+    "curator",
+    "monitor",
+    "auditor",
+)
+AUDITOR = "auditor"
 CURATOR = "curator"
 MONITOR = "monitor"
 STOPPER = "stopper"

@@ -1,0 +1,304 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-inspect-1.schema.json",
+  "title": "tine inspect ... --json",
+  "description": "Inspect AI and METR interop. `import` records each sample of an Inspect log as a run under `ref_prefix` and, with `--key`, signs one tine-eval-verdict/1 eval folder per scorer with its `signer_status` (an optimizer key is refused); `export --output` reports the log it wrote; `metr` reads a METR task-standard family into an eval dataset without running it; `sign` and `verify` handle the detached log signature; `verify` reports the signer's `signer_status` (`pinned`, `unpinned` or `refused`) from the owner-pinned key roles.",
+  "anyOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "task",
+        "eval_id",
+        "ref_prefix",
+        "samples",
+        "verdicts"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-inspect/1"
+        },
+        "command": {
+          "const": "inspect import"
+        },
+        "task": {
+          "type": "string"
+        },
+        "eval_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ref_prefix": {
+          "type": "string"
+        },
+        "samples": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "sample_id",
+              "epoch",
+              "run",
+              "ref",
+              "scorers"
+            ],
+            "properties": {
+              "sample_id": {
+                "type": [
+                  "string",
+                  "integer"
+                ]
+              },
+              "epoch": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "run": {
+                "type": "string"
+              },
+              "ref": {
+                "type": "string"
+              },
+              "scorers": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "verdicts": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "scorers",
+                "skipped",
+                "signer",
+                "signer_status"
+              ],
+              "properties": {
+                "signer": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "signer_status": {
+                  "enum": [
+                    "pinned",
+                    "unpinned"
+                  ]
+                },
+                "scorers": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "folder",
+                      "eval",
+                      "items",
+                      "scorer_version"
+                    ],
+                    "properties": {
+                      "folder": {
+                        "type": "string"
+                      },
+                      "eval": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "items": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "scorer_version": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "skipped": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "scorer",
+                      "sample_id",
+                      "epoch"
+                    ],
+                    "properties": {
+                      "scorer": {
+                        "type": "string"
+                      },
+                      "sample_id": {
+                        "type": [
+                          "string",
+                          "integer"
+                        ]
+                      },
+                      "epoch": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "output",
+        "format",
+        "samples"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-inspect/1"
+        },
+        "command": {
+          "const": "inspect export"
+        },
+        "output": {
+          "type": "string"
+        },
+        "format": {
+          "enum": [
+            "json",
+            "eval"
+          ]
+        },
+        "samples": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "family",
+        "tasks",
+        "dynamic",
+        "out"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-inspect/1"
+        },
+        "command": {
+          "const": "inspect metr"
+        },
+        "family": {
+          "type": "string"
+        },
+        "tasks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "dynamic": {
+          "type": "boolean"
+        },
+        "out": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "signature"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-inspect/1"
+        },
+        "command": {
+          "const": "inspect sign"
+        },
+        "signature": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "reason",
+        "signer",
+        "signer_status"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-inspect/1"
+        },
+        "command": {
+          "const": "inspect verify"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "signer": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "signer_status": {
+          "anyOf": [
+            {
+              "enum": [
+                "pinned",
+                "unpinned",
+                "refused"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

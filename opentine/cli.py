@@ -43,6 +43,7 @@ from opentine._cli_harnesses import cmd_harnesses
 from opentine._cli_help import COMMANDS as HELP_COMMANDS
 from opentine._cli_hook import COMMANDS as HOOK_COMMANDS
 from opentine._cli_import import cmd_import
+from opentine._cli_inspect import rewrite as inspect_rewrite
 from opentine._cli_json_fallback import dispatch, parse_reporting_usage
 from opentine._cli_listing import cmd_ls, cmd_reindex, cmd_search, cmd_tag
 from opentine._cli_media import COMMANDS as MEDIA_COMMANDS
@@ -134,7 +135,7 @@ def main(argv: list[str] | None = None) -> None:
 def parse(argv: list[str], parser=None) -> tuple[argparse.ArgumentParser, argparse.Namespace]:
     """Alias expansion and the parse ``main`` does, without running anything."""
     parser = parser or _build_parser()
-    argv = expand_alias(parser, list(argv))
+    argv = inspect_rewrite(expand_alias(parser, list(argv)))  # `tine import inspect LOG`
     group_notice(argv)
     head, tail = split_command(
         group_rewrite(argv)

@@ -12,6 +12,7 @@ anything else a crash. A target's input is a tuple of byte strings:
 * ``localpack`` -- a storage-v3 local pack: ``(.tidx, .tpk, dicts JSON)``,
   where the JSON maps a ``dicts/`` name to base64 dictionary bytes (codec 3);
   every listed object is read back.
+* ``inspect`` -- one Inspect log, ``.eval`` zip or ``.json`` (``parse_log``, 0.64).
 * ``dsse`` -- one DSSE envelope as JSON, through the in-toto run attestation
   verifier (pinned key and trust-on-first-use) and the ``replay/v1`` verifier.
 """
@@ -149,6 +150,12 @@ def _signed(envelope: object, public: object) -> bool:
     return False
 
 
+def _inspect(parts: tuple[bytes, ...]) -> None:
+    from opentine._inspect_log import parse_log
+
+    parse_log(parts[0])
+
+
 TARGETS: dict[str, Target] = {
     "otlp-spans": Target(_otlp("add_spans")),
     "otlp-logs": Target(_otlp("add_logs")),
@@ -156,6 +163,7 @@ TARGETS: dict[str, Target] = {
     "pack": Target(_pack),
     "localpack": Target(_localpack, parts=3),
     "dsse": Target(_dsse),
+    "inspect": Target(_inspect),
 }
 
 __all__ = ["DSSE_SEED_KEY", "TARGETS", "Target"]

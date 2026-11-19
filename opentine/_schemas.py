@@ -1,20 +1,9 @@
 """The published JSON Schemas: lookup, detection and validation (0.45).
 
-Definitions live in :mod:`opentine._schema_defs` (object kinds) and
-:mod:`opentine._schema_defs_cli` (``--json`` outputs) and
-:mod:`opentine._schema_defs_redact` (redaction and doctor) and
-:mod:`opentine._schema_defs_share` (tombstones, redacted copies) and
-:mod:`opentine._schema_defs_ci` (CI gate and server trust policies) and
-:mod:`opentine._schema_defs_hook` (``opentine-hook/1``) and
-:mod:`opentine._schema_defs_merge` (merges, 0.47) and
-:mod:`opentine._schema_defs_review` (Reviews, 0.47) and
-:mod:`opentine._schema_defs_registry` (prompts, memory, ``eval ci``) and
-:mod:`opentine._schema_defs_extend` (plugins, experts) and
-:mod:`opentine._schema_defs_integrate` (review findings, ``tine code-graph``, 0.48);
-:mod:`opentine._schema_defs_compliance` (compliance profiles, 0.48);
-:mod:`opentine._schema_defs_audit_kit` (``tine audit-kit``, 0.49); ``_alerts`` (0.49);
-:mod:`opentine._schema_defs_witness` (the witness network, 0.49; trust bundles,
-0.51); :mod:`opentine._schema_defs_auth` (``tine serve token``, 0.52);
+Definitions live in :mod:`opentine._schema_defs` (object kinds) and one
+``opentine._schema_defs_<area>`` module per area (``_cli`` for ``--json``
+outputs, ``_redact``, ``_share``, ``_ci``, ``_review``, ``_registry``,
+``_witness``, ``_inspect``, ``_auditor`` and the rest, as imported below);
 ``docs/schemas`` is their rendered copy (``scripts/gen_schemas.py``). A
 schema's *name* is its file stem, e.g. ``tine-verify-report-2``; the tag a document carries
 (``tine-verify-report/2``) maps to it by spelling ``/`` as ``-``.
@@ -31,6 +20,8 @@ from opentine._schema_defs_alerts import COMMAND_SCHEMAS as _ALERT_COMMANDS
 from opentine._schema_defs_alerts import SCHEMAS as _ALERTS
 from opentine._schema_defs_audit_kit import COMMAND_SCHEMAS as _AUDIT_KIT_COMMANDS
 from opentine._schema_defs_audit_kit import SCHEMAS as _AUDIT_KIT
+from opentine._schema_defs_auditor import COMMAND_SCHEMAS as _AUDITOR_COMMANDS
+from opentine._schema_defs_auditor import SCHEMAS as _AUDITOR
 from opentine._schema_defs_auth import COMMAND_SCHEMAS as _AUTH_COMMANDS
 from opentine._schema_defs_auth import SCHEMAS as _AUTH
 from opentine._schema_defs_canary import COMMAND_SCHEMAS as _CANARY_COMMANDS
@@ -53,6 +44,8 @@ from opentine._schema_defs_hook import COMMAND_SCHEMAS as _HOOK_COMMANDS
 from opentine._schema_defs_hook import SCHEMAS as _HOOK
 from opentine._schema_defs_hosted import COMMAND_SCHEMAS as _HOSTED_COMMANDS
 from opentine._schema_defs_hosted import SCHEMAS as _HOSTED
+from opentine._schema_defs_inspect import COMMAND_SCHEMAS as _INSPECT_COMMANDS
+from opentine._schema_defs_inspect import SCHEMAS as _INSPECT
 from opentine._schema_defs_integrate import COMMAND_SCHEMAS as _INTEGRATE_COMMANDS
 from opentine._schema_defs_integrate import KIND_SCHEMAS as _INTEGRATE_KINDS
 from opentine._schema_defs_integrate import SCHEMAS as _INTEGRATE
@@ -119,6 +112,8 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     **_CANARY,
     **_MONITOR,
     **_OVERSIGHT,
+    **_INSPECT,
+    **_AUDITOR,
 }
 COMMAND_SCHEMAS: dict[str, str] = {
     **_CLI_COMMANDS,
@@ -146,6 +141,8 @@ COMMAND_SCHEMAS: dict[str, str] = {
     **_CANARY_COMMANDS,
     **_MONITOR_COMMANDS,
     **_OVERSIGHT_COMMANDS,
+    **_INSPECT_COMMANDS,
+    **_AUDITOR_COMMANDS,
 }
 KIND_SCHEMAS: dict[str, str] = {
     **_REDACT_KINDS,

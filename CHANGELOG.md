@@ -1,5 +1,79 @@
 # Changelog
 
+## 0.64.0 — Inspect and Petri interop (2026-11-19)
+
+- `tine import inspect LOG --repo PATH` (also `tine inspect import`) reads an
+  Inspect AI `.eval` zip or `.json` log without importing `inspect_ai`: each
+  sample becomes a run on `heads/inspect/<task>-<eval>/s<index>`, its messages
+  become steps, the eval's sandbox config becomes the run's first step
+  (`inputs["inspect.sandbox"]`), and the sample id (JSON type kept), epoch,
+  target, raw scores and eval header go in the run annotation's `inspect`
+  value. A second import of the same eval is refused.
+- With `--key KEY --evals DIR` each scorer's scores become a signed
+  `tine-eval-verdict/1` eval folder that `tine eval verify` reads unchanged.
+  `C`/`I`/`P`/`N`, booleans and numbers in 0..1 map into 0..1; any other value
+  gets no verdict and is listed under `skipped`.
+- `tine export inspect --repo PATH [--format json|eval] [--output PATH]` writes
+  the runs back as an Inspect log with the same sample ids and scores;
+  `.eval` output uses fixed zip timestamps and stdout output is byte-exact.
+  Five fixtures shaped like logs for five pinned inspect_evals tasks
+  (`tests/fixtures/inspect/MANIFEST.json`, synthetic content) round-trip exactly.
+- `opentine._inspect_hook` signs Inspect logs on write (`register()` from an
+  `inspect_ai` hooks module; import-guarded): a detached
+  `<log>.tine-sig.json` record (`opentine-inspect-log-sig/1`).
+  `tine inspect sign` and `tine inspect verify` write and check it.
+- Inspect signers follow the owner-pinned key roles: `tine inspect import
+  --key` refuses an optimizer key (`inspect.key-separation`, exit 4) and marks
+  verdicts signed by a key outside the pinned `scorer`/`eval` roles as
+  `signer_status: unpinned`; `--require-signed` refuses a log unless its
+  detached signature verifies and its signer is a pinned scorer key.
+  `tine inspect verify [--repo PATH] [--strict]` reports the signer
+  fingerprint and `pinned`/`unpinned`/`refused`, prints "signature valid,
+  signer unpinned" instead of a bare "ok", exits 4 for an optimizer signer and
+  for an unpinned one only with `--strict` (D12).
+- `tine import metr DIR --out FILE.jsonl` reads a METR task-standard family
+  into an eval dataset by parsing `<family>.py` with `ast`; the family's code
+  is never executed.
+- The log reader caps log, member and expanded zip size, member count,
+  compression ratio, JSON depth, samples and messages, and is a new `inspect`
+  target of `scripts/fuzz.py` seeded from the fixtures.
+- An imported model-graded scorer carries its judge provenance: when the log
+  records the grader (`results.scores[].params` or `eval.model_roles.grader`),
+  the signed verdicts' `scorer_version` is the `jp1+sha256:` pin of an
+  `opentine.judge-provenance/1` document written beside them as `judge.json`,
+  so `tine eval verify` catches a swapped or deleted rubric, template or grader.
+  Scorer names with `_` now import (`inspect-model-graded-qa`).
+- Schemas `tine-cli-inspect-1`, `opentine-inspect-sample-1` and
+  `opentine-inspect-log-sig-1` (claim and file conventions, not object kinds);
+  docs/INSPECT.md. No object kind and no `tine verify` code is added.
+- Judge provenance: an `llm-judge` scorer's `scorer_version` is now
+  `jp1+sha256:` over an `opentine.judge-provenance/1` document (judge model,
+  prompt digest, rubric digest, sampling parameters). It sits inside the
+  signed body of every `tine-eval-verdict/1`; the eval folder keeps the
+  document as `judge.json` and each judge run's metadata carries it.
+  `tine eval verify` recomputes the pin: an edited rubric digest fails with
+  the existing `eval.summary-mismatch`, and rewriting the verdicts to match
+  fails with `eval-verdict.bad-signature`. The verdict format and its
+  verifiers are unchanged. `tine eval run --judge-rubric FILE` adds a rubric.
+- `tine auditor import-petri FILE --repo PATH` records a Petri or Bloom
+  transcript as an ordinary run tagged `role=auditor`. Auditor, target and
+  judge are the steps' speakers and `metadata.audit` names their models. The
+  reader is pure JSON parsing, bounded in size, nesting and message count,
+  with a fuzz test; fixtures are small and synthetic.
+- Blind audit games: `--blind SECRET` replaces the target's identity with a
+  commitment. `tine auditor seal|findings|reveal` sign the game's records as
+  attestations (claim convention `opentine.audit-game/1`) held under
+  `audit-game:GAME`, which `tine hold release` refuses. A reveal names the
+  findings it follows. `tine auditor check` exits 1 on
+  `fail:audit-game.reveal-before-verdict`, `fail:audit-game.commitment-mismatch`,
+  `fail:audit-game.unsealed` or `fail:audit-game.unsigned`. Findings by a key
+  outside the pinned role are `advisory:` (D12).
+- Key roles: `auditor`, from the owner-pinned trust bundle only. It is guarded
+  against optimizer keys by `tine keys lint`.
+- Schemas `tine-cli-auditor-1`, `opentine-audit-game-1` and
+  `opentine-judge-provenance-1`; docs/AUDIT_GAMES.md. No object kind and no
+  `tine verify` code is added.
+
 ## 0.63.0 — Oversight queue (2026-11-19)
 
 - `.tine/oversight.toml` defines risk tiers, each a k-of-n set of approver

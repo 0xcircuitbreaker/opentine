@@ -157,6 +157,9 @@ def _replay_envelope(key: Any) -> dict[str, Any]:
     return replay.sign_statement(statement, key)
 
 
+INSPECT = "tests/fixtures/inspect"  # 0.64: the committed Inspect log fixtures
+
+
 def regressions(target: str, root: Path) -> list[Parts]:
     """The triaged crash inputs kept for *target* (each must now read or refuse)."""
     folder = root / REGRESSIONS / target
@@ -172,6 +175,11 @@ def seeds(target: str, root: Path) -> list[Parts]:
         "pack": lambda: _pack(root),
         "localpack": lambda: _localpack(root),
         "dsse": lambda: _dsse(root),
+        "inspect": lambda: [
+            (p.read_bytes(),)
+            for p in sorted((root / INSPECT).glob("*.*"))
+            if p.suffix in (".eval", ".json") and p.name != "MANIFEST.json"
+        ],
     }[target]()
     return built + regressions(target, root)
 

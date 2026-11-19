@@ -92,6 +92,7 @@ MAIN_TIP = "event:sha256:6dc1725e0e6fafee882214a92946453481af791810e4b8cc3cea641
 RUN0 = "run:sha256:be292c795e4d4c484dd65313e8556098ce724bdc7bae5722c6125c49c651db36"
 
 # The --json invocations the web reads; each is (argv, expected command or tag).
+INSPECT = Path(__file__).resolve().parent / "fixtures" / "inspect"  # 0.64
 DRIVEN = (
     (("show", "run.tine", "--json"), "tine-cli-show-1"),
     (("verify", "run.tine", "--json"), "tine-cli-verify-1"),
@@ -296,6 +297,7 @@ DRIVEN = (
     (("loop", "status", "opt", "--repo", "repo", "--json"), "tine-cli-loop-1"),  # 0.58
     (("monitor", "stops", "--repo", "repo", "--json"), "tine-cli-monitor-1"),  # 0.63
     (("oversight", "queue", "--repo", "repo", "--json"), "tine-cli-oversight-1"),  # 0.64
+    (("auditor", "check", "--repo", "repo", "--json"), "tine-cli-auditor-1"),  # 0.65
     (("oversight", "policy", "--repo", "repo", "--json"), "tine-cli-oversight-1"),  # 0.64
     (
         ("oversight", "fatigue", "--repo", "repo", "--at", "2026-12-03T10:00:00Z", "--json"),
@@ -353,6 +355,12 @@ DRIVEN = (
         ("monitor", "collusion", "monitor.json", "--runs", "runs.jsonl", "--json"),
         "tine-cli-monitor-1",
     ),
+    (
+        ("inspect", "import", (INSPECT / "gsm8k.json").as_posix(), "--repo", "repo")
+        + ("--key", "purge.key", "--evals", "ev", "--json"),
+        "tine-cli-inspect-1",
+    ),  # 0.64
+    (("inspect", "verify", (INSPECT / "boolq.json").as_posix(), "--json"), "tine-cli-inspect-1"),
 )
 
 

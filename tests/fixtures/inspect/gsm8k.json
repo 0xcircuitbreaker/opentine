@@ -1,0 +1,210 @@
+{
+  "version": 2,
+  "status": "success",
+  "eval": {
+    "eval_id": "fixture-gsm8k",
+    "run_id": "fixture-run-gsm8k",
+    "created": "2026-11-01T12:00:00+00:00",
+    "task": "inspect_evals/gsm8k",
+    "task_id": "fixture-task-gsm8k",
+    "task_version": 0,
+    "model": "mockllm/model",
+    "dataset": {
+      "name": "gsm8k",
+      "samples": 3,
+      "sample_ids": [
+        1,
+        2,
+        3
+      ]
+    },
+    "task_args": {},
+    "config": {
+      "epochs": 1
+    },
+    "packages": {
+      "inspect_ai": "0.3.140",
+      "inspect_evals": "c2d3d5e1335c"
+    }
+  },
+  "results": {
+    "total_samples": 3,
+    "completed_samples": 3,
+    "scores": [
+      {
+        "name": "match",
+        "scorer": "match",
+        "metrics": {
+          "accuracy": {
+            "name": "accuracy",
+            "value": 0.6666666666666666
+          }
+        }
+      }
+    ]
+  },
+  "samples": [
+    {
+      "id": 1,
+      "epoch": 1,
+      "input": "Synthetic question 0 for gsm8k.",
+      "target": "A",
+      "messages": [
+        {
+          "id": "m0-0",
+          "role": "system",
+          "content": "Answer the question.",
+          "source": "input"
+        },
+        {
+          "id": "m0-1",
+          "role": "user",
+          "content": "Synthetic question 0 for gsm8k.",
+          "source": "input"
+        },
+        {
+          "id": "m0-9",
+          "role": "assistant",
+          "content": "ANSWER: A",
+          "model": "mockllm/model",
+          "source": "generate"
+        }
+      ],
+      "output": {
+        "model": "mockllm/model",
+        "choices": [
+          {
+            "message": {
+              "id": "m0-9",
+              "role": "assistant",
+              "content": "ANSWER: A",
+              "model": "mockllm/model",
+              "source": "generate"
+            },
+            "stop_reason": "stop"
+          }
+        ],
+        "completion": "ANSWER: A"
+      },
+      "scores": {
+        "match": {
+          "value": "C",
+          "answer": "A",
+          "explanation": "ANSWER: A",
+          "metadata": {}
+        }
+      },
+      "metadata": {
+        "synthetic": true
+      }
+    },
+    {
+      "id": 2,
+      "epoch": 1,
+      "input": "Synthetic question 1 for gsm8k.",
+      "target": "A",
+      "messages": [
+        {
+          "id": "m1-0",
+          "role": "system",
+          "content": "Answer the question.",
+          "source": "input"
+        },
+        {
+          "id": "m1-1",
+          "role": "user",
+          "content": "Synthetic question 1 for gsm8k.",
+          "source": "input"
+        },
+        {
+          "id": "m1-9",
+          "role": "assistant",
+          "content": "ANSWER: A",
+          "model": "mockllm/model",
+          "source": "generate"
+        }
+      ],
+      "output": {
+        "model": "mockllm/model",
+        "choices": [
+          {
+            "message": {
+              "id": "m1-9",
+              "role": "assistant",
+              "content": "ANSWER: A",
+              "model": "mockllm/model",
+              "source": "generate"
+            },
+            "stop_reason": "stop"
+          }
+        ],
+        "completion": "ANSWER: A"
+      },
+      "scores": {
+        "match": {
+          "value": "C",
+          "answer": "A",
+          "explanation": "ANSWER: A",
+          "metadata": {}
+        }
+      },
+      "metadata": {
+        "synthetic": true
+      }
+    },
+    {
+      "id": 3,
+      "epoch": 1,
+      "input": "Synthetic question 2 for gsm8k.",
+      "target": "A",
+      "messages": [
+        {
+          "id": "m2-0",
+          "role": "system",
+          "content": "Answer the question.",
+          "source": "input"
+        },
+        {
+          "id": "m2-1",
+          "role": "user",
+          "content": "Synthetic question 2 for gsm8k.",
+          "source": "input"
+        },
+        {
+          "id": "m2-9",
+          "role": "assistant",
+          "content": "ANSWER: B",
+          "model": "mockllm/model",
+          "source": "generate"
+        }
+      ],
+      "output": {
+        "model": "mockllm/model",
+        "choices": [
+          {
+            "message": {
+              "id": "m2-9",
+              "role": "assistant",
+              "content": "ANSWER: B",
+              "model": "mockllm/model",
+              "source": "generate"
+            },
+            "stop_reason": "stop"
+          }
+        ],
+        "completion": "ANSWER: B"
+      },
+      "scores": {
+        "match": {
+          "value": "I",
+          "answer": "B",
+          "explanation": "ANSWER: B",
+          "metadata": {}
+        }
+      },
+      "metadata": {
+        "synthetic": true
+      }
+    }
+  ]
+}

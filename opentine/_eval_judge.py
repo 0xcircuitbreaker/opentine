@@ -7,6 +7,10 @@ the verdict's ``judge_run`` names that run, so the judgement can be replayed
 and audited like any other run. The model must answer with a line
 ``SCORE: <0..1>``; a reply without one scores 0.
 
+0.65: the scorer's version is the pin of its judge provenance (model, prompt
+digest, rubric digest, sampling parameters; :mod:`opentine._judge_provenance`),
+so the signed verdict carries it. A rubric is appended to the prompt.
+
 Tests swap :func:`_model` for a fake adapter; nothing here opens a socket by
 itself.
 """
@@ -14,7 +18,6 @@ itself.
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import json
 import re
 from pathlib import Path
@@ -64,18 +67,20 @@ def judge_score(text: str) -> float:
 
 
 def judge_scorer(spec: str, *, prompt: str | None = None, runs_dir: Path | None = None,
-                 api_key: str | None = None) -> Scorer:  # fmt: skip
+                 api_key: str | None = None, rubric: str | None = None) -> Scorer:  # fmt: skip
     """The ``llm-judge`` scorer for *spec*; judge runs go to *runs_dir*.
 
     *api_key* is the model credential (the review runner passes the one its
     ``runner.toml`` names, as it does for reviewers); each call's cost is
     recorded on its judge run and appended to the scorer's ``spent``.
     """
+    from opentine import _judge_provenance
     from opentine._cli_common import _runs_dir
     from opentine.graph import Run, RunStatus, StepKind
 
     template = prompt or DEFAULT_PROMPT
-    version = "1+sha256:" + hashlib.sha256(f"{spec}\0{template}".encode()).hexdigest()[:16]
+    provenance = _judge_provenance.build(spec, template, rubric=rubric, sampling={"temperature": 0})
+    version = _judge_provenance.pin(provenance)
     model = _model(spec) if api_key is None else _model(spec, api_key)
     spent: list[float] = []
     target = Path(runs_dir) if runs_dir is not None else _runs_dir()
@@ -86,6 +91,8 @@ def judge_scorer(spec: str, *, prompt: str | None = None, runs_dir: Path | None 
             expected=_show(item.get("expected", "")),
             output=_show(output),
         )
+        if rubric is not None:
+            text += "\n\nRubric:\n" + rubric
         messages = [{"role": "user", "content": text}]
         response = asyncio.run(model.complete(messages, temperature=0.0))
         reply = _reply_text(response)
@@ -95,7 +102,13 @@ def judge_scorer(spec: str, *, prompt: str | None = None, runs_dir: Path | None 
             model_info=spec,
             user_prompt=text,
             tags=["eval-judge"],
-            metadata={"eval_judge": {"item": item.get("id"), "scorer_version": version}},
+            metadata={
+                "eval_judge": {
+                    "item": item.get("id"),
+                    "scorer_version": version,
+                    "provenance": provenance,
+                }
+            },
         )
         usage = meta.get("usage") if isinstance(meta.get("usage"), dict) else None
         billing = meta.get("billing") if isinstance(meta.get("billing"), dict) else None
@@ -108,7 +121,7 @@ def judge_scorer(spec: str, *, prompt: str | None = None, runs_dir: Path | None 
         run.save(target / f"{run.id}.tine")
         return value, run.id
 
-    return Scorer("llm-judge", version, score, {"model": spec}, spent)
+    return Scorer("llm-judge", version, score, {"model": spec, "provenance": provenance}, spent)
 
 
 __all__ = ["DEFAULT_PROMPT", "judge_score", "judge_scorer"]

@@ -1991,6 +1991,35 @@ ITEM is `promotion:LABEL:RUN`, `monitor:ATTESTATION` or
 `promote.oversight-stale` or `promote.oversight-rejected`. `--json` prints
 `tine-cli-oversight/1`; see docs/OVERSIGHT.md.
 
+## Inspect and METR interop (0.65)
+
+| Command | What it does |
+| --- | --- |
+| `tine import inspect LOG --repo PATH [--key KEY --evals DIR] [--threshold N] [--created-at TIME] [--require-signed]` | Records each sample of an Inspect `.eval` or `.json` log as a run under `heads/inspect/<task>-<eval>/`; with `--key`, signs one `tine-eval-verdict/1` eval folder per scorer in DIR (an optimizer key is refused, exit 4; a key outside the pinned scorer/eval roles marks the verdicts `unpinned`); `--require-signed` refuses a log unless its detached signature verifies and its signer is a pinned scorer key (spelling of `tine inspect import`) |
+| `tine export inspect --repo PATH [--prefix P] [--format json\|eval] [--output PATH] [--force]` | Writes the imported runs back as an Inspect log with the same sample ids and scores; stdout output is byte-exact (spelling of `tine inspect export`) |
+| `tine import metr DIR --out FILE.jsonl` | Reads a METR task-standard family into an eval dataset without running its code (spelling of `tine inspect metr`) |
+| `tine inspect sign LOG --key KEY [--signed-at TIME]` | Writes `LOG.tine-sig.json`, a detached signature over the log's bytes (what the Inspect hook writes) |
+| `tine inspect verify LOG [--repo PATH] [--strict]` | Checks the log against its detached signature and reports the signer fingerprint as `pinned`, `unpinned` or `refused` (optimizer key) from the owner-pinned key roles; exit 4 when any byte changed or the signer is refused, and for an unpinned signer only with `--strict` |
+
+`--json` prints `tine-cli-inspect/1`. See docs/INSPECT.md.
+
+## Auditor runs and blind audit games (0.65)
+
+| Command | What it does |
+| --- | --- |
+| `tine auditor import-petri FILE [--save PATH] [--blind SECRET [--objective TEXT]] --repo PATH` | Records a Petri or Bloom transcript as a `role=auditor` run (auditor, target and judge as step speakers); `--blind` replaces the target's identity with a commitment and writes the secret to SECRET |
+| `tine auditor seal RUN --game GAME --secret SECRET --key KEY [--at TIME] --repo PATH` | Signs and holds the game's commitment |
+| `tine auditor findings RUN --game GAME --findings FILE --verdict concern\|no-concern --key KEY [--at TIME] --repo PATH` | Signs and holds the auditor's findings (their digest and verdict) |
+| `tine auditor reveal RUN --game GAME --secret SECRET --key KEY [--at TIME] --repo PATH` | Signs and holds the reveal, naming the findings it follows |
+| `tine auditor check [--game GAME] [--strict] --repo PATH` | Judges every game offline; exits 1 on `fail:audit-game.reveal-before-verdict`, `fail:audit-game.commitment-mismatch`, `fail:audit-game.unsealed` or `fail:audit-game.unsigned` |
+
+Records follow the claim convention `opentine.audit-game/1` on existing
+attestations and are held under `audit-game:GAME` (never released). Findings
+count as the auditor's only when signed by a pinned `auditor`-role key;
+otherwise `advisory:audit-game.auditor-unpinned`. `tine eval run
+--judge-rubric FILE` pins the rubric into the judge provenance every signed
+verdict carries. `--json` prints `tine-cli-auditor/1`; see docs/AUDIT_GAMES.md.
+
 ## Self-modification lineage (0.58)
 
 | Command | What it does |
@@ -2066,7 +2095,8 @@ tine dataset import SRC --out DATASET.jsonl [--format jsonl|hf] [--split S]
 tine dataset export DATASET.jsonl --out PATH [--format jsonl|hf] [--split S]
 tine dataset show DATASET.jsonl
 tine eval run DATASET.jsonl --scorer SPEC --key KEY --out DIR [--threshold T]
-              [--outputs FILE.jsonl] [--run RUN] [--judge-prompt FILE] [--created-at TIME]
+              [--outputs FILE.jsonl] [--run RUN] [--judge-prompt FILE] [--judge-rubric FILE]
+              [--created-at TIME]
               [--holdout DIR [--repo PATH]]
 tine eval verify DIR [--pubkey PUB]
 tine eval compare A B [--pubkey PUB] [--exit-code]

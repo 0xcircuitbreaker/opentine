@@ -1,0 +1,265 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-auditor-1.schema.json",
+  "title": "tine auditor ... --json",
+  "description": "Auditor runs and blind audit games. `import-petri` records a Petri or Bloom transcript as a `role=auditor` run (with `--blind`, the target is a commitment); `seal`/`findings`/`reveal` write one signed, held `opentine.audit-game/1` attestation; `check` judges every game (D12 findings).",
+  "anyOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "run",
+        "transcript",
+        "steps",
+        "auditor_model",
+        "judge_model",
+        "target_model",
+        "sealed",
+        "scores"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-auditor/1"
+        },
+        "command": {
+          "const": "auditor import-petri"
+        },
+        "run": {
+          "type": "string"
+        },
+        "transcript": {
+          "type": "string"
+        },
+        "steps": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "auditor_model": {
+          "type": "string"
+        },
+        "judge_model": {
+          "type": "string"
+        },
+        "target_model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sealed": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "scores": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "record",
+        "game",
+        "step"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-auditor/1"
+        },
+        "command": {
+          "enum": [
+            "auditor seal",
+            "auditor findings",
+            "auditor reveal"
+          ]
+        },
+        "record": {
+          "type": "string",
+          "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+        },
+        "game": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]{1,64}$"
+        },
+        "step": {
+          "enum": [
+            "seal",
+            "findings",
+            "reveal"
+          ]
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "strict",
+        "blocking",
+        "games",
+        "findings"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-auditor/1"
+        },
+        "command": {
+          "const": "auditor check"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "strict": {
+          "type": "boolean"
+        },
+        "blocking": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "games": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "game",
+              "state",
+              "records",
+              "seal",
+              "findings",
+              "verdict",
+              "reveal",
+              "target"
+            ],
+            "properties": {
+              "game": {
+                "type": "string"
+              },
+              "state": {
+                "enum": [
+                  "empty",
+                  "sealed",
+                  "submitted",
+                  "revealed"
+                ]
+              },
+              "records": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "seal": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "findings": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "verdict": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "concern",
+                      "no-concern"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "reveal": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "target": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "level",
+              "code",
+              "game",
+              "message"
+            ],
+            "properties": {
+              "level": {
+                "enum": [
+                  "fail",
+                  "advisory"
+                ]
+              },
+              "code": {
+                "type": "string",
+                "pattern": "^(fail|advisory):audit-game\\.[a-z-]+$"
+              },
+              "game": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

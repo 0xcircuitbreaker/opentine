@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-inspect-log-sig-1.schema.json",
+  "title": "opentine-inspect-log-sig/1 detached signature",
+  "description": "Written beside an Inspect log as `<log>.tine-sig.json`: the log's name, length and SHA-256 under a tine-sig/3 block. A file convention, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "scheme",
+    "log",
+    "bytes",
+    "sha256",
+    "signer",
+    "signed_at",
+    "signature"
+  ],
+  "properties": {
+    "scheme": {
+      "const": "opentine-inspect-log-sig/1"
+    },
+    "log": {
+      "type": "string"
+    },
+    "bytes": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "signer": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "signed_at": {
+      "type": "string"
+    },
+    "signature": {
+      "$ref": "tine-sig-3.schema.json"
+    }
+  }
+}
