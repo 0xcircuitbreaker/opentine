@@ -1,5 +1,32 @@
 # Changelog
 
+## Unreleased — Oversight queue
+
+- `.tine/oversight.toml` defines risk tiers, each a k-of-n set of approver
+  keys, and routes that send lineage promotions, threshold-crossing evals
+  (`pass_rate` or `mean_score` above or below a value), held monitor verdicts
+  (`flag`, `defer`, `block`) and held integrity taints into tiers. It counts
+  only when `.tine/oversight.sig.json` (claim `opentine.oversight-policy/1`)
+  is signed by a `policy`-role key of the owner-pinned trust bundle that is not
+  an `optimizer` key; an unsigned or edited policy grants nothing.
+- `tine oversight request|approve|reject ITEM --key KEY` writes one
+  Ed25519-signed decision as an existing `annotation` object on the item's
+  anchor blob, chained by `previous_id` (value convention
+  `opentine.oversight-decision/1`), and holds it under `oversight-decision:`;
+  `tine hold release` refuses it. Approve and reject are refused for
+  `optimizer`, `monitor` and `scorer` keys.
+- `tine promote` checks the policy for a routed candidate and refuses with
+  `promote.oversight-insufficient`, `promote.oversight-key-separation`,
+  `promote.oversight-stale` (an approval bound to another holder or label
+  sequence) or `promote.oversight-rejected`. Approvers count only from the
+  pinned `approver` role; the same key, the keys of one person under
+  `[humans]`, or one declared `--human` count once.
+- `tine oversight queue` lists every routed item and its tally per tier;
+  `--from-objects` rebuilds the same state from the annotation objects alone.
+  `tine oversight policy` and `sign-policy` report and pin the policy.
+  Schemas `tine-cli-oversight-1` and `opentine-oversight-decision-1`;
+  docs/OVERSIGHT.md. No object kind and no `tine verify` code is added.
+
 ## 0.62.0 — Monitor verdicts and intervention log (2026-11-19)
 
 - Inline monitors on the MCP proxy (`tine mcp-proxy --monitor CONFIG
