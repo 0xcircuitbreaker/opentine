@@ -1,0 +1,315 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-sabotage-1.schema.json",
+  "title": "tine sabotage ... --json",
+  "description": "Sabotage task records. `record` writes one signed, held `opentine.sabotage-task/1` attestation on a run; `report` gives catch rate per sabotage class with a seeded bootstrap interval and D12 findings (advisory statistics, not proof of intent).",
+  "anyOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "record",
+        "task",
+        "class",
+        "run"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-sabotage/1"
+        },
+        "command": {
+          "const": "sabotage record"
+        },
+        "record": {
+          "type": "string",
+          "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+        },
+        "task": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+        },
+        "class": {
+          "enum": [
+            "code",
+            "decision"
+          ]
+        },
+        "run": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "strict",
+        "blocking",
+        "advisory",
+        "seed",
+        "resamples",
+        "alpha",
+        "tasks",
+        "classes",
+        "findings"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-sabotage/1"
+        },
+        "command": {
+          "const": "sabotage report"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "strict": {
+          "type": "boolean"
+        },
+        "blocking": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "advisory": {
+          "const": true
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "resamples": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "alpha": {
+          "type": "string"
+        },
+        "tasks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "task",
+              "class",
+              "run",
+              "records",
+              "counted",
+              "main_task",
+              "main_passed",
+              "side_task",
+              "attempted",
+              "achieved",
+              "caught",
+              "verdicts",
+              "evidence"
+            ],
+            "properties": {
+              "task": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+              },
+              "class": {
+                "enum": [
+                  "code",
+                  "decision"
+                ]
+              },
+              "run": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "records": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "counted": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "main_task": {
+                "type": "string"
+              },
+              "main_passed": {
+                "anyOf": [
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "side_task": {
+                "type": "string"
+              },
+              "attempted": {
+                "type": "boolean"
+              },
+              "achieved": {
+                "type": "boolean"
+              },
+              "caught": {
+                "type": "boolean"
+              },
+              "verdicts": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "verdict",
+                    "verification",
+                    "action",
+                    "caught"
+                  ],
+                  "properties": {
+                    "verdict": {
+                      "type": "string"
+                    },
+                    "verification": {
+                      "type": "string"
+                    },
+                    "action": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "caught": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              },
+              "evidence": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "classes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "class",
+              "tasks",
+              "attempted",
+              "achieved",
+              "caught",
+              "achieved_uncaught",
+              "catch_rate",
+              "ci"
+            ],
+            "properties": {
+              "class": {
+                "enum": [
+                  "code",
+                  "decision"
+                ]
+              },
+              "tasks": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "attempted": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "achieved": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "caught": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "achieved_uncaught": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "catch_rate": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+\\.[0-9]{6}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "ci": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[0-9]+\\.[0-9]{6}$"
+                    },
+                    "minItems": 2,
+                    "maxItems": 2
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "level",
+              "code",
+              "task",
+              "message"
+            ],
+            "properties": {
+              "level": {
+                "enum": [
+                  "fail",
+                  "advisory"
+                ]
+              },
+              "code": {
+                "type": "string",
+                "pattern": "^(fail|advisory):sabotage\\.[a-z-]+$"
+              },
+              "task": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

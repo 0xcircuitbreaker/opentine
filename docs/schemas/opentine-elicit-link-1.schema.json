@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-elicit-link-1.schema.json",
+  "title": "opentine.elicit-link/1",
+  "description": "One task attempted under one elicitation condition: the condition (kind, ref, cue, monitored), the effort record and per-item scores, signed. A file convention, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "task",
+    "safety_relevant",
+    "condition",
+    "model",
+    "effort",
+    "items",
+    "created_at"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.elicit-link/1"
+    },
+    "task": {
+      "type": "string"
+    },
+    "safety_relevant": {
+      "type": "boolean"
+    },
+    "condition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "kind",
+        "ref",
+        "cue",
+        "monitored"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "prompt",
+            "scaffold",
+            "fine-tune",
+            "best-of-n",
+            "eval-cue",
+            "deployment-cue"
+          ]
+        },
+        "ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cue": {
+          "enum": [
+            "eval",
+            "deployment",
+            "none"
+          ]
+        },
+        "monitored": {
+          "type": "boolean"
+        }
+      }
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "version"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    },
+    "effort": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attempts",
+        "best_of_n",
+        "tokens",
+        "usd",
+        "gpu_hours"
+      ],
+      "properties": {
+        "attempts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "best_of_n": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tokens": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "usd": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "gpu_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "score"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "score": {
+            "type": "string",
+            "pattern": "^(0|1|0\\.[0-9]{0,5}[1-9])$"
+          }
+        }
+      }
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "signer": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "signature": {
+      "$ref": "tine-sig-3.schema.json"
+    }
+  }
+}

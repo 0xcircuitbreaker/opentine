@@ -1,0 +1,418 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-elicit-1.schema.json",
+  "title": "tine elicit ... --json",
+  "description": "`link` signs and files an opentine.elicit-link/1 record; `report` gives the capability gap across elicitation conditions with paired-bootstrap intervals and advisory, Bonferroni-corrected under-performance and score-distribution tests between eval-cued/monitored and deployment-cued conditions.",
+  "anyOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "task",
+        "condition",
+        "record",
+        "signer",
+        "items",
+        "path"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-elicit/1"
+        },
+        "command": {
+          "const": "elicit link"
+        },
+        "task": {
+          "type": "string"
+        },
+        "condition": {
+          "type": "string"
+        },
+        "record": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "signer": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "items": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "path": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "signers",
+        "convention",
+        "records",
+        "alpha",
+        "seed",
+        "resamples",
+        "reference",
+        "conditions",
+        "tests",
+        "correction",
+        "methods",
+        "findings",
+        "note"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-elicit/1"
+        },
+        "command": {
+          "const": "elicit report"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "signers": {
+          "enum": [
+            "pinned",
+            "unpinned"
+          ]
+        },
+        "convention": {
+          "const": "opentine.elicit-report/1"
+        },
+        "records": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "alpha": {
+          "type": "string"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "resamples": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "conditions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "kind",
+              "ref",
+              "cue",
+              "monitored",
+              "tasks",
+              "safety_tasks",
+              "n",
+              "mean",
+              "effort",
+              "gap"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "kind": {
+                "enum": [
+                  "prompt",
+                  "scaffold",
+                  "fine-tune",
+                  "best-of-n",
+                  "eval-cue",
+                  "deployment-cue"
+                ]
+              },
+              "ref": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "cue": {
+                "enum": [
+                  "eval",
+                  "deployment",
+                  "none"
+                ]
+              },
+              "monitored": {
+                "type": "boolean"
+              },
+              "tasks": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "safety_tasks": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "n": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "mean": {
+                "type": "string",
+                "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+              },
+              "effort": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "attempts",
+                  "best_of_n",
+                  "tokens",
+                  "usd",
+                  "gpu_hours"
+                ],
+                "properties": {
+                  "attempts": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "best_of_n": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "tokens": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "usd": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "gpu_hours": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              },
+              "gap": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "n",
+                      "delta",
+                      "ci"
+                    ],
+                    "properties": {
+                      "n": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "delta": {
+                        "type": "string",
+                        "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                      },
+                      "ci": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "tests": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "test",
+              "suspect",
+              "control",
+              "n",
+              "delta",
+              "p_value",
+              "threshold",
+              "flagged"
+            ],
+            "properties": {
+              "test": {
+                "enum": [
+                  "underperformance",
+                  "distribution"
+                ]
+              },
+              "suspect": {
+                "type": "string"
+              },
+              "control": {
+                "type": "string"
+              },
+              "n": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "delta": {
+                "type": "string",
+                "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+              },
+              "p_value": {
+                "type": "string",
+                "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+              },
+              "threshold": {
+                "type": "string",
+                "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+              },
+              "flagged": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "correction": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "method",
+            "tests",
+            "per_test_alpha"
+          ],
+          "properties": {
+            "method": {
+              "const": "bonferroni"
+            },
+            "tests": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "per_test_alpha": {
+              "type": "string",
+              "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+            }
+          }
+        },
+        "methods": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "gap",
+            "underperformance",
+            "distribution"
+          ],
+          "properties": {
+            "gap": {
+              "const": "paired-bootstrap"
+            },
+            "underperformance": {
+              "const": "permutation"
+            },
+            "distribution": {
+              "const": "paired-swap-variance"
+            }
+          }
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "level",
+              "code",
+              "subject",
+              "message"
+            ],
+            "properties": {
+              "level": {
+                "enum": [
+                  "fail",
+                  "advisory"
+                ]
+              },
+              "code": {
+                "type": "string",
+                "pattern": "^(fail|advisory):elicit\\.[a-z-]+$"
+              },
+              "subject": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    }
+  ]
+}

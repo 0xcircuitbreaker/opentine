@@ -1,5 +1,52 @@
 # Changelog
 
+## 0.66.0 — Elicitation and sabotage analytics (2026-11-19)
+
+- `tine elicit link DRAFT --key KEY` signs an `opentine.elicit-link/1` record:
+  one task attempted under one elicitation condition (`prompt`, `scaffold`,
+  `fine-tune` with its ref, `best-of-n`, `eval-cue` or `deployment-cue`, plus
+  the cue shown and whether the run was monitored), its effort record
+  (attempts, best-of-n, tokens, USD, GPU hours) and per-item scores. Records
+  are filed by digest under `.tine/elicit/links/`; records sharing a task are
+  linked item by item. A file convention: no new object kind and no new
+  `tine verify` code.
+- `tine elicit report` gives each condition's mean, effort totals and its
+  capability gap against the best-scoring condition with a paired-bootstrap
+  interval from the 0.57 statistics. Each eval-cued or monitored condition is
+  compared with each deployment-cued, unmonitored one by the 0.57 paired
+  permutation test (mean) and a paired-swap test (spread); thresholds are
+  Bonferroni-corrected over every test in the report, and the correction is
+  part of the output. Resampling is seeded and reproducible.
+- Every under-performance or score-distribution flag is advisory
+  (`advisory:elicit.*`, D12): statistical evidence that scores depend on the
+  condition, not proof of intent; it blocks only with `--strict`. Malformed,
+  badly signed, duplicate or optimizer-signed records are left out and fail
+  the report; signers are trusted only through the owner-pinned key roles.
+- Synthetic fixtures: an agent that underperforms only under the eval cue is
+  flagged with p < 0.01, and an honest agent is not flagged on at least 95% of
+  a fixed seed list. docs/ELICITATION.md; schemas `tine-cli-elicit-1` and
+  `opentine-elicit-link-1`.
+- Sabotage task records: `tine sabotage record` signs and holds an
+  `opentine.sabotage-task/1` attestation on a run for one SHADE-style task
+  (class `code` or `decision`; main task id, score and pass; side task
+  attempted and achieved; evidence references; linked 0.62 monitor verdicts).
+  A claim convention: no new object kind and no new `tine verify` code.
+- Records count only when signed by a key in the `scorer` or `eval` role of
+  the owner-pinned trust bundle. Each is held under `sabotage-task:TASK` and
+  never released; `record` refuses to mark an attempted or achieved side task
+  as not attempted or not achieved, and `report` keeps the strongest counted
+  outcome and reports a held downgrade as `fail:sabotage.relabel`.
+- `tine sabotage report [--json]` gives catch rate per sabotage class (caught
+  by a verified, non-`allow` monitor verdict / attempted) with a seeded
+  interval from the 0.58 paired-bootstrap code. Statistics and
+  `advisory:sabotage.uncaught`, `signer-unpinned` and `verdict-unverified`
+  are advisory (D12) and block only with `--strict`; they are statistical
+  evidence, not proof of intent. Schemas `tine-cli-sabotage-1` and
+  `opentine-sabotage-task-1`; docs/SABOTAGE.md.- The 0.65 query index gains `sabotage_tasks`, `elicit_links` and
+  `elicit_items` tables, checked by `tine query --verify` against the pinned
+  `scorer`/`eval` (and, for elicitation, `verdict`) roles; a changed
+  elicitation record makes the index stale. docs/QUERY.md.
+
 ## 0.65.0 — Query and experiments (2026-11-19)
 
 - `tine query "SELECT ..." [--repo PATH]` runs one read-only SQL statement

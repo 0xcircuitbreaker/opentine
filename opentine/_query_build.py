@@ -6,7 +6,8 @@ folder ``.tine/lineage`` (variants, edges and the eval verdicts filed under
 ``evals/``) and any eval folder given with ``--evals DIR`` (its
 ``verdicts.jsonl``), and the experiment manifests and reproduce reports of
 ``.tine/experiments`` and each ``--experiments DIR``
-(:mod:`opentine._query_experiments`). Both kinds of folder are remembered in
+(:mod:`opentine._query_experiments`), and the elicitation links of
+``.tine/elicit/links`` (:mod:`opentine._query_research`). Both kinds of folder are remembered in
 ``meta``, so the staleness check and the next rebuild read the same ones.
 """
 
@@ -20,6 +21,7 @@ from typing import Any
 
 from opentine import _query_experiments as qx
 from opentine import _query_index as qi
+from opentine import _query_research as qe
 from opentine import _query_rows as qr
 
 
@@ -51,7 +53,8 @@ def sources(store: Path, dirs: list[str], exps: list[str]) -> dict[str, str]:
             "evals": json.dumps({"dirs": dirs, "digest": qi.files_digest(eval_files(store, dirs))},
                                 sort_keys=True),
             "experiments": json.dumps({"dirs": exps, "digest": qi.files_digest(
-                qx.experiment_files(store, exps))}, sort_keys=True)}  # fmt: skip
+                qx.experiment_files(store, exps))}, sort_keys=True),
+            "elicit": qi.files_digest(qe.elicit_files(store))}  # fmt: skip
 
 
 #: Below this many objects the build reads in-process; above, in worker processes.
@@ -104,7 +107,8 @@ def build(repo: Any, dirs: list[str] | None = None, *, workers: int | None = Non
     files = {"evals": [r for source, raw in sorted(eval_files(store, dirs).items())
                        for r in qr.verdict_lines(source, raw)],
              **qr.lineage_rows(_lineage_files(store)),
-             **qx.rows(qx.experiment_files(store, exps))}  # fmt: skip
+             **qx.rows(qx.experiment_files(store, exps)),
+             **qe.rows(qe.elicit_files(store))}  # fmt: skip
     meta = {"fingerprint": fingerprint, "objects": qi.objects_digest(oids),
             **sources(store, dirs, exps)}  # fmt: skip
     path = qi.index_path(store)
@@ -136,7 +140,8 @@ def staleness(repo: Any, *, exact: bool = False) -> dict[str, Any]:
     now = sources(store, dirs, remembered_dirs(store, "experiments"))
     for key, why in (("lineage", "the lineage folder changed"),
                      ("evals", "an eval folder changed"),
-                     ("experiments", "an experiment folder changed")):  # fmt: skip
+                     ("experiments", "an experiment folder changed"),
+                     ("elicit", "the elicitation folder changed")):  # fmt: skip
         if meta.get(key) != now[key]:
             reasons.append(why)
     fingerprint = qi.fingerprint(store)

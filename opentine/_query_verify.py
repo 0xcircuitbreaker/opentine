@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import Any
 
 from opentine import _query_experiments as qx
+from opentine import _query_research as qe
 from opentine import _query_rows as qr
 from opentine._query_build import eval_files, eval_source, remembered_dirs
 
@@ -66,6 +67,8 @@ def _derive(repo: Any, oid: str, table: str | None, db: Any,
         if "sha256:" + hashlib.sha256(raw).hexdigest() != oid:
             return None, "the verdict line changed"
         return qr.eval_row(oid, source, line, json.loads(raw)), None
+    if table in qe.FILE_TABLES:
+        return qe.derive(store, table, oid, db, row)
     if table in qx.TABLES:
         return qx.derive(store, remembered_dirs(store, "experiments"), table, oid, db, row)
     if table == "lineage_variants":
@@ -97,8 +100,10 @@ def _step_place(repo: Any, oid: str, row: dict[str, Any]) -> str | None:
 def _table_of(db: Any, oid: str, row: dict[str, Any]) -> str | None:
     """The table holding *oid*; a manifest's result rows share its oid and add an ``id``."""
     results = ("experiment_results",) if "id" in row else ()
+    items = ("elicit_items",) if "id" in row else ()
     for table in ("evals", "lineage_variants", "monitor_verdicts", "oversight_decisions",
-                  *results, "experiments", "reproductions"):  # fmt: skip
+                  *results, "experiments", "reproductions", "sabotage_tasks", *items,
+                  "elicit_links"):  # fmt: skip
         if db.execute(f"SELECT 1 FROM {table} WHERE oid = ? LIMIT 1", (oid,)).fetchone():
             return table
     return None
@@ -137,6 +142,10 @@ def check(repo: Any, oid: str, row: dict[str, Any], db: Any,
     need = ROLE_FOR.get(table or "")
     if need and (need not in out["roles"] or "optimizer" in out["roles"]):
         return {**out, "status": "unverified", "reason": f"the signer holds no {need} role"}
+    roles = qe.ROLES_FOR.get("elicit_links" if table == "elicit_items" else table or "")
+    if roles and (not set(roles) & set(out["roles"]) or "optimizer" in out["roles"]):
+        return {**out, "status": "unverified",
+                "reason": f"the signer holds no {' or '.join(roles)} role"}  # fmt: skip
     return {**out, "status": "verified", "reason": "signature valid, signer pinned"}
 
 

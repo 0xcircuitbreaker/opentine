@@ -26,6 +26,8 @@ from pathlib import Path
 from opentine._cli_auditor import COMMANDS as AUDITOR_COMMANDS
 from opentine._cli_auditor import add_auditor_parser
 from opentine._cli_common import BRAND, _terminal, console
+from opentine._cli_elicit import COMMANDS as ELICIT_COMMANDS
+from opentine._cli_elicit import add_elicit_parser
 from opentine._cli_errors import error
 from opentine._cli_experiment import COMMANDS as EXPERIMENT_COMMANDS
 from opentine._cli_experiment import add_experiment_parser
@@ -45,6 +47,8 @@ from opentine._cli_oversight import COMMANDS as OVERSIGHT_COMMANDS
 from opentine._cli_oversight import add_oversight_parser
 from opentine._cli_query import COMMANDS as QUERY_COMMANDS
 from opentine._cli_query import add_query_parser
+from opentine._cli_sabotage import COMMANDS as SABOTAGE_COMMANDS
+from opentine._cli_sabotage import add_sabotage_parser
 from opentine._cli_task import COMMANDS as TASK_COMMANDS
 from opentine._cli_task import add_task_parser
 
@@ -76,6 +80,8 @@ def add_fleet_parser(subparsers: argparse._SubParsersAction) -> None:
     add_auditor_parser(subparsers)  # 0.65: tine auditor import-petri, blind audit games
     add_query_parser(subparsers)  # 0.65: tine query SQL, tine query index
     add_experiment_parser(subparsers)  # 0.67: tine experiment sign|check, tine reproduce
+    add_elicit_parser(subparsers)  # 0.68: tine elicit link|report
+    add_sabotage_parser(subparsers)  # 0.68: tine sabotage record|report
 
 
 def _fail(message: object) -> SystemExit:
@@ -225,6 +231,8 @@ COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
     **AUDITOR_COMMANDS,
     **QUERY_COMMANDS,
     **EXPERIMENT_COMMANDS,
+    **ELICIT_COMMANDS,
+    **SABOTAGE_COMMANDS,
 }
 
 __all__ = ["COMMANDS", "add_fleet_parser", "cmd_fleet"]
