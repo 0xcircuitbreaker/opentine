@@ -71,6 +71,18 @@ def command_alternate(argv: list[str], timeout: float = 60.0) -> Callable[..., A
     return alternate
 
 
+def _valid(reply: Any) -> bool:
+    """A reply any monitor plugin returns: a finite score in 0..1, a known non-allow action."""
+    if not isinstance(reply, dict) or isinstance(reply.get("score"), bool):
+        return False
+    try:
+        score = float(reply["score"])
+    except (KeyError, TypeError, ValueError):
+        return False
+    action = reply.get("action")
+    return 0.0 <= score <= 1.0 and (action is None or action in _monitor_verdict.ACTIONS[1:])
+
+
 class Gate:
     def __init__(
         self, config: dict[str, Any], *, repo: Any = None, key: Any = None,
@@ -99,7 +111,7 @@ class Gate:
         latency = max(0, int(round((self.clock() - start) * 1000)))
         if not finished or latency > deadline:
             return "deadline", None, latency
-        if error is not None or not isinstance(value, dict):
+        if error is not None or not _valid(value):
             return "error", None, latency
         return "monitor", value, latency
 

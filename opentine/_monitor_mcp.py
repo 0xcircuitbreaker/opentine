@@ -24,6 +24,7 @@ import threading
 from typing import Any
 
 from opentine._monitor_gate import Gate
+from opentine._monitor_verdict import META_KEY
 
 ERROR_CODE = -32001
 MAX_ADVISORY_QUEUE = 1024
@@ -39,7 +40,34 @@ def blocked_reply(ident: Any, decision: dict[str, Any]) -> dict[str, Any]:
 
 
 def _gated(item: Any) -> bool:
-    return isinstance(item, dict) and item.get("method") == "tools/call" and "id" in item
+    """A ``tools/call`` request or notification (a server may run either)."""
+    return isinstance(item, dict) and item.get("method") == "tools/call"
+
+
+def _strict(raw: bytes) -> Any:
+    """Parse as a server would, refusing what parsers read differently (duplicate keys, NaN)."""
+
+    def pairs(items: list[tuple[str, Any]]) -> dict[str, Any]:
+        if len({k for k, _ in items}) != len(items):
+            raise ValueError("duplicate key")
+        return dict(items)
+
+    def constant(name: str) -> Any:
+        raise ValueError(f"non-standard constant {name}")
+
+    return json.loads(raw.decode("utf-8"), object_pairs_hook=pairs, parse_constant=constant)
+
+
+def _unmark(item: dict[str, Any]) -> tuple[dict[str, Any], bool]:
+    """*item* without a client-supplied replacement mark (only the gate writes one)."""
+    params = item.get("params")
+    meta = params.get("_meta") if isinstance(params, dict) else None
+    if not isinstance(meta, dict) or META_KEY not in meta:
+        return item, False
+    rest = {k: v for k, v in meta.items() if k != META_KEY}
+    params = {**params, "_meta": rest} if rest else {
+        k: v for k, v in params.items() if k != "_meta"}  # fmt: skip
+    return {**item, "params": params}, True
 
 
 class McpGuard:
@@ -81,9 +109,12 @@ class McpGuard:
     def check(self, raw: bytes) -> tuple[bytes | None, bytes | None, bytes | None]:
         """``(bytes to relay, bytes to answer the client, blocked requests)``."""
         try:
-            message = json.loads(raw.decode("utf-8"))
+            message = _strict(raw) if not self.advisory else json.loads(raw.decode("utf-8"))
         except (UnicodeDecodeError, ValueError, RecursionError):
-            return raw, None, None  # not JSON-RPC: nothing to gate
+            if self.advisory or not raw.strip():
+                return raw, None, None  # advisory relays every byte
+            self.report("mcp-proxy: a client message the gate cannot parse was dropped")
+            return None, None, None
         items = message if isinstance(message, list) else [message]
         if not any(_gated(item) for item in items):
             return raw, None, None
@@ -99,8 +130,13 @@ class McpGuard:
             if not _gated(item):
                 forward.append(item)
                 continue
+            item, stripped = _unmark(item)
+            changed = changed or stripped
             decision = self._decide(item)
-            if decision["outcome"] == "block":
+            if decision["outcome"] == "block" and "id" not in item:
+                self.report("mcp-proxy: a blocked tools/call notification was dropped")
+                changed = True
+            elif decision["outcome"] == "block":
                 replies.append(blocked_reply(item["id"], decision))
                 blocked.append(item)
                 changed = True
@@ -111,6 +147,8 @@ class McpGuard:
                 forward.append(item)
         if not changed:
             return raw, None, None
+        if not forward and not replies:
+            return None, None, None
         batch = isinstance(message, list)
         out = _line(forward if batch else forward[0], raw) if forward else None
         back = _line(replies if batch else replies[0], raw) if replies else None

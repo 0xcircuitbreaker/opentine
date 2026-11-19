@@ -161,6 +161,15 @@ mode.
 
 - Only `tools/call` is gated on the proxy. In gate mode a client line longer
   than 16 MiB cannot be decided and is dropped.
+- In gate mode the proxy also gates `tools/call` notifications (no `id`; a
+  blocked one is dropped), drops a client message it cannot parse strictly
+  (invalid UTF-8, duplicate keys, `NaN`; over HTTP the answer is 403), and
+  removes a client-supplied `_meta["opentine/monitor"]` mark: only the gate
+  writes that mark. A monitor reply that is not a finite score in 0..1 with a
+  known non-`allow` action counts as a monitor error.
+- The gate sees only what passes through the proxy or the hook. An agent that
+  can reach a tool another way, or that can rewrite `.tine/holds` or the
+  recorded runs, is outside what `tine monitor verify` can catch.
 - The hook path decides synchronously in both modes (the hook is one process
   per call), so an advisory monitor's latency is added to the call there.
 - Each held verdict is one row in `.tine/holds` (at most 4 MiB, about 25 000

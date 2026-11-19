@@ -107,6 +107,8 @@ class _Handler(BaseHTTPRequestHandler):
                 self.server.recorder.feed(CLIENT, blocked or body)
                 self.server.recorder.feed(SERVER, back)
                 return self._answer(back)
+            if forward is None and back is None and not guard.advisory:
+                return self._refuse(403, "the monitor gate dropped this request")
             body = forward or body
         if body:
             self.server.recorder.feed(CLIENT, body[:MAX_MESSAGE], len(body) > MAX_MESSAGE)
