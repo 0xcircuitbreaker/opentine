@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opentine.com/schemas/tine-cli-inspect-1.schema.json",
   "title": "tine inspect ... --json",
-  "description": "Inspect AI and METR interop. `import` records each sample of an Inspect log as a run under `ref_prefix` and, with `--key`, signs one tine-eval-verdict/1 eval folder per scorer; `export --output` reports the log it wrote; `metr` reads a METR task-standard family into an eval dataset without running it; `sign` and `verify` handle the detached log signature.",
+  "description": "Inspect AI and METR interop. `import` records each sample of an Inspect log as a run under `ref_prefix` and, with `--key`, signs one tine-eval-verdict/1 eval folder per scorer with its `signer_status` (an optimizer key is refused); `export --output` reports the log it wrote; `metr` reads a METR task-standard family into an eval dataset without running it; `sign` and `verify` handle the detached log signature; `verify` reports the signer's `signer_status` (`pinned`, `unpinned` or `refused`) from the owner-pinned key roles.",
   "anyOf": [
     {
       "type": "object",
@@ -84,9 +84,21 @@
               "additionalProperties": false,
               "required": [
                 "scorers",
-                "skipped"
+                "skipped",
+                "signer",
+                "signer_status"
               ],
               "properties": {
+                "signer": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "signer_status": {
+                  "enum": [
+                    "pinned",
+                    "unpinned"
+                  ]
+                },
                 "scorers": {
                   "type": "object",
                   "additionalProperties": {
@@ -245,7 +257,8 @@
         "schema",
         "ok",
         "reason",
-        "signer"
+        "signer",
+        "signer_status"
       ],
       "properties": {
         "schema": {
@@ -265,6 +278,20 @@
             {
               "type": "string",
               "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "signer_status": {
+          "anyOf": [
+            {
+              "enum": [
+                "pinned",
+                "unpinned",
+                "refused"
+              ]
             },
             {
               "type": "null"

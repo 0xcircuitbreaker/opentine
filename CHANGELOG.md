@@ -22,6 +22,15 @@
   `inspect_ai` hooks module; import-guarded): a detached
   `<log>.tine-sig.json` record (`opentine-inspect-log-sig/1`).
   `tine inspect sign` and `tine inspect verify` write and check it.
+- Inspect signers follow the owner-pinned key roles: `tine inspect import
+  --key` refuses an optimizer key (`inspect.key-separation`, exit 4) and marks
+  verdicts signed by a key outside the pinned `scorer`/`eval` roles as
+  `signer_status: unpinned`; `--require-signed` refuses a log unless its
+  detached signature verifies and its signer is a pinned scorer key.
+  `tine inspect verify [--repo PATH] [--strict]` reports the signer
+  fingerprint and `pinned`/`unpinned`/`refused`, prints "signature valid,
+  signer unpinned" instead of a bare "ok", exits 4 for an optimizer signer and
+  for an unpinned one only with `--strict` (D12).
 - `tine import metr DIR --out FILE.jsonl` reads a METR task-standard family
   into an eval dataset by parsing `<family>.py` with `ast`; the family's code
   is never executed.

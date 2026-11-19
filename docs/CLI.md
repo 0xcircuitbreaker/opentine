@@ -1995,11 +1995,11 @@ ITEM is `promotion:LABEL:RUN`, `monitor:ATTESTATION` or
 
 | Command | What it does |
 | --- | --- |
-| `tine import inspect LOG --repo PATH [--key KEY --evals DIR] [--threshold N] [--created-at TIME]` | Records each sample of an Inspect `.eval` or `.json` log as a run under `heads/inspect/<task>-<eval>/`; with `--key`, signs one `tine-eval-verdict/1` eval folder per scorer in DIR (spelling of `tine inspect import`) |
+| `tine import inspect LOG --repo PATH [--key KEY --evals DIR] [--threshold N] [--created-at TIME] [--require-signed]` | Records each sample of an Inspect `.eval` or `.json` log as a run under `heads/inspect/<task>-<eval>/`; with `--key`, signs one `tine-eval-verdict/1` eval folder per scorer in DIR (an optimizer key is refused, exit 4; a key outside the pinned scorer/eval roles marks the verdicts `unpinned`); `--require-signed` refuses a log unless its detached signature verifies and its signer is a pinned scorer key (spelling of `tine inspect import`) |
 | `tine export inspect --repo PATH [--prefix P] [--format json\|eval] [--output PATH] [--force]` | Writes the imported runs back as an Inspect log with the same sample ids and scores; stdout output is byte-exact (spelling of `tine inspect export`) |
 | `tine import metr DIR --out FILE.jsonl` | Reads a METR task-standard family into an eval dataset without running its code (spelling of `tine inspect metr`) |
 | `tine inspect sign LOG --key KEY [--signed-at TIME]` | Writes `LOG.tine-sig.json`, a detached signature over the log's bytes (what the Inspect hook writes) |
-| `tine inspect verify LOG` | Checks the log against its detached signature; exit 4 when any byte changed |
+| `tine inspect verify LOG [--repo PATH] [--strict]` | Checks the log against its detached signature and reports the signer fingerprint as `pinned`, `unpinned` or `refused` (optimizer key) from the owner-pinned key roles; exit 4 when any byte changed or the signer is refused, and for an unpinned signer only with `--strict` |
 
 `--json` prints `tine-cli-inspect/1`. See docs/INSPECT.md.
 

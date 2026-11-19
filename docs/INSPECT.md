@@ -103,6 +103,24 @@ imports it. From the command line, `tine inspect sign LOG --key KEY` writes
 the same record and `tine inspect verify LOG` checks it (exit 4 when any byte
 of the log changed or the record was edited).
 
+## Who may sign Inspect scores
+
+A self-improving loop holds its optimizer key, so both commands check the
+signer against the key roles of the owner-pinned trust bundle
+(`opentine._key_roles_pin`, docs/SELF-IMPROVING-LOOPS.md). An unsigned
+`.tine/key-roles.toml` can only refuse; it never grants.
+
+| signer | `import --key` | `verify` | `import --require-signed` |
+|---|---|---|---|
+| holds the `optimizer` role | refused (`inspect.key-separation`, exit 4) | `refused`, exit 4 | refused |
+| pinned `scorer` or `eval` key | signs, `signer_status: pinned` | `ok: signature valid, signer ... pinned` | imports |
+| any other key, or roles unpinned | signs, `signer_status: unpinned` | `signature valid, signer unpinned`, exit 0 (exit 4 with `--strict`) | refused |
+
+`verify` takes `--repo PATH` (default `.`) to find the roles and never prints
+a bare `ok`. Unpinned is advisory by default (D12). `--require-signed` refuses
+a log unless its detached signature verifies and its signer is a pinned
+scorer key. No object kind and no `tine verify` code is added.
+
 ## METR task-standard families
 
 ```

@@ -22,6 +22,7 @@ from typing import Any
 
 from opentine._cli_common import _terminal, console
 from opentine._cli_errors import VERIFICATION_FAILED, error
+from opentine._inspect_roles import SignerRefused
 
 SCHEMA = "tine-cli-inspect/1"
 _SPELLINGS = {("import", "inspect"): "import", ("import", "metr"): "metr",
@@ -45,6 +46,8 @@ def add_inspect_parser(subparsers: argparse._SubParsersAction) -> None:
     into.add_argument("--evals", metavar="DIR", help="Where --key writes eval folders")
     into.add_argument("--threshold", type=float, default=1.0, help="Verdict pass mark (default 1)")
     into.add_argument("--created-at", metavar="TIME", help="Verdict time (default: the log's)")
+    into.add_argument("--require-signed", action="store_true",
+                      help="Refuse a log unless a pinned scorer key signed it")  # fmt: skip
     out = verbs.add_parser("export", help="Write imported runs back as an Inspect log")
     out.add_argument("--prefix", metavar="PREFIX", help="Which imported eval (see --json import)")
     out.add_argument("--format", choices=("json", "eval"), default="json", dest="log_format")
@@ -59,7 +62,8 @@ def add_inspect_parser(subparsers: argparse._SubParsersAction) -> None:
     sign.add_argument("--signed-at", metavar="TIME", help="YYYY-MM-DDTHH:MM:SSZ (default now)")
     check = verbs.add_parser("verify", help="Check an Inspect log against its signature")
     check.add_argument("log", metavar="LOG")
-    for verb in (into, out):
+    check.add_argument("--strict", action="store_true", help="Exit non-zero for an unpinned signer")
+    for verb in (into, out, check):
         verb.add_argument("--repo", default=".", metavar="PATH", help="Repository")
     for verb in (into, out, metr, sign, check):
         verb.add_argument("--json", action="store_true", help="Print a JSON object")
@@ -88,6 +92,11 @@ def _import(args: argparse.Namespace) -> tuple[dict[str, Any], list[str]]:
 
     if bool(args.key) != bool(args.evals):
         raise ValueError("--key and --evals go together")
+    from opentine import _inspect_roles as roles
+
+    if args.require_signed:
+        roles.require_signed(args.repo, args.log)
+    signer = roles.check_import_key(args.repo, _key(args.key)) if args.key else None
     log = read_log(args.log)
     body = import_log(Repo.open(args.repo), log)
     lines = [f"imported {len(body['samples'])} sample(s) of {body['task']} "
@@ -103,6 +112,10 @@ def _import(args: argparse.Namespace) -> tuple[dict[str, Any], list[str]]:
                                           threshold=args.threshold,
                                           created_at=_created(log, args.created_at),
                                           judges=provenances(log, _scorers(log)))  # fmt: skip
+        assert signer is not None
+        body["verdicts"].update(signer=signer["signer"], signer_status=signer["status"])
+        if signer["status"] != roles.PINNED:
+            lines.append(f"  verdicts are unpinned: {signer['reason']}")
         for name, row in body["verdicts"]["scorers"].items():
             lines.append(f"  {name}: {row['items']} verdict(s) in {row['folder']}")
         if body["verdicts"]["skipped"]:
@@ -158,9 +171,27 @@ def _body(args: argparse.Namespace) -> tuple[dict[str, Any], list[str], int]:
     if verb == "sign":
         path = hook.sign_log(args.log, _key(args.key), signed_at=args.signed_at)
         return {"signature": path.as_posix()}, [f"signed: {path}"], 0
-    result = hook.verify_log(args.log)
-    line = "ok" if result["ok"] else f"FAILED: {result['reason']}"
-    return result, [line], 0 if result["ok"] else VERIFICATION_FAILED
+    return _verify(args)
+
+
+def _verify(args: argparse.Namespace) -> tuple[dict[str, Any], list[str], int]:
+    from opentine._inspect_hook import verify_log
+    from opentine._inspect_roles import PINNED, REFUSED, classify
+
+    result = verify_log(args.log)
+    if not result["ok"]:
+        return {**result, "signer_status": None}, [f"FAILED: {result['reason']}"], \
+            VERIFICATION_FAILED  # fmt: skip
+    row = classify(args.repo, result["signer"])
+    body = {**result, "signer_status": row["status"], "reason": row["reason"]}
+    who = f"signer {result['signer']}"
+    if row["status"] == PINNED:
+        return body, [f"ok: signature valid, {who} pinned"], 0
+    if row["status"] == REFUSED:
+        return body, [f"FAILED: signature valid, {who} refused: {row['reason']}"], \
+            VERIFICATION_FAILED  # fmt: skip
+    code = VERIFICATION_FAILED if args.strict else 0
+    return body, [f"signature valid, signer unpinned: {who}: {row['reason']}"], code
 
 
 def cmd_inspect(args: argparse.Namespace) -> None:
@@ -170,6 +201,8 @@ def cmd_inspect(args: argparse.Namespace) -> None:
         if args.inspect_command == "export":
             return _export(args)
         body, lines, code = _body(args)
+    except SignerRefused as exc:
+        raise error(exc, VERIFICATION_FAILED, prefix="inspect: ") from exc
     except (OSError, ValueError, KeyError) as exc:
         raise error(exc, prefix="inspect: ") from exc
     if args.json:

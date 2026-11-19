@@ -5666,7 +5666,38 @@ ROWS: tuple[tuple, ...] = (
             "evals": "e",
             "threshold": 1.0,
             "created_at": None,
+            "require_signed": False,
             "json": True,
+            "member_command": [],
+        },  # fmt: skip
+    ),
+    (
+        "plain:inspect import LOG --require-signed",
+        "plain",
+        ["inspect", "import", "LOG", "--require-signed"],
+        "opentine._cli_inspect:cmd_inspect",
+        False,
+        {
+            "command": "inspect",
+            "inspect_command": "import",
+            "log": "LOG",
+            "require_signed": True,
+            "member_command": [],
+        },  # fmt: skip
+    ),
+    (
+        "plain:inspect verify LOG --repo r --strict",
+        "plain",
+        ["inspect", "verify", "LOG", "--repo", "r", "--strict"],
+        "opentine._cli_inspect:cmd_inspect",
+        False,
+        {
+            "command": "inspect",
+            "inspect_command": "verify",
+            "log": "LOG",
+            "repo": "r",
+            "strict": True,
+            "json": False,
             "member_command": [],
         },  # fmt: skip
     ),
@@ -5743,6 +5774,8 @@ ROWS: tuple[tuple, ...] = (
             "command": "inspect",
             "inspect_command": "verify",
             "log": "LOG",
+            "repo": ".",
+            "strict": False,
             "json": True,
             "member_command": [],
         },  # fmt: skip

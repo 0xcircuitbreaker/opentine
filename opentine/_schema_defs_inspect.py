@@ -21,7 +21,9 @@ _ROW = closed(["sample_id", "epoch", "run", "ref", "scorers"], {
     "scorers": {"type": "array", "items": STR}})  # fmt: skip
 _SCORER = closed(["folder", "eval", "items", "scorer_version"],
                  {"folder": STR, "eval": FPR, "items": INT, "scorer_version": STR})  # fmt: skip
-_VERDICTS = closed(["scorers", "skipped"], {
+_STATUS = {"enum": ["pinned", "unpinned", "refused"]}
+_VERDICTS = closed(["scorers", "skipped", "signer", "signer_status"], {
+    "signer": FPR, "signer_status": {"enum": ["pinned", "unpinned"]},
     "scorers": {"type": "object", "additionalProperties": _SCORER},
     "skipped": {"type": "array", "items": closed(["scorer", "sample_id", "epoch"], {
         "scorer": STR, "sample_id": _ID, "epoch": INT})}})  # fmt: skip
@@ -38,9 +40,9 @@ _SHAPES = [
         "dynamic": BOOL, "out": STR}),
     closed(["command", "schema", "signature"], {
         **_HEAD, "command": {"const": "inspect sign"}, "signature": STR}),
-    closed(["command", "schema", "ok", "reason", "signer"], {
+    closed(["command", "schema", "ok", "reason", "signer", "signer_status"], {
         **_HEAD, "command": {"const": "inspect verify"}, "ok": BOOL, "reason": STR,
-        "signer": opt(FPR)}),
+        "signer": opt(FPR), "signer_status": opt(_STATUS)}),
 ]  # fmt: skip
 SAMPLE_VALUE = closed(
     ["sample_id", "epoch", "index", "input", "target", "scores", "output", "metadata", "eval",
@@ -57,9 +59,12 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     "tine-cli-inspect-1": doc("tine-cli-inspect-1", "tine inspect ... --json",
         "Inspect AI and METR interop. `import` records each sample of an Inspect log as a "
         "run under `ref_prefix` and, with `--key`, signs one tine-eval-verdict/1 eval folder "
-        "per scorer; `export --output` reports the log it wrote; `metr` reads a METR "
-        "task-standard family into an eval dataset without running it; `sign` and `verify` "
-        "handle the detached log signature.", {"anyOf": _SHAPES}),
+        "per scorer with its `signer_status` (an optimizer key is refused); `export "
+        "--output` reports the log it wrote; `metr` reads a METR task-standard family "
+        "into an eval dataset without running it; `sign` and `verify` "
+        "handle the detached log signature; `verify` reports the signer's `signer_status` "
+        "(`pinned`, `unpinned` or `refused`) from the owner-pinned key roles.",
+        {"anyOf": _SHAPES}),
     "opentine-inspect-sample-1": doc("opentine-inspect-sample-1",
         "inspect run annotation value",
         "The `inspect` value of an imported run's annotation: the Inspect sample id (JSON "
