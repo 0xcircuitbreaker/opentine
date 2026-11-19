@@ -158,10 +158,11 @@ def banned(held: dict[str, list[str]]) -> set[str]:
 
 def load(store: Path | None) -> dict[str, Any]:
     """``{"status": pinned|unpinned|absent, "policy", "why", "roles", "role_status"}``."""
+    from opentine import _oversight_floor as _floor
     from opentine._promote_pins import _who
 
     out: dict[str, Any] = {"status": "absent", "policy": None, "why": "", "roles": {},
-                           "role_status": "absent"}  # fmt: skip
+                           "role_status": "absent", "floors": False}  # fmt: skip
     if store is None:
         return out
     try:
@@ -170,6 +171,9 @@ def load(store: Path | None) -> dict[str, Any]:
         return out
     out["policy"] = parse(data)
     out["roles"], out["role_status"] = roles(Path(store))
+    floors = _floor.pinned_tiers(Path(store))
+    out["floors"] = floors is not None
+    lacks = _floor.apply(out["policy"], floors) if floors else ""
     try:
         doc = json.loads((Path(store) / PIN_NAME).read_bytes())
     except (OSError, ValueError):
@@ -177,7 +181,9 @@ def load(store: Path | None) -> dict[str, Any]:
     claim = doc.get("claim") if isinstance(doc, dict) else None
     who = _who(doc) if isinstance(claim, dict) and claim.get("schema") == POLICY else None
     allowed = set(out["roles"].get("policy", [])) - set(out["roles"].get("optimizer", []))
-    if out["role_status"] != "pinned":
+    if lacks:
+        why = lacks
+    elif out["role_status"] != "pinned":
         why = "key roles are unpinned (no owner-signed trust bundle), so no policy key counts"
     elif who is None or claim.get("policy_sha256") != out["policy"]["sha256"]:
         why = f"no signed {POLICY} document in .tine/{PIN_NAME} covers these bytes"

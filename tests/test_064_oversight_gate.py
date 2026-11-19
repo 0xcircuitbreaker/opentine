@@ -7,7 +7,7 @@ import json
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-from opentine import _oversight, _oversight_gate, _oversight_policy, _schemas, cli
+from opentine import _oversight, _oversight_gate, _oversight_policy, _oversight_queue, _schemas, cli
 from opentine._signing_pins import key_fingerprint
 from opentine.repository import Repo
 from opentine.repository._holds import HoldError, release
@@ -102,7 +102,7 @@ def test_the_same_key_or_the_same_human_counts_once(repo):
     assert _codes(repo) == ["promote.oversight-insufficient"]
     _approve(repo, "a2", human="bob")
     _approve(repo, "a3", human="bob")  # one declared person on two keys
-    row = _oversight_gate.queue(repo)["items"][0]
+    row = _oversight_queue.queue(repo)["items"][0]
     assert row["tiers"][0]["approvers"] == ["human:alice", "human:bob"]
     assert _codes(repo) == []
 

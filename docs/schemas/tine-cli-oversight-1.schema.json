@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opentine.com/schemas/tine-cli-oversight-1.schema.json",
   "title": "tine oversight ... --json",
-  "description": "The oversight queue. `policy`/`sign-policy` report whether `.tine/oversight.toml` is pinned by a policy-role key; `request`/`approve`/`reject` write one signed, held decision annotation (`opentine.oversight-decision/1`); `queue` lists every routed item with its k-of-n tally per tier and the decisions that do not count.",
+  "description": "The oversight queue. `policy`/`sign-policy` report whether `.tine/oversight.toml` is pinned by a policy-role key; `request`/`approve`/`reject` write one signed, held decision annotation (`opentine.oversight-decision/1`); `queue` lists every routed item with its k-of-n tally per tier and the decisions that do not count, plus a `digest` that `tine ui --repo` serves unchanged; `fatigue` is the advisory approver-fatigue report (time to decision from record timestamps).",
   "anyOf": [
     {
       "type": "object",
@@ -28,6 +28,7 @@
           "required": [
             "status",
             "why",
+            "floors",
             "sha256",
             "tiers",
             "routes"
@@ -52,6 +53,9 @@
                   "type": "null"
                 }
               ]
+            },
+            "floors": {
+              "type": "boolean"
             },
             "tiers": {
               "type": "array",
@@ -208,7 +212,9 @@
         "command",
         "schema",
         "policy",
-        "items"
+        "counts",
+        "items",
+        "digest"
       ],
       "properties": {
         "schema": {
@@ -223,7 +229,8 @@
           "required": [
             "status",
             "why",
-            "sha256"
+            "sha256",
+            "floors"
           ],
           "properties": {
             "status": {
@@ -245,6 +252,37 @@
                   "type": "null"
                 }
               ]
+            },
+            "floors": {
+              "type": "boolean"
+            }
+          }
+        },
+        "counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "pending",
+            "approved",
+            "rejected",
+            "unrouted"
+          ],
+          "properties": {
+            "pending": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "approved": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "rejected": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unrouted": {
+              "type": "integer",
+              "minimum": 0
             }
           }
         },
@@ -256,6 +294,7 @@
             "required": [
               "item",
               "source",
+              "opened_at",
               "tiers",
               "state",
               "rejected_by",
@@ -272,6 +311,16 @@
                   "promotion",
                   "integrity",
                   "monitor"
+                ]
+              },
+              "opened_at": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
                 ]
               },
               "tiers": {
@@ -371,7 +420,9 @@
                     "id",
                     "decision",
                     "signer",
-                    "decided_at"
+                    "decided_at",
+                    "counted",
+                    "viewed"
                   ],
                   "properties": {
                     "id": {
@@ -411,9 +462,178 @@
                           "type": "null"
                         }
                       ]
+                    },
+                    "counted": {
+                      "type": "boolean"
+                    },
+                    "viewed": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "evidence",
+                            "at"
+                          ],
+                          "properties": {
+                            "evidence": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "at": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     }
                   }
                 }
+              }
+            }
+          }
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "advisory",
+        "min_review_seconds",
+        "queue",
+        "decisions",
+        "approvals",
+        "rubber_stamps",
+        "rubber_stamp_rate",
+        "median_seconds_to_decision",
+        "max_seconds_to_decision",
+        "pending",
+        "oldest_pending_seconds",
+        "approvers"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-oversight/1"
+        },
+        "command": {
+          "const": "oversight fatigue"
+        },
+        "advisory": {
+          "const": true
+        },
+        "min_review_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "queue": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "decisions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "approvals": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rubber_stamps": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rubber_stamp_rate": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "median_seconds_to_decision": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "max_seconds_to_decision": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pending": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "oldest_pending_seconds": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "approvers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "signer",
+              "approvals",
+              "rejections",
+              "rubber_stamps",
+              "median_seconds_to_decision"
+            ],
+            "properties": {
+              "signer": {
+                "type": "string"
+              },
+              "approvals": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "rejections": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "rubber_stamps": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "median_seconds_to_decision": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
             }
           }

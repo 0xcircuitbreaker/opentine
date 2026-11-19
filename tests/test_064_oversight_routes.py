@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from opentine import _oversight, _oversight_gate, _oversight_policy
+from opentine import _oversight, _oversight_policy, _oversight_queue
 from opentine._promote_guards import late
 from opentine.repository._holds import MONITOR_VERDICT, holds_path, read_holds
 from tests.key_roles_helpers import isolated_trust_config  # noqa: F401
@@ -75,20 +75,20 @@ def _verdict(store, action: str) -> str:
 def test_a_flagged_monitor_verdict_is_queued_and_an_approval_clears_it(repo):  # noqa: F811
     oid = _verdict(repo, "block")
     item = f"monitor:{oid}"
-    rows = {r["item"]: r for r in _oversight_gate.queue(repo)["items"]}
+    rows = {r["item"]: r for r in _oversight_queue.queue(repo)["items"]}
     assert rows[item]["state"] == "pending" and rows[item]["tiers"][0]["k"] == 2
     _oversight.decide(repo, item, "approve", _key(SEEDS["a2"]), at=AT)
     _oversight.decide(repo, item, "approve", _key(SEEDS["a3"]), at=AT)
-    rows = {r["item"]: r for r in _oversight_gate.queue(repo)["items"]}
+    rows = {r["item"]: r for r in _oversight_queue.queue(repo)["items"]}
     assert rows[item]["state"] == "approved"
-    assert _oversight_gate.queue(repo, from_objects=True) == _oversight_gate.queue(repo)
+    assert _oversight_queue.queue(repo, from_objects=True) == _oversight_queue.queue(repo)
 
 
 def test_a_verdict_outside_the_routed_actions_is_not_queued(repo):  # noqa: F811
     oid = _verdict(repo, "resample")  # held, but the route lists flag, defer and block
     assert oid in {r["oid"] for r in read_holds(holds_path(repo))
                    if r["target"].startswith(MONITOR_VERDICT)}  # fmt: skip
-    assert all(r["item"] != f"monitor:{oid}" for r in _oversight_gate.queue(repo)["items"])
+    assert all(r["item"] != f"monitor:{oid}" for r in _oversight_queue.queue(repo)["items"])
 
 
 def test_promote_runs_the_oversight_gate(repo):  # noqa: F811

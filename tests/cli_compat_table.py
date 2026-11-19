@@ -5596,4 +5596,59 @@ ROWS: tuple[tuple, ...] = (
             "member_command": [],
         },  # fmt: skip
     ),
+    (
+        "plain:oversight approve ITEM --key k --viewed E --viewed-at T",
+        "plain",
+        ["oversight", "approve", "ITEM", "--key", "k", "--viewed", "E", "--viewed-at", "T"],
+        "opentine._cli_oversight:cmd_oversight",
+        False,
+        {
+            "command": "oversight",
+            "oversight_command": "approve",
+            "item": "ITEM",
+            "key": "k",
+            "viewed": ["E"],
+            "viewed_at": "T",
+            "member_command": [],
+        },  # fmt: skip
+    ),
+    (
+        "plain:oversight queue --repo p --only pending --json",
+        "plain",
+        ["oversight", "queue", "--repo", "p", "--only", "pending", "--json"],
+        "opentine._cli_oversight:cmd_oversight",
+        False,
+        {
+            "command": "oversight",
+            "oversight_command": "queue",
+            "repo": "p",
+            "only": "pending",
+            "json": True,
+            "member_command": [],
+        },  # fmt: skip
+    ),
+    (
+        "plain:oversight fatigue --min-review-seconds 60 --at 2026-11-19T10:00:00Z",
+        "plain",
+        ["oversight", "fatigue", "--min-review-seconds", "60", "--at", "2026-11-19T10:00:00Z"],
+        "opentine._cli_oversight:cmd_oversight",
+        False,
+        {
+            "command": "oversight",
+            "oversight_command": "fatigue",
+            "min_review_seconds": 60,
+            "at": "2026-11-19T10:00:00Z",
+            "repo": ".",
+            "json": False,
+            "member_command": [],
+        },  # fmt: skip
+    ),
+    (
+        "plain:ui --repo p",
+        "plain",
+        ["ui", "--repo", "p"],
+        "opentine._cli_ui:cmd_ui",
+        False,
+        {"command": "ui", "run_id": None, "repo": "p"},
+    ),
 )

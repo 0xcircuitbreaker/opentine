@@ -26,6 +26,20 @@
   `tine oversight policy` and `sign-policy` report and pin the policy.
   Schemas `tine-cli-oversight-1` and `opentine-oversight-decision-1`;
   docs/OVERSIGHT.md. No object kind and no `tine verify` code is added.
+- The queue uses the gate's tally over the same decision annotations, so it
+  cannot show `approved` where `tine promote` refuses. `--json` adds `counts`,
+  each item's `opened_at`, per-decision `counted` and `viewed`, and a
+  `digest`; `--only STATE` filters the text output. A promoted candidate is
+  judged as it stood when it moved.
+- `tine ui --repo PATH` serves the queue at `/queue.html` and
+  `/api/oversight/queue`, the same JSON as `tine oversight queue --json`.
+- `approve` and `reject` take `--viewed OID` and `--viewed-at TIME`, signed
+  into the decision. `tine oversight fatigue` is an advisory approver-fatigue
+  report (time to decision from record timestamps, rubber-stamp rate, pending
+  age against `--at`); it always exits 0 and never gates (D12).
+- The owner-signed trust bundle accepts an `oversight` section,
+  `{"version": 1, "tiers": {NAME: {"k": N}}}`: per-tier k floors that a
+  rolled-back or edited policy cannot lower.
 
 ## 0.62.0 — Monitor verdicts and intervention log (2026-11-19)
 

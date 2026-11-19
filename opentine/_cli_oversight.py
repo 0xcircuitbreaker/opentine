@@ -1,13 +1,15 @@
-"""``tine oversight policy|sign-policy|request|approve|reject|queue`` (0.64).
+"""``tine oversight policy|sign-policy|request|approve|reject|queue|fatigue`` (0.64).
 
 ``policy`` reports whether ``.tine/oversight.toml`` is pinned
 (:mod:`opentine._oversight_policy`); ``sign-policy --key`` writes
 ``.tine/oversight.sig.json`` with a policy-role key; ``request``, ``approve``
 and ``reject ITEM --key`` write one signed, held decision annotation
 (:mod:`opentine._oversight`); ``queue`` lists every routed item and its k-of-n
-tally (:mod:`opentine._oversight_gate`), ``--from-objects`` rebuilding it from
-the annotation objects alone. An approve or reject signed by an optimizer,
-monitor or scorer key is refused before anything is written.
+tally (:mod:`opentine._oversight_queue`), ``--from-objects`` rebuilding it from
+the annotation objects alone; ``tine ui --repo`` serves the same body.
+``fatigue`` is the advisory approver-fatigue report
+(:mod:`opentine._oversight_fatigue`); it always exits 0. An approve or reject signed
+by an optimizer, monitor or scorer key is refused before anything is written.
 """
 
 from __future__ import annotations
@@ -15,6 +17,7 @@ from __future__ import annotations
 import argparse
 import json
 from collections.abc import Callable
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -44,12 +47,22 @@ def add_oversight_parser(subparsers: argparse._SubParsersAction) -> None:
         row.add_argument("--note", default="", help="Why (recorded, signed)")
         row.add_argument("--state", metavar="DIR",
                          help="Label state (default REPO/.tine/promotion)")  # fmt: skip
+        if verb != "request":
+            row.add_argument("--viewed", action="append", default=[], metavar="OID",
+                             help="Evidence reviewed before deciding (repeatable)")  # fmt: skip
+            row.add_argument("--viewed-at", metavar="TIME",
+                             help="When the evidence was opened (default: --at)")  # fmt: skip
         rows.append(row)
     rows[0].add_argument("--evals", metavar="DIR", help="The candidate's eval folder (routing)")
     show = verbs.add_parser("queue", help="List routed items and their approvals")
     show.add_argument("--from-objects", action="store_true",
                       help="Rebuild from the annotation objects alone")  # fmt: skip
-    for verb in (policy, sign, *rows, show):
+    show.add_argument("--only", choices=("pending", "approved", "rejected", "unrouted"),
+                      help="Print only items in this state (text output)")  # fmt: skip
+    tired = verbs.add_parser("fatigue", help="Advisory approver-fatigue report (exits 0)")
+    tired.add_argument("--min-review-seconds", type=int, default=30, metavar="N",
+                       help="Approval under N s after viewing: rubber stamp")  # fmt: skip
+    for verb in (policy, sign, *rows, show, tired):
         verb.add_argument("--repo", default=".", metavar="PATH", help="Repository")
         verb.add_argument("--at", metavar="TIME", help="YYYY-MM-DDTHH:MM:SSZ (default: now)")
         verb.add_argument("--json", action="store_true", help="Print a JSON object")
@@ -60,7 +73,7 @@ def _policy(repo: Any) -> tuple[dict[str, Any], list[str]]:
 
     state = _oversight_policy.load(repo.path)
     policy = state["policy"]
-    body = {"status": state["status"], "why": state["why"],
+    body = {"status": state["status"], "why": state["why"], "floors": state["floors"],
             "sha256": policy["sha256"] if policy else None,
             "tiers": [{"tier": n, "k": t["k"], "n": len(t["approvers"])}
                       for n, t in (policy or {}).get("tiers", {}).items()],
@@ -100,14 +113,19 @@ def _decide(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[s
     if verb != "request" and who in _oversight_policy.banned(held):
         raise ValueError(f"oversight.key-separation: {who} holds an optimizer, monitor or "
                          "scorer role and may not approve or reject")  # fmt: skip
+    viewed = None
+    if getattr(args, "viewed", None):
+        seen = args.viewed_at or args.at or _oversight.now()
+        viewed = {"evidence": sorted(set(args.viewed)), "at": seen}
     oid = _oversight.decide(repo, args.item, verb, key, bind=_bind(args, repo, args.item),
-                            human=args.human, note=args.note, at=args.at)  # fmt: skip
+                            human=args.human, note=args.note, at=args.at,
+                            viewed=viewed)  # fmt: skip
     row = {"decision": oid, "item": args.item, "action": verb, "signer": who}
     return {"decisions": [row]}, [f"{verb} {args.item}: {oid}"]
 
 
 def _body(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[str]]:
-    from opentine import _oversight, _oversight_gate, _oversight_policy
+    from opentine import _oversight, _oversight_policy, _oversight_queue
 
     verb = args.oversight_command
     if verb == "policy":
@@ -124,12 +142,36 @@ def _body(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[str
         return body, [f"signed {path.as_posix()}", *lines]
     if verb in DECIDE:
         return _decide(args, repo)
-    body = _oversight_gate.queue(repo, from_objects=args.from_objects)
-    lines = [f"oversight policy: {body['policy']['status']}"]
+    body = _oversight_queue.queue(repo, from_objects=getattr(args, "from_objects", False))
+    if verb == "fatigue":
+        return _fatigue(args, body)
+    c = body["counts"]
+    lines = [f"oversight policy: {body['policy']['status']}; {c['pending']} pending, "
+             f"{c['approved']} approved, {c['rejected']} rejected ({body['digest']})"]  # fmt: skip
     for item in body["items"]:
+        if args.only and item["state"] != args.only:
+            continue
         got = ", ".join(f"{t['tier']} {t['approvals']}/{t['k']}" for t in item["tiers"])
         lines.append(f"{item['state']:9} {item['item']} {got}".rstrip())
     return body, lines if body["items"] else [*lines, "no items in the queue"]
+
+
+def _fatigue(args: argparse.Namespace, body: dict[str, Any]) -> tuple[dict, list[str]]:
+    from opentine._oversight_fatigue import parse_time, report
+
+    if args.min_review_seconds < 0:
+        raise ValueError("--min-review-seconds is not negative")
+    when = parse_time(args.at) if args.at else datetime.now(UTC)
+    if when is None:
+        raise ValueError(f"--at {args.at!r} is not an ISO 8601 time")
+    out = report(body, now=lambda: when, min_review_seconds=args.min_review_seconds)
+    rate = out["rubber_stamp_rate"]
+    lines = [f"advisory: {out['approvals']} approval(s), {out['rubber_stamps']} rubber "
+             "stamp(s)" + (f" ({rate:.0%})" if rate is not None else "")
+             + f"; median time to decision {out['median_seconds_to_decision']} s"]  # fmt: skip
+    lines += [f"  {r['signer']}: {r['approvals']} approved, {r['rejections']} rejected, "
+              f"{r['rubber_stamps']} rubber stamp(s)" for r in out["approvers"]]  # fmt: skip
+    return out, lines
 
 
 def cmd_oversight(args: argparse.Namespace) -> None:

@@ -66,6 +66,24 @@ nothing: every routed promotion is refused with
 `promote.oversight-insufficient` and the reason. A missing file means no
 oversight gate (the state before 0.64).
 
+### Owner-pinned k floors
+
+A signed policy can still be rolled back to an older, validly signed copy
+with a lower k. The owner can pin a floor per tier in the trust bundle, next
+to the key roles:
+
+```json
+"oversight": {"version": 1, "tiers": {"high": {"k": 2}}}
+```
+
+Each pinned tier's k is then at least the pinned value: the file may raise it
+but never lower it. A pinned tier the file lacks leaves the policy `unpinned`
+(it grants nothing), and a bad or rolled-back bundle under a pinned owner
+refuses with `promote.oversight-insufficient`. `tine oversight policy` and
+`queue` report `"floors": true` when a floor section is in force. There is no
+`tine trust bundle create` flag for this section yet; it is added to the
+bundle payload by hand before signing.
+
 ### Who counts
 
 A decision counts only when all of these hold:
@@ -164,13 +182,55 @@ It reads the held decision ids; `--from-objects` rebuilds the same answer
 from the annotation objects alone, and the two are equal. `--json` prints
 `tine-cli-oversight/1`.
 
+The queue is computed with the same tally function the gate uses, over the
+same decision annotations, so it cannot report `approved` where `tine
+promote` refuses. The body also carries `counts` per state, each item's
+`opened_at` (its first `request` decision's `decided_at`, else its first
+decision's), a `counted` flag and any `viewed` evidence per decision, and a
+`digest` (sha256 of the canonical JSON of the rest). A candidate that already
+holds its label is judged as it stood when it was promoted, so its approvals
+stay counted. `--only STATE` filters the text output.
+
+### `tine ui` queue view
+
+`tine ui --repo PATH` serves `/queue.html` and `/api/oversight/queue`. The API
+answers the same JSON object `tine oversight queue --json` prints, recomputed
+from the repository on each request. The page renders that object as text
+nodes and shows its digest, so a reviewer can compare it with the CLI's.
+
+## Approver fatigue (advisory)
+
+`approve` and `reject` take `--viewed OID` (repeatable) and `--viewed-at
+TIME` to record, inside the signed decision, the evidence the approver opened
+and when. `tine oversight fatigue --repo PATH [--min-review-seconds N] [--at
+TIME]` reports, over counted decisions only:
+
+- time to decision: `decided_at` minus the item's `opened_at` (median and
+  max, in seconds), taken from the records and not from when the command runs;
+- rubber stamps: approvals with no viewed evidence, or decided less than
+  `--min-review-seconds` (default 30) after `viewed.at`, and their rate;
+- approvals, rejections, rubber stamps and median time to decision per
+  approver;
+- pending items and the oldest one's age against `--at` (default: the
+  current time; tests inject a fixed time).
+
+The report is advisory (owner decision D12): it has `"advisory": true`, no
+`fail:` findings, and the command exits 0 whatever the numbers are. Nothing
+reads it to gate.
+
 ## Limits
 
 * Decisions name an item, not a lineage record: `tine lineage check` does not
   read the queue.
 * With no `.tine/oversight.toml` and no decision yet, nothing is gated, and
-  an older validly signed policy can be restored: the policy is not pinned by
-  sequence outside the repository.
-* Approver-fatigue metrics are not part of this page's gate.
+  an older validly signed policy can be restored: without trust-bundle k
+  floors, the policy is not pinned by sequence outside the repository, and
+  floors do not pin routes.
+* The held-id `queue` omits decisions written straight to the object store
+  without a hold row; they never change a verdict, but the two listings can
+  then differ (`--from-objects` and the gate see them).
+* A loop with direct filesystem access can delete a decision object outright;
+  holds stop `tine hold release` and gc, not that.
+* Approver-fatigue metrics are advisory and never gate.
 * The `--from-objects` rebuild and the promote gate scan the repository's
   annotation objects.

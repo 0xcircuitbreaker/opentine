@@ -86,6 +86,25 @@
     },
     "decided_at": {
       "type": "string"
+    },
+    "viewed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence",
+        "at"
+      ],
+      "properties": {
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "at": {
+          "type": "string"
+        }
+      }
     }
   }
 }

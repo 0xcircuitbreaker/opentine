@@ -297,6 +297,10 @@ DRIVEN = (
     (("monitor", "stops", "--repo", "repo", "--json"), "tine-cli-monitor-1"),  # 0.63
     (("oversight", "queue", "--repo", "repo", "--json"), "tine-cli-oversight-1"),  # 0.64
     (("oversight", "policy", "--repo", "repo", "--json"), "tine-cli-oversight-1"),  # 0.64
+    (
+        ("oversight", "fatigue", "--repo", "repo", "--at", "2026-12-03T10:00:00Z", "--json"),
+        "tine-cli-oversight-1",
+    ),  # 0.64
     (("lineage", "graph", "--repo", "repo", "--format", "json"), "tine-cli-lineage-1"),  # 0.59
     (("lineage", "archive", "--repo", "repo", "--json"), "tine-cli-lineage-1"),  # 0.59
     (("lineage", "index", "--repo", "repo", "--rebuild", "--json"), "tine-cli-lineage-1"),

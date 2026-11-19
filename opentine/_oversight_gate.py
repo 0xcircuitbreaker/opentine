@@ -1,4 +1,6 @@
-"""The k-of-n oversight gate (0.64): tally decisions, refuse promotions, list the queue.
+"""The k-of-n oversight gate (0.64): tally decisions and refuse promotions.
+
+The queue view of the same tallies is :mod:`opentine._oversight_queue`.
 
 :func:`tally` judges one item's decisions against the pinned policy. A decision
 counts only when it is signed (Ed25519), its signer is in the tier's
@@ -145,61 +147,4 @@ def promote_refusals(repo_path: Path | None, candidate: str, label: str, *,
     return [refusal("promote.oversight-insufficient", short)]
 
 
-def _sources(repo: Any) -> list[dict[str, Any]]:
-    """Items the repository holds for review: flagged monitor verdicts and taints."""
-    from opentine import _monitor_verdict
-    from opentine.repository._holds import TAINT, holds_path, read_holds
-
-    found = []
-    for oid in _monitor_verdict.held(repo):
-        try:
-            claim = repo.get(oid).payload().get("claim") or {}
-        except Exception:  # noqa: BLE001 - an unreadable verdict is listed without action
-            claim = {}
-        found.append({"item": f"monitor:{oid}", "source": "monitor",
-                      "action": claim.get("action")})  # fmt: skip
-    for row in read_holds(holds_path(repo)):
-        if row["target"].startswith(TAINT):
-            found.append({"item": f"integrity:{row['oid']}", "source": "integrity"})
-    return found
-
-
-def queue(repo: Any, *, from_objects: bool = False) -> dict[str, Any]:
-    """``{"policy", "items"}``: every routed item and its tally."""
-    from opentine._promote import STATE, read_state
-
-    state = _oversight_policy.load(repo.path)
-    decided = _oversight.by_objects(repo) if from_objects else _oversight.by_holds(repo)
-    infos = {row["item"]: row for row in _sources(repo)}
-    for item in decided:
-        infos.setdefault(item, _oversight.parse_item(item))
-    items = []
-    for item in sorted(infos):
-        info, rows = infos[item], decided.get(item, [])
-        bind = None
-        if info["source"] == "promotion":
-            record = read_state(repo.path.parent / STATE, info["label"])
-            bind = {
-                "label": info["label"],
-                "candidate": info["candidate"],
-                "previous": record["current"],
-                "sequence": len(record["history"]),
-            }
-            asked = [r["bind"] for r in rows if r["decision"] == "request"]
-            info = {**info, "metrics": (asked[-1] or {}).get("metrics") if asked else None}
-        policy = state["policy"]
-        tiers = _oversight_policy.route(policy, info) if policy is not None else []
-        if not tiers and not rows:
-            continue
-        result = tally(state, tiers, rows, bind) if policy is not None else {
-            "tiers": [], "state": "unrouted", "rejected_by": [], "uncounted": []}  # fmt: skip
-        items.append({"item": item, "source": info["source"], **result,
-                      "decisions": [{"id": r["id"], "decision": r["decision"],
-                                     "signer": r["signer"], "decided_at": r["decided_at"]}
-                                    for r in rows]})  # fmt: skip
-    return {"policy": {"status": state["status"], "why": state["why"],
-                       "sha256": state["policy"]["sha256"] if state["policy"] else None},
-            "items": items}  # fmt: skip
-
-
-__all__ = ["promote_refusals", "queue", "tally"]
+__all__ = ["promote_refusals", "tally"]

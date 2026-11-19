@@ -14,7 +14,7 @@ alone). Every decision is an existing ``annotation`` object on that anchor::
     {"target_id": ANCHOR, "previous_id": PRIOR_DECISION_OR_NULL,
      "value": {"convention": "opentine.oversight-decision/1", "item",
                "decision": "request|approve|reject", "bind", "human", "note",
-               "decided_at"},
+               "decided_at", ["viewed": {"evidence": [OID...], "at": ISO}]},
      "signer": "sha256:<fingerprint>", "signature": {tine-attest block, Ed25519}}
 
 ``bind`` ties a promotion decision to the label's holder and history length
@@ -71,7 +71,8 @@ def anchor(repo: Any, item: str) -> str:
 
 
 def decide(repo: Any, item: str, decision: str, key: Any, *, bind: dict | None = None,
-           human: str | None = None, note: str = "", at: str | None = None) -> str:  # fmt: skip
+           human: str | None = None, note: str = "", at: str | None = None,
+           viewed: dict[str, Any] | None = None) -> str:  # fmt: skip
     """Sign, store and hold one decision; the annotation id."""
     from opentine._signing_pins import key_fingerprint
     from opentine.attest_signing import sign_attestation
@@ -83,6 +84,8 @@ def decide(repo: Any, item: str, decision: str, key: Any, *, bind: dict | None =
     previous = head(repo, item)
     value = {"convention": DECISION, "item": item, "decision": decision, "bind": bind,
              "human": human, "note": note, "decided_at": at or now()}  # fmt: skip
+    if viewed is not None:  # what the approver looked at, and when (fatigue metrics)
+        value["viewed"] = viewed
     payload = {"target_id": target, "previous_id": previous, "value": value,
                "signer": key_fingerprint(key.public_key().public_bytes_raw())}  # fmt: skip
     payload["signature"] = sign_attestation(payload, key, algorithm="ed25519",
@@ -123,7 +126,7 @@ def read(repo: Any, oid: str) -> dict[str, Any] | None:
             "previous": payload.get("previous_id"), "signer": payload.get("signer"),
             "signed": signed, "decision": value.get("decision"), "bind": value.get("bind"),
             "human": value.get("human"), "note": value.get("note", ""),
-            "decided_at": value.get("decided_at")}  # fmt: skip
+            "decided_at": value.get("decided_at"), "viewed": value.get("viewed")}  # fmt: skip
 
 
 def chain(repo: Any, head: str | None) -> list[dict[str, Any]]:

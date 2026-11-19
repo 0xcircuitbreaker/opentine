@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="referrer" content="no-referrer">
+<title>tine oversight queue</title>
+<link rel="stylesheet" href="app.css">
+<script type="module" src="queue.js"></script>
+</head>
+<body>
+<main id="main" tabindex="-1">
+<h1>Oversight queue</h1>
+<p id="summary">Loading queue…</p>
+<table id="queue">
+<thead><tr><th scope="col">State</th><th scope="col">Approvals</th><th scope="col">Source</th><th scope="col">Opened</th><th scope="col">Item</th></tr></thead>
+<tbody></tbody>
+</table>
+</main>
+<footer class="meta">tine ui: read-only. This page shows the body of <code>tine oversight queue --json</code>, rebuilt from the decision annotations the promotion gate reads; its digest matches the CLI's.</footer>
+</body>
+</html>
