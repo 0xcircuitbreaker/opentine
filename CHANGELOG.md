@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Inspect and Petri interop
+## 0.64.0 — Inspect and Petri interop (2026-11-19)
 
 - `tine import inspect LOG --repo PATH` (also `tine inspect import`) reads an
   Inspect AI `.eval` zip or `.json` log without importing `inspect_ai`: each
