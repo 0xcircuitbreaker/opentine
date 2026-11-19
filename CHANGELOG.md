@@ -1,5 +1,36 @@
 # Changelog
 
+## Unreleased — Query and experiments
+
+- `tine query "SELECT ..." [--repo PATH]` runs one read-only SQL statement
+  over a derived SQLite index at `.tine/query/index.sqlite`: `runs`, `steps`,
+  a `costs` view, `monitor_verdicts`, `oversight_decisions`,
+  `lineage_variants`, `lineage_edges` and `evals`. Every row carries the `oid`
+  it was read from; the index is labelled non-authoritative in its `meta`
+  table, in `--json` output and in the text header, and deleting it loses
+  nothing. Built on the standard library's `sqlite3`; no new dependency.
+- Only reading is allowed: the index is opened read-only with `PRAGMA
+  query_only`, and an authorizer refuses writes, schema changes, `ATTACH`,
+  every `PRAGMA`, transactions and `load_extension` (`query.refused`). Work is
+  bounded by a count of SQLite steps (`--max-steps`, `query.too-many-steps`),
+  not a clock; `--limit` caps the rows returned.
+- `tine query SQL --verify [--strict]` goes back to the object or record
+  behind each returned row and marks it `verified` (intact, consistent with
+  the row, Ed25519 signature valid, signer holds a role in the owner-pinned
+  key roles), `unverified` (intact but unsigned, or signer without a pinned
+  role) or `failed` (missing, changed, bad signature, or the index row
+  disagrees with the source). `failed` exits 1; `unverified` is advisory
+  unless `--strict`.
+- `tine query index [--rebuild] [--check] [--evals DIR]...` reports or
+  rebuilds the index. Staleness compares a stat fingerprint of the object
+  store (then the object ids, so a repack is not stale), the lineage folder
+  and the remembered eval folders; a stale index answers marked `stale`, and
+  `--refresh` rebuilds it first. Large rebuilds read objects in worker
+  processes.
+- `scripts/bench/query_index.py` times a synthetic one-million-run index and
+  typical aggregate queries; results are in docs/bench/0.65-query.md.
+- `--json` prints `tine-cli-query/1`. See docs/QUERY.md.
+
 ## 0.64.0 — Inspect and Petri interop (2026-11-19)
 
 - `tine import inspect LOG --repo PATH` (also `tine inspect import`) reads an

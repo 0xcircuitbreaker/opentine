@@ -1,0 +1,128 @@
+# SQL query over a derived index (0.65)
+
+`tine query "SELECT ..."` answers questions across a whole repository -- cost
+by model, how often a monitor blocked, an eval's pass rate -- with one
+read-only SQL statement. It reads a derived SQLite index, not the repository
+itself.
+
+The index is **non-authoritative**. It is a cache built from the repository's
+objects and files, every row carries the `oid` it was read from, and deleting
+it loses nothing: `tine query index --rebuild` writes it again. The objects
+stay the record. To rely on a row, run the query with `--verify`, which goes
+back to each row's object and checks it.
+
+Nothing here adds an object kind, a signed document or a `tine verify` code.
+The index format is not frozen (docs/FREEZE.md) and its tables may change in
+any release. It uses `sqlite3` from the Python standard library; nothing new
+is installed.
+
+## Commands
+
+| Command | What it does |
+| --- | --- |
+| `tine query SQL [--repo PATH] [--limit N] [--max-steps N] [--refresh] [--json]` | Runs one read-only statement; builds the index first when it is missing |
+| `tine query SQL --verify [--strict]` | Also re-checks the object behind each returned row: `verified`, `unverified` or `failed` |
+| `tine query index [--repo PATH] [--check] [--json]` | Reports where the index is, its row counts and whether it is stale (`--check` compares object ids even when the cheap check matches) |
+| `tine query index --rebuild [--evals DIR]...` | Rebuilds the index; `--evals` adds eval folders to read, and they are remembered for later rebuilds |
+
+`--json` prints `tine-cli-query/1` (docs/schemas/tine-cli-query-1.schema.json).
+The text form starts with a line saying the index is derived and
+non-authoritative, then prints tab-separated rows.
+
+Exit codes: 0 on success; 1 when `--verify` finds a `failed` row (with
+`--strict`, also an `unverified` one) or the statement is refused or invalid.
+
+## Tables
+
+The index lives at `.tine/query/index.sqlite`.
+
+| Table | One row per | Columns |
+| --- | --- | --- |
+| `runs` | `run` object | `oid`, `status`, `model`, `created_at`, `steps`, `source_run_id` |
+| `steps` | step of a run (`event` object) | `oid` (the event), `run`, `seq`, `kind`, `model`, `provider`, `cost`, `duration`, `time_unix`, `input_tokens`, `output_tokens`, `error` |
+| `costs` (view) | step | `oid`, `run`, `model`, `provider`, `cost`, `input_tokens`, `output_tokens` |
+| `monitor_verdicts` | `opentine.monitor-verdict/1` attestation | `oid`, `target`, `signer`, `signed`, `monitor`, `session`, `tool`, `action`, `score`, `threshold`, `enforced`, `mode`, `decided_by`, `decided_at` |
+| `oversight_decisions` | `opentine.oversight-decision/1` annotation | `oid`, `item`, `anchor`, `previous`, `signer`, `signed`, `decision`, `human`, `decided_at` |
+| `lineage_variants` | record in `.tine/lineage/variants/` | `oid`, `variant`, `signer`, `signed`, `loop` |
+| `lineage_edges` | parent of a lineage variant | `oid` (the child's record), `child`, `parent` |
+| `evals` | `tine-eval-verdict/1` line | `oid`, `source`, `line`, `eval`, `dataset`, `item`, `run`, `scorer`, `score`, `threshold`, `passed`, `signer`, `signed`, `created_at` |
+| `meta` | key | `authority` (always `non-authoritative`), `format`, `counts` and what the index was built from |
+
+`oid` is the object id for repository objects. Lineage records and eval
+verdicts live in files, so their `oid` is `sha256:` of the record's bytes (an
+eval verdict: of its line, without the newline). `signed` is 1 when the
+record's Ed25519 signature verifies against the key it names; it says nothing
+about whether that key is trusted.
+
+Eval verdicts are read from the lineage folder's `evals/*.jsonl` and from the
+`verdicts.jsonl` of each folder given with `--evals DIR`.
+
+## Read-only
+
+A statement cannot change anything. The index is opened read-only, `PRAGMA
+query_only` is on, and an authorizer allows only `SELECT`, column reads,
+functions and recursive CTEs. These are refused with `query.refused`:
+`INSERT`, `UPDATE`, `DELETE`, `CREATE`, `DROP`, `ALTER`, `ATTACH`, `DETACH`,
+every `PRAGMA`, transactions, `VACUUM`, `REINDEX` and `load_extension`. One
+statement per call (`SELECT 1; DELETE ...` is refused).
+
+Each statement may run at most `--max-steps` thousand SQLite virtual-machine
+steps (default 1,000,000), then stops with `query.too-many-steps`. The limit
+counts work, not time, so the same statement stops at the same place on
+every machine. `--limit` (default 1000) caps the rows returned; `truncated`
+says when more were left.
+
+## Staleness
+
+The index records what it was built from. Before each query it is compared
+with the repository:
+
+- a stat fingerprint of the object store (the modification times of the
+  object folders, the names and sizes of the packs), and when that differs,
+  the sorted list of object ids, so a repack that moves objects without
+  changing them does not count;
+- a digest of the lineage folder;
+- a digest of the remembered eval folders' verdict files.
+
+A stale index still answers, with `"stale": true` and the reasons, so a large
+repository is never rebuilt without being asked. `--refresh` rebuilds a stale
+index before the query; a missing index is always built.
+
+## `--verify`
+
+For each returned row that has an `oid` column, `--verify` reads the source
+again and derives the row it would index now:
+
+| Status | Meaning |
+| --- | --- |
+| `verified` | the source is intact, gives the values the row shows, its Ed25519 signature verifies, and its signer holds a role in the owner-pinned key roles (docs/SECURITY_MODEL.md, `tine keys`) |
+| `unverified` | intact and consistent, but unsigned (runs and steps are content-addressed, not signed), or signed by a key with no pinned role, or the row has no `oid` |
+| `failed` | the object or record is missing or changed, its signature does not verify, or the index row disagrees with what the source gives |
+
+Only columns named like an index column are compared. `SUM(cost) AS total`
+is not checked; `cost` is. Roles come only from the owner-pinned trust
+bundle: a `key-roles.toml` without a pinned bundle gives no roles, so its
+signers are `unverified`.
+
+`unverified` is advisory and does not change the exit code unless `--strict`
+is given (D12). `failed` exits 1.
+
+## Examples
+
+```sh
+tine query "SELECT model, SUM(cost) AS total, SUM(input_tokens) AS tokens_in
+            FROM costs GROUP BY model ORDER BY total DESC"
+tine query "SELECT oid, action, session FROM monitor_verdicts
+            WHERE action = 'block'" --verify
+tine query "SELECT eval, AVG(passed) AS pass_rate, COUNT(*) AS n FROM evals GROUP BY eval"
+tine query "SELECT e.parent, COUNT(*) AS children FROM lineage_edges e GROUP BY e.parent"
+tine query index --rebuild --evals evals/nightly
+```
+
+## Scale
+
+`scripts/bench/query_index.py` writes a synthetic one-million-run index and
+times typical aggregate queries; it also stores real runs and rebuilds from
+them to measure the cost of reading objects. The recorded results are in
+docs/bench/0.65-query.md. Tests count rows and steps; none asserts a
+duration.

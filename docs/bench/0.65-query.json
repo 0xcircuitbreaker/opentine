@@ -1,0 +1,37 @@
+{
+  "counts": {
+    "evals": 100000,
+    "lineage_edges": 0,
+    "lineage_variants": 0,
+    "monitor_verdicts": 100000,
+    "oversight_decisions": 0,
+    "runs": 1000000,
+    "steps": 3000000
+  },
+  "extrapolated_rebuild_seconds": 651.0,
+  "index_bytes": 1600208896,
+  "machine": "x86_64",
+  "object_reading": {
+    "parallel": {
+      "per_run_ms": 0.639,
+      "seconds": 6.39
+    },
+    "runs": 10000,
+    "serial": {
+      "per_run_ms": 1.2,
+      "seconds": 12.0
+    },
+    "steps_per_run": 3,
+    "workers": 4
+  },
+  "python": "3.13.18",
+  "query_seconds": {
+    "cost by model": 1.023,
+    "eval pass rate": 0.073,
+    "monitor actions": 0.029,
+    "runs per status": 0.249,
+    "top 10 costly runs": 0.558
+  },
+  "runs": 1000000,
+  "write_seconds": 12.0
+}

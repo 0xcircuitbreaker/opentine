@@ -2003,6 +2003,20 @@ ITEM is `promotion:LABEL:RUN`, `monitor:ATTESTATION` or
 
 `--json` prints `tine-cli-inspect/1`. See docs/INSPECT.md.
 
+## SQL query over a derived index (0.65)
+
+| Command | What it does |
+| --- | --- |
+| `tine query SQL [--repo PATH] [--limit N] [--max-steps N] [--refresh]` | Runs one read-only SQL statement against `.tine/query/index.sqlite` (runs, steps, costs, monitor verdicts, oversight decisions, lineage variants and edges, evals); builds the index when missing; a stale index answers marked `stale` (`--refresh` rebuilds first) |
+| `tine query SQL --verify [--strict]` | Re-checks the object behind each returned row's `oid`: `verified`, `unverified` or `failed`; exit 1 on `failed` (`--strict`: also on `unverified`) |
+| `tine query index [--rebuild] [--check] [--evals DIR]...` | Reports or rebuilds the index and whether it is stale; `--evals` folders are remembered |
+
+The index is derived and non-authoritative: every row carries its `oid`, and
+deleting the file loses nothing. Writes, `ATTACH`, `PRAGMA` and
+`load_extension` are refused (`query.refused`); work is bounded by a step
+count (`query.too-many-steps`). `--json` prints `tine-cli-query/1`; see
+docs/QUERY.md.
+
 ## Auditor runs and blind audit games (0.65)
 
 | Command | What it does |
