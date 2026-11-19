@@ -1,16 +1,9 @@
 """The published JSON Schemas: lookup, detection and validation (0.45).
 
-Definitions live in :mod:`opentine._schema_defs` (object kinds) and
-:mod:`opentine._schema_defs_cli` (``--json`` outputs) and
-:mod:`opentine._schema_defs_redact` (redaction and doctor) and
-:mod:`opentine._schema_defs_share` (tombstones, redacted copies) and
-:mod:`opentine._schema_defs_ci` (CI gate, server trust policies), ``_hook`` and
-:mod:`opentine._schema_defs_merge` (merges) and ``_review`` (Reviews, 0.47) and
-:mod:`opentine._schema_defs_registry` (prompts, memory, ``eval ci``) and
-:mod:`opentine._schema_defs_extend` (plugins, experts) and
-:mod:`opentine._schema_defs_integrate` (review findings, ``tine code-graph``, 0.48);
-:mod:`opentine._schema_defs_compliance` (0.48); ``_audit_kit``, ``_alerts`` (0.49);
-:mod:`opentine._schema_defs_witness` (witness network, trust bundles); ``_auth`` (0.52);
+Definitions live in :mod:`opentine._schema_defs` (object kinds) and one
+``opentine._schema_defs_<area>`` module per area (``_cli`` for ``--json``
+outputs, ``_redact``, ``_share``, ``_ci``, ``_review``, ``_registry``,
+``_witness``, ``_inspect``, ``_auditor`` and the rest, as imported below);
 ``docs/schemas`` is their rendered copy (``scripts/gen_schemas.py``). A
 schema's *name* is its file stem, e.g. ``tine-verify-report-2``; the tag a document carries
 (``tine-verify-report/2``) maps to it by spelling ``/`` as ``-``.
