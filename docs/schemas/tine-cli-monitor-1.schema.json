@@ -1,0 +1,307 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-monitor-1.schema.json",
+  "title": "tine monitor ... --json",
+  "description": "Inline monitor verdicts and stop tokens. `stop`/`stops` list signed stop tokens (claim convention `opentine.monitor-stop/1`, held and never released); `verdicts` lists held monitor verdicts (`opentine.monitor-verdict/1`) and whether each signer is a pinned monitor key; `verify` checks offline that every blocked or replaced action in the given runs has its verdict. `fail:` findings block; `advisory:` findings block only with `--strict`.",
+  "anyOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "stops"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-monitor/1"
+        },
+        "command": {
+          "enum": [
+            "monitor stop",
+            "monitor stops"
+          ]
+        },
+        "stops": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "scope",
+              "token",
+              "verification"
+            ],
+            "properties": {
+              "scope": {
+                "type": "string",
+                "pattern": "^(\\*|agent:.+|session:.+)$"
+              },
+              "token": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "verification": {
+                "type": "string",
+                "pattern": "^(verified|unverified: .+)$"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "verdicts"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-monitor/1"
+        },
+        "command": {
+          "const": "monitor verdicts"
+        },
+        "verdicts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "verdict",
+              "verification",
+              "action",
+              "tool",
+              "session",
+              "enforced",
+              "decided_by"
+            ],
+            "properties": {
+              "verdict": {
+                "type": "string",
+                "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+              },
+              "verification": {
+                "type": "string",
+                "pattern": "^(verified|unverified: .+)$"
+              },
+              "action": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "allow",
+                      "flag",
+                      "resample",
+                      "defer",
+                      "block"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "tool": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "session": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "enforced": {
+                "anyOf": [
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "decided_by": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "strict",
+        "blocking",
+        "verdicts",
+        "blocked_actions",
+        "replaced_actions",
+        "runs",
+        "stops",
+        "findings"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-monitor/1"
+        },
+        "command": {
+          "const": "monitor verify"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "strict": {
+          "type": "boolean"
+        },
+        "blocking": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "verdicts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "blocked_actions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "replaced_actions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "runs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "stops": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "scope",
+              "token",
+              "verification"
+            ],
+            "properties": {
+              "scope": {
+                "type": "string",
+                "pattern": "^(\\*|agent:.+|session:.+)$"
+              },
+              "token": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "verification": {
+                "type": "string",
+                "pattern": "^(verified|unverified: .+)$"
+              }
+            }
+          }
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "level",
+              "code",
+              "message",
+              "verdict",
+              "run",
+              "step"
+            ],
+            "properties": {
+              "level": {
+                "enum": [
+                  "fail",
+                  "advisory"
+                ]
+              },
+              "code": {
+                "type": "string",
+                "pattern": "^(fail|advisory):monitor\\.[a-z-]+$"
+              },
+              "message": {
+                "type": "string"
+              },
+              "verdict": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "run": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "step": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

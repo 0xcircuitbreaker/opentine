@@ -116,6 +116,13 @@
             "type": "string",
             "pattern": "^sha256:[0-9a-f]{64}$"
           }
+        },
+        "monitor": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
         }
       }
     },

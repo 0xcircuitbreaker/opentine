@@ -36,6 +36,10 @@ CANARY_HOLD = "holdout-canary:"
 #: 0.61: rows that keep a memory quarantine (opentine._memory_quarantine): released
 #: never, so deleting the quarantine's ref cannot serve the note again.
 MEMORY_QUARANTINE = "memory-quarantine:"
+#: 0.63: rows that keep a monitor verdict that was not ``allow`` and a monitor stop
+#: token (opentine._monitor_verdict, opentine._monitor_stop): released never.
+MONITOR_VERDICT = "monitor-verdict:"
+MONITOR_STOP = "monitor-stop:"
 MAX_HOLDS_BYTES = 4 * 1024 * 1024
 
 
@@ -137,6 +141,8 @@ def release(repo, target: str) -> list[dict[str, str]]:
                             "it is never released")  # fmt: skip
         if any(r["target"].startswith(MEMORY_QUARANTINE) for r in gone):
             raise HoldError(f"{target} keeps a memory quarantine: it is never released")
+        if any(r["target"].startswith((MONITOR_VERDICT, MONITOR_STOP)) for r in gone):
+            raise HoldError(f"{target} keeps a monitor verdict or stop token: it is never released")
         return [r for r in rows if r not in gone]
 
     edit_holds(holds_path(repo), change)

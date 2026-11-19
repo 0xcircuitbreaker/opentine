@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-monitor-hook-1.schema.json",
+  "title": "tine monitor gate (generic)",
+  "description": "The generic answer of `tine monitor gate` to one tool call.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocol",
+    "decision",
+    "verdict",
+    "input",
+    "reason"
+  ],
+  "properties": {
+    "protocol": {
+      "const": "opentine-monitor/1"
+    },
+    "decision": {
+      "enum": [
+        "allow",
+        "block",
+        "replace"
+      ]
+    },
+    "verdict": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "input": {},
+    "reason": {
+      "type": "string"
+    }
+  }
+}

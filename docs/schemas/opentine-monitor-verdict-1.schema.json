@@ -1,0 +1,211 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-monitor-verdict-1.schema.json",
+  "title": "opentine.monitor-verdict/1 claim",
+  "description": "The claim of an attestation recording one inline monitor decision. A claim convention, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "monitor",
+    "input_digest",
+    "reasoning",
+    "tool",
+    "session",
+    "score",
+    "threshold",
+    "action",
+    "enforced",
+    "mode",
+    "decided_by",
+    "latency_ms",
+    "deadline_ms",
+    "fail_closed",
+    "trajectories",
+    "chosen",
+    "stop",
+    "decided_at"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.monitor-verdict/1"
+    },
+    "monitor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "model_digest"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "rule",
+            "command",
+            "http"
+          ]
+        },
+        "model_digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "input_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "reasoning": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "digest"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "captured",
+            "redacted",
+            "unavailable"
+          ]
+        },
+        "digest": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "tool": {
+      "type": "string"
+    },
+    "session": {
+      "type": "string"
+    },
+    "score": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "threshold": {
+      "type": "number"
+    },
+    "action": {
+      "enum": [
+        "allow",
+        "flag",
+        "resample",
+        "defer",
+        "block"
+      ]
+    },
+    "enforced": {
+      "type": "boolean"
+    },
+    "mode": {
+      "enum": [
+        "advisory",
+        "gate"
+      ]
+    },
+    "decided_by": {
+      "enum": [
+        "monitor",
+        "deadline",
+        "error",
+        "stop-token",
+        "alternate"
+      ]
+    },
+    "latency_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "deadline_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "fail_closed": {
+      "type": "boolean"
+    },
+    "trajectories": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "role",
+          "digest"
+        ],
+        "properties": {
+          "role": {
+            "enum": [
+              "original",
+              "resample",
+              "trusted"
+            ]
+          },
+          "digest": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "chosen": {
+      "enum": [
+        "original",
+        "resample",
+        "trusted",
+        "none"
+      ]
+    },
+    "stop": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "decided_at": {
+      "type": "string"
+    }
+  }
+}
