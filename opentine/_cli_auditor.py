@@ -15,7 +15,7 @@ import hashlib
 import json
 import os
 from collections.abc import Callable
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 from opentine._cli_common import _terminal, console
@@ -84,9 +84,16 @@ def _check_placement(path: Path, roots: list[Path], allow_in_repo: bool) -> None
         raise ValueError(f"{path} exists; the blind secret is never overwritten")
     target = path.parent.resolve() / path.name
     for root in roots:
-        if not allow_in_repo and target.is_relative_to(root.resolve()):
+        home = root.resolve()
+        inside = target.is_relative_to(home) or _folded(target).is_relative_to(_folded(home))
+        if not allow_in_repo and inside:
             raise ValueError(f"{path} is inside the repository, where the auditor can read it; "
                              "keep the secret outside it, or pass --allow-in-repo")  # fmt: skip
+
+
+def _folded(path: Path) -> PurePosixPath:
+    """Case-folded form, so a variant on a case-insensitive filesystem still matches."""
+    return PurePosixPath(path.as_posix().casefold())
 
 
 def _write_private(path: Path, data: bytes) -> None:
