@@ -1648,8 +1648,10 @@ tine prompt sync [--remote R [--tenant T] [--token-file P]]
 tine memory add TOPIC TEXT --key KEY [--scope S] [--tag T]... [--subject OID]
                 [--supersedes DIGEST] [--author NAME]
 tine memory list [--scope S] [--any-signer]
-tine memory recall QUERY [--limit N]
+tine memory recall QUERY [--limit N] [--min-assurance T0|T1|T2|T3] [--record-to RUN]
 tine memory trust PUB
+tine memory quarantine NOTE --key KEY --why TEXT [--lineage-dir DIR]
+tine memory served NOTE [--lineage-dir DIR]
 tine memory sync [--remote R [--tenant T] [--token-file P]]
 ```
 
@@ -1672,6 +1674,17 @@ and `recall` show only notes that verify under those keys and that no other
 such note supersedes (with no team file, `list --any-signer` shows notes on
 their embedded keys). MCP `recall` returns the same notes under `memories`
 (SPEC 8.20). `--json` follows `tine-cli-memory-1`.
+
+0.61: `recall --record-to RUN` records the served note digests as a step of a
+run still being captured (a finished or attested run is refused);
+`--min-assurance` keeps notes whose subject run reaches the tier. `memory
+quarantine` signs and holds a superseding `quarantine` note and lists every run
+served the note and every lineage variant whose runs consumed it; `memory
+served` lists the same. Both report the quarantine as `verified` only when a
+`curator` key of the owner-pinned key roles signed it, else `unverified`
+(it still blocks). `tine promote` refuses with
+`promote.memory-quarantined` and `tine lineage check|why` report
+`lineage.memory-quarantined`. See docs/MEMORY.md.
 
 `memory sync` and `prompt sync` send the notes or prompt refs a remote lacks
 and fetch the ones this repository lacks, one ref at a time over the ordinary
@@ -1923,8 +1936,9 @@ refused operation exits 1 with `{"error": {"code": "held|stale|done|stopped|exis
 
 The key-role policy names keys by `sha256:` fingerprint (or raw Ed25519 public
 key hex) under `[roles]`: `optimizer`, `scorer`, `dataset`, `verdict` and the
-optional `approver`, `policy` (signs promotion policies) and `stopper` (may
-stop a loop), with `version = 1`. Findings follow owner decision D12:
+optional `approver`, `policy` (signs promotion policies), `stopper` (may
+stop a loop), `eval` and `curator` (signs memory quarantines that verify),
+with `version = 1`. Findings follow owner decision D12:
 `fail:key-separation.shared` and `fail:key-roles.malformed` block;
 `advisory:key-roles.no-policy`, `advisory:key-roles.no-optimizer` and
 `advisory:key-roles.empty-role` are reported and block only with `--strict`.

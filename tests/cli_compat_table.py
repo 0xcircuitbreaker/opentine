@@ -4578,6 +4578,31 @@ ROWS: tuple[tuple, ...] = (
         {"command": "memory", "memory_action": "sync", "remote": "origin"},
     ),
     (
+        "plain:memory quarantine blob:sha256:" + "0" * 64 + " --key k --why bad --json",
+        "plain",
+        [
+            "memory",
+            "quarantine",
+            "blob:sha256:" + "0" * 64,
+            "--key",
+            "k",
+            "--why",
+            "bad",
+            "--json",
+        ],  # fmt: skip
+        "opentine._cli_memory:cmd_memory",
+        False,
+        {"command": "memory", "memory_action": "quarantine", "key": "k", "why": "bad"},
+    ),
+    (
+        "plain:memory served blob:sha256:" + "0" * 64 + " --lineage-dir lin",
+        "plain",
+        ["memory", "served", "blob:sha256:" + "0" * 64, "--lineage-dir", "lin"],
+        "opentine._cli_memory:cmd_memory",
+        False,
+        {"command": "memory", "memory_action": "served", "lineage_dir": "lin"},
+    ),
+    (
         "plain:eval ci --key k --json",
         "plain",
         ["eval", "ci", "--key", "k", "--json"],

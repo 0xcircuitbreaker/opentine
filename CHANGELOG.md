@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.61.0 — Memory provenance and quarantine (2026-11-19)
+
+- Served memory notes are recorded at capture time in the consuming run's own
+  step evidence: a `tool` step with the attribute `opentine.memory.served`
+  (the note digests). `tine memory recall --record-to RUN` records them; a
+  finished or attested run is never amended.
+- `tine memory recall --min-assurance TIER` keeps notes whose subject run
+  reaches the tier (capped at `T1` for a stored run; `T0` without one).
+- `tine memory quarantine NOTE --key KEY --why TEXT` signs a superseding note
+  tagged `quarantine`, holds it (`memory-quarantine:` holds are never
+  released), and lists every run served the note and every lineage variant
+  whose mutation or eval runs consumed it. `tine memory served NOTE` lists the
+  same. Recall and MCP `recall` never serve a quarantined note.
+- A rebuildable derived index, `.tine/index/memory-served.sqlite`, answers
+  those listings with one indexed lookup.
+- `tine promote` refuses a candidate served a quarantined note
+  (`promote.memory-quarantined`); `tine lineage check|why` report
+  `lineage.memory-quarantined`.
+- Memory provenance is a claim convention plus existing step evidence: no new
+  object kinds and no new `tine verify` codes (docs/MEMORY.md).
+
 ## 0.60.0 — Sealed holdouts and canaries (2026-11-18)
 
 - `tine dataset seal` commits to a holdout with an RFC 6962 Merkle root over

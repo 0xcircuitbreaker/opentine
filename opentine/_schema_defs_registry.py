@@ -26,6 +26,7 @@ _WHEN: dict[str, Any] = {
 }
 _VAR = {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,63}$"}
 _TAG = {"type": "string", "pattern": "^[a-z0-9][a-z0-9._:-]{0,63}$"}
+_RUN = {"type": "string", "pattern": "^run:sha256:[0-9a-f]{64}$"}
 _SUBJECT = {"type": "string", "pattern": "^(run|blob):sha256:[0-9a-f]{64}$"}
 _PROMPT = {"$ref": "opentine-prompt-1.schema.json"}
 _NOTE = {"$ref": "opentine-memory-1.schema.json"}
@@ -37,7 +38,7 @@ _CHECK = open_(["scope", "topic", "digest", "signer", "subject", "supersedes", "
     "scope": _ID, "topic": _ID, "digest": _BLOB, "signer": _HEX64, "subject": opt(_SUBJECT),
     "supersedes": opt(_BLOB), "tags": {"type": "array", "items": _TAG},
     "state": {"enum": ["verified", "verified-tofu"]}, "text": STR, "author": _NAME,
-    "created_at": _WHEN})  # fmt: skip
+    "created_at": _WHEN, "assurance": {"enum": ["T0", "T1", "T2", "T3"]}})  # fmt: skip
 _STRS: dict[str, Any] = {"type": "array", "items": STR}
 _SIDE = open_(["eval", "ok"], {"eval": opt(STR), "ok": BOOL})
 _DEC = {"type": "string", "pattern": "^-?[0-9]+\\.[0-9]{6}$"}
@@ -113,13 +114,29 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     "tine-cli-memory-1": doc("tine-cli-memory-1", "tine memory ACTION --json",
         "Every `tine memory` action. `add`: `note` (the check) and the signed `record`; "
         "`list`/`recall`: `notes` (checks with `text`, `author`, `created_at`) and `team`, "
-        "the number of trusted keys; `trust`: `team`, the trusted keys.",
+        "the number of trusted keys; `trust`: `team`, the trusted keys. 0.61: `recall` rows "
+        "carry `assurance` with `--min-assurance` and `recorded_run` with `--record-to`; "
+        "`quarantine` adds `note` (the quarantined digest), `quarantine`, `signer`, `held` "
+        "and the signed `record`; `quarantine` and `served` give `served_note`, `quarantined`, "
+        "`runs` (every run that lists a step serving the note) and `variants` (lineage "
+        "variants whose mutation or eval runs did), and `verification`: `verified` when a "
+        "`curator` key of the owner-pinned key roles signed the quarantine, else "
+        "`unverified: WHY` (it still blocks), null when the note is not quarantined.",
         open_(["command", "action", "ok"], {
             "command": {"const": "memory"},
-            "action": {"enum": ["add", "list", "recall", "trust"]},
-            "ok": BOOL, "note": _CHECK, "record": _NOTE,
+            "action": {"enum": ["add", "list", "recall", "trust", "sync", "quarantine",
+                                "served"]},
+            "ok": BOOL, "note": {"anyOf": [_CHECK, _BLOB]}, "record": _NOTE,
             "notes": {"type": "array", "items": _CHECK},
-            "team": {"anyOf": [INT, {"type": "array", "items": _HEX64}]}})),
+            "team": {"anyOf": [INT, {"type": "array", "items": _HEX64}]},
+            "recorded_run": opt(_RUN), "quarantine": _BLOB, "signer": _HEX64, "held": _BLOB,
+            "served_note": _BLOB, "quarantined": BOOL,
+            "verification": {"anyOf": [{"type": "null"}, {"type": "string",
+                             "pattern": "^(verified$|unverified: )"}]},
+            "runs": {"type": "array", "items": closed(["run", "event"], {
+                "run": _RUN, "event": STR})},
+            "variants": {"type": "array", "items": closed(["variant", "runs"], {
+                "variant": STR, "runs": {"type": "array", "items": _RUN}})}})),
     "tine-cli-eval-ci-1": doc("tine-cli-eval-ci-1", "tine eval ci --json",
         "Every eval `.tine/evals.toml` declares, run and signed: per eval its id, folder, "
         "counts, pass rate and gate, and the registered `judge_prompt` it used (name, version, "

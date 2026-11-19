@@ -147,6 +147,9 @@ def promote(key: Any, policy: dict[str, Any], candidate: str, label: str, *, sta
     from opentine._promote_holdout import refusals as sealed
 
     refusals += sealed(list(sealed_holdouts), canary_lengths, repo_path, candidate)  # 0.60
+    from opentine._memory_quarantine import promote_refusals as memory
+
+    refusals += memory(repo_path, candidate) if repo_path is not None else []  # 0.61
     if record["current"] == candidate:
         refusals.append(refusal("promote.already-current", f"{candidate} already holds {label}"))
     if refusals:
