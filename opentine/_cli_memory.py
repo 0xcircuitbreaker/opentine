@@ -20,7 +20,7 @@ from opentine._cli_json import emit
 from opentine._cli_remote_target import add_remote_args
 
 TEAM_FILE = "memory-team.json"
-ACTIONS = ("add", "list", "recall", "trust", "sync")
+ACTIONS = ("add", "list", "recall", "trust", "sync", "quarantine", "served")
 MAX_RECALL = 50
 
 
@@ -47,6 +47,9 @@ def add_memory_parser(sub: Any) -> None:
     trust = actions.add_parser("trust", help="Add an Ed25519 public key to the team file")
     trust.add_argument("pubkey", metavar="PUB", help="A public key file or 64 hex")
     add_remote_args(actions.add_parser("sync", help="Send and fetch notes (team-signed only)"))
+    from opentine._cli_memory_quarantine import add_provenance_parsers
+
+    add_provenance_parsers(actions)  # 0.61
     for parser in actions.choices.values():
         parser.add_argument("--repo", default=".")
         parser.add_argument("--json", action="store_true")
@@ -75,16 +78,24 @@ def _row(entry: dict[str, Any]) -> dict[str, Any]:
 
 
 def recall_notes(repo: Any, query: str, limit: int = 10) -> list[dict[str, Any]]:
-    """Team notes whose topic, tags or text contain every word of *query*."""
+    """Team notes whose topic, tags or text contain every word of *query*.
+
+    A quarantined note (and a quarantine record itself) is never served (0.61).
+    """
     from opentine.repository import _registry_refs as refs
 
     keys = team(repo)
     if not keys or not isinstance(query, str):
         return []
+    from opentine._memory_quarantine import TAG, quarantined
+
     words = [word.casefold() for word in query.split() if word]
     found = []
+    held = quarantined(repo)  # 0.61: held too, so deleting the quarantine's ref lifts nothing
     for entry in refs.notes(repo, team=keys):
         record = entry["record"]
+        if entry["check"]["digest"] in held or TAG in record["tags"]:
+            continue
         hay = " ".join([record["topic"], *record["tags"], record["text"]]).casefold()
         if words and all(word in hay for word in words):
             found.append(_row(entry))
@@ -159,8 +170,16 @@ def _act(args: argparse.Namespace) -> tuple[dict[str, Any], str]:
     if action == "trust":
         body = _trust(args, repo)
         return body, f"team: {len(body['team'])} key(s)"
+    if action in ("quarantine", "served"):
+        from opentine._cli_memory_quarantine import act
+
+        return act(args, repo)
+    extra: dict[str, Any] = {}
     if action == "recall":
-        rows = recall_notes(repo, args.query, args.limit)
+        from opentine._cli_memory_quarantine import recall
+
+        extra = recall(args, repo, recall_notes(repo, args.query, args.limit))
+        rows = extra.pop("notes")
     else:
         keys = team(repo)
         if not keys and not args.any_signer:
@@ -168,7 +187,7 @@ def _act(args: argparse.Namespace) -> tuple[dict[str, Any], str]:
         else:
             rows = [_row(entry) for entry in refs.notes(repo, team=keys, scope=args.scope)]
     text = "\n".join(f"{r['scope']}/{r['topic']}\t{r['text']}" for r in rows)
-    return {"notes": rows, "team": len(team(repo))}, text or "no notes"
+    return {"notes": rows, "team": len(team(repo)), **extra}, text or "no notes"
 
 
 def cmd_memory(args: argparse.Namespace) -> None:

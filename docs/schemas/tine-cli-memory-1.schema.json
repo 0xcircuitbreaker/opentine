@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opentine.com/schemas/tine-cli-memory-1.schema.json",
   "title": "tine memory ACTION --json",
-  "description": "Every `tine memory` action. `add`: `note` (the check) and the signed `record`; `list`/`recall`: `notes` (checks with `text`, `author`, `created_at`) and `team`, the number of trusted keys; `trust`: `team`, the trusted keys.",
+  "description": "Every `tine memory` action. `add`: `note` (the check) and the signed `record`; `list`/`recall`: `notes` (checks with `text`, `author`, `created_at`) and `team`, the number of trusted keys; `trust`: `team`, the trusted keys. 0.61: `recall` rows carry `assurance` with `--min-assurance` and `recorded_run` with `--record-to`; `quarantine` adds `note` (the quarantined digest), `quarantine`, `signer`, `held` and the signed `record`; `quarantine` and `served` give `served_note`, `quarantined`, `runs` (every run that lists a step serving the note) and `variants` (lineage variants whose mutation or eval runs did).",
   "type": "object",
   "required": [
     "command",
@@ -18,88 +18,107 @@
         "add",
         "list",
         "recall",
-        "trust"
+        "trust",
+        "sync",
+        "quarantine",
+        "served"
       ]
     },
     "ok": {
       "type": "boolean"
     },
     "note": {
-      "type": "object",
-      "required": [
-        "scope",
-        "topic",
-        "digest",
-        "signer",
-        "subject",
-        "supersedes",
-        "tags",
-        "state"
-      ],
-      "properties": {
-        "scope": {
-          "type": "string",
-          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
-        },
-        "topic": {
-          "type": "string",
-          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
-        },
-        "digest": {
-          "type": "string",
-          "pattern": "^blob:sha256:[0-9a-f]{64}$"
-        },
-        "signer": {
-          "type": "string",
-          "pattern": "^[0-9a-f]{64}$"
-        },
-        "subject": {
-          "anyOf": [
-            {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "scope",
+            "topic",
+            "digest",
+            "signer",
+            "subject",
+            "supersedes",
+            "tags",
+            "state"
+          ],
+          "properties": {
+            "scope": {
               "type": "string",
-              "pattern": "^(run|blob):sha256:[0-9a-f]{64}$"
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
             },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "supersedes": {
-          "anyOf": [
-            {
+            "topic": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+            },
+            "digest": {
               "type": "string",
               "pattern": "^blob:sha256:[0-9a-f]{64}$"
             },
-            {
-              "type": "null"
+            "signer": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "subject": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(run|blob):sha256:[0-9a-f]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "supersedes": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^blob:sha256:[0-9a-f]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9._:-]{0,63}$"
+              }
+            },
+            "state": {
+              "enum": [
+                "verified",
+                "verified-tofu"
+              ]
+            },
+            "text": {
+              "type": "string"
+            },
+            "author": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_.:/@+-]{1,256}$"
+            },
+            "created_at": {
+              "type": "string",
+              "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+            },
+            "assurance": {
+              "enum": [
+                "T0",
+                "T1",
+                "T2",
+                "T3"
+              ]
             }
-          ]
-        },
-        "tags": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "pattern": "^[a-z0-9][a-z0-9._:-]{0,63}$"
           }
         },
-        "state": {
-          "enum": [
-            "verified",
-            "verified-tofu"
-          ]
-        },
-        "text": {
-          "type": "string"
-        },
-        "author": {
+        {
           "type": "string",
-          "pattern": "^[A-Za-z0-9_.:/@+-]{1,256}$"
-        },
-        "created_at": {
-          "type": "string",
-          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+          "pattern": "^blob:sha256:[0-9a-f]{64}$"
         }
-      }
+      ]
     },
     "record": {
       "$ref": "opentine-memory-1.schema.json"
@@ -180,6 +199,14 @@
           "created_at": {
             "type": "string",
             "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+          },
+          "assurance": {
+            "enum": [
+              "T0",
+              "T1",
+              "T2",
+              "T3"
+            ]
           }
         }
       }
@@ -198,6 +225,79 @@
           }
         }
       ]
+    },
+    "recorded_run": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^run:sha256:[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "quarantine": {
+      "type": "string",
+      "pattern": "^blob:sha256:[0-9a-f]{64}$"
+    },
+    "signer": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "held": {
+      "type": "string",
+      "pattern": "^blob:sha256:[0-9a-f]{64}$"
+    },
+    "served_note": {
+      "type": "string",
+      "pattern": "^blob:sha256:[0-9a-f]{64}$"
+    },
+    "quarantined": {
+      "type": "boolean"
+    },
+    "runs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "run",
+          "event"
+        ],
+        "properties": {
+          "run": {
+            "type": "string",
+            "pattern": "^run:sha256:[0-9a-f]{64}$"
+          },
+          "event": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "variants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "variant",
+          "runs"
+        ],
+        "properties": {
+          "variant": {
+            "type": "string"
+          },
+          "runs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^run:sha256:[0-9a-f]{64}$"
+            }
+          }
+        }
+      }
     }
   }
 }

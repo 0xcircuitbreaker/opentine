@@ -131,10 +131,13 @@ def _row(args: argparse.Namespace) -> dict:
 
 
 def tainted(args: argparse.Namespace, files: dict, row: dict) -> dict:
-    """*row* with ``lineage.score-tainted`` for each tainted mutation run (0.60)."""
+    """*row* with ``lineage.score-tainted`` (0.60) and ``lineage.memory-quarantined`` (0.61)."""
     from opentine._integrity_run import lineage_findings
+    from opentine._memory_quarantine import lineage_findings as memory
 
-    extra = lineage_findings(Path(args.repo), files, [row["variant"], *row["ancestors"]])
+    variants = [row["variant"], *row["ancestors"]]
+    extra = lineage_findings(Path(args.repo), files, variants)
+    extra += memory(Path(args.repo), files, variants)
     if not extra:
         return row
     found = sorted(row["findings"] + extra, key=lambda f: (f["variant"], f["code"], f["detail"]))
