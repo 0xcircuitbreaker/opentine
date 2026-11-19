@@ -1,5 +1,54 @@
 # Changelog
 
+## 0.62.0 — Monitor verdicts and intervention log (2026-11-19)
+
+- Inline monitors on the MCP proxy (`tine mcp-proxy --monitor CONFIG
+  --monitor-repo PATH --monitor-key KEY`, stdio and Streamable HTTP) and on
+  the agent hook path (`tine monitor gate`, Claude Code/Codex `PreToolUse`,
+  Gemini CLI `BeforeTool`, generic `opentine-monitor/1`). Monitors are
+  pluggable: `rule`, `command` (a local model) or `http` (a remote API).
+- Advisory mode is the default and never blocks (D12). Gate mode, which the
+  operator turns on in the config, waits up to `deadline_ms`; a missed
+  deadline or a monitor error blocks only with `fail_closed = true`.
+  `resample` and `defer` relay an alternate action and record both
+  trajectories; without an alternate they block.
+- Every verdict that is not `allow` is an Ed25519-signed attestation under the
+  claim convention `opentine.monitor-verdict/1` (monitor identity and model
+  digest, input digest, whether reasoning text was captured, redacted or
+  unavailable and its digest, score, threshold, action, latency), kept by a
+  `monitor-verdict:` hold that `tine hold release` refuses. A verdict is
+  `verified` when signed by the new `monitor` key role of the owner-pinned
+  trust bundle; the optimizer key may not hold it.
+- Signed stop tokens: `tine monitor stop --scope *|agent:NAME|session:ID`
+  writes an `opentine.monitor-stop/1` attestation held under `monitor-stop:`
+  (never released); the proxy and the hook block a stopped scope in either
+  mode. `tine monitor stops|verdicts` list them.
+- `tine monitor verify --run RUN` checks offline that every blocked or replaced
+  action in the runs has a held, signed verdict recording that action
+  (`fail:monitor.*` CLI findings, not `tine verify` codes).
+- New schemas: `tine-cli-monitor-1`, `opentine-monitor-verdict-1`,
+  `opentine-monitor-stop-1`, `opentine-monitor-hook-1`. No new object kinds
+  (docs/MONITORS.md).
+- `tine monitor backtest MONITOR --runs FILE` replays recorded trajectories
+  against a rule monitor offline and reports catch rate, false-positive rate
+  and the decision diff against the recorded online verdicts. Online verdicts
+  are compared only when they saw the same reasoning visibility (`captured`,
+  `redacted`, `unavailable`) and the same input digest, and rates are never
+  pooled across visibility groups. A verdict from the same monitor digest must
+  reproduce byte for byte; `--require-reproduced` exits 1 when one does not.
+- `tine monitor collusion MONITOR --runs FILE [--reference MONITOR]` tests an
+  untrusted monitor against an untrusted policy's signalled and unsignalled
+  attacks; its findings (`advisory:monitor-collusion-suspected`,
+  `advisory:monitor-misses-reference-catch`) are advisory only and
+  `--log FILE` appends the result as one JSON line.
+- `tine monitor backtest MONITOR --repo PATH --run RUN` reads the gate's
+  held, signed verdicts (pinned `monitor` role only) as the online verdicts of
+  runs recorded by `tine mcp-proxy --save`; a step edited after its verdict
+  counts as `input_mismatch`, unverified verdicts as `unverified_verdicts`.
+- Rule monitors are JSON specs; the decision fields of a recorded verdict (monitor digest, input digest,
+  reasoning visibility, score, threshold, action) are documented in
+  docs/MONITOR_BACKTESTS.md. New schema `tine-cli-monitor-1`.
+
 ## 0.61.0 — Memory provenance and quarantine (2026-11-19)
 
 - Served memory notes are recorded at capture time in the consuming run's own

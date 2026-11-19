@@ -66,6 +66,8 @@ from opentine._schema_defs_loop import SCHEMAS as _LOOP
 from opentine._schema_defs_merge import COMMAND_SCHEMAS as _MERGE_COMMANDS
 from opentine._schema_defs_merge import KIND_SCHEMAS as _MERGE_KINDS
 from opentine._schema_defs_merge import SCHEMAS as _MERGE
+from opentine._schema_defs_monitor import COMMAND_SCHEMAS as _MONITOR_COMMANDS
+from opentine._schema_defs_monitor import SCHEMAS as _MONITOR
 from opentine._schema_defs_project import COMMAND_SCHEMAS as _PROJECT_COMMANDS
 from opentine._schema_defs_project import KIND_SCHEMAS as _PROJECT_KINDS
 from opentine._schema_defs_project import SCHEMAS as _PROJECT
@@ -114,6 +116,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     **_INTEGRITY,
     **_HOLDOUT,
     **_CANARY,
+    **_MONITOR,
 }
 COMMAND_SCHEMAS: dict[str, str] = {
     **_CLI_COMMANDS,
@@ -139,6 +142,7 @@ COMMAND_SCHEMAS: dict[str, str] = {
     **_INTEGRITY_COMMANDS,
     **_HOLDOUT_COMMANDS,
     **_CANARY_COMMANDS,
+    **_MONITOR_COMMANDS,
 }
 KIND_SCHEMAS: dict[str, str] = {
     **_REDACT_KINDS,

@@ -40,7 +40,8 @@ SCHEMAS: dict[str, dict[str, Any]] = {
             "ok": BOOL, "policy": opt(STR), "strict": BOOL, "blocking": INT,
             "roles": {"type": "object", "additionalProperties": False, "properties": {
                 r: _KEYS for r in ("optimizer", "scorer", "dataset", "verdict", "approver",
-                                   "policy", "stopper", "eval", "curator")}},
+                                   "policy", "stopper", "eval", "curator",
+                                   "monitor")}},
             "findings": {"type": "array", "items": _FINDING}})),
     "tine-cli-loop-1": doc("tine-cli-loop-1", "tine loop stop|status --json",
         "A loop's state. `stopped` names the signed stop attestation (claim convention "

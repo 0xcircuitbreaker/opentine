@@ -5265,6 +5265,50 @@ ROWS: tuple[tuple, ...] = (
         {"command": "integrity", "integrity_command": "sign", "key": "k"},
     ),
     (
+        "plain:monitor backtest m --runs r --require-reproduced",
+        "plain",
+        ["monitor", "backtest", "m", "--runs", "r", "--require-reproduced"],
+        "opentine._cli_monitor:cmd_monitor",
+        False,
+        {
+            "command": "monitor",
+            "monitor_command": "backtest",
+            "monitor": "m",
+            "runs": ["r"],
+            "require_reproduced": True,
+        },
+    ),
+    (
+        "plain:monitor backtest m --repo p --run a --run b",
+        "plain",
+        ["monitor", "backtest", "m", "--repo", "p", "--run", "a", "--run", "b"],
+        "opentine._cli_monitor:cmd_monitor",
+        False,
+        {
+            "command": "monitor",
+            "monitor_command": "backtest",
+            "monitor": "m",
+            "repo": "p",
+            "run": ["a", "b"],
+            "runs": None,
+        },
+    ),
+    (
+        "plain:monitor collusion m --runs r --reference t --log l",
+        "plain",
+        ["monitor", "collusion", "m", "--runs", "r", "--reference", "t", "--log", "l"],
+        "opentine._cli_monitor:cmd_monitor",
+        False,
+        {
+            "command": "monitor",
+            "monitor_command": "collusion",
+            "monitor": "m",
+            "runs": ["r"],
+            "reference": "t",
+            "log": "l",
+        },
+    ),
+    (
         "plain:dataset seal d --out h --name h --max-unseals 1 --max-items 1 --key k --seal-key s",
         "plain",
         [
@@ -5386,6 +5430,79 @@ ROWS: tuple[tuple, ...] = (
             "dataset_command": "contamination",
             "dataset": "h.jsonl",
             "against": ["c.jsonl"],
+        },  # fmt: skip
+    ),
+    (
+        "plain:monitor stop --scope loop --key k --reason r",
+        "plain",
+        ["monitor", "stop", "--scope", "loop", "--key", "k", "--reason", "r"],
+        "opentine._cli_monitor:cmd_monitor",
+        False,
+        {
+            "command": "monitor",
+            "monitor_command": "stop",
+            "scope": "loop",
+            "key": "k",
+            "reason": "r",
+            "json": False,
+            "member_command": [],
+        },  # fmt: skip
+    ),
+    (
+        "plain:monitor stops --json",
+        "plain",
+        ["monitor", "stops", "--json"],
+        "opentine._cli_monitor:cmd_monitor",
+        False,
+        {
+            "command": "monitor",
+            "monitor_command": "stops",
+            "json": True,
+            "member_command": [],
+        },  # fmt: skip
+    ),
+    (
+        "plain:monitor verdicts",
+        "plain",
+        ["monitor", "verdicts"],
+        "opentine._cli_monitor:cmd_monitor",
+        False,
+        {
+            "command": "monitor",
+            "monitor_command": "verdicts",
+            "json": False,
+            "member_command": [],
+        },  # fmt: skip
+    ),
+    (
+        "plain:monitor verify --run r.tine --strict",
+        "plain",
+        ["monitor", "verify", "--run", "r.tine", "--strict"],
+        "opentine._cli_monitor:cmd_monitor",
+        False,
+        {
+            "command": "monitor",
+            "monitor_command": "verify",
+            "run": ["r.tine"],
+            "strict": True,
+            "json": False,
+            "member_command": [],
+        },  # fmt: skip
+    ),
+    (
+        "plain:monitor gate --config g.toml --key k --fail-closed",
+        "plain",
+        ["monitor", "gate", "--config", "g.toml", "--key", "k", "--fail-closed"],
+        "opentine._cli_monitor:cmd_monitor",
+        False,
+        {
+            "command": "monitor",
+            "monitor_command": "gate",
+            "config": "g.toml",
+            "key": "k",
+            "fail_closed": True,
+            "json": False,
+            "member_command": [],
         },  # fmt: skip
     ),
 )

@@ -14,6 +14,7 @@ play which part in a loop::
     stopper   = ["sha256:<fingerprint>"]   # may stop a loop (optional)
     eval      = ["sha256:<fingerprint>"]   # unseals sealed holdouts (0.60, optional)
     curator   = ["sha256:<fingerprint>"]   # signs memory quarantines (0.61, optional)
+    monitor   = ["sha256:<fingerprint>"]   # signs monitor verdicts (0.63, optional)
 
 With a ``policy`` role, ``promote`` needs a signed policy
 (:mod:`opentine._promote_pins`); with a ``stopper`` role, a loop stop signed by
@@ -44,8 +45,9 @@ from typing import Any
 
 FILE_NAME = "key-roles.toml"
 OPTIMIZER = "optimizer"
-GUARDED = ("scorer", "dataset", "verdict", "approver", "policy", "eval", "curator")
+GUARDED = ("scorer", "dataset", "verdict", "approver", "policy", "eval", "curator", "monitor")
 CURATOR = "curator"
+MONITOR = "monitor"
 STOPPER = "stopper"
 ROLES = (OPTIMIZER, *GUARDED, STOPPER)
 REQUIRED = ("scorer", "dataset", "verdict")

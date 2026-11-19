@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-monitor-stop-1.schema.json",
+  "title": "opentine.monitor-stop/1 claim",
+  "description": "The claim of a signed stop token: gated actions in `scope` are blocked.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "scope",
+    "reason",
+    "stopped_at"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.monitor-stop/1"
+    },
+    "scope": {
+      "type": "string",
+      "pattern": "^(\\*|agent:.+|session:.+)$"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "stopped_at": {
+      "type": "string"
+    }
+  }
+}

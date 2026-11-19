@@ -19,6 +19,7 @@ import pytest
 
 from opentine import _jsonschema, _schemas, cli
 from opentine.core import Run, RunStatus, StepKind
+from tests.monitor_fixture import SPEC, record_online, trajectories
 
 ROOT = Path(__file__).resolve().parents[1]
 GOLDEN = ROOT / "tests" / "fixtures" / "compat" / "v0_5_0" / "repo"
@@ -51,6 +52,8 @@ def room(monkeypatch, tmp_path: Path) -> Path:
     (tmp_path / "report.json").write_text(json.dumps(signed), encoding="utf-8")
     (tmp_path / "purge.key").write_text("ab" * 32, encoding="utf-8")  # 0.46: tine purge
     (tmp_path / "lengths.json").write_bytes(b'{"lengths": []}\n')  # 0.60: canary-check
+    (tmp_path / "monitor.json").write_bytes(json.dumps(SPEC).encode("utf-8"))  # 0.63
+    (tmp_path / "runs.jsonl").write_bytes(record_online(trajectories(20)))
     item = {"id": "q", "input": "1", "expected": "1", "output": "1", "run": "run:x"}  # 0.47
     (tmp_path / "repo" / "d.jsonl").write_text(json.dumps(item) + "\n", encoding="utf-8")
     (tmp_path / "evals.toml").write_text(
@@ -291,6 +294,7 @@ DRIVEN = (
     (("serve", "token", "list", "--root", "remote", "--json"), "tine-cli-serve-token-1"),
     (("keys", "lint", "--repo", "repo", "--json"), "tine-cli-keys-lint-1"),  # 0.58
     (("loop", "status", "opt", "--repo", "repo", "--json"), "tine-cli-loop-1"),  # 0.58
+    (("monitor", "stops", "--repo", "repo", "--json"), "tine-cli-monitor-1"),  # 0.63
     (("lineage", "graph", "--repo", "repo", "--format", "json"), "tine-cli-lineage-1"),  # 0.59
     (("lineage", "archive", "--repo", "repo", "--json"), "tine-cli-lineage-1"),  # 0.59
     (("lineage", "index", "--repo", "repo", "--rebuild", "--json"), "tine-cli-lineage-1"),
@@ -334,6 +338,14 @@ DRIVEN = (
     (
         ("dataset", "contamination", "repo/d.jsonl", "--against", "repo/d.jsonl", "--json"),
         "tine-cli-canary-1",
+    ),
+    (
+        ("monitor", "backtest", "monitor.json", "--runs", "runs.jsonl", "--json"),
+        "tine-cli-monitor-1",
+    ),
+    (
+        ("monitor", "collusion", "monitor.json", "--runs", "runs.jsonl", "--json"),
+        "tine-cli-monitor-1",
     ),
 )
 
