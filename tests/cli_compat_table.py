@@ -5993,6 +5993,7 @@ ROWS: tuple[tuple, ...] = (
             "command": "experiment",
             "experiment_command": "check",
             "manifest": "M",
+            "against": None,
             "repo": "r",
             "strict": True,
             "json": True,

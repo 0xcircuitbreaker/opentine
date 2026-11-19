@@ -61,7 +61,15 @@ def select(manifest: dict[str, Any], k: int, seed: int | None = None) -> dict[st
 
 def _verdict_runner(base: Path) -> Runner:
     def run(manifest: dict[str, Any], row: dict[str, Any]) -> dict[str, Any]:
+        from opentine import _eval_verdict as ev
+
         verdict = json.loads((base / row["path"]).read_bytes())
+        try:
+            ev.verify(verdict)
+        except ev.EvalVerdictError as exc:
+            raise ValueError(f"{row['path']}: verdict does not verify ({exc.code})") from exc
+        if ev.digest(verdict) != row["verdict"]:
+            raise ValueError(f"{row['path']}: verdict is not the one row {row['id']} names")
         return {"score": verdict["score"], "observed": {}}
 
     return run

@@ -37,6 +37,14 @@
   version, sampling parameters, seeds, data commitments, compute spend, result
   rows that reference signed `tine-eval-verdict/1` files by digest and path, and
   the stated conclusion. `tine experiment sign DRAFT --key KEY` signs a draft.
+- `tine experiment check REPORT [--manifest M]` recomputes a reproduce report
+  instead of trusting its signature alone: a row whose delta or agree does not
+  follow from its scores and tolerance, unlisted score drift, a selection that
+  is not the seeded sample of M, or a field M leaves nondeterministic but the
+  report omits fails `fail:experiment.report-mismatch`; an optimizer-signed
+  report fails `fail:experiment.key-separation`. A reproducer-chosen seed or
+  tolerance and `--repeats 1` are advisories. The `verdict` runner refuses an
+  unverified or swapped verdict file.
 - `tine experiment check FILE [--repo PATH] [--strict]` fails
   `fail:experiment.result-mismatch` when a row's digest, score or passed differs
   from its verdict, and `fail:experiment.reference-missing`,

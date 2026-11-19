@@ -35,6 +35,8 @@ def add_experiment_parser(subparsers: argparse._SubParsersAction) -> None:
     check.add_argument("manifest", metavar="FILE")
     check.add_argument("--repo", metavar="PATH", help="Repository whose pinned roles apply")
     check.add_argument("--strict", action="store_true", help="Advisory findings block too")
+    check.add_argument("--manifest", dest="against", metavar="PATH",
+                       help="For a reproduce report: the manifest it reproduces")  # fmt: skip
     for verb in (sign, check):
         verb.add_argument("--json", action="store_true", help="Print a JSON object")
     rep = subparsers.add_parser("reproduce", help="Rerun a seeded sample of an experiment")
@@ -71,10 +73,13 @@ def _check(args: argparse.Namespace) -> tuple[dict[str, Any], list[str]]:
 
     doc = exp.load(args.manifest)
     if doc.get("convention") == _reproduce.CONVENTION:
-        why = _reproduce.verify_report(doc)
-        found = [] if why is None else [{"level": "fail", "code": "fail:experiment.bad-signature",
-                                         "row": None, "message": why}]  # fmt: skip
-        body = {"ok": not found, "experiment": doc.get("experiment"),
+        from opentine._experiment_check import roles
+        from opentine._reproduce_check import check_report
+
+        found = check_report(doc, manifest=args.against, roles=roles(args.repo))
+        fails = [f for f in found if f["level"] == "fail"]
+        ok = not fails and not (args.strict and found)
+        body = {"ok": ok, "experiment": doc.get("experiment"),
                 "manifest": doc.get("manifest"), "signer": doc.get("signer"),
                 "rows": len(doc.get("rows") or []), "findings": found,
                 "kind": "reproduce-report", "verdict": doc.get("verdict")}  # fmt: skip

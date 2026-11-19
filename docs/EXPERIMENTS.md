@@ -65,7 +65,24 @@ tine experiment check exp.json [--repo PATH] [--strict] [--json]
 A `fail:` finding exits 1. Advisory findings are reported and block only with
 `--strict` (D12). Roles are read only from the owner-pinned trust bundle of the
 repository named by `--repo`; without one every verdict signer is unpinned.
-Given a reproduce report instead of a manifest, `check` verifies its signature.
+Given a reproduce report instead of a manifest, `check` verifies its signature
+and recomputes what the signer could misstate: each row's `delta` and `agree`
+from its observed scores and the tolerance, the tallies and verdict, and that
+repeats which differ list `score` as nondeterministic. With `--manifest M` it
+also requires the report to name M's digest, the selection to be exactly the
+seeded sample, each `expected` to be M's row score, and every field M itself
+leaves nondeterministic to be listed. Additional codes:
+
+| Code | Meaning |
+|---|---|
+| `fail:experiment.report-mismatch` | A recomputed value disagrees with the report |
+| `fail:experiment.key-separation` | The report signer holds the pinned `optimizer` role (`--repo`) |
+| `advisory:experiment.seed-override` | The selection seed is not the manifest default |
+| `advisory:experiment.tolerance-chosen` | A nonzero tolerance, picked by the reproducer |
+| `advisory:experiment.single-repeat` | `--repeats 1` cannot show score drift |
+
+The built-in `verdict` runner refuses a verdict file that does not verify or is
+not the one the row names.
 
 ## `tine reproduce`
 
