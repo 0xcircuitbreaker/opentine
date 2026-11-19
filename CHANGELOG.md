@@ -32,6 +32,28 @@
 - `--json` prints `tine-cli-query/1`. See docs/QUERY.md.
 - `tine query --verify` asks for the role a table needs (`scorer` for evals, `monitor` for monitor verdicts, `approver` for oversight decisions; never an `optimizer` key), checks a step's `run`/`seq` and an eval's `run` against their objects, and fails eval sources outside the indexed folders.
 - `tine query` refuses values over 1,000,000 bytes (`query.too-large`) and repeated result column names (`query.duplicate-column`).
+- Experiment manifests: `opentine.experiment-manifest/1` is a signed file
+  convention recording hypothesis, code and container digests, model id and
+  version, sampling parameters, seeds, data commitments, compute spend, result
+  rows that reference signed `tine-eval-verdict/1` files by digest and path, and
+  the stated conclusion. `tine experiment sign DRAFT --key KEY` signs a draft.
+- `tine experiment check FILE [--repo PATH] [--strict]` fails
+  `fail:experiment.result-mismatch` when a row's digest, score or passed differs
+  from its verdict, and `fail:experiment.reference-missing`,
+  `fail:experiment.reference-unsigned`, `fail:experiment.unsigned`,
+  `fail:experiment.bad-signature`, `fail:experiment.key-separation` (verdict
+  signed by a pinned optimizer key) and `fail:experiment.malformed`. A verdict
+  signer outside the owner-pinned scorer/eval/verdict roles is
+  `advisory:experiment.signer-unpinned` and blocks only with `--strict`.
+- `tine reproduce EXPERIMENT --sample K --key KEY [--seed N] [--tolerance T]
+  [--repeats N] [--runner verdict|FILE.py:FUNC|MODULE:FUNC]` reruns a seeded,
+  recorded sample of result rows and writes a signed
+  `opentine.reproduce-report/1` with per-row agreement, the selection, and the
+  manifest fields found nondeterministic; it exits 1 on disagreement.
+- Schemas `opentine-experiment-manifest-1`, `opentine-reproduce-report-1`,
+  `tine-cli-experiment-1` and `tine-cli-reproduce-1` (file conventions, not
+  object kinds); docs/EXPERIMENTS.md. No object kind and no `tine verify` code
+  is added.
 
 ## 0.64.0 — Inspect and Petri interop (2026-11-19)
 

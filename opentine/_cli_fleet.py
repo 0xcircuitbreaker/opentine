@@ -27,6 +27,8 @@ from opentine._cli_auditor import COMMANDS as AUDITOR_COMMANDS
 from opentine._cli_auditor import add_auditor_parser
 from opentine._cli_common import BRAND, _terminal, console
 from opentine._cli_errors import error
+from opentine._cli_experiment import COMMANDS as EXPERIMENT_COMMANDS
+from opentine._cli_experiment import add_experiment_parser
 from opentine._cli_inspect import COMMANDS as INSPECT_COMMANDS
 from opentine._cli_inspect import add_inspect_parser
 from opentine._cli_integrity import COMMANDS as INTEGRITY_COMMANDS
@@ -73,6 +75,7 @@ def add_fleet_parser(subparsers: argparse._SubParsersAction) -> None:
     add_inspect_parser(subparsers)  # 0.64: tine inspect import|export|metr|sign|verify
     add_auditor_parser(subparsers)  # 0.65: tine auditor import-petri, blind audit games
     add_query_parser(subparsers)  # 0.65: tine query SQL, tine query index
+    add_experiment_parser(subparsers)  # 0.67: tine experiment sign|check, tine reproduce
 
 
 def _fail(message: object) -> SystemExit:
@@ -221,6 +224,7 @@ COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
     **INSPECT_COMMANDS,
     **AUDITOR_COMMANDS,
     **QUERY_COMMANDS,
+    **EXPERIMENT_COMMANDS,
 }
 
 __all__ = ["COMMANDS", "add_fleet_parser", "cmd_fleet"]

@@ -33,6 +33,8 @@ from opentine._schema_defs_cli import SCHEMAS as _CLI
 from opentine._schema_defs_compliance import COMMAND_SCHEMAS as _COMPLIANCE_COMMANDS
 from opentine._schema_defs_compliance import SCHEMAS as _COMPLIANCE
 from opentine._schema_defs_events import SCHEMAS as _EVENTS
+from opentine._schema_defs_experiment import COMMAND_SCHEMAS as _EXPERIMENT_COMMANDS
+from opentine._schema_defs_experiment import SCHEMAS as _EXPERIMENT
 from opentine._schema_defs_extend import COMMAND_SCHEMAS as _EXTEND_COMMANDS
 from opentine._schema_defs_extend import SCHEMAS as _EXTEND
 from opentine._schema_defs_forge import COMMAND_SCHEMAS as _FORGE_COMMANDS
@@ -117,6 +119,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     **_INSPECT,
     **_AUDITOR,
     **_QUERY,
+    **_EXPERIMENT,
 }
 COMMAND_SCHEMAS: dict[str, str] = {
     **_CLI_COMMANDS,
@@ -147,6 +150,7 @@ COMMAND_SCHEMAS: dict[str, str] = {
     **_INSPECT_COMMANDS,
     **_AUDITOR_COMMANDS,
     **_QUERY_COMMANDS,
+    **_EXPERIMENT_COMMANDS,
 }
 KIND_SCHEMAS: dict[str, str] = {
     **_REDACT_KINDS,

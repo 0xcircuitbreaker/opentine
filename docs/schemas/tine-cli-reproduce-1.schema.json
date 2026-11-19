@@ -1,0 +1,179 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-reproduce-1.schema.json",
+  "title": "tine reproduce --json",
+  "description": "A seeded sample of an experiment rerun through a runner; `report` is the signed opentine.reproduce-report/1.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "command",
+    "schema",
+    "report",
+    "path"
+  ],
+  "properties": {
+    "command": {
+      "const": "reproduce"
+    },
+    "schema": {
+      "const": "tine-cli-reproduce/1"
+    },
+    "report": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "convention",
+        "experiment",
+        "manifest",
+        "runner",
+        "selection",
+        "tolerance",
+        "repeats",
+        "rows",
+        "agreed",
+        "disagreed",
+        "verdict",
+        "nondeterministic",
+        "created_at",
+        "signer",
+        "signature"
+      ],
+      "properties": {
+        "convention": {
+          "const": "opentine.reproduce-report/1"
+        },
+        "experiment": {
+          "type": "string"
+        },
+        "manifest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "runner": {
+          "type": "string"
+        },
+        "selection": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "seed",
+            "k",
+            "population",
+            "ids"
+          ],
+          "properties": {
+            "seed": {
+              "type": "integer"
+            },
+            "k": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "population": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "ids": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "tolerance": {
+          "type": "string",
+          "pattern": "^[0-9]+(\\.[0-9]+)?$"
+        },
+        "repeats": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "expected",
+              "observed",
+              "delta",
+              "agree"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "expected": {
+                "type": "string",
+                "pattern": "^(0|1|0\\.[0-9]{0,5}[1-9])$"
+              },
+              "observed": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[0-9]+(\\.[0-9]+)?$"
+                }
+              },
+              "delta": {
+                "type": "string",
+                "pattern": "^[0-9]+(\\.[0-9]+)?$"
+              },
+              "agree": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "agreed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "disagreed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "verdict": {
+          "enum": [
+            "agree",
+            "disagree"
+          ]
+        },
+        "nondeterministic": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "model",
+              "sampling",
+              "seeds",
+              "code_digest",
+              "container_digest",
+              "score"
+            ]
+          }
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "signer": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "signature": {
+          "$ref": "tine-sig-3.schema.json"
+        }
+      }
+    },
+    "path": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

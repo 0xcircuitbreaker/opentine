@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-experiment-1.schema.json",
+  "title": "tine experiment ... --json",
+  "description": "`sign` signs an opentine.experiment-manifest/1 draft; `check` judges a manifest (result rows against their referenced signed verdicts) or a reproduce report, with `fail:experiment.*` and `advisory:experiment.*` findings.",
+  "anyOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "experiment",
+        "manifest",
+        "signer",
+        "rows",
+        "path"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-experiment/1"
+        },
+        "command": {
+          "const": "experiment sign"
+        },
+        "experiment": {
+          "type": "string"
+        },
+        "manifest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "signer": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "rows": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "path": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "kind",
+        "experiment",
+        "manifest",
+        "signer",
+        "rows",
+        "verdict",
+        "findings"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-experiment/1"
+        },
+        "command": {
+          "const": "experiment check"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "kind": {
+          "enum": [
+            "manifest",
+            "reproduce-report"
+          ]
+        },
+        "experiment": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "manifest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "signer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rows": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "verdict": {
+          "anyOf": [
+            {
+              "enum": [
+                "agree",
+                "disagree"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "level",
+              "code",
+              "row",
+              "message"
+            ],
+            "properties": {
+              "level": {
+                "enum": [
+                  "fail",
+                  "advisory"
+                ]
+              },
+              "code": {
+                "type": "string",
+                "pattern": "^(fail|advisory):experiment\\.[a-z-]+$"
+              },
+              "row": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

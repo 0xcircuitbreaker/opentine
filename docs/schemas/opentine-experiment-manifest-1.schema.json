@@ -1,0 +1,191 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-experiment-manifest-1.schema.json",
+  "title": "opentine.experiment-manifest/1",
+  "description": "A signed experiment manifest: hypothesis, code/container digests, model, sampling, seeds, data commitments, compute spend, result rows referencing signed verdicts and the stated conclusion. A file convention, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "experiment",
+    "hypothesis",
+    "code_digest",
+    "container_digest",
+    "model",
+    "sampling",
+    "seeds",
+    "data",
+    "compute",
+    "results",
+    "conclusion",
+    "created_at"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.experiment-manifest/1"
+    },
+    "experiment": {
+      "type": "string"
+    },
+    "hypothesis": {
+      "type": "string"
+    },
+    "code_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "container_digest": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "version"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    },
+    "sampling": {
+      "type": "object",
+      "additionalProperties": {
+        "type": [
+          "string",
+          "number",
+          "boolean",
+          "null"
+        ]
+      }
+    },
+    "seeds": {
+      "type": "array",
+      "items": {
+        "type": "integer"
+      }
+    },
+    "data": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "commitment"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "commitment": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        }
+      }
+    },
+    "compute": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "usd",
+        "gpu_hours",
+        "tokens"
+      ],
+      "properties": {
+        "usd": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "gpu_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tokens": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "verdict",
+          "path",
+          "score",
+          "passed"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "verdict": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "path": {
+            "type": "string"
+          },
+          "score": {
+            "type": "string",
+            "pattern": "^(0|1|0\\.[0-9]{0,5}[1-9])$"
+          },
+          "passed": {
+            "type": "boolean"
+          },
+          "input": {}
+        }
+      }
+    },
+    "conclusion": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "signer": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "signature": {
+      "$ref": "tine-sig-3.schema.json"
+    }
+  }
+}

@@ -2034,6 +2034,17 @@ otherwise `advisory:audit-game.auditor-unpinned`. `tine eval run
 --judge-rubric FILE` pins the rubric into the judge provenance every signed
 verdict carries. `--json` prints `tine-cli-auditor/1`; see docs/AUDIT_GAMES.md.
 
+## Experiment manifests and reproduce (0.67)
+
+| Command | What it does |
+| --- | --- |
+| `tine experiment sign DRAFT --key KEY [--out PATH] [--at TIME]` | Signs an `opentine.experiment-manifest/1` draft (in place unless `--out`) |
+| `tine experiment check FILE [--repo PATH] [--strict]` | Judges a manifest offline: exits 1 on `fail:experiment.result-mismatch`, `fail:experiment.reference-missing`, `fail:experiment.reference-unsigned`, `fail:experiment.key-separation`, `fail:experiment.unsigned`, `fail:experiment.bad-signature` or `fail:experiment.malformed`; `advisory:experiment.signer-unpinned` blocks only with `--strict`. Given a reproduce report, checks its signature |
+| `tine reproduce EXPERIMENT --sample K --key KEY [--seed N] [--tolerance T] [--repeats N] [--runner verdict\|FILE.py:FUNC\|MODULE:FUNC] [--out PATH] [--at TIME]` | Reruns a seeded sample of the manifest's result rows and writes a signed `opentine.reproduce-report/1` (agree/disagree per row, the recorded selection, and the manifest fields found nondeterministic); exits 1 on disagreement |
+
+Roles come only from the owner-pinned trust bundle. `--json` prints
+`tine-cli-experiment/1` or `tine-cli-reproduce/1`; see docs/EXPERIMENTS.md.
+
 ## Self-modification lineage (0.58)
 
 | Command | What it does |
