@@ -13,6 +13,7 @@ from __future__ import annotations
 from typing import Any
 
 from opentine._schema_defs import BOOL, INT, NUM, STR, closed, doc, opt
+from opentine._schema_defs_monitor_eval import EVAL_COMMANDS, EVAL_DESCRIPTION, EVAL_SHAPES
 
 _OID = {"type": "string", "pattern": "^attestation:sha256:[0-9a-f]{64}$"}
 _DIGEST = {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
@@ -72,7 +73,8 @@ SCHEMAS: dict[str, dict[str, Any]] = {
         "lists held monitor verdicts (`opentine.monitor-verdict/1`) and whether each signer "
         "is a pinned monitor key; `verify` checks offline that every blocked or replaced "
         "action in the given runs has its verdict. `fail:` findings block; `advisory:` "
-        "findings block only with `--strict`.", {"anyOf": _LISTS}),
+        "findings block only with `--strict`. " + EVAL_DESCRIPTION,
+        {"anyOf": [*_LISTS, *EVAL_SHAPES]}),
     "opentine-monitor-verdict-1": doc("opentine-monitor-verdict-1",
         "opentine.monitor-verdict/1 claim",
         "The claim of an attestation recording one inline monitor decision. A claim "
@@ -91,6 +93,6 @@ SCHEMAS: dict[str, dict[str, Any]] = {
 }  # fmt: skip
 COMMAND_SCHEMAS: dict[str, str] = {
     f"monitor {verb}": "tine-cli-monitor-1" for verb in ("stop", "stops", "verdicts", "verify")
-}
+} | {command: "tine-cli-monitor-1" for command in EVAL_COMMANDS}
 
 __all__ = ["COMMAND_SCHEMAS", "SCHEMAS", "VERDICT_CLAIM"]

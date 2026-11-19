@@ -7,6 +7,7 @@ checks offline that every blocked or replaced action in the given runs has its
 verdict record (:mod:`opentine._monitor_audit`) and exits 1 on a ``fail:``
 finding (``--strict``: on an advisory too); ``gate`` is the hook-path monitor
 an agent CLI runs before each tool call (:mod:`opentine._monitor_hook`).
+``backtest`` and ``collusion`` are in :mod:`opentine._cli_monitor_eval`.
 """
 
 from __future__ import annotations
@@ -24,7 +25,7 @@ AGENTS = ("claude-code", "codex", "gemini", "generic")
 
 
 def add_monitor_parser(subparsers: argparse._SubParsersAction) -> None:
-    parser = subparsers.add_parser("monitor", help="Inline monitor verdicts and stop tokens")
+    parser = subparsers.add_parser("monitor", help="Monitor verdicts, gate, backtests")
     verbs = parser.add_subparsers(dest="monitor_command", required=True)
     stop = verbs.add_parser("stop", help="Sign and hold a stop token (never released)")
     stop.add_argument("--scope", default="*", help="*, agent:NAME or session:ID (default *)")
@@ -51,6 +52,9 @@ def add_monitor_parser(subparsers: argparse._SubParsersAction) -> None:
     gate.add_argument("--agent", choices=AGENTS, help="Payload dialect (default generic)")
     gate.add_argument("--fail-closed", action="store_true",
                       help="Block when the payload or config cannot be read")  # fmt: skip
+    from opentine._cli_monitor_eval import add_eval_parsers
+
+    add_eval_parsers(verbs)
 
 
 def _runs(repo: Any, names: list[str]) -> list[tuple[str, Any]]:
@@ -111,6 +115,11 @@ def _body(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[str
 
 
 def cmd_monitor(args: argparse.Namespace) -> None:
+    from opentine._cli_monitor_eval import EVAL_VERBS
+    from opentine._cli_monitor_eval import run as run_eval
+
+    if args.monitor_command in EVAL_VERBS:
+        return run_eval(args)
     if args.monitor_command == "gate":
         from opentine._monitor_hook import run
 

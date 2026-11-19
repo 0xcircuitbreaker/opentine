@@ -60,7 +60,7 @@ def add_fleet_parser(subparsers: argparse._SubParsersAction) -> None:
     add_loop_parser(subparsers)  # 0.58: tine loop stop|status
     add_lineage_parser(subparsers)  # 0.58: tine lineage record|check|graph|why|archive|index
     add_integrity_parser(subparsers)  # 0.60: tine integrity check|pin|sign
-    add_monitor_parser(subparsers)  # 0.63: tine monitor stop|stops|verdicts|verify|gate
+    add_monitor_parser(subparsers)  # 0.63: tine monitor verdicts, gate, backtests
 
 
 def _fail(message: object) -> SystemExit:
@@ -202,9 +202,9 @@ COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
     **TASK_COMMANDS,
     **KEYS_COMMANDS,
     **LOOP_COMMANDS,
-    **MONITOR_COMMANDS,
     **LINEAGE_COMMANDS,
     **INTEGRITY_COMMANDS,
+    **MONITOR_COMMANDS,
 }
 
 __all__ = ["COMMANDS", "add_fleet_parser", "cmd_fleet"]
