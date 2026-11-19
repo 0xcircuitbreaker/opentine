@@ -164,7 +164,12 @@ def atomic_bytes(path: Path, data: bytes) -> None:
             # gc removed the then-empty fan-out directory; macOS may report a
             # create inside a directory being unlinked as EINVAL, not ENOENT.
             vanished = exc.errno == errno.EINVAL and not path.parent.is_dir()
-            if not (isinstance(exc, FileNotFoundError) or vanished) or attempt == 199:
+            # Windows: an rmdir'd directory stays delete-pending while any
+            # handle (a scanner's listdir) is open, and a create inside it
+            # fails with ERROR_ACCESS_DENIED (Errno 13), not ENOENT. Retry it
+            # (bounded): the next pass recreates the directory once it is gone.
+            pending = isinstance(exc, PermissionError) and _winretry.WINDOWS
+            if not (isinstance(exc, FileNotFoundError) or vanished or pending) or attempt == 199:
                 raise
             if attempt >= 3:  # a gc is sweeping hard: back off briefly
                 time.sleep(0.001 * attempt)
