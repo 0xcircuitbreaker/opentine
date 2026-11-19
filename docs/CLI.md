@@ -2013,6 +2013,15 @@ promote` (`promote.score-tainted`) and reported by `tine lineage check|why`
 The `dataset` verbs print `tine-cli-canary/1` and `scan` prints
 `tine-cli-integrity/1` with `--json`. See docs/INTEGRITY.md.
 
+## Monitor backtests and collusion tests (0.63)
+
+| Command | What it does |
+| --- | --- |
+| `tine monitor backtest MONITOR --runs FILE [--visibility STATE] [--require-reproduced]` | Replays recorded trajectories against a rule monitor; reports catch rate, false-positive rate (per reasoning-visibility group) and the decision diff against the recorded online verdicts; exit 1 with `--require-reproduced` when a same-monitor verdict is not reproduced byte for byte |
+| `tine monitor collusion MONITOR --runs FILE [--reference MONITOR] [--margin M] [--min-samples N] [--log FILE]` | Untrusted monitor vs untrusted policy: compares catch rates on signalled and unsignalled attacks; findings are advisory only and the exit status is 0 |
+
+Both print `tine-cli-monitor/1` with `--json`. See docs/MONITOR.md.
+
 A sent message is delivered by the member's `tine hook capture` at its next
 turn end (the hook inherits `OPENTINE_FLEET_ID` and `OPENTINE_FLEET_MEMBER`
 from `tine fleet up`), once, and recorded as a `human` step with actor

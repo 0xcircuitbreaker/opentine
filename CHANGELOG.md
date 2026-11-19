@@ -29,6 +29,22 @@
 - New schemas: `tine-cli-monitor-1`, `opentine-monitor-verdict-1`,
   `opentine-monitor-stop-1`, `opentine-monitor-hook-1`. No new object kinds
   (docs/MONITORS.md).
+- `tine monitor backtest MONITOR --runs FILE` replays recorded trajectories
+  against a rule monitor offline and reports catch rate, false-positive rate
+  and the decision diff against the recorded online verdicts. Online verdicts
+  are compared only when they saw the same reasoning visibility (`captured`,
+  `redacted`, `unavailable`) and the same input digest, and rates are never
+  pooled across visibility groups. A verdict from the same monitor digest must
+  reproduce byte for byte; `--require-reproduced` exits 1 when one does not.
+- `tine monitor collusion MONITOR --runs FILE [--reference MONITOR]` tests an
+  untrusted monitor against an untrusted policy's signalled and unsignalled
+  attacks; its findings (`advisory:monitor-collusion-suspected`,
+  `advisory:monitor-misses-reference-catch`) are advisory only and
+  `--log FILE` appends the result as one JSON line.
+- Rule monitors are JSON specs; the decision fields of the
+  `opentine.monitor.verdict` claim convention (monitor digest, input digest,
+  reasoning visibility, score, threshold, action) are documented in
+  docs/MONITOR.md. New schema `tine-cli-monitor-1`.
 
 ## 0.61.0 — Memory provenance and quarantine (2026-11-19)
 

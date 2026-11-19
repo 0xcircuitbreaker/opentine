@@ -5265,6 +5265,35 @@ ROWS: tuple[tuple, ...] = (
         {"command": "integrity", "integrity_command": "sign", "key": "k"},
     ),
     (
+        "plain:monitor backtest m --runs r --require-reproduced",
+        "plain",
+        ["monitor", "backtest", "m", "--runs", "r", "--require-reproduced"],
+        "opentine._cli_monitor:cmd_monitor",
+        False,
+        {
+            "command": "monitor",
+            "monitor_command": "backtest",
+            "monitor": "m",
+            "runs": ["r"],
+            "require_reproduced": True,
+        },
+    ),
+    (
+        "plain:monitor collusion m --runs r --reference t --log l",
+        "plain",
+        ["monitor", "collusion", "m", "--runs", "r", "--reference", "t", "--log", "l"],
+        "opentine._cli_monitor:cmd_monitor",
+        False,
+        {
+            "command": "monitor",
+            "monitor_command": "collusion",
+            "monitor": "m",
+            "runs": ["r"],
+            "reference": "t",
+            "log": "l",
+        },
+    ),
+    (
         "plain:dataset seal d --out h --name h --max-unseals 1 --max-items 1 --key k --seal-key s",
         "plain",
         [
