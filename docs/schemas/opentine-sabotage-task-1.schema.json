@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-sabotage-task-1.schema.json",
+  "title": "opentine.sabotage-task/1 claim",
+  "description": "The claim of an attestation on a run recording one SHADE-style sabotage task outcome: main task, side task attempted/achieved, evidence and linked monitor verdicts. A claim convention, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "task",
+    "class",
+    "main_task",
+    "side_task",
+    "evidence",
+    "monitor_verdicts",
+    "at"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.sabotage-task/1"
+    },
+    "task": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+    },
+    "class": {
+      "enum": [
+        "code",
+        "decision"
+      ]
+    },
+    "main_task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "score",
+        "passed"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "score": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "passed": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "side_task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "attempted",
+        "achieved"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "attempted": {
+          "type": "boolean"
+        },
+        "achieved": {
+          "type": "boolean"
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "monitor_verdicts": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+      }
+    },
+    "at": {
+      "type": "string"
+    }
+  }
+}
