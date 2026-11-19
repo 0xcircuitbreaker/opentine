@@ -46,6 +46,9 @@ OVERSIGHT_DECISION = "oversight-decision:"
 #: 0.65: rows that keep a blind audit game's seal, findings and reveal
 #: (opentine._audit_game): released never, so a reveal stays on record.
 AUDIT_GAME = "audit-game:"
+#: 0.68: rows that keep a sabotage task record (opentine._sabotage): released never,
+#: so a loop cannot delete the record of an attempted or achieved side task.
+SABOTAGE_TASK = "sabotage-task:"
 MAX_HOLDS_BYTES = 4 * 1024 * 1024
 
 
@@ -153,6 +156,8 @@ def release(repo, target: str) -> list[dict[str, str]]:
             raise HoldError(f"{target} keeps an oversight decision: it is never released")
         if any(r["target"].startswith(AUDIT_GAME) for r in gone):
             raise HoldError(f"{target} keeps an audit-game record: it is never released")
+        if any(r["target"].startswith(SABOTAGE_TASK) for r in gone):
+            raise HoldError(f"{target} keeps a sabotage task record: it is never released")
         return [r for r in rows if r not in gone]
 
     edit_holds(holds_path(repo), change)
