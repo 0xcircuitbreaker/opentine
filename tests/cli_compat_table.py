@@ -5651,4 +5651,132 @@ ROWS: tuple[tuple, ...] = (
         False,
         {"command": "ui", "run_id": None, "repo": "p"},
     ),
+    (
+        "plain:import inspect LOG --repo r --key k --evals e --json",
+        "plain",
+        ["import", "inspect", "LOG", "--repo", "r", "--key", "k", "--evals", "e", "--json"],
+        "opentine._cli_inspect:cmd_inspect",
+        False,
+        {
+            "command": "inspect",
+            "inspect_command": "import",
+            "log": "LOG",
+            "repo": "r",
+            "key": "k",
+            "evals": "e",
+            "threshold": 1.0,
+            "created_at": None,
+            "json": True,
+            "member_command": [],
+        },  # fmt: skip
+    ),
+    (
+        "plain:inspect import LOG",
+        "plain",
+        ["inspect", "import", "LOG"],
+        "opentine._cli_inspect:cmd_inspect",
+        False,
+        {
+            "command": "inspect",
+            "inspect_command": "import",
+            "log": "LOG",
+            "repo": ".",
+            "key": None,
+            "json": False,
+            "member_command": [],
+        },  # fmt: skip
+    ),
+    (
+        "plain:export inspect --repo r --format eval --output o",
+        "plain",
+        ["export", "inspect", "--repo", "r", "--format", "eval", "--output", "o"],
+        "opentine._cli_inspect:cmd_inspect",
+        False,
+        {
+            "command": "inspect",
+            "inspect_command": "export",
+            "repo": "r",
+            "log_format": "eval",
+            "output": "o",
+            "prefix": None,
+            "force": False,
+            "member_command": [],
+        },  # fmt: skip
+    ),
+    (
+        "plain:import metr DIR --out d.jsonl",
+        "plain",
+        ["import", "metr", "DIR", "--out", "d.jsonl"],
+        "opentine._cli_inspect:cmd_inspect",
+        False,
+        {
+            "command": "inspect",
+            "inspect_command": "metr",
+            "family": "DIR",
+            "out": "d.jsonl",
+            "json": False,
+            "member_command": [],
+        },  # fmt: skip
+    ),
+    (
+        "plain:inspect sign LOG --key k --signed-at T",
+        "plain",
+        ["inspect", "sign", "LOG", "--key", "k", "--signed-at", "T"],
+        "opentine._cli_inspect:cmd_inspect",
+        False,
+        {
+            "command": "inspect",
+            "inspect_command": "sign",
+            "log": "LOG",
+            "key": "k",
+            "signed_at": "T",
+            "member_command": [],
+        },  # fmt: skip
+    ),
+    (
+        "plain:inspect verify LOG --json",
+        "plain",
+        ["inspect", "verify", "LOG", "--json"],
+        "opentine._cli_inspect:cmd_inspect",
+        False,
+        {
+            "command": "inspect",
+            "inspect_command": "verify",
+            "log": "LOG",
+            "json": True,
+            "member_command": [],
+        },  # fmt: skip
+    ),
+    (
+        "plain:inspect metr DIR --out d.jsonl --json",
+        "plain",
+        ["inspect", "metr", "DIR", "--out", "d.jsonl", "--json"],
+        "opentine._cli_inspect:cmd_inspect",
+        False,
+        {
+            "command": "inspect",
+            "inspect_command": "metr",
+            "family": "DIR",
+            "out": "d.jsonl",
+            "json": True,
+            "member_command": [],
+        },  # fmt: skip
+    ),
+    (
+        "plain:inspect export --prefix P --json --output o",
+        "plain",
+        ["inspect", "export", "--prefix", "P", "--json", "--output", "o"],
+        "opentine._cli_inspect:cmd_inspect",
+        False,
+        {
+            "command": "inspect",
+            "inspect_command": "export",
+            "prefix": "P",
+            "log_format": "json",
+            "output": "o",
+            "repo": ".",
+            "json": True,
+            "member_command": [],
+        },  # fmt: skip
+    ),
 )

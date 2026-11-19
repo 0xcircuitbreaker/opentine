@@ -109,6 +109,8 @@ NOT_KINDS = (
     "opentine-monitor-verdict-1", "opentine-monitor-stop-1", "opentine-monitor-hook-1",
     # 0.64: the value of an existing annotation (an oversight decision), not a kind
     "opentine-oversight-decision-1",
+    # 0.65 (release 0.64.0): an imported run's annotation value and a detached log signature
+    "opentine-inspect-sample-1", "opentine-inspect-log-sig-1",
 )  # fmt: skip
 DEFERRED_SCHEMAS: dict[str, str] = {}
 #: Backticked SPEC heading words that are not kinds (capabilities, commands, fields).

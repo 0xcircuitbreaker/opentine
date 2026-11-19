@@ -25,6 +25,8 @@ from pathlib import Path
 
 from opentine._cli_common import BRAND, _terminal, console
 from opentine._cli_errors import error
+from opentine._cli_inspect import COMMANDS as INSPECT_COMMANDS
+from opentine._cli_inspect import add_inspect_parser
 from opentine._cli_integrity import COMMANDS as INTEGRITY_COMMANDS
 from opentine._cli_integrity import add_integrity_parser
 from opentine._cli_keys import COMMANDS as KEYS_COMMANDS
@@ -64,6 +66,7 @@ def add_fleet_parser(subparsers: argparse._SubParsersAction) -> None:
     add_integrity_parser(subparsers)  # 0.60: tine integrity check|pin|sign
     add_monitor_parser(subparsers)  # 0.63: tine monitor verdicts, gate, backtests
     add_oversight_parser(subparsers)  # 0.64: tine oversight queue, approve, reject
+    add_inspect_parser(subparsers)  # 0.64: tine inspect import|export|metr|sign|verify
 
 
 def _fail(message: object) -> SystemExit:
@@ -209,6 +212,7 @@ COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
     **INTEGRITY_COMMANDS,
     **MONITOR_COMMANDS,
     **OVERSIGHT_COMMANDS,
+    **INSPECT_COMMANDS,
 }
 
 __all__ = ["COMMANDS", "add_fleet_parser", "cmd_fleet"]

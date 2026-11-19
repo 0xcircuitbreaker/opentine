@@ -1991,6 +1991,18 @@ ITEM is `promotion:LABEL:RUN`, `monitor:ATTESTATION` or
 `promote.oversight-stale` or `promote.oversight-rejected`. `--json` prints
 `tine-cli-oversight/1`; see docs/OVERSIGHT.md.
 
+## Inspect and METR interop (0.65)
+
+| Command | What it does |
+| --- | --- |
+| `tine import inspect LOG --repo PATH [--key KEY --evals DIR] [--threshold N] [--created-at TIME]` | Records each sample of an Inspect `.eval` or `.json` log as a run under `heads/inspect/<task>-<eval>/`; with `--key`, signs one `tine-eval-verdict/1` eval folder per scorer in DIR (spelling of `tine inspect import`) |
+| `tine export inspect --repo PATH [--prefix P] [--format json\|eval] [--output PATH] [--force]` | Writes the imported runs back as an Inspect log with the same sample ids and scores; stdout output is byte-exact (spelling of `tine inspect export`) |
+| `tine import metr DIR --out FILE.jsonl` | Reads a METR task-standard family into an eval dataset without running its code (spelling of `tine inspect metr`) |
+| `tine inspect sign LOG --key KEY [--signed-at TIME]` | Writes `LOG.tine-sig.json`, a detached signature over the log's bytes (what the Inspect hook writes) |
+| `tine inspect verify LOG` | Checks the log against its detached signature; exit 4 when any byte changed |
+
+`--json` prints `tine-cli-inspect/1`. See docs/INSPECT.md.
+
 ## Self-modification lineage (0.58)
 
 | Command | What it does |

@@ -1,5 +1,37 @@
 # Changelog
 
+## Unreleased — Inspect and Petri interop
+
+- `tine import inspect LOG --repo PATH` (also `tine inspect import`) reads an
+  Inspect AI `.eval` zip or `.json` log without importing `inspect_ai`: each
+  sample becomes a run on `heads/inspect/<task>-<eval>/s<index>`, its messages
+  become steps, the eval's sandbox config becomes the run's first step
+  (`inputs["inspect.sandbox"]`), and the sample id (JSON type kept), epoch,
+  target, raw scores and eval header go in the run annotation's `inspect`
+  value. A second import of the same eval is refused.
+- With `--key KEY --evals DIR` each scorer's scores become a signed
+  `tine-eval-verdict/1` eval folder that `tine eval verify` reads unchanged.
+  `C`/`I`/`P`/`N`, booleans and numbers in 0..1 map into 0..1; any other value
+  gets no verdict and is listed under `skipped`.
+- `tine export inspect --repo PATH [--format json|eval] [--output PATH]` writes
+  the runs back as an Inspect log with the same sample ids and scores;
+  `.eval` output uses fixed zip timestamps and stdout output is byte-exact.
+  Five fixtures shaped like logs for five pinned inspect_evals tasks
+  (`tests/fixtures/inspect/MANIFEST.json`, synthetic content) round-trip exactly.
+- `opentine._inspect_hook` signs Inspect logs on write (`register()` from an
+  `inspect_ai` hooks module; import-guarded): a detached
+  `<log>.tine-sig.json` record (`opentine-inspect-log-sig/1`).
+  `tine inspect sign` and `tine inspect verify` write and check it.
+- `tine import metr DIR --out FILE.jsonl` reads a METR task-standard family
+  into an eval dataset by parsing `<family>.py` with `ast`; the family's code
+  is never executed.
+- The log reader caps log, member and expanded zip size, member count,
+  compression ratio, JSON depth, samples and messages, and is a new `inspect`
+  target of `scripts/fuzz.py` seeded from the fixtures.
+- Schemas `tine-cli-inspect-1`, `opentine-inspect-sample-1` and
+  `opentine-inspect-log-sig-1` (claim and file conventions, not object kinds);
+  docs/INSPECT.md. No object kind and no `tine verify` code is added.
+
 ## 0.63.0 — Oversight queue (2026-11-19)
 
 - `.tine/oversight.toml` defines risk tiers, each a k-of-n set of approver
