@@ -1680,7 +1680,9 @@ run still being captured (a finished or attested run is refused);
 `--min-assurance` keeps notes whose subject run reaches the tier. `memory
 quarantine` signs and holds a superseding `quarantine` note and lists every run
 served the note and every lineage variant whose runs consumed it; `memory
-served` lists the same. `tine promote` refuses with
+served` lists the same. Both report the quarantine as `verified` only when a
+`curator` key of the owner-pinned key roles signed it, else `unverified`
+(it still blocks). `tine promote` refuses with
 `promote.memory-quarantined` and `tine lineage check|why` report
 `lineage.memory-quarantined`. See docs/MEMORY.md.
 
@@ -1934,8 +1936,9 @@ refused operation exits 1 with `{"error": {"code": "held|stale|done|stopped|exis
 
 The key-role policy names keys by `sha256:` fingerprint (or raw Ed25519 public
 key hex) under `[roles]`: `optimizer`, `scorer`, `dataset`, `verdict` and the
-optional `approver`, `policy` (signs promotion policies) and `stopper` (may
-stop a loop), with `version = 1`. Findings follow owner decision D12:
+optional `approver`, `policy` (signs promotion policies), `stopper` (may
+stop a loop), `eval` and `curator` (signs memory quarantines that verify),
+with `version = 1`. Findings follow owner decision D12:
 `fail:key-separation.shared` and `fail:key-roles.malformed` block;
 `advisory:key-roles.no-policy`, `advisory:key-roles.no-optimizer` and
 `advisory:key-roles.empty-role` are reported and block only with `--strict`.

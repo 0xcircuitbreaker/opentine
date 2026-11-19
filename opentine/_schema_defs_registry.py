@@ -119,7 +119,9 @@ SCHEMAS: dict[str, dict[str, Any]] = {
         "`quarantine` adds `note` (the quarantined digest), `quarantine`, `signer`, `held` "
         "and the signed `record`; `quarantine` and `served` give `served_note`, `quarantined`, "
         "`runs` (every run that lists a step serving the note) and `variants` (lineage "
-        "variants whose mutation or eval runs did).",
+        "variants whose mutation or eval runs did), and `verification`: `verified` when a "
+        "`curator` key of the owner-pinned key roles signed the quarantine, else "
+        "`unverified: WHY` (it still blocks), null when the note is not quarantined.",
         open_(["command", "action", "ok"], {
             "command": {"const": "memory"},
             "action": {"enum": ["add", "list", "recall", "trust", "sync", "quarantine",
@@ -129,6 +131,8 @@ SCHEMAS: dict[str, dict[str, Any]] = {
             "team": {"anyOf": [INT, {"type": "array", "items": _HEX64}]},
             "recorded_run": opt(_RUN), "quarantine": _BLOB, "signer": _HEX64, "held": _BLOB,
             "served_note": _BLOB, "quarantined": BOOL,
+            "verification": {"anyOf": [{"type": "null"}, {"type": "string",
+                             "pattern": "^(verified$|unverified: )"}]},
             "runs": {"type": "array", "items": closed(["run", "event"], {
                 "run": _RUN, "event": STR})},
             "variants": {"type": "array", "items": closed(["variant", "runs"], {

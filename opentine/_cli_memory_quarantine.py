@@ -54,7 +54,9 @@ def consumers(
 
     rows = served_runs(repo, args.note, rebuild_first=rebuild_first)
     held = quarantined(repo).get(args.note)
-    return {"served_note": args.note, "quarantined": held is not None, "runs": rows,
+    state = held["verification"] if held is not None else None
+    return {"served_note": args.note, "quarantined": held is not None,
+            "verification": state, "runs": rows,
             "variants": _variants(args, {r["run"] for r in rows})}  # fmt: skip
 
 
@@ -81,10 +83,12 @@ def recall(args: argparse.Namespace, repo: Any, rows: list[dict[str, Any]]) -> d
 def act(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], str]:
     if args.memory_action == "quarantine":
         body = _quarantine(args, repo)
-        head = f"quarantined {body['note']} ({body['quarantine']})"
+        head = f"quarantined {body['note']} ({body['quarantine']}; {body['verification']})"
     else:
         body = consumers(args, repo)
-        state = "quarantined" if body["quarantined"] else "not quarantined"
+        state = "not quarantined"
+        if body["quarantined"]:
+            state = f"quarantined; {body['verification']}"
         head = f"{body['served_note']} ({state})"
     lines = [head, f"served to {len(body['runs'])} run(s)"]
     lines += [f"  {row['run']}" for row in body["runs"]]

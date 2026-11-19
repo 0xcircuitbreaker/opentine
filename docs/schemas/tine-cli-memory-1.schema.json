@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opentine.com/schemas/tine-cli-memory-1.schema.json",
   "title": "tine memory ACTION --json",
-  "description": "Every `tine memory` action. `add`: `note` (the check) and the signed `record`; `list`/`recall`: `notes` (checks with `text`, `author`, `created_at`) and `team`, the number of trusted keys; `trust`: `team`, the trusted keys. 0.61: `recall` rows carry `assurance` with `--min-assurance` and `recorded_run` with `--record-to`; `quarantine` adds `note` (the quarantined digest), `quarantine`, `signer`, `held` and the signed `record`; `quarantine` and `served` give `served_note`, `quarantined`, `runs` (every run that lists a step serving the note) and `variants` (lineage variants whose mutation or eval runs did).",
+  "description": "Every `tine memory` action. `add`: `note` (the check) and the signed `record`; `list`/`recall`: `notes` (checks with `text`, `author`, `created_at`) and `team`, the number of trusted keys; `trust`: `team`, the trusted keys. 0.61: `recall` rows carry `assurance` with `--min-assurance` and `recorded_run` with `--record-to`; `quarantine` adds `note` (the quarantined digest), `quarantine`, `signer`, `held` and the signed `record`; `quarantine` and `served` give `served_note`, `quarantined`, `runs` (every run that lists a step serving the note) and `variants` (lineage variants whose mutation or eval runs did), and `verification`: `verified` when a `curator` key of the owner-pinned key roles signed the quarantine, else `unverified: WHY` (it still blocks), null when the note is not quarantined.",
   "type": "object",
   "required": [
     "command",
@@ -255,6 +255,17 @@
     },
     "quarantined": {
       "type": "boolean"
+    },
+    "verification": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "pattern": "^(verified$|unverified: )"
+        }
+      ]
     },
     "runs": {
       "type": "array",

@@ -64,9 +64,17 @@ carries the tag `quarantine` and says why. It is signed, stored under
 take the union of the refs and the held copies, so deleting the quarantine's
 ref serves nothing again; an unreadable holds file serves no notes at all.
 
-A quarantine counts when it verifies under `.tine/memory-team.json`; with no
-team file, any record whose own signature verifies counts, because counting
-one too many only refuses more. Recall (the CLI and MCP `recall`) never
+Any quarantine whose own signature verifies blocks, whoever signed it,
+because counting one too many only refuses more (fail safe). Whether it is
+*verified* follows the 0.59 key roles: only a signer named in the `curator`
+role of the owner-pinned key roles (a trust bundle signed by an owner key
+pinned outside the repository, docs/EVALS-PROMOTION.md) is `verified`. A
+signer outside that role, roles that are only in the unsigned
+`.tine/key-roles.toml`, or no pinned roles at all make it `unverified: WHY`;
+`tine memory quarantine` and `served` print that state and `--json` gives it
+as `verification`. `.tine/memory-team.json` is an unsigned file in the
+repository: it is a legacy hint for which notes recall serves and grants no
+quarantine authority. Recall (the CLI and MCP `recall`) never
 serves a quarantined note or a quarantine record.
 
 A quarantine also covers copies: a note with the same scope, topic and text
