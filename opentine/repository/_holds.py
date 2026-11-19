@@ -40,6 +40,9 @@ MEMORY_QUARANTINE = "memory-quarantine:"
 #: token (opentine._monitor_verdict, opentine._monitor_stop): released never.
 MONITOR_VERDICT = "monitor-verdict:"
 MONITOR_STOP = "monitor-stop:"
+#: 0.64: rows that keep an oversight decision (opentine._oversight): released never,
+#: so a loop cannot delete an approval, a rejection or a review request.
+OVERSIGHT_DECISION = "oversight-decision:"
 MAX_HOLDS_BYTES = 4 * 1024 * 1024
 
 
@@ -143,6 +146,8 @@ def release(repo, target: str) -> list[dict[str, str]]:
             raise HoldError(f"{target} keeps a memory quarantine: it is never released")
         if any(r["target"].startswith((MONITOR_VERDICT, MONITOR_STOP)) for r in gone):
             raise HoldError(f"{target} keeps a monitor verdict or stop token: it is never released")
+        if any(r["target"].startswith(OVERSIGHT_DECISION) for r in gone):
+            raise HoldError(f"{target} keeps an oversight decision: it is never released")
         return [r for r in rows if r not in gone]
 
     edit_holds(holds_path(repo), change)
