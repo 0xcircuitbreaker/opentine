@@ -2002,6 +2002,23 @@ ITEM is `promotion:LABEL:RUN`, `monitor:ATTESTATION` or
 | `tine inspect verify LOG` | Checks the log against its detached signature; exit 4 when any byte changed |
 
 `--json` prints `tine-cli-inspect/1`. See docs/INSPECT.md.
+## Auditor runs and blind audit games (0.65)
+
+
+| Command | What it does |
+| --- | --- |
+| `tine auditor import-petri FILE [--save PATH] [--blind SECRET [--objective TEXT]] --repo PATH` | Records a Petri or Bloom transcript as a `role=auditor` run (auditor, target and judge as step speakers); `--blind` replaces the target's identity with a commitment and writes the secret to SECRET |
+| `tine auditor seal RUN --game GAME --secret SECRET --key KEY [--at TIME] --repo PATH` | Signs and holds the game's commitment |
+| `tine auditor findings RUN --game GAME --findings FILE --verdict concern\|no-concern --key KEY [--at TIME] --repo PATH` | Signs and holds the auditor's findings (their digest and verdict) |
+| `tine auditor reveal RUN --game GAME --secret SECRET --key KEY [--at TIME] --repo PATH` | Signs and holds the reveal, naming the findings it follows |
+| `tine auditor check [--game GAME] [--strict] --repo PATH` | Judges every game offline; exits 1 on `fail:audit-game.reveal-before-verdict`, `fail:audit-game.commitment-mismatch`, `fail:audit-game.unsealed` or `fail:audit-game.unsigned` |
+
+Records follow the claim convention `opentine.audit-game/1` on existing
+attestations and are held under `audit-game:GAME` (never released). Findings
+count as the auditor's only when signed by a pinned `auditor`-role key;
+otherwise `advisory:audit-game.auditor-unpinned`. `tine eval run
+--judge-rubric FILE` pins the rubric into the judge provenance every signed
+verdict carries. `--json` prints `tine-cli-auditor/1`; see docs/AUDIT_GAMES.md.
 
 ## Self-modification lineage (0.58)
 
@@ -2078,7 +2095,8 @@ tine dataset import SRC --out DATASET.jsonl [--format jsonl|hf] [--split S]
 tine dataset export DATASET.jsonl --out PATH [--format jsonl|hf] [--split S]
 tine dataset show DATASET.jsonl
 tine eval run DATASET.jsonl --scorer SPEC --key KEY --out DIR [--threshold T]
-              [--outputs FILE.jsonl] [--run RUN] [--judge-prompt FILE] [--created-at TIME]
+              [--outputs FILE.jsonl] [--run RUN] [--judge-prompt FILE] [--judge-rubric FILE]
+              [--created-at TIME]
               [--holdout DIR [--repo PATH]]
 tine eval verify DIR [--pubkey PUB]
 tine eval compare A B [--pubkey PUB] [--exit-code]

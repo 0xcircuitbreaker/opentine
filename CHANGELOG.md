@@ -31,6 +31,33 @@
 - Schemas `tine-cli-inspect-1`, `opentine-inspect-sample-1` and
   `opentine-inspect-log-sig-1` (claim and file conventions, not object kinds);
   docs/INSPECT.md. No object kind and no `tine verify` code is added.
+- Judge provenance: an `llm-judge` scorer's `scorer_version` is now
+  `jp1+sha256:` over an `opentine.judge-provenance/1` document (judge model,
+  prompt digest, rubric digest, sampling parameters). It sits inside the
+  signed body of every `tine-eval-verdict/1`; the eval folder keeps the
+  document as `judge.json` and each judge run's metadata carries it.
+  `tine eval verify` recomputes the pin: an edited rubric digest fails with
+  the existing `eval.summary-mismatch`, and rewriting the verdicts to match
+  fails with `eval-verdict.bad-signature`. The verdict format and its
+  verifiers are unchanged. `tine eval run --judge-rubric FILE` adds a rubric.
+- `tine auditor import-petri FILE --repo PATH` records a Petri or Bloom
+  transcript as an ordinary run tagged `role=auditor`. Auditor, target and
+  judge are the steps' speakers and `metadata.audit` names their models. The
+  reader is pure JSON parsing, bounded in size, nesting and message count,
+  with a fuzz test; fixtures are small and synthetic.
+- Blind audit games: `--blind SECRET` replaces the target's identity with a
+  commitment. `tine auditor seal|findings|reveal` sign the game's records as
+  attestations (claim convention `opentine.audit-game/1`) held under
+  `audit-game:GAME`, which `tine hold release` refuses. A reveal names the
+  findings it follows. `tine auditor check` exits 1 on
+  `fail:audit-game.reveal-before-verdict`, `fail:audit-game.commitment-mismatch`,
+  `fail:audit-game.unsealed` or `fail:audit-game.unsigned`. Findings by a key
+  outside the pinned role are `advisory:` (D12).
+- Key roles: `auditor`, from the owner-pinned trust bundle only. It is guarded
+  against optimizer keys by `tine keys lint`.
+- Schemas `tine-cli-auditor-1`, `opentine-audit-game-1` and
+  `opentine-judge-provenance-1`; docs/AUDIT_GAMES.md. No object kind and no
+  `tine verify` code is added.
 
 ## 0.63.0 — Oversight queue (2026-11-19)
 
