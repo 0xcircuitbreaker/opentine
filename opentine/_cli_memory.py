@@ -87,14 +87,14 @@ def recall_notes(repo: Any, query: str, limit: int = 10) -> list[dict[str, Any]]
     keys = team(repo)
     if not keys or not isinstance(query, str):
         return []
-    from opentine._memory_quarantine import TAG, quarantined
+    from opentine._memory_quarantine import TAG, blocker
 
     words = [word.casefold() for word in query.split() if word]
     found = []
-    held = quarantined(repo)  # 0.61: held too, so deleting the quarantine's ref lifts nothing
+    held = blocker(repo)  # 0.61: held too, so deleting the quarantine's ref lifts nothing
     for entry in refs.notes(repo, team=keys):
         record = entry["record"]
-        if entry["check"]["digest"] in held or TAG in record["tags"]:
+        if TAG in record["tags"] or held(entry["check"]["digest"], record) is not None:
             continue
         hay = " ".join([record["topic"], *record["tags"], record["text"]]).casefold()
         if words and all(word in hay for word in words):

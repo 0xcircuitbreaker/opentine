@@ -155,3 +155,42 @@ def test_the_index_is_rebuildable_and_scales_by_counts(team):
     repo.get = lambda oid: calls.append(oid) or original(oid)  # type: ignore[method-assign]
     assert consumers(repo, note) == first
     assert calls == []  # a fresh index answers without reading a single object
+
+
+def test_a_copy_of_a_quarantined_note_under_a_new_oid_is_still_refused(team, capsys):
+    root, key, note = team
+    assert _tine(capsys, "memory", "quarantine", note, "--key", key, "--why", "poisoned",
+                 "--json")[0] == 0  # fmt: skip
+    code, copy = _tine(capsys, "memory", "add", "deploys", "deploy  WITH the blue pipeline",
+                       "--key", key, "--created-at", "2026-01-02T00:00:00Z", "--json")  # fmt: skip
+    assert code == 0, copy
+    twin = copy["note"]["digest"]
+    assert twin != note
+    code, found = _tine(capsys, "memory", "recall", "deploy", "--json")
+    assert code == 0 and found["notes"] == []
+    repo = Repo.open(root)
+    recorder = _run(repo, "heads/twin")
+    record_with(recorder, [{"digest": twin}], "deploy")
+    codes = [r["code"] for r in promote_refusals(root, recorder.run_id)]
+    assert codes == ["promote.memory-quarantined"]
+
+
+def test_quarantine_lists_runs_from_the_store_not_a_forged_index(team, capsys):
+    import sqlite3
+    from contextlib import closing
+
+    from opentine._memory_index import index_path
+
+    root, key, note = team
+    repo = Repo.open(root)
+    recorder = _run(repo, "heads/fed")
+    record_with(recorder, [{"digest": note}], "deploy")
+    rebuild(repo)
+    with closing(sqlite3.connect(index_path(repo))) as db:
+        db.execute("DELETE FROM served")
+        db.commit()
+    assert consumers(repo, note) == []  # the cached read trusts a matching source digest
+    code, made = _tine(capsys, "memory", "quarantine", note, "--key", key, "--why", "bad",
+                       "--json")  # fmt: skip
+    assert code == 0, made
+    assert recorder.run_id in {r["run"] for r in made["runs"]}

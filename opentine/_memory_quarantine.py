@@ -85,6 +85,44 @@ def quarantined(repo: Any) -> dict[str, dict[str, Any]]:
     return out
 
 
+def content_key(record: Any) -> str | None:
+    """A note's scope, topic and folded text: a copy under a new oid has the same key."""
+    import hashlib
+
+    try:
+        text = " ".join(str(record["text"]).split()).casefold()
+        parts = [str(record["scope"]), str(record["topic"]).casefold(), text]
+    except (KeyError, TypeError):
+        return None
+    return hashlib.sha256(json.dumps(parts).encode("utf-8")).hexdigest()
+
+
+def blocker(repo: Any) -> Any:
+    """``match(digest, record=None)``: the quarantine row for a note, by oid or same content."""
+    bad = quarantined(repo)
+    by_content: dict[str, dict[str, Any]] = {}
+    for note, row in bad.items():
+        try:
+            found = content_key(json.loads(repo.get(note).payload()))
+        except (KeyError, ValueError, TypeError, OSError):
+            continue
+        if found is not None:
+            by_content.setdefault(found, row)
+
+    def match(digest: str, record: Any = None) -> dict[str, Any] | None:
+        if digest in bad or not by_content:
+            return bad.get(digest)
+        if record is None:
+            try:
+                record = json.loads(repo.get(digest).payload())
+            except (KeyError, ValueError, TypeError, OSError):
+                return None
+        key = content_key(record)
+        return by_content.get(key) if key is not None else None
+
+    return match
+
+
 def quarantine(repo: Any, note: str, key: Any, why: str, *, created_at: str | None = None,
                author: str | None = None) -> dict[str, Any]:  # fmt: skip
     """Sign, store and hold the quarantine of *note* (a stored note's digest)."""
@@ -126,14 +164,15 @@ def promote_refusals(repo_root: Any, candidate: str) -> list[dict[str, str]]:
         repo = Repo.open(repo_root)
     except Exception:  # noqa: BLE001 - no repository: no served notes to read
         return []
-    bad = quarantined(repo)
+    match = blocker(repo)
     try:
         notes = served(repo, candidate)
     except (KeyError, ValueError, OSError):
         return []
+    hits = [(n, row) for n in notes if (row := match(n)) is not None]
     return [refusal("promote.memory-quarantined",
-                    f"{candidate} was served {n}, quarantined by {bad[n]['signer']}: "
-                    f"{bad[n]['why']}") for n in notes if n in bad]  # fmt: skip
+                    f"{candidate} was served {n}, quarantined by {row['signer']}: "
+                    f"{row['why']}") for n, row in hits]  # fmt: skip
 
 
 def lineage_findings(repo_root: Any, files: dict[str, bytes],
@@ -147,9 +186,9 @@ def lineage_findings(repo_root: Any, files: dict[str, bytes],
         repo = Repo.open(repo_root)
     except Exception:  # noqa: BLE001 - no repository: no served notes to read
         return []
-    bad = quarantined(repo)  # an unreadable holds file raises: fail closed
-    if not bad:
+    if not quarantined(repo):  # an unreadable holds file raises: fail closed
         return []
+    match = blocker(repo)
     out = []
     for variant, runs in variant_runs(files, variants).items():
         for run in runs:
@@ -159,8 +198,16 @@ def lineage_findings(repo_root: Any, files: dict[str, bytes],
                 continue
             out += [{"code": "lineage.memory-quarantined", "variant": variant,
                      "detail": f"run {run} consumed quarantined note {n}"}
-                    for n in notes if n in bad]  # fmt: skip
+                    for n in notes if match(n) is not None]  # fmt: skip
     return out
 
 
-__all__ = ["TAG", "lineage_findings", "promote_refusals", "quarantine", "quarantined"]
+__all__ = [
+    "TAG",
+    "blocker",
+    "content_key",
+    "lineage_findings",
+    "promote_refusals",
+    "quarantine",
+    "quarantined",
+]

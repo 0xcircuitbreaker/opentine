@@ -69,6 +69,12 @@ team file, any record whose own signature verifies counts, because counting
 one too many only refuses more. Recall (the CLI and MCP `recall`) never
 serves a quarantined note or a quarantine record.
 
+A quarantine also covers copies: a note with the same scope, topic and text
+(case and whitespace folded) under a different oid is treated as quarantined
+by recall, `promote` and `lineage`, so re-adding the note with a new
+`created_at` or author does not launder it. A paraphrase is a different note
+and needs its own quarantine.
+
 The command lists:
 
 - `runs`: every stored run that lists a step serving the note (each step of a
@@ -96,3 +102,9 @@ a digest of every stored run and event id, so a new run or event makes it
 stale and the next query rebuilds it (staged, then moved into place). A query
 against a fresh index reads no objects, so tracing a note to its consumers
 costs one indexed lookup however many runs the repository holds.
+
+Anyone with write access can also write the index, including a `meta.source`
+that matches, so the index is never trusted for a decision: `promote` and
+`lineage` read served steps from the runs themselves, and `tine memory
+quarantine` rebuilds the index before it lists consumers. `tine memory served`
+uses the cached index and is a convenience only.

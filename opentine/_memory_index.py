@@ -92,11 +92,11 @@ def rebuild(repo: Any) -> dict[str, int]:
     return {"runs": len(runs), "events": len(events), "rows": len(rows)}
 
 
-def open_index(repo: Any) -> sqlite3.Connection:
-    """The index, rebuilt first when missing, unreadable or stale."""
+def open_index(repo: Any, *, rebuild_first: bool = False) -> sqlite3.Connection:
+    """The index, rebuilt first when missing, unreadable, stale or *rebuild_first*."""
     path = index_path(repo)
     fresh = False
-    if path.exists():
+    if path.exists() and not rebuild_first:
         try:
             with closing(sqlite3.connect(path)) as db:
                 row = db.execute("SELECT value FROM meta WHERE key = 'source'").fetchone()
@@ -108,9 +108,13 @@ def open_index(repo: Any) -> sqlite3.Connection:
     return sqlite3.connect(path)
 
 
-def consumers(repo: Any, note: str) -> list[dict[str, str]]:
-    """``{run, event}`` for every stored run that lists a step serving *note*."""
-    with closing(open_index(repo)) as db:
+def consumers(repo: Any, note: str, *, rebuild_first: bool = False) -> list[dict[str, str]]:
+    """``{run, event}`` for every stored run that lists a step serving *note*.
+
+    Anyone with write access can forge the index with a matching ``meta.source``,
+    so ``tine memory quarantine`` passes *rebuild_first* and lists from the store.
+    """
+    with closing(open_index(repo, rebuild_first=rebuild_first)) as db:
         found = db.execute("SELECT run, event FROM served WHERE note = ? ORDER BY run, event",
                            (note,)).fetchall()  # fmt: skip
     return [{"run": run, "event": event} for run, event in found]

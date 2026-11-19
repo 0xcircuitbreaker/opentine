@@ -46,11 +46,13 @@ def _variants(args: argparse.Namespace, runs: set[str]) -> list[dict[str, Any]]:
     return affected_variants(read_folder(folder), runs)
 
 
-def consumers(args: argparse.Namespace, repo: Any) -> dict[str, Any]:
+def consumers(
+    args: argparse.Namespace, repo: Any, *, rebuild_first: bool = False
+) -> dict[str, Any]:
     from opentine._memory_index import consumers as served_runs
     from opentine._memory_quarantine import quarantined
 
-    rows = served_runs(repo, args.note)
+    rows = served_runs(repo, args.note, rebuild_first=rebuild_first)
     held = quarantined(repo).get(args.note)
     return {"served_note": args.note, "quarantined": held is not None, "runs": rows,
             "variants": _variants(args, {r["run"] for r in rows})}  # fmt: skip
@@ -62,7 +64,7 @@ def _quarantine(args: argparse.Namespace, repo: Any) -> dict[str, Any]:
 
     key = ed25519_private_from_file(args.key)
     made = quarantine(repo, args.note, key, args.why, created_at=args.created_at)
-    return {**made, **consumers(args, repo)}
+    return {**made, **consumers(args, repo, rebuild_first=True)}
 
 
 def recall(args: argparse.Namespace, repo: Any, rows: list[dict[str, Any]]) -> dict[str, Any]:
