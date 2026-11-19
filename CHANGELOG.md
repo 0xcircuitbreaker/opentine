@@ -1,5 +1,32 @@
 # Changelog
 
+## Unreleased — Elicitation and sabotage analytics
+
+- `tine elicit link DRAFT --key KEY` signs an `opentine.elicit-link/1` record:
+  one task attempted under one elicitation condition (`prompt`, `scaffold`,
+  `fine-tune` with its ref, `best-of-n`, `eval-cue` or `deployment-cue`, plus
+  the cue shown and whether the run was monitored), its effort record
+  (attempts, best-of-n, tokens, USD, GPU hours) and per-item scores. Records
+  are filed by digest under `.tine/elicit/links/`; records sharing a task are
+  linked item by item. A file convention: no new object kind and no new
+  `tine verify` code.
+- `tine elicit report` gives each condition's mean, effort totals and its
+  capability gap against the best-scoring condition with a paired-bootstrap
+  interval from the 0.57 statistics. Each eval-cued or monitored condition is
+  compared with each deployment-cued, unmonitored one by the 0.57 paired
+  permutation test (mean) and a paired-swap test (spread); thresholds are
+  Bonferroni-corrected over every test in the report, and the correction is
+  part of the output. Resampling is seeded and reproducible.
+- Every under-performance or score-distribution flag is advisory
+  (`advisory:elicit.*`, D12): statistical evidence that scores depend on the
+  condition, not proof of intent; it blocks only with `--strict`. Malformed,
+  badly signed, duplicate or optimizer-signed records are left out and fail
+  the report; signers are trusted only through the owner-pinned key roles.
+- Synthetic fixtures: an agent that underperforms only under the eval cue is
+  flagged with p < 0.01, and an honest agent is not flagged on at least 95% of
+  a fixed seed list. docs/ELICITATION.md; schemas `tine-cli-elicit-1` and
+  `opentine-elicit-link-1`.
+
 ## 0.65.0 — Query and experiments (2026-11-19)
 
 - `tine query "SELECT ..." [--repo PATH]` runs one read-only SQL statement

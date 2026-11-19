@@ -2045,6 +2045,17 @@ verdict carries. `--json` prints `tine-cli-auditor/1`; see docs/AUDIT_GAMES.md.
 Roles come only from the owner-pinned trust bundle. `--json` prints
 `tine-cli-experiment/1` or `tine-cli-reproduce/1`; see docs/EXPERIMENTS.md.
 
+## Elicitation and sandbagging analytics (0.68)
+
+| Command | What it does |
+| --- | --- |
+| `tine elicit link DRAFT --key KEY [--repo PATH] [--dir DIR] [--at TIME]` | Signs an `opentine.elicit-link/1` draft (one task under one elicitation condition, its effort record and item scores) and files it under `REPO/.tine/elicit/links/<hex>.json` |
+| `tine elicit report [--repo PATH] [--dir DIR] [--alpha A] [--seed N] [--resamples N] [--strict]` | Capability gap of each condition against the best-scoring one, with `1 - alpha` paired-bootstrap intervals; for each eval-cued or monitored condition against each deployment-cued unmonitored one, a permutation test of the mean and a paired-swap test of the spread, Bonferroni-corrected. Flags are `advisory:elicit.underperformance-under-cue` and `advisory:elicit.score-distribution` and block only with `--strict`; exits 1 on `fail:elicit.malformed`, `fail:elicit.bad-signature`, `fail:elicit.duplicate` or `fail:elicit.key-separation` |
+
+Roles come only from the owner-pinned trust bundle; an unpinned signer gives
+`advisory:elicit.signer-unpinned`. Findings are statistical evidence, not proof
+of intent. `--json` prints `tine-cli-elicit/1`; see docs/ELICITATION.md.
+
 ## Self-modification lineage (0.58)
 
 | Command | What it does |
