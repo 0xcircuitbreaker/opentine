@@ -35,6 +35,8 @@ from opentine._cli_loop import COMMANDS as LOOP_COMMANDS
 from opentine._cli_loop import add_loop_parser
 from opentine._cli_monitor import COMMANDS as MONITOR_COMMANDS
 from opentine._cli_monitor import add_monitor_parser
+from opentine._cli_oversight import COMMANDS as OVERSIGHT_COMMANDS
+from opentine._cli_oversight import add_oversight_parser
 from opentine._cli_task import COMMANDS as TASK_COMMANDS
 from opentine._cli_task import add_task_parser
 
@@ -61,6 +63,7 @@ def add_fleet_parser(subparsers: argparse._SubParsersAction) -> None:
     add_lineage_parser(subparsers)  # 0.58: tine lineage record|check|graph|why|archive|index
     add_integrity_parser(subparsers)  # 0.60: tine integrity check|pin|sign
     add_monitor_parser(subparsers)  # 0.63: tine monitor verdicts, gate, backtests
+    add_oversight_parser(subparsers)  # 0.64: tine oversight queue, approve, reject
 
 
 def _fail(message: object) -> SystemExit:
@@ -205,6 +208,7 @@ COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
     **LINEAGE_COMMANDS,
     **INTEGRITY_COMMANDS,
     **MONITOR_COMMANDS,
+    **OVERSIGHT_COMMANDS,
 }
 
 __all__ = ["COMMANDS", "add_fleet_parser", "cmd_fleet"]

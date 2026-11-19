@@ -5505,4 +5505,150 @@ ROWS: tuple[tuple, ...] = (
             "member_command": [],
         },  # fmt: skip
     ),
+    (
+        "plain:oversight policy --json",
+        "plain",
+        ["oversight", "policy", "--json"],
+        "opentine._cli_oversight:cmd_oversight",
+        False,
+        {
+            "command": "oversight",
+            "oversight_command": "policy",
+            "json": True,
+            "repo": ".",
+            "member_command": [],
+        },  # fmt: skip
+    ),
+    (
+        "plain:oversight sign-policy --key k --repo r",
+        "plain",
+        ["oversight", "sign-policy", "--key", "k", "--repo", "r"],
+        "opentine._cli_oversight:cmd_oversight",
+        False,
+        {
+            "command": "oversight",
+            "oversight_command": "sign-policy",
+            "key": "k",
+            "repo": "r",
+            "json": False,
+            "member_command": [],
+        },  # fmt: skip
+    ),
+    (
+        "plain:oversight request promotion:prod:RUN --key k --evals e",
+        "plain",
+        ["oversight", "request", "promotion:prod:RUN", "--key", "k", "--evals", "e"],
+        "opentine._cli_oversight:cmd_oversight",
+        False,
+        {
+            "command": "oversight",
+            "oversight_command": "request",
+            "item": "promotion:prod:RUN",
+            "key": "k",
+            "evals": "e",
+            "member_command": [],
+        },  # fmt: skip
+    ),
+    (
+        "plain:oversight approve ITEM --key k --human alice --note ok",
+        "plain",
+        ["oversight", "approve", "ITEM", "--key", "k", "--human", "alice", "--note", "ok"],
+        "opentine._cli_oversight:cmd_oversight",
+        False,
+        {
+            "command": "oversight",
+            "oversight_command": "approve",
+            "item": "ITEM",
+            "key": "k",
+            "human": "alice",
+            "note": "ok",
+            "state": None,
+            "member_command": [],
+        },  # fmt: skip
+    ),
+    (
+        "plain:oversight reject ITEM --key k --state s --at T",
+        "plain",
+        ["oversight", "reject", "ITEM", "--key", "k", "--state", "s", "--at", "T"],
+        "opentine._cli_oversight:cmd_oversight",
+        False,
+        {
+            "command": "oversight",
+            "oversight_command": "reject",
+            "item": "ITEM",
+            "key": "k",
+            "state": "s",
+            "at": "T",
+            "member_command": [],
+        },  # fmt: skip
+    ),
+    (
+        "plain:oversight queue --from-objects --json",
+        "plain",
+        ["oversight", "queue", "--from-objects", "--json"],
+        "opentine._cli_oversight:cmd_oversight",
+        False,
+        {
+            "command": "oversight",
+            "oversight_command": "queue",
+            "from_objects": True,
+            "json": True,
+            "member_command": [],
+        },  # fmt: skip
+    ),
+    (
+        "plain:oversight approve ITEM --key k --viewed E --viewed-at T",
+        "plain",
+        ["oversight", "approve", "ITEM", "--key", "k", "--viewed", "E", "--viewed-at", "T"],
+        "opentine._cli_oversight:cmd_oversight",
+        False,
+        {
+            "command": "oversight",
+            "oversight_command": "approve",
+            "item": "ITEM",
+            "key": "k",
+            "viewed": ["E"],
+            "viewed_at": "T",
+            "member_command": [],
+        },  # fmt: skip
+    ),
+    (
+        "plain:oversight queue --repo p --only pending --json",
+        "plain",
+        ["oversight", "queue", "--repo", "p", "--only", "pending", "--json"],
+        "opentine._cli_oversight:cmd_oversight",
+        False,
+        {
+            "command": "oversight",
+            "oversight_command": "queue",
+            "repo": "p",
+            "only": "pending",
+            "json": True,
+            "member_command": [],
+        },  # fmt: skip
+    ),
+    (
+        "plain:oversight fatigue --min-review-seconds 60 --at 2026-11-19T10:00:00Z",
+        "plain",
+        ["oversight", "fatigue", "--min-review-seconds", "60", "--at", "2026-11-19T10:00:00Z"],
+        "opentine._cli_oversight:cmd_oversight",
+        False,
+        {
+            "command": "oversight",
+            "oversight_command": "fatigue",
+            "min_review_seconds": 60,
+            "at": "2026-11-19T10:00:00Z",
+            "repo": ".",
+            "json": False,
+            "member_command": [],
+        },  # fmt: skip
+    ),
+    (
+        "plain:ui --repo p",
+        "plain",
+        ["ui", "--repo", "p"],
+        "opentine._cli_ui:cmd_ui",
+        False,
+        {"command": "ui", "run_id": None, "repo": "p"},
+    ),
 )

@@ -5,6 +5,10 @@ connection. The page's Content-Security-Policy allows scripts, styles, workers
 and fetches from its own origin and nothing else. Runs are loaded once, lazily,
 and cached by id; the JSON is redacted by :mod:`opentine._ui_model`.
 
+``/api/oversight/queue`` (0.64) answers the body ``tine oversight queue
+--json`` prints for the ``--repo`` repository, recomputed from its objects on
+each request; ``/queue.html`` renders it.
+
 ``/api/run/RUN/artifact`` (0.45.1) serves a run's artifact bytes so the
 browser can re-check them with the bundled TS verifier (``tine-verifier.js``).
 The bytes cannot be re-redacted without breaking the very digests being
@@ -38,6 +42,8 @@ ASSETS = {
     "/app.js": ("app.js", "text/javascript; charset=utf-8"),
     "/verify-browser.js": ("verify-browser.js", "text/javascript; charset=utf-8"),
     "/tine-verifier.js": ("tine-verifier.js", "text/javascript; charset=utf-8"),
+    "/queue.html": ("queue.html", "text/html; charset=utf-8"),  # 0.64: oversight queue
+    "/queue.js": ("queue.js", "text/javascript; charset=utf-8"),
 }
 
 
@@ -48,8 +54,9 @@ def asset(name: str) -> bytes:
 class Catalog:
     """The runs this server shows: one explicit file, or a runs directory."""
 
-    def __init__(self, paths: list[Path]) -> None:
+    def __init__(self, paths: list[Path], repo: Path | None = None) -> None:
         self.paths = paths
+        self.repo = repo  # 0.64: the repository whose oversight queue is shown
         self._runs: dict[str, tuple[Path, Any]] | None = None
         self._docs: dict[str, dict[str, Any]] = {}
         self._lock = threading.Lock()
@@ -112,6 +119,18 @@ def artifact_bytes(catalog: Catalog, run_id: str) -> tuple[int, bytes]:
     return 200, raw
 
 
+def oversight_queue(catalog: Catalog) -> tuple[int, Any]:
+    """The queue exactly as ``tine oversight queue --json`` builds it, recomputed per request."""
+    from opentine._cli_oversight import SCHEMA
+    from opentine._oversight_queue import queue
+    from opentine.repo import Repo
+
+    if catalog.repo is None:
+        return 404, {"error": "no repository: start tine ui with --repo"}
+    body = queue(Repo.open(catalog.repo))
+    return 200, {"command": "oversight queue", "schema": SCHEMA, **body}
+
+
 def _int(query: dict[str, list[str]], key: str, default: int) -> int:
     try:
         return int(query.get(key, [str(default)])[0])
@@ -130,6 +149,8 @@ def api(catalog: Catalog, path: str, query: dict[str, list[str]]) -> tuple[int, 
     )
 
     parts = [unquote(p) for p in path.strip("/").split("/")]
+    if parts == ["api", "oversight", "queue"]:
+        return oversight_queue(catalog)
     if parts == ["api", "runs"]:
         return 200, [run_summary(run) for _, run in catalog.runs().values()]
     if len(parts) >= 3 and parts[:2] == ["api", "run"]:
@@ -220,4 +241,5 @@ def make_server(catalog: Catalog, port: int = 0) -> ThreadingHTTPServer:
     return server
 
 
-__all__ = ["CSP", "HOST", "Catalog", "api", "artifact_bytes", "asset", "make_server"]
+__all__ = ["CSP", "HOST", "Catalog", "api", "artifact_bytes", "asset", "make_server",
+           "oversight_queue"]  # fmt: skip

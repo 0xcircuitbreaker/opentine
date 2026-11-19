@@ -65,4 +65,17 @@ def guards(repo_path: Path | None, signer: str, loop: str | None,
     return key_separation(repo_path, signer) + loop_stopped(repo_path, loop, candidate)
 
 
-__all__ = ["guards", "key_separation", "loop_stopped"]
+def late(repo_path: Path | None, candidate: str, label: str, record: dict,
+         evals: Path | None) -> list[dict[str, str]]:  # fmt: skip
+    """Quarantined memory (0.61) and the k-of-n oversight gate (0.64)."""
+    if repo_path is None:
+        return []
+    from opentine._memory_quarantine import promote_refusals as memory
+    from opentine._oversight_gate import promote_refusals as oversight
+
+    return memory(repo_path, candidate) + oversight(
+        repo_path, candidate, label, previous=record["current"],
+        sequence=len(record["history"]), evals=evals)  # fmt: skip
+
+
+__all__ = ["guards", "key_separation", "late", "loop_stopped"]

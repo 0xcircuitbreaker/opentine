@@ -21,6 +21,7 @@ def add_ui_parser(sub: Any) -> None:
     ui.add_argument("run_id", metavar="RUN", nargs="?", help="Run id, prefix, or .tine path")
     ui.add_argument("--port", type=int, default=0, help="Port on 127.0.0.1 (default: any free)")
     ui.add_argument("--open", action="store_true", help="Open the viewer in a web browser")
+    ui.add_argument("--repo", metavar="PATH", help="Also serve this repository's oversight queue")
 
 
 def _paths(run_id: str | None) -> list[Path]:
@@ -40,7 +41,17 @@ def cmd_ui(args: argparse.Namespace) -> None:
     if not 0 <= args.port <= 65535:
         console.print(f"[red]--port must be 0..65535, got {args.port}[/]")
         raise SystemExit(2)
-    catalog = Catalog(_paths(args.run_id))
+    repo = None
+    if getattr(args, "repo", None):
+        from opentine.repo import Repo
+
+        try:
+            Repo.open(args.repo)  # refuse a missing repository before listening
+        except (OSError, ValueError) as exc:
+            console.print(f"[red]Cannot open repository:[/] {_terminal(exc)}")
+            raise SystemExit(1) from exc
+        repo = Path(args.repo)
+    catalog = Catalog(_paths(args.run_id), repo=repo)
     catalog.runs()  # read every artifact once, before the first page asks
     try:
         server = make_server(catalog, args.port)

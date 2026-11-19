@@ -15,7 +15,8 @@ and whose payload holds only existing documents::
      ["witness_network": {...},]       # an opentine-witness-network/1 registry
      ["log_keys": [vkey, ...],]        # pinned signed-note log keys
      ["admission_policies": {name: {...}}],  # opentine.admission-policy documents
-     ["key_roles": {"version": 1, "roles": {...}}]}  # .tine/key-roles.toml, as JSON (0.59)
+     ["key_roles": {"version": 1, "roles": {...}}],  # .tine/key-roles.toml, as JSON (0.59)
+     ["oversight": {"version": 1, "tiers": {name: {"k": N}}}]}  # k floors per tier (0.64)
 
 Every part is checked by the validator of its own format. Path fields of a
 trust policy (``pubkey``, ``rekor_key``, ...) name local files and are
@@ -48,6 +49,7 @@ _TOP = {
     "log_keys",
     "admission_policies",
     "key_roles",
+    "oversight",
 }
 #: Trust-policy fields a bundle may carry: no local paths.
 PORTABLE = ("pin", "require_receipt", "cert_identity", "cert_oidc_issuer", "require_sct",
@@ -154,6 +156,11 @@ def validate(payload: Any) -> dict[str, Any]:
             raise BundleError(f"trust bundle: key_roles: {exc}") from None
         if payload["key_roles"]["roles"] != {r: k for r, k in roles.items() if k}:
             raise BundleError("trust bundle: key_roles must list sorted sha256: fingerprints")
+    if "oversight" in payload:
+        from opentine._oversight_floor import tiers_of
+
+        if tiers_of(payload["oversight"]) is None:
+            raise BundleError("trust bundle: oversight is {version: 1, tiers: {name: {k: N}}}")
     return payload
 
 

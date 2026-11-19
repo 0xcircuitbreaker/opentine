@@ -1972,6 +1972,25 @@ with `LOOP.` is fenced with or without `--loop`. `--json` prints
 `--json` prints `tine-cli-monitor/1`. Verdicts follow the claim convention
 `opentine.monitor-verdict/1`; see docs/MONITORS.md.
 
+## Oversight queue (0.64)
+
+| Command | What it does |
+| --- | --- |
+| `tine oversight policy --repo PATH` | Whether `.tine/oversight.toml` is pinned, its tiers (k of n) and routes |
+| `tine oversight sign-policy --key KEY --repo PATH` | Writes `.tine/oversight.sig.json`; it pins the policy only when KEY is a pinned `policy`-role key that is not an `optimizer` key |
+| `tine oversight request ITEM --key KEY [--evals DIR] --repo PATH` | Puts ITEM in the queue (a signed, held decision that never counts as an approval) |
+| `tine oversight approve ITEM --key KEY [--human NAME] [--note T] [--viewed OID] [--viewed-at TIME] [--state DIR] --repo PATH` | Signs and holds an approval; refused for an `optimizer`, `monitor` or `scorer` key |
+| `tine oversight reject ITEM --key KEY [--human NAME] [--note T] [--viewed OID] [--viewed-at TIME] [--state DIR] --repo PATH` | Signs and holds a rejection |
+| `tine oversight queue [--from-objects] [--only STATE] --repo PATH` | Every routed item and its k-of-n tally (the gate's own tally), with counts and a digest; `--from-objects` rebuilds it from the annotation objects alone |
+| `tine oversight fatigue [--min-review-seconds N] [--at TIME] --repo PATH` | Advisory approver-fatigue report from record timestamps; always exits 0 |
+| `tine ui --repo PATH` | Also serves the queue at `/queue.html` and `/api/oversight/queue` (the same JSON as `queue --json`) |
+
+ITEM is `promotion:LABEL:RUN`, `monitor:ATTESTATION` or
+`integrity:ATTESTATION`. `tine promote` refuses a routed candidate with
+`promote.oversight-insufficient`, `promote.oversight-key-separation`,
+`promote.oversight-stale` or `promote.oversight-rejected`. `--json` prints
+`tine-cli-oversight/1`; see docs/OVERSIGHT.md.
+
 ## Self-modification lineage (0.58)
 
 | Command | What it does |

@@ -12,8 +12,7 @@ Definitions live in :mod:`opentine._schema_defs` (object kinds) and
 :mod:`opentine._schema_defs_extend` (plugins, experts) and
 :mod:`opentine._schema_defs_integrate` (review findings, ``tine code-graph``, 0.48);
 :mod:`opentine._schema_defs_compliance` (compliance profiles, 0.48);
-:mod:`opentine._schema_defs_audit_kit` (``tine audit-kit``, 0.49);
-:mod:`opentine._schema_defs_alerts` (``tine alert``, 0.49);
+:mod:`opentine._schema_defs_audit_kit` (``tine audit-kit``, 0.49); ``_alerts`` (0.49);
 :mod:`opentine._schema_defs_witness` (the witness network, 0.49; trust bundles,
 0.51); :mod:`opentine._schema_defs_auth` (``tine serve token``, 0.52);
 ``docs/schemas`` is their rendered copy (``scripts/gen_schemas.py``). A
@@ -68,6 +67,8 @@ from opentine._schema_defs_merge import KIND_SCHEMAS as _MERGE_KINDS
 from opentine._schema_defs_merge import SCHEMAS as _MERGE
 from opentine._schema_defs_monitor import COMMAND_SCHEMAS as _MONITOR_COMMANDS
 from opentine._schema_defs_monitor import SCHEMAS as _MONITOR
+from opentine._schema_defs_oversight import COMMAND_SCHEMAS as _OVERSIGHT_COMMANDS
+from opentine._schema_defs_oversight import SCHEMAS as _OVERSIGHT
 from opentine._schema_defs_project import COMMAND_SCHEMAS as _PROJECT_COMMANDS
 from opentine._schema_defs_project import KIND_SCHEMAS as _PROJECT_KINDS
 from opentine._schema_defs_project import SCHEMAS as _PROJECT
@@ -117,6 +118,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     **_HOLDOUT,
     **_CANARY,
     **_MONITOR,
+    **_OVERSIGHT,
 }
 COMMAND_SCHEMAS: dict[str, str] = {
     **_CLI_COMMANDS,
@@ -143,6 +145,7 @@ COMMAND_SCHEMAS: dict[str, str] = {
     **_HOLDOUT_COMMANDS,
     **_CANARY_COMMANDS,
     **_MONITOR_COMMANDS,
+    **_OVERSIGHT_COMMANDS,
 }
 KIND_SCHEMAS: dict[str, str] = {
     **_REDACT_KINDS,
