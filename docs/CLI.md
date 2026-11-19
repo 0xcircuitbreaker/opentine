@@ -2009,7 +2009,7 @@ ITEM is `promotion:LABEL:RUN`, `monitor:ATTESTATION` or
 | --- | --- |
 | `tine query SQL [--repo PATH] [--limit N] [--max-steps N] [--refresh]` | Runs one read-only SQL statement against `.tine/query/index.sqlite` (runs, steps, costs, monitor verdicts, oversight decisions, lineage variants and edges, evals); builds the index when missing; a stale index answers marked `stale` (`--refresh` rebuilds first) |
 | `tine query SQL --verify [--strict]` | Re-checks the object behind each returned row's `oid`: `verified`, `unverified` or `failed`; exit 1 on `failed` (`--strict`: also on `unverified`) |
-| `tine query index [--rebuild] [--check] [--evals DIR]...` | Reports or rebuilds the index and whether it is stale; `--evals` folders are remembered |
+| `tine query index [--rebuild] [--check] [--evals DIR]... [--experiments DIR]...` | Reports or rebuilds the index and whether it is stale; `--evals` and `--experiments` folders are remembered |
 
 The index is derived and non-authoritative: every row carries its `oid`, and
 deleting the file loses nothing. Writes, `ATTACH`, `PRAGMA` and

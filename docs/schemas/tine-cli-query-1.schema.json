@@ -159,7 +159,8 @@
         "stale",
         "reasons",
         "counts",
-        "evals"
+        "evals",
+        "experiments"
       ],
       "properties": {
         "schema": {
@@ -204,6 +205,12 @@
           ]
         },
         "evals": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "experiments": {
           "type": "array",
           "items": {
             "type": "string"

@@ -25,11 +25,13 @@ import json
 from pathlib import Path
 from typing import Any
 
+from opentine import _query_experiments as qx
 from opentine import _query_rows as qr
 from opentine._query_build import eval_files, eval_source, remembered_dirs
 
 #: The pinned role a signer needs for a row of these tables to be ``verified``;
 #: a signer that also holds ``optimizer`` never verifies them (key separation).
+#: A reproduce report signed by an ``optimizer`` key never verifies either.
 ROLE_FOR = {"evals": "scorer", "monitor_verdicts": "monitor",
             "oversight_decisions": "approver"}  # fmt: skip
 _HEX = set("0123456789abcdef")
@@ -45,7 +47,8 @@ def _roles(store: Path) -> dict[str, list[str]]:
     return by_key
 
 
-def _derive(repo: Any, oid: str, table: str | None, db: Any) -> tuple[dict | None, str | None]:
+def _derive(repo: Any, oid: str, table: str | None, db: Any,
+            row: dict[str, Any]) -> tuple[dict | None, str | None]:  # fmt: skip
     """The row the source derives for *oid* now, or ``(None, why it failed)``."""
     store = Path(repo.path)
     if oid.startswith("event:"):
@@ -63,6 +66,8 @@ def _derive(repo: Any, oid: str, table: str | None, db: Any) -> tuple[dict | Non
         if "sha256:" + hashlib.sha256(raw).hexdigest() != oid:
             return None, "the verdict line changed"
         return qr.eval_row(oid, source, line, json.loads(raw)), None
+    if table in qx.TABLES:
+        return qx.derive(store, remembered_dirs(store, "experiments"), table, oid, db, row)
     if table == "lineage_variants":
         (variant,) = db.execute("SELECT variant FROM lineage_variants WHERE oid = ?",
                                 (oid,)).fetchone()  # fmt: skip
@@ -89,8 +94,11 @@ def _step_place(repo: Any, oid: str, row: dict[str, Any]) -> str | None:
     return None if held else "the step is not at that place in that run"
 
 
-def _table_of(db: Any, oid: str) -> str | None:
-    for table in ("evals", "lineage_variants", "monitor_verdicts", "oversight_decisions"):
+def _table_of(db: Any, oid: str, row: dict[str, Any]) -> str | None:
+    """The table holding *oid*; a manifest's result rows share its oid and add an ``id``."""
+    results = ("experiment_results",) if "id" in row else ()
+    for table in ("evals", "lineage_variants", "monitor_verdicts", "oversight_decisions",
+                  *results, "experiments", "reproductions"):  # fmt: skip
         if db.execute(f"SELECT 1 FROM {table} WHERE oid = ? LIMIT 1", (oid,)).fetchone():
             return table
     return None
@@ -101,8 +109,8 @@ def check(repo: Any, oid: str, row: dict[str, Any], db: Any,
     """``{"oid", "status", "reason", "signer", "roles"}`` for one returned row."""
     out: dict[str, Any] = {"oid": oid, "signer": None, "roles": []}
     try:
-        table = _table_of(db, oid)
-        derived, why = _derive(repo, oid, table, db)
+        table = _table_of(db, oid, row)
+        derived, why = _derive(repo, oid, table, db, row)
         if derived is not None and oid.startswith("event:"):
             why = _step_place(repo, oid, row)
             derived = None if why else derived
@@ -124,6 +132,8 @@ def check(repo: Any, oid: str, row: dict[str, Any], db: Any,
                 "reason": "the signature does not verify" if signer else "not signed"}  # fmt: skip
     if not out["roles"]:
         return {**out, "status": "unverified", "reason": "the signer holds no pinned role"}
+    if table == "reproductions" and "optimizer" in out["roles"]:
+        return {**out, "status": "unverified", "reason": "the report signer holds optimizer"}
     need = ROLE_FOR.get(table or "")
     if need and (need not in out["roles"] or "optimizer" in out["roles"]):
         return {**out, "status": "unverified", "reason": f"the signer holds no {need} role"}

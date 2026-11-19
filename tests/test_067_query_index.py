@@ -34,7 +34,8 @@ def test_the_index_holds_every_table_and_every_row_names_its_oid(capsys, room):
     assert body["authority"] == "non-authoritative" and body["stale"] is False
     assert body["counts"] == {"runs": 3, "steps": 6, "monitor_verdicts": 2,
                               "oversight_decisions": 0, "lineage_variants": 0,
-                              "lineage_edges": 0, "evals": 4}  # fmt: skip
+                              "lineage_edges": 0, "evals": 4, "experiments": 0,
+                              "experiment_results": 0, "reproductions": 0}  # fmt: skip
     path = room["repo"].path / "query" / "index.sqlite"
     with closing(sqlite3.connect(path)) as db:
         for table in COLUMNS:

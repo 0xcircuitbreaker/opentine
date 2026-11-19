@@ -10,8 +10,9 @@ index and moved into place, so a reader never sees half an index.
 was built from: ``fingerprint`` (a cheap stat of the object store: the
 modification times of its object folders and the names and sizes of its packs),
 ``objects`` (sha256 of the sorted object ids), ``lineage`` (a digest of the
-lineage folder) and ``evals`` (the eval folders read and a digest of their
-verdict files). The index is stale when the lineage or eval digest differs, or
+lineage folder), ``evals`` (the eval folders read and a digest of their
+verdict files) and ``experiments`` (the same for experiment files, 0.67). The
+index is stale when the lineage, eval or experiment digest differs, or
 when the fingerprint differs *and* the object ids do (a repack moves objects
 without changing them).
 """
@@ -38,10 +39,14 @@ _INDEXES = (
     "CREATE INDEX decisions_item ON oversight_decisions (item)",
     "CREATE INDEX evals_eval ON evals (eval)", "CREATE INDEX evals_oid ON evals (oid)",
     "CREATE INDEX edges_parent ON lineage_edges (parent)",
+    "CREATE INDEX results_oid ON experiment_results (oid)",
+    "CREATE INDEX reproductions_manifest ON reproductions (manifest)",
 )  # fmt: skip
 _KEYS = {"runs": "PRIMARY KEY (oid)", "steps": "PRIMARY KEY (run, seq)",
          "monitor_verdicts": "PRIMARY KEY (oid)", "oversight_decisions": "PRIMARY KEY (oid)",
-         "lineage_variants": "PRIMARY KEY (variant)"}  # fmt: skip
+         "lineage_variants": "PRIMARY KEY (variant)", "experiments": "PRIMARY KEY (oid)",
+         "experiment_results": "PRIMARY KEY (oid, id)",
+         "reproductions": "PRIMARY KEY (oid)"}  # fmt: skip
 VIEWS = (
     "CREATE VIEW costs AS SELECT oid, run, model, provider, cost, input_tokens, output_tokens"
     " FROM steps",

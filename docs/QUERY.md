@@ -23,7 +23,7 @@ is installed.
 | `tine query SQL [--repo PATH] [--limit N] [--max-steps N] [--refresh] [--json]` | Runs one read-only statement; builds the index first when it is missing |
 | `tine query SQL --verify [--strict]` | Also re-checks the object behind each returned row: `verified`, `unverified` or `failed` |
 | `tine query index [--repo PATH] [--check] [--json]` | Reports where the index is, its row counts and whether it is stale (`--check` compares object ids even when the cheap check matches) |
-| `tine query index --rebuild [--evals DIR]...` | Rebuilds the index; `--evals` adds eval folders to read, and they are remembered for later rebuilds |
+| `tine query index --rebuild [--evals DIR]... [--experiments DIR]...` | Rebuilds the index; `--evals` adds eval folders and `--experiments` folders of experiment manifests and reproduce reports to read, and both are remembered for later rebuilds |
 
 `--json` prints `tine-cli-query/1` (docs/schemas/tine-cli-query-1.schema.json).
 The text form starts with a line saying the index is derived and
@@ -46,6 +46,9 @@ The index lives at `.tine/query/index.sqlite`.
 | `lineage_variants` | record in `.tine/lineage/variants/` | `oid`, `variant`, `signer`, `signed`, `loop` |
 | `lineage_edges` | parent of a lineage variant | `oid` (the child's record), `child`, `parent` |
 | `evals` | `tine-eval-verdict/1` line | `oid`, `source`, `line`, `eval`, `dataset`, `item`, `run`, `scorer`, `score`, `threshold`, `passed`, `signer`, `signed`, `created_at` |
+| `experiments` | `opentine.experiment-manifest/1` file | `oid`, `source`, `experiment`, `signer`, `signed`, `model`, `model_version`, `result_rows`, `passed_rows`, `usd`, `created_at` |
+| `experiment_results` | result row of a manifest | `oid` (the manifest), `experiment`, `id`, `verdict`, `path`, `score`, `passed` |
+| `reproductions` | `opentine.reproduce-report/1` file | `oid`, `source`, `experiment`, `manifest`, `signer`, `signed`, `sample`, `agreed`, `disagreed`, `verdict`, `tolerance`, `repeats`, `created_at` |
 | `meta` | key | `authority` (always `non-authoritative`), `format`, `counts` and what the index was built from |
 
 `oid` is the object id for repository objects. Lineage records and eval
@@ -56,6 +59,20 @@ about whether that key is trusted.
 
 Eval verdicts are read from the lineage folder's `evals/*.jsonl` and from the
 `verdicts.jsonl` of each folder given with `--evals DIR`.
+
+Experiment manifests and reproduce reports (docs/EXPERIMENTS.md) are read from
+every `*.json` under `.tine/experiments/` and under each folder given with
+`--experiments DIR`; other JSON files there are skipped. Their `oid` is the
+document digest (signature included), the same digest a report names in its
+`manifest` field, so `reproductions.manifest = experiments.oid` joins a report to
+its manifest. A result row shares its manifest's `oid` and adds `id`; with
+`--verify`, a row that carries `id` is checked against that result row of the
+manifest file, and one without it against the manifest. A manifest or report is
+`verified` when the file still has that digest, the signature holds and the
+signer has a pinned role; a report signed by a key that holds `optimizer` is
+`unverified`. Changing an experiment file makes the index `stale`
+("an experiment folder changed"). Index rows are not `tine experiment check`:
+run that for the result-mismatch and report checks.
 
 ## Read-only
 

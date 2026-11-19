@@ -8,8 +8,8 @@ rebuilds it first). ``--verify`` re-checks the object behind each returned row
 (:mod:`opentine._query_verify`) and exits 1 when any row ``failed``
 (``--strict``: when any row is not ``verified``).
 
-``tine query index [--rebuild] [--check] [--evals DIR]...`` reports the index
-state (``--check``: compare object ids too) or rebuilds it.
+``tine query index [--rebuild] [--check] [--evals DIR]... [--experiments DIR]...``
+reports the index state (``--check``: compare object ids too) or rebuilds it.
 """
 
 from __future__ import annotations
@@ -41,8 +41,16 @@ def add_query_parser(subparsers: argparse._SubParsersAction) -> None:
     parser.add_argument("--refresh", action="store_true", help="Rebuild a stale index first")
     parser.add_argument("--rebuild", action="store_true", help="index: rebuild it now")
     parser.add_argument("--check", action="store_true", help="index: also compare object ids")
-    parser.add_argument("--evals", action="append", default=None, metavar="DIR",
-                        help="index: an eval folder to read (repeatable; remembered)")  # fmt: skip
+    parser.add_argument(
+        "--evals",
+        action="append",
+        default=None,
+        metavar="DIR",
+        help="index: an eval folder to read (repeatable; remembered)",
+    )
+    parser.add_argument("--experiments", action="append", default=None, metavar="DIR",
+                        help="index: a folder of experiment manifests and reproduce reports "
+                             "(repeatable; remembered)")  # fmt: skip
     parser.add_argument("--json", action="store_true", help="Print a JSON object")
 
 
@@ -52,15 +60,16 @@ def _index(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[st
 
     store = Path(repo.path)
     rebuilt = None
-    if args.rebuild or args.evals is not None:
+    if args.rebuild or args.evals is not None or args.experiments is not None:
         rebuilt = qb.build(repo, args.evals if args.evals is not None else
-                           qb.remembered_dirs(store))  # fmt: skip
+                           qb.remembered_dirs(store), experiments=args.experiments)  # fmt: skip
     state = qb.staleness(repo, exact=args.check)
     meta = qi.read_meta(qi.index_path(store)) if state["exists"] else {}
     body = {"index": qi.index_path(store).as_posix(), "authority": qi.AUTHORITY,
             "rebuilt": rebuilt is not None, **state,
             "counts": rebuilt["counts"] if rebuilt else _counts(meta),
-            "evals": qb.remembered_dirs(store)}  # fmt: skip
+            "evals": qb.remembered_dirs(store),
+            "experiments": qb.remembered_dirs(store, "experiments")}  # fmt: skip
     lines = [f"{'rebuilt' if rebuilt else 'index'} {body['index']} ({qi.AUTHORITY})"]
     lines += [f"  {name}: {n}" for name, n in sorted((body["counts"] or {}).items())]
     lines += [f"stale: {why}" for why in state["reasons"]] or ["up to date"]

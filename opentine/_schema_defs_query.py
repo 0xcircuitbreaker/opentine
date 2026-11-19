@@ -27,10 +27,10 @@ _SHAPES = [
                 "verified": INT, "unverified": INT, "failed": INT}),
             "rows": {"type": "array", "items": _CHECK}}))}),
     closed(["command", "schema", "authority", "index", "rebuilt", "exists", "stale", "reasons",
-            "counts", "evals"], {
+            "counts", "evals", "experiments"], {
         **_HEAD, "command": {"const": "query index"}, "index": STR, "rebuilt": BOOL,
         "exists": BOOL, "stale": BOOL, "reasons": strs(), "counts": opt(_COUNTS),
-        "evals": strs()}),
+        "evals": strs(), "experiments": strs()}),
 ]  # fmt: skip
 
 SCHEMAS: dict[str, dict[str, Any]] = {

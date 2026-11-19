@@ -17,6 +17,8 @@ import json
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
+from opentine._query_experiments import COLUMNS as _EXPERIMENT_COLUMNS
+
 #: The tables and the columns each row has, in order (``oid`` first).
 COLUMNS: dict[str, tuple[str, ...]] = {
     "runs": ("oid", "status", "model", "created_at", "steps", "source_run_id"),
@@ -32,6 +34,7 @@ COLUMNS: dict[str, tuple[str, ...]] = {
     "evals": ("oid", "source", "line", "eval", "dataset", "item", "run", "scorer", "score",
               "threshold", "passed", "signer", "signed", "created_at"),
 }  # fmt: skip
+COLUMNS.update(_EXPERIMENT_COLUMNS)  # 0.67: experiment manifests and reproduce reports
 #: Columns a row derives from its run (or file), not from the object itself.
 CONTEXT = {"run", "seq", "source", "line"}
 

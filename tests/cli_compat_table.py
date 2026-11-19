@@ -5940,14 +5940,15 @@ ROWS: tuple[tuple, ...] = (
             "rebuild": False,
             "check": False,
             "evals": None,
+            "experiments": None,
             "json": True,
             "member_command": [],
         },  # fmt: skip
     ),
     (
-        "plain:query index --rebuild --evals ev --repo r",
+        "plain:query index --rebuild --evals ev --experiments ex --repo r",
         "plain",
-        ["query", "index", "--rebuild", "--evals", "ev", "--repo", "r"],
+        ["query", "index", "--rebuild", "--evals", "ev", "--experiments", "ex", "--repo", "r"],
         "opentine._cli_query:cmd_query",
         False,
         {
@@ -5962,6 +5963,7 @@ ROWS: tuple[tuple, ...] = (
             "rebuild": True,
             "check": False,
             "evals": ["ev"],
+            "experiments": ["ex"],
             "json": False,
             "member_command": [],
         },  # fmt: skip

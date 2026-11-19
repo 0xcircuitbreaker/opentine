@@ -4,8 +4,10 @@ Sources: every ``run``, ``attestation`` and ``annotation`` object of the store
 (runs and their steps, monitor verdicts, oversight decisions), the lineage
 folder ``.tine/lineage`` (variants, edges and the eval verdicts filed under
 ``evals/``) and any eval folder given with ``--evals DIR`` (its
-``verdicts.jsonl``). The eval folders are remembered in ``meta``, so the
-staleness check and the next rebuild read the same ones.
+``verdicts.jsonl``), and the experiment manifests and reproduce reports of
+``.tine/experiments`` and each ``--experiments DIR``
+(:mod:`opentine._query_experiments`). Both kinds of folder are remembered in
+``meta``, so the staleness check and the next rebuild read the same ones.
 """
 
 from __future__ import annotations
@@ -16,6 +18,7 @@ import os
 from pathlib import Path
 from typing import Any
 
+from opentine import _query_experiments as qx
 from opentine import _query_index as qi
 from opentine import _query_rows as qr
 
@@ -42,11 +45,13 @@ def eval_source(store: Path, source: str) -> Path:
     return store / source if source.startswith("lineage/") else Path(source)
 
 
-def sources(store: Path, dirs: list[str]) -> dict[str, str]:
+def sources(store: Path, dirs: list[str], exps: list[str]) -> dict[str, str]:
     lineage = _lineage_files(store)
     return {"lineage": qi.files_digest(lineage),
             "evals": json.dumps({"dirs": dirs, "digest": qi.files_digest(eval_files(store, dirs))},
-                                sort_keys=True)}  # fmt: skip
+                                sort_keys=True),
+            "experiments": json.dumps({"dirs": exps, "digest": qi.files_digest(
+                qx.experiment_files(store, exps))}, sort_keys=True)}  # fmt: skip
 
 
 #: Below this many objects the build reads in-process; above, in worker processes.
@@ -84,28 +89,35 @@ def _object_chunks(repo: Any, oids: list[str], workers: int | None):
         yield from pool.map(_read_chunk, [project] * len(pieces), pieces)
 
 
-def build(repo: Any, dirs: list[str] | None = None, *, workers: int | None = None) -> dict:
-    """Rebuild the index; ``{"path", "counts"}``. Objects are read in chunks, in order."""
+def build(repo: Any, dirs: list[str] | None = None, *, workers: int | None = None,
+          experiments: list[str] | None = None) -> dict:  # fmt: skip
+    """Rebuild the index; ``{"path", "counts"}``. Objects are read in chunks, in order.
+
+    *experiments* ``None`` keeps the remembered experiment folders.
+    """
     store = Path(repo.path)
     dirs = sorted({Path(d).resolve().as_posix() for d in dirs or []})
+    exps = remembered_dirs(store, "experiments") if experiments is None else experiments
+    exps = sorted({Path(d).resolve().as_posix() for d in exps})
     fingerprint = qi.fingerprint(store)
     oids = list(repo.iter_oids())
     files = {"evals": [r for source, raw in sorted(eval_files(store, dirs).items())
                        for r in qr.verdict_lines(source, raw)],
-             **qr.lineage_rows(_lineage_files(store))}  # fmt: skip
+             **qr.lineage_rows(_lineage_files(store)),
+             **qx.rows(qx.experiment_files(store, exps))}  # fmt: skip
     meta = {"fingerprint": fingerprint, "objects": qi.objects_digest(oids),
-            **sources(store, dirs)}  # fmt: skip
+            **sources(store, dirs, exps)}  # fmt: skip
     path = qi.index_path(store)
     chunks = itertools.chain(_object_chunks(repo, oids, workers), [files])
     return {"path": path.as_posix(), "counts": qi.write(path, chunks, meta)}
 
 
-def remembered_dirs(store: Path) -> list[str]:
+def remembered_dirs(store: Path, key: str = "evals") -> list[str]:
     path = qi.index_path(store)
     if not path.is_file():
         return []
     try:
-        return list(json.loads(qi.read_meta(path).get("evals", "{}")).get("dirs", []))
+        return list(json.loads(qi.read_meta(path).get(key, "{}")).get("dirs", []))
     except (ValueError, AttributeError):
         return []
 
@@ -121,9 +133,10 @@ def staleness(repo: Any, *, exact: bool = False) -> dict[str, Any]:
     if meta.get("format") != qi.FORMAT:
         reasons.append("the index was written in another format")
     dirs = remembered_dirs(store)
-    now = sources(store, dirs)
+    now = sources(store, dirs, remembered_dirs(store, "experiments"))
     for key, why in (("lineage", "the lineage folder changed"),
-                     ("evals", "an eval folder changed")):  # fmt: skip
+                     ("evals", "an eval folder changed"),
+                     ("experiments", "an experiment folder changed")):  # fmt: skip
         if meta.get(key) != now[key]:
             reasons.append(why)
     fingerprint = qi.fingerprint(store)

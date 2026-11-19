@@ -32,6 +32,11 @@
 - `--json` prints `tine-cli-query/1`. See docs/QUERY.md.
 - `tine query --verify` asks for the role a table needs (`scorer` for evals, `monitor` for monitor verdicts, `approver` for oversight decisions; never an `optimizer` key), checks a step's `run`/`seq` and an eval's `run` against their objects, and fails eval sources outside the indexed folders.
 - `tine query` refuses values over 1,000,000 bytes (`query.too-large`) and repeated result column names (`query.duplicate-column`).
+- The query index also holds experiment manifests (`experiments`,
+  `experiment_results`) and reproduce reports (`reproductions`), read from
+  `.tine/experiments/` and each `tine query index --experiments DIR`
+  (remembered); `--verify` re-checks them against their files, and a changed
+  experiment file makes the index stale.
 - Experiment manifests: `opentine.experiment-manifest/1` is a signed file
   convention recording hypothesis, code and container digests, model id and
   version, sampling parameters, seeds, data commitments, compute spend, result
