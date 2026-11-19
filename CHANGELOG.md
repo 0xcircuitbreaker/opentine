@@ -30,11 +30,15 @@
   changes and that no hold is ever lost. Schemas `tine-cli-merge-history-1`,
   `opentine-history-snapshot-1` and `opentine-history-merge-1`; README count
   138.
-
+- The query index gains `history_merges`: one row per merge record (signer,
+  target ref, snapshot digests, conflict count). Under `--verify` a row is
+  `verified` only for a pinned `policy` signer without `optimizer`.
 - `tine auditor import-petri --blind SECRET` refuses a SECRET path inside the
   repository (resolved, symlinks followed), where the audited agent could read
   the opening, unless `--allow-in-repo` is given, and refuses to overwrite an
-  existing file. docs/AUDIT_GAMES.md says where to keep the opening.
+  existing file, including a case variant of the repository path on a
+  case-insensitive filesystem. docs/AUDIT_GAMES.md says where to keep the
+  opening.
 
 ## 0.66.0 — Elicitation and sabotage analytics (2026-11-19)
 
