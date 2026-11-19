@@ -27,6 +27,8 @@ from opentine._schema_defs_alerts import COMMAND_SCHEMAS as _ALERT_COMMANDS
 from opentine._schema_defs_alerts import SCHEMAS as _ALERTS
 from opentine._schema_defs_audit_kit import COMMAND_SCHEMAS as _AUDIT_KIT_COMMANDS
 from opentine._schema_defs_audit_kit import SCHEMAS as _AUDIT_KIT
+from opentine._schema_defs_auditor import COMMAND_SCHEMAS as _AUDITOR_COMMANDS
+from opentine._schema_defs_auditor import SCHEMAS as _AUDITOR
 from opentine._schema_defs_auth import COMMAND_SCHEMAS as _AUTH_COMMANDS
 from opentine._schema_defs_auth import SCHEMAS as _AUTH
 from opentine._schema_defs_canary import COMMAND_SCHEMAS as _CANARY_COMMANDS
@@ -118,6 +120,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     **_MONITOR,
     **_OVERSIGHT,
     **_INSPECT,
+    **_AUDITOR,
 }
 COMMAND_SCHEMAS: dict[str, str] = {
     **_CLI_COMMANDS,
@@ -146,6 +149,7 @@ COMMAND_SCHEMAS: dict[str, str] = {
     **_MONITOR_COMMANDS,
     **_OVERSIGHT_COMMANDS,
     **_INSPECT_COMMANDS,
+    **_AUDITOR_COMMANDS,
 }
 KIND_SCHEMAS: dict[str, str] = {
     **_REDACT_KINDS,

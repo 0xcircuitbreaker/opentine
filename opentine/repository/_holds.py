@@ -43,6 +43,9 @@ MONITOR_STOP = "monitor-stop:"
 #: 0.64: rows that keep an oversight decision (opentine._oversight): released never,
 #: so a loop cannot delete an approval, a rejection or a review request.
 OVERSIGHT_DECISION = "oversight-decision:"
+#: 0.65: rows that keep a blind audit game's seal, findings and reveal
+#: (opentine._audit_game): released never, so a reveal stays on record.
+AUDIT_GAME = "audit-game:"
 MAX_HOLDS_BYTES = 4 * 1024 * 1024
 
 
@@ -148,6 +151,8 @@ def release(repo, target: str) -> list[dict[str, str]]:
             raise HoldError(f"{target} keeps a monitor verdict or stop token: it is never released")
         if any(r["target"].startswith(OVERSIGHT_DECISION) for r in gone):
             raise HoldError(f"{target} keeps an oversight decision: it is never released")
+        if any(r["target"].startswith(AUDIT_GAME) for r in gone):
+            raise HoldError(f"{target} keeps an audit-game record: it is never released")
         return [r for r in rows if r not in gone]
 
     edit_holds(holds_path(repo), change)

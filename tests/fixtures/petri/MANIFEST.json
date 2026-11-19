@@ -1,0 +1,9 @@
+{
+  "purpose": "Synthetic Petri and Bloom transcripts for the 0.65 auditor importer. Nothing here was downloaded; no real model output.",
+  "format_source": "transcript JSON layout of safety-research/petri (metadata + events with view and edit.message) and safety-research/bloom (metadata + messages)",
+  "files": {
+    "transcript.json": "Petri layout: auditor view, target view, judge_output scores",
+    "bloom.json": "Bloom layout: evaluator view, top-level messages"
+  },
+  "models": "placeholder names under example/; no real model is identified"
+}

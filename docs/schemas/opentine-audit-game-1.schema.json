@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-audit-game-1.schema.json",
+  "title": "opentine.audit-game/1 claim",
+  "description": "The claim of an attestation on a role=auditor run recording one step of a blind audit game. A claim convention, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "game",
+    "step",
+    "at"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.audit-game/1"
+    },
+    "game": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.-]{1,64}$"
+    },
+    "step": {
+      "enum": [
+        "seal",
+        "findings",
+        "reveal"
+      ]
+    },
+    "at": {
+      "type": "string"
+    },
+    "commitment": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "seal": {
+      "type": "string",
+      "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+    },
+    "findings_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "verdict": {
+      "enum": [
+        "concern",
+        "no-concern"
+      ]
+    },
+    "findings": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "target": {
+      "type": "string"
+    },
+    "objective": {
+      "type": "string"
+    },
+    "nonce": {
+      "type": "string"
+    }
+  }
+}

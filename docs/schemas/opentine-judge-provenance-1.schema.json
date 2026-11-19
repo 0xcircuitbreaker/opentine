@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-judge-provenance-1.schema.json",
+  "title": "opentine.judge-provenance/1 document",
+  "description": "What an llm-judge scorer is: its pin (jp1+sha256 over the canonical JSON) is the signed scorer_version of every verdict it scores; eval folders keep it as judge.json. A claim convention, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "model",
+    "prompt_digest",
+    "rubric_digest",
+    "sampling"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.judge-provenance/1"
+    },
+    "model": {
+      "type": "string"
+    },
+    "prompt_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "rubric_digest": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sampling": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    }
+  }
+}
