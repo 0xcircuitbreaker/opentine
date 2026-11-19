@@ -93,6 +93,11 @@ case.
 | Evidence folder (`MANIFEST.sha256`, `custody.jsonl`) and the audit kit | 8.4, 8.4.1 |
 | Published JSON Schemas and the `--json` envelope | 12 |
 
+Not frozen: derived indexes. `.tine/query/index.sqlite` (`tine query`, 0.65)
+and `.tine/lineage/index/lineage.sqlite` are caches rebuilt from the formats
+above; their tables may change in any release, and they add no object kind
+and no `tine verify` code (docs/QUERY.md).
+
 ## 0.52: scoped tokens, CI OIDC exchange and quotas
 
 No object kind, wire format, vector family or `docs/schemas` object schema was

@@ -2003,6 +2003,20 @@ ITEM is `promotion:LABEL:RUN`, `monitor:ATTESTATION` or
 
 `--json` prints `tine-cli-inspect/1`. See docs/INSPECT.md.
 
+## SQL query over a derived index (0.65)
+
+| Command | What it does |
+| --- | --- |
+| `tine query SQL [--repo PATH] [--limit N] [--max-steps N] [--refresh]` | Runs one read-only SQL statement against `.tine/query/index.sqlite` (runs, steps, costs, monitor verdicts, oversight decisions, lineage variants and edges, evals); builds the index when missing; a stale index answers marked `stale` (`--refresh` rebuilds first) |
+| `tine query SQL --verify [--strict]` | Re-checks the object behind each returned row's `oid`: `verified`, `unverified` or `failed`; exit 1 on `failed` (`--strict`: also on `unverified`) |
+| `tine query index [--rebuild] [--check] [--evals DIR]... [--experiments DIR]...` | Reports or rebuilds the index and whether it is stale; `--evals` and `--experiments` folders are remembered |
+
+The index is derived and non-authoritative: every row carries its `oid`, and
+deleting the file loses nothing. Writes, `ATTACH`, `PRAGMA` and
+`load_extension` are refused (`query.refused`); work is bounded by a step
+count (`query.too-many-steps`). `--json` prints `tine-cli-query/1`; see
+docs/QUERY.md.
+
 ## Auditor runs and blind audit games (0.65)
 
 | Command | What it does |
@@ -2019,6 +2033,17 @@ count as the auditor's only when signed by a pinned `auditor`-role key;
 otherwise `advisory:audit-game.auditor-unpinned`. `tine eval run
 --judge-rubric FILE` pins the rubric into the judge provenance every signed
 verdict carries. `--json` prints `tine-cli-auditor/1`; see docs/AUDIT_GAMES.md.
+
+## Experiment manifests and reproduce (0.67)
+
+| Command | What it does |
+| --- | --- |
+| `tine experiment sign DRAFT --key KEY [--out PATH] [--at TIME]` | Signs an `opentine.experiment-manifest/1` draft (in place unless `--out`) |
+| `tine experiment check FILE [--repo PATH] [--strict] [--manifest PATH]` | Judges a manifest offline: exits 1 on `fail:experiment.result-mismatch`, `fail:experiment.reference-missing`, `fail:experiment.reference-unsigned`, `fail:experiment.key-separation`, `fail:experiment.unsigned`, `fail:experiment.bad-signature` or `fail:experiment.malformed`; `advisory:experiment.signer-unpinned` blocks only with `--strict`. Given a reproduce report, checks its signature and recomputes its rows, tallies and score drift; with `--manifest`, also its manifest digest, seeded selection, expected scores and declared nondeterministic fields (`fail:experiment.report-mismatch`); a report signed by a pinned optimizer key fails `fail:experiment.key-separation`; `advisory:experiment.seed-override`, `advisory:experiment.tolerance-chosen` and `advisory:experiment.single-repeat` block only with `--strict` |
+| `tine reproduce EXPERIMENT --sample K --key KEY [--seed N] [--tolerance T] [--repeats N] [--runner verdict\|FILE.py:FUNC\|MODULE:FUNC] [--out PATH] [--at TIME]` | Reruns a seeded sample of the manifest's result rows and writes a signed `opentine.reproduce-report/1` (agree/disagree per row, the recorded selection, and the manifest fields found nondeterministic); exits 1 on disagreement |
+
+Roles come only from the owner-pinned trust bundle. `--json` prints
+`tine-cli-experiment/1` or `tine-cli-reproduce/1`; see docs/EXPERIMENTS.md.
 
 ## Self-modification lineage (0.58)
 

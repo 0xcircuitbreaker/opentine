@@ -1,5 +1,73 @@
 # Changelog
 
+## 0.65.0 — Query and experiments (2026-11-19)
+
+- `tine query "SELECT ..." [--repo PATH]` runs one read-only SQL statement
+  over a derived SQLite index at `.tine/query/index.sqlite`: `runs`, `steps`,
+  a `costs` view, `monitor_verdicts`, `oversight_decisions`,
+  `lineage_variants`, `lineage_edges` and `evals`. Every row carries the `oid`
+  it was read from; the index is labelled non-authoritative in its `meta`
+  table, in `--json` output and in the text header, and deleting it loses
+  nothing. Built on the standard library's `sqlite3`; no new dependency.
+- Only reading is allowed: the index is opened read-only with `PRAGMA
+  query_only`, and an authorizer refuses writes, schema changes, `ATTACH`,
+  every `PRAGMA`, transactions and `load_extension` (`query.refused`). Work is
+  bounded by a count of SQLite steps (`--max-steps`, `query.too-many-steps`),
+  not a clock; `--limit` caps the rows returned.
+- `tine query SQL --verify [--strict]` goes back to the object or record
+  behind each returned row and marks it `verified` (intact, consistent with
+  the row, Ed25519 signature valid, signer holds a role in the owner-pinned
+  key roles), `unverified` (intact but unsigned, or signer without a pinned
+  role) or `failed` (missing, changed, bad signature, or the index row
+  disagrees with the source). `failed` exits 1; `unverified` is advisory
+  unless `--strict`.
+- `tine query index [--rebuild] [--check] [--evals DIR]...` reports or
+  rebuilds the index. Staleness compares a stat fingerprint of the object
+  store (then the object ids, so a repack is not stale), the lineage folder
+  and the remembered eval folders; a stale index answers marked `stale`, and
+  `--refresh` rebuilds it first. Large rebuilds read objects in worker
+  processes.
+- `scripts/bench/query_index.py` times a synthetic one-million-run index and
+  typical aggregate queries; results are in docs/bench/0.65-query.md.
+- `--json` prints `tine-cli-query/1`. See docs/QUERY.md.
+- `tine query --verify` asks for the role a table needs (`scorer` for evals, `monitor` for monitor verdicts, `approver` for oversight decisions; never an `optimizer` key), checks a step's `run`/`seq` and an eval's `run` against their objects, and fails eval sources outside the indexed folders.
+- `tine query` refuses values over 1,000,000 bytes (`query.too-large`) and repeated result column names (`query.duplicate-column`).
+- The query index also holds experiment manifests (`experiments`,
+  `experiment_results`) and reproduce reports (`reproductions`), read from
+  `.tine/experiments/` and each `tine query index --experiments DIR`
+  (remembered); `--verify` re-checks them against their files, and a changed
+  experiment file makes the index stale.
+- Experiment manifests: `opentine.experiment-manifest/1` is a signed file
+  convention recording hypothesis, code and container digests, model id and
+  version, sampling parameters, seeds, data commitments, compute spend, result
+  rows that reference signed `tine-eval-verdict/1` files by digest and path, and
+  the stated conclusion. `tine experiment sign DRAFT --key KEY` signs a draft.
+- `tine experiment check REPORT [--manifest M]` recomputes a reproduce report
+  instead of trusting its signature alone: a row whose delta or agree does not
+  follow from its scores and tolerance, unlisted score drift, a selection that
+  is not the seeded sample of M, or a field M leaves nondeterministic but the
+  report omits fails `fail:experiment.report-mismatch`; an optimizer-signed
+  report fails `fail:experiment.key-separation`. A reproducer-chosen seed or
+  tolerance and `--repeats 1` are advisories. The `verdict` runner refuses an
+  unverified or swapped verdict file.
+- `tine experiment check FILE [--repo PATH] [--strict]` fails
+  `fail:experiment.result-mismatch` when a row's digest, score or passed differs
+  from its verdict, and `fail:experiment.reference-missing`,
+  `fail:experiment.reference-unsigned`, `fail:experiment.unsigned`,
+  `fail:experiment.bad-signature`, `fail:experiment.key-separation` (verdict
+  signed by a pinned optimizer key) and `fail:experiment.malformed`. A verdict
+  signer outside the owner-pinned scorer/eval/verdict roles is
+  `advisory:experiment.signer-unpinned` and blocks only with `--strict`.
+- `tine reproduce EXPERIMENT --sample K --key KEY [--seed N] [--tolerance T]
+  [--repeats N] [--runner verdict|FILE.py:FUNC|MODULE:FUNC]` reruns a seeded,
+  recorded sample of result rows and writes a signed
+  `opentine.reproduce-report/1` with per-row agreement, the selection, and the
+  manifest fields found nondeterministic; it exits 1 on disagreement.
+- Schemas `opentine-experiment-manifest-1`, `opentine-reproduce-report-1`,
+  `tine-cli-experiment-1` and `tine-cli-reproduce-1` (file conventions, not
+  object kinds); docs/EXPERIMENTS.md. No object kind and no `tine verify` code
+  is added.
+
 ## 0.64.0 — Inspect and Petri interop (2026-11-19)
 
 - `tine import inspect LOG --repo PATH` (also `tine inspect import`) reads an

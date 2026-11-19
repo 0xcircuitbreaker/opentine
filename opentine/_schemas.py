@@ -3,10 +3,9 @@
 Definitions live in :mod:`opentine._schema_defs` (object kinds) and one
 ``opentine._schema_defs_<area>`` module per area (``_cli`` for ``--json``
 outputs, ``_redact``, ``_share``, ``_ci``, ``_review``, ``_registry``,
-``_witness``, ``_inspect``, ``_auditor`` and the rest, as imported below);
-``docs/schemas`` is their rendered copy (``scripts/gen_schemas.py``). A
-schema's *name* is its file stem, e.g. ``tine-verify-report-2``; the tag a document carries
-(``tine-verify-report/2``) maps to it by spelling ``/`` as ``-``.
+``_witness``, ``_inspect``, ``_research`` and the rest, as imported below);
+``docs/schemas`` is their rendered copy (``scripts/gen_schemas.py``). A schema's
+*name* is its file stem; a tag such as ``tine-verify-report/2`` maps to it by ``/``→``-``.
 """
 
 from __future__ import annotations
@@ -74,6 +73,8 @@ from opentine._schema_defs_redact import SCHEMAS as _REDACT
 from opentine._schema_defs_registry import COMMAND_SCHEMAS as _REGISTRY_COMMANDS
 from opentine._schema_defs_registry import KIND_SCHEMAS as _REGISTRY_KINDS
 from opentine._schema_defs_registry import SCHEMAS as _REGISTRY
+from opentine._schema_defs_research import COMMAND_SCHEMAS as _QUERY_COMMANDS
+from opentine._schema_defs_research import SCHEMAS as _QUERY
 from opentine._schema_defs_review import COMMAND_SCHEMAS as _REVIEW_COMMANDS
 from opentine._schema_defs_review import KIND_SCHEMAS as _REVIEW_KINDS
 from opentine._schema_defs_review import SCHEMAS as _REVIEW
@@ -114,6 +115,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     **_OVERSIGHT,
     **_INSPECT,
     **_AUDITOR,
+    **_QUERY,
 }
 COMMAND_SCHEMAS: dict[str, str] = {
     **_CLI_COMMANDS,
@@ -143,6 +145,7 @@ COMMAND_SCHEMAS: dict[str, str] = {
     **_OVERSIGHT_COMMANDS,
     **_INSPECT_COMMANDS,
     **_AUDITOR_COMMANDS,
+    **_QUERY_COMMANDS,
 }
 KIND_SCHEMAS: dict[str, str] = {
     **_REDACT_KINDS,

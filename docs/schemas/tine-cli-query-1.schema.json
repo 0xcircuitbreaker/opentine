@@ -1,0 +1,222 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-query-1.schema.json",
+  "title": "tine query ... --json",
+  "description": "Read-only SQL over the derived query index (`.tine/query/index.sqlite`). The index is non-authoritative: every row carries the oid it was read from, and `--verify` re-checks each returned row's object (verified, unverified or failed). `query index` reports or rebuilds the index and says whether it is stale.",
+  "anyOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "authority",
+        "stale",
+        "stale_reasons",
+        "columns",
+        "rows",
+        "truncated",
+        "verification"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-query/1"
+        },
+        "authority": {
+          "const": "non-authoritative"
+        },
+        "command": {
+          "const": "query"
+        },
+        "stale": {
+          "type": "boolean"
+        },
+        "stale_reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "columns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "verification": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "counts",
+                "rows"
+              ],
+              "properties": {
+                "counts": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "verified",
+                    "unverified",
+                    "failed"
+                  ],
+                  "properties": {
+                    "verified": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "unverified": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "failed": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                },
+                "rows": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "oid",
+                      "status",
+                      "reason",
+                      "signer",
+                      "roles"
+                    ],
+                    "properties": {
+                      "oid": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "status": {
+                        "enum": [
+                          "verified",
+                          "unverified",
+                          "failed"
+                        ]
+                      },
+                      "reason": {
+                        "type": "string"
+                      },
+                      "signer": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "roles": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "authority",
+        "index",
+        "rebuilt",
+        "exists",
+        "stale",
+        "reasons",
+        "counts",
+        "evals",
+        "experiments"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-query/1"
+        },
+        "authority": {
+          "const": "non-authoritative"
+        },
+        "command": {
+          "const": "query index"
+        },
+        "index": {
+          "type": "string"
+        },
+        "rebuilt": {
+          "type": "boolean"
+        },
+        "exists": {
+          "type": "boolean"
+        },
+        "stale": {
+          "type": "boolean"
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "counts": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evals": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "experiments": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  ]
+}

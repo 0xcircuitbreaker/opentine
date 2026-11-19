@@ -54,6 +54,7 @@ def room(monkeypatch, tmp_path: Path) -> Path:
     (tmp_path / "lengths.json").write_bytes(b'{"lengths": []}\n')  # 0.60: canary-check
     (tmp_path / "monitor.json").write_bytes(json.dumps(SPEC).encode("utf-8"))  # 0.63
     (tmp_path / "runs.jsonl").write_bytes(record_online(trajectories(20)))
+    (tmp_path / "exp.json").write_bytes(json.dumps(EXPERIMENT).encode("utf-8"))  # 0.67
     item = {"id": "q", "input": "1", "expected": "1", "output": "1", "run": "run:x"}  # 0.47
     (tmp_path / "repo" / "d.jsonl").write_text(json.dumps(item) + "\n", encoding="utf-8")
     (tmp_path / "evals.toml").write_text(
@@ -90,6 +91,14 @@ PURGED = "blob:sha256:06447dcb58c2856bcf2e91ebde6c6dc8d308026b314421ba25eae9b39c
 # 0.47: the golden repository's main tip, absent from its heads/experiment fork.
 MAIN_TIP = "event:sha256:6dc1725e0e6fafee882214a92946453481af791810e4b8cc3cea6417d21cbe1f"
 RUN0 = "run:sha256:be292c795e4d4c484dd65313e8556098ce724bdc7bae5722c6125c49c651db36"
+
+EXPERIMENT = {  # 0.67: an experiment manifest draft with no result rows
+    "convention": "opentine.experiment-manifest/1", "experiment": "e", "hypothesis": "h",
+    "code_digest": "sha256:" + "0" * 64, "container_digest": None,
+    "model": {"id": "m", "version": "1"}, "sampling": {"temperature": 0}, "seeds": [1],
+    "data": [], "compute": {"usd": None, "gpu_hours": None, "tokens": None},
+    "results": [], "conclusion": "c", "created_at": "2026-11-20T10:00:00Z",
+}  # fmt: skip
 
 # The --json invocations the web reads; each is (argv, expected command or tag).
 INSPECT = Path(__file__).resolve().parent / "fixtures" / "inspect"  # 0.64
@@ -298,6 +307,14 @@ DRIVEN = (
     (("monitor", "stops", "--repo", "repo", "--json"), "tine-cli-monitor-1"),  # 0.63
     (("oversight", "queue", "--repo", "repo", "--json"), "tine-cli-oversight-1"),  # 0.64
     (("auditor", "check", "--repo", "repo", "--json"), "tine-cli-auditor-1"),  # 0.65
+    (("query", "SELECT oid FROM runs", "--repo", "repo", "--json"), "tine-cli-query-1"),  # 0.65
+    (("query", "index", "--repo", "repo", "--json"), "tine-cli-query-1"),  # 0.65
+    (("experiment", "sign", "exp.json", "--key", "purge.key", "--json"), "tine-cli-experiment-1"),
+    (("experiment", "check", "exp.json", "--json"), "tine-cli-experiment-1"),  # 0.67
+    (
+        ("reproduce", "exp.json", "--sample", "1", "--key", "purge.key", "--json"),
+        "tine-cli-reproduce-1",
+    ),  # fmt: skip
     (("oversight", "policy", "--repo", "repo", "--json"), "tine-cli-oversight-1"),  # 0.64
     (
         ("oversight", "fatigue", "--repo", "repo", "--at", "2026-12-03T10:00:00Z", "--json"),
@@ -370,6 +387,8 @@ def test_every_driven_json_output_validates(monkeypatch, capsys, room, argv, exp
         pytest.skip("tine experts blames with git")
     if argv[:2] == ("audit-kit", "verify"):  # 0.49: verify needs a kit to check
         _tine(monkeypatch, capsys, "audit-kit", "build", "run.tine", "--out", "kit", "--json")
+    if argv[0] == "reproduce":  # 0.67: reproduce reads a signed manifest
+        _tine(monkeypatch, capsys, "experiment", "sign", "exp.json", "--key", "purge.key")
     if argv[:2] == ("eval", "compare"):  # 0.58: two eval folders to compare
         for side in ("ea", "eb"):
             _tine(monkeypatch, capsys, "eval", "run", "repo/d.jsonl", "--scorer", "exact",
