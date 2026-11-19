@@ -19,7 +19,8 @@ _ID = {"type": ["string", "integer"]}
 _ROW = closed(["sample_id", "epoch", "run", "ref", "scorers"], {
     "sample_id": _ID, "epoch": INT, "run": STR, "ref": STR,
     "scorers": {"type": "array", "items": STR}})  # fmt: skip
-_SCORER = closed(["folder", "eval", "items"], {"folder": STR, "eval": FPR, "items": INT})
+_SCORER = closed(["folder", "eval", "items", "scorer_version"],
+                 {"folder": STR, "eval": FPR, "items": INT, "scorer_version": STR})  # fmt: skip
 _VERDICTS = closed(["scorers", "skipped"], {
     "scorers": {"type": "object", "additionalProperties": _SCORER},
     "skipped": {"type": "array", "items": closed(["scorer", "sample_id", "epoch"], {

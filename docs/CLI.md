@@ -2002,8 +2002,8 @@ ITEM is `promotion:LABEL:RUN`, `monitor:ATTESTATION` or
 | `tine inspect verify LOG` | Checks the log against its detached signature; exit 4 when any byte changed |
 
 `--json` prints `tine-cli-inspect/1`. See docs/INSPECT.md.
-## Auditor runs and blind audit games (0.65)
 
+## Auditor runs and blind audit games (0.65)
 
 | Command | What it does |
 | --- | --- |

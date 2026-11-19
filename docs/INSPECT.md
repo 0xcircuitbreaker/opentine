@@ -42,6 +42,23 @@ the pass mark, and `created_at` is the log's `eval.created` unless
 `--created-at` is given. `tine eval verify evals/gsm8k/match` checks the
 folder offline; an edited score fails with `eval-verdict.bad-signature`.
 
+### Judge provenance from the log
+
+When a scorer is model-graded and the log records its grader, the verdicts pin
+that judge. The importer reads `results.scores[].params` for the scorer
+(`model`, `template`, `instructions`) and, when `params.model` is not set,
+`eval.model_roles.grader` (its `model` and the finite numbers in its `config`).
+It builds an `opentine.judge-provenance/1` document (see docs/AUDIT_GAMES.md):
+the prompt digest is over `template`, or over the recorded params when the log
+has no template; the rubric digest is over `instructions`. Its `jp1+sha256:`
+pin is the signed `scorer_version` of every verdict in that folder, and the
+document is written beside them as `judge.json`. `tine eval verify` then fails
+with `eval.summary-mismatch` when `judge.json` is edited or deleted. A scorer
+whose log names no grader model keeps `scorer_version` `inspect:<name>` and gets
+no `judge.json`; nothing is inferred. The `--json` row for each scorer reports
+its `scorer_version`. Underscores in scorer names become `-` in the verdict's
+`scorer` id (`model_graded_qa` signs as `inspect-model-graded-qa`).
+
 ## Exporting back to Inspect
 
 ```

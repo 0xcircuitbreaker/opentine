@@ -95,7 +95,8 @@
                     "required": [
                       "folder",
                       "eval",
-                      "items"
+                      "items",
+                      "scorer_version"
                     ],
                     "properties": {
                       "folder": {
@@ -108,6 +109,9 @@
                       "items": {
                         "type": "integer",
                         "minimum": 0
+                      },
+                      "scorer_version": {
+                        "type": "string"
                       }
                     }
                   }

@@ -28,6 +28,12 @@
 - The log reader caps log, member and expanded zip size, member count,
   compression ratio, JSON depth, samples and messages, and is a new `inspect`
   target of `scripts/fuzz.py` seeded from the fixtures.
+- An imported model-graded scorer carries its judge provenance: when the log
+  records the grader (`results.scores[].params` or `eval.model_roles.grader`),
+  the signed verdicts' `scorer_version` is the `jp1+sha256:` pin of an
+  `opentine.judge-provenance/1` document written beside them as `judge.json`,
+  so `tine eval verify` catches a swapped or deleted rubric, template or grader.
+  Scorer names with `_` now import (`inspect-model-graded-qa`).
 - Schemas `tine-cli-inspect-1`, `opentine-inspect-sample-1` and
   `opentine-inspect-log-sig-1` (claim and file conventions, not object kinds);
   docs/INSPECT.md. No object kind and no `tine verify` code is added.

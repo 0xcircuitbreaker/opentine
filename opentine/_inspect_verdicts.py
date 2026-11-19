@@ -23,7 +23,7 @@ from typing import Any
 
 from opentine import _eval_verdict as verdicts
 from opentine._eval_dataset import dataset_digest, item_digest
-from opentine._eval_run import PINNED, SCHEMA, SUMMARY, VERDICTS, _tally, eval_id
+from opentine._eval_run import JUDGE, PINNED, SCHEMA, SUMMARY, VERDICTS, _tally, eval_id
 from opentine._inspect_import import slug
 
 LETTERS = {"C": 1, "I": 0, "P": Decimal("0.5"), "N": 0}
@@ -58,12 +58,16 @@ def _answer(output: dict[str, Any]) -> str:
 
 
 def write_verdicts(rows: list[dict[str, Any]], key: Any, out_dir: Path, *,
-                   threshold: float = 1.0, created_at: str) -> dict[str, Any]:  # fmt: skip
+                   threshold: float = 1.0, created_at: str,
+                   judges: dict[str, dict[str, Any]] | None = None) -> dict[str, Any]:  # fmt: skip
     """Sign one eval folder per scorer under *out_dir*; ``{scorer: summary}`` + skipped.
 
-    *rows* are ``{"run", "sample": normalized sample}`` in log order.
+    *rows* are ``{"run", "sample": normalized sample}`` in log order. A scorer in
+    *judges* (0.65, ``opentine._inspect_judge``) signs its judge provenance pin as
+    ``scorer_version`` and gets ``judge.json`` beside its verdicts.
     """
     from opentine._canon import atomic_write_text
+    from opentine._judge_provenance import pin
     from opentine._signing_keys import load_ed25519_private
     from opentine._signing_pins import key_fingerprint
 
@@ -100,8 +104,9 @@ def write_verdicts(rows: list[dict[str, Any]], key: Any, out_dir: Path, *,
             scored.append(value)
         if not items:
             continue
-        scorer = "inspect-" + slug(name, 55)
-        version = "inspect:" + slug(name, 150)
+        scorer = "inspect-" + slug(name, 55).replace("_", "-")  # scorer ids take no "_"
+        judge = (judges or {}).get(name)
+        version = pin(judge) if judge is not None else "inspect:" + slug(name, 150)
         pinned = {"dataset": dataset_digest(items), "scorer": scorer, "scorer_version": version,
                   "threshold": verdicts.score_text(threshold), "created_at": created_at,
                   "signer": signer}  # fmt: skip
@@ -119,12 +124,16 @@ def write_verdicts(rows: list[dict[str, Any]], key: Any, out_dir: Path, *,
         body = "".join(lines)
         atomic_write_text(folder / VERDICTS, body, newline="\n")
         sha = hashlib.sha256(body.encode()).hexdigest()
+        if judge is not None:  # what the signed scorer_version pins
+            text = json.dumps(judge, indent=2, sort_keys=True) + "\n"
+            atomic_write_text(folder / JUDGE, text, newline="\n")
         summary = {"schema": SCHEMA, "eval": ident, **{k: pinned[k] for k in PINNED},
                    **_tally(lines), "verdicts_sha256": sha}  # fmt: skip
         atomic_write_text(
             folder / SUMMARY, json.dumps(summary, indent=2, sort_keys=True) + "\n", newline="\n"
         )
-        summaries[name] = {"folder": folder.as_posix(), "eval": ident, "items": len(lines)}
+        summaries[name] = {"folder": folder.as_posix(), "eval": ident, "items": len(lines),
+                           "scorer_version": version}  # fmt: skip
     return {"scorers": summaries, "skipped": skipped}
 
 

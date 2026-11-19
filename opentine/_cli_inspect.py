@@ -94,18 +94,24 @@ def _import(args: argparse.Namespace) -> tuple[dict[str, Any], list[str]]:
              f"under {body['ref_prefix']}"]  # fmt: skip
     body["verdicts"] = None
     if args.key:
+        from opentine._inspect_judge import provenances
         from opentine._inspect_verdicts import write_verdicts
 
         rows = [{"run": row["run"], "sample": sample}
                 for row, sample in zip(body["samples"], log["samples"], strict=True)]  # fmt: skip
         body["verdicts"] = write_verdicts(rows, _key(args.key), Path(args.evals),
                                           threshold=args.threshold,
-                                          created_at=_created(log, args.created_at))  # fmt: skip
+                                          created_at=_created(log, args.created_at),
+                                          judges=provenances(log, _scorers(log)))  # fmt: skip
         for name, row in body["verdicts"]["scorers"].items():
             lines.append(f"  {name}: {row['items']} verdict(s) in {row['folder']}")
         if body["verdicts"]["skipped"]:
             lines.append(f"  {len(body['verdicts']['skipped'])} score(s) not in 0..1: no verdict")
     return body, lines
+
+
+def _scorers(log: dict) -> list[str]:
+    return sorted({name for sample in log["samples"] for name in sample["scores"]})
 
 
 def _export(args: argparse.Namespace) -> None:
