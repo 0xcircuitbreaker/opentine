@@ -5824,6 +5824,7 @@ ROWS: tuple[tuple, ...] = (
             "source": "t.json",
             "blind": "s.json",
             "objective": "",
+            "allow_in_repo": False,
             "save": None,
             "repo": ".",
             "json": True,

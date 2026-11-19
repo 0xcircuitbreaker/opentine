@@ -2021,7 +2021,7 @@ docs/QUERY.md.
 
 | Command | What it does |
 | --- | --- |
-| `tine auditor import-petri FILE [--save PATH] [--blind SECRET [--objective TEXT]] --repo PATH` | Records a Petri or Bloom transcript as a `role=auditor` run (auditor, target and judge as step speakers); `--blind` replaces the target's identity with a commitment and writes the secret to SECRET |
+| `tine auditor import-petri FILE [--save PATH] [--blind SECRET [--objective TEXT] [--allow-in-repo]] --repo PATH` | Records a Petri or Bloom transcript as a `role=auditor` run (auditor, target and judge as step speakers); `--blind` replaces the target's identity with a commitment and writes the secret to SECRET, which must be a new file outside the repository unless `--allow-in-repo` |
 | `tine auditor seal RUN --game GAME --secret SECRET --key KEY [--at TIME] --repo PATH` | Signs and holds the game's commitment |
 | `tine auditor findings RUN --game GAME --findings FILE --verdict concern\|no-concern --key KEY [--at TIME] --repo PATH` | Signs and holds the auditor's findings (their digest and verdict) |
 | `tine auditor reveal RUN --game GAME --secret SECRET --key KEY [--at TIME] --repo PATH` | Signs and holds the reveal, naming the findings it follows |

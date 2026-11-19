@@ -31,6 +31,11 @@
   `opentine-history-snapshot-1` and `opentine-history-merge-1`; README count
   138.
 
+- `tine auditor import-petri --blind SECRET` refuses a SECRET path inside the
+  repository (resolved, symlinks followed), where the audited agent could read
+  the opening, unless `--allow-in-repo` is given, and refuses to overwrite an
+  existing file. docs/AUDIT_GAMES.md says where to keep the opening.
+
 ## 0.66.0 — Elicitation and sabotage analytics (2026-11-19)
 
 - `tine elicit link DRAFT --key KEY` signs an `opentine.elicit-link/1` record:
