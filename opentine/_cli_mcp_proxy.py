@@ -8,6 +8,10 @@ stored; the relayed bytes are never changed. The run is saved as it grows, to
 ``--save PATH`` or ``.tine_runs/mcp-proxy-<time>-<pid>.tine``, and ``--repo``
 installs the finished run into a repository. Messages go to stderr: stdout is
 the protocol channel.
+
+0.63: ``--monitor CONFIG --monitor-repo PATH --monitor-key KEY`` puts an
+inline monitor on ``tools/call`` (:mod:`opentine._monitor_mcp`, docs/MONITORS.md):
+advisory by default, a blocking gate only when the config says ``mode = "gate"``.
 """
 
 from __future__ import annotations
@@ -45,6 +49,11 @@ def add_mcp_proxy_parser(sub: Any) -> None:
     proxy.add_argument("--force", action="store_true", help="Replace an existing --save file")
     proxy.add_argument("--repo", metavar="PATH", help="Also install the run into this repository")
     proxy.add_argument("--ref", metavar="REF", help="Ref the --repo install advances")
+    proxy.add_argument("--monitor", metavar="CONFIG", help="Monitor config (docs/MONITORS.md)")
+    proxy.add_argument("--monitor-repo", metavar="PATH",
+                       help="Repository the signed verdicts go to (default: --repo)")  # fmt: skip
+    proxy.add_argument("--monitor-key", metavar="KEY", help="Ed25519 key that signs verdicts")
+    proxy.add_argument("--monitor-agent", metavar="NAME", help="Agent name stop tokens match")
     proxy.add_argument("cmd", nargs=argparse.REMAINDER, help="The MCP server command, after --")
 
 
@@ -64,12 +73,35 @@ def _address(listen: str, allow: bool) -> tuple[str, int]:
     return host, int(port)
 
 
+def _guard(args: argparse.Namespace, session: str) -> Any:
+    """The monitor guard ``--monitor`` asks for, or ``None``."""
+    if not args.monitor:
+        return None
+    from opentine._key_hygiene import ed25519_private
+    from opentine._monitor_gate import Gate
+    from opentine._monitor_mcp import McpGuard
+    from opentine._monitors import load
+    from opentine.repo import Repo
+
+    where = args.monitor_repo or args.repo
+    if not where or not args.monitor_key:
+        _fail("--monitor needs --monitor-repo (or --repo) and --monitor-key: verdicts are signed")
+    try:
+        config = load(args.monitor)
+        gate = Gate(config, repo=Repo.open(where), key=ed25519_private(args.monitor_key),
+                    session=session, agent=args.monitor_agent)  # fmt: skip
+    except (OSError, ValueError) as exc:
+        _fail(f"monitor: {exc}")
+    err.print(f"mcp-proxy: monitor {config['monitor'].identity['id']} ({config['mode']})")
+    return McpGuard(gate, err.print)
+
+
 def _serve_http(args: argparse.Namespace, command: list[str], recorder: Any) -> int:
     import subprocess
 
     from opentine import _mcp_proxy_http
 
-    server = _mcp_proxy_http.start(args.address, args.http_upstream, recorder)
+    server = _mcp_proxy_http.start(args.address, args.http_upstream, recorder, args.guard)
     host = server.server_address[0]
     err.print(f"mcp-proxy: listening on http://{host}:{server.port}/ -> {args.http_upstream}")
     try:
@@ -102,18 +134,27 @@ def cmd_mcp_proxy(args: argparse.Namespace) -> None:
     output = Path(args.save or _runs_dir() / f"mcp-proxy-{stamp}-{os.getpid()}.tine")
     transport = "http" if args.http_upstream else "stdio"
     recorder = McpRecorder(output, command or [args.http_upstream], transport, err.print)
+    args.guard = _guard(args, f"mcp-{stamp}-{os.getpid()}")
+    if args.guard is not None:
+        recorder.run.metadata["monitor"] = {**args.guard.gate.monitor.identity,
+                                            "mode": args.guard.gate.config["mode"]}  # fmt: skip
     if threading.current_thread() is threading.main_thread() and hasattr(signal, "SIGTERM"):
         signal.signal(signal.SIGTERM, signal.default_int_handler)
     try:
         if args.http_upstream:
             code = _serve_http(args, command, recorder)
         else:
-            code = _mcp_proxy_stdio.relay(command, recorder)
+            code = _mcp_proxy_stdio.relay(command, recorder, args.guard)
     except OSError as exc:
         err.print(f"[red]Cannot run {redact_text(command[0])}:[/] {exc.strerror or exc}")
         code = 127
     except KeyboardInterrupt:
         code = 130
+    if args.guard is not None:
+        args.guard.close()
+        counts = args.guard.gate.counts
+        err.print(f"mcp-proxy: monitor forwarded {counts['forward']}, replaced "
+                  f"{counts['replace']}, blocked {counts['block']}")  # fmt: skip
     recorder.close(code)
     err.print(f"mcp-proxy: {recorder.steps} step(s) saved to {_terminal(output)}")
     if not recorder.witnessed:

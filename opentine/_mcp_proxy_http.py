@@ -6,6 +6,10 @@ streamed back chunk by chunk, SSE included, before the recorder sees a byte.
 On a loopback bind the ``Host`` header must name the loopback address and an
 ``Origin``, when sent, must be a loopback origin: the DNS-rebinding guard of
 the 0.35 OTLP receiver. Request bodies are bounded (413).
+
+0.63: with a monitor guard (:mod:`opentine._monitor_mcp`), a POSTed
+``tools/call`` is decided before it is forwarded; a blocked call is answered
+here with its JSON-RPC error and never reaches the upstream.
 """
 
 from __future__ import annotations
@@ -65,6 +69,15 @@ class _Handler(BaseHTTPRequestHandler):
         self.wfile.write(message.encode())
         self.close_connection = True
 
+    def _answer(self, body: bytes) -> None:
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Connection", "close")
+        self.end_headers()
+        self.wfile.write(body)
+        self.close_connection = True
+
     def _guard(self) -> str | None:
         if not self.server.loopback:
             return None
@@ -87,6 +100,14 @@ class _Handler(BaseHTTPRequestHandler):
         if length < 0 or length > MAX_BODY:
             return self._refuse(413 if length > 0 else 400, "bad or oversized request body")
         body = self.rfile.read(length) if length else b""
+        guard = self.server.guard
+        if body and guard is not None:
+            forward, back, blocked = guard.check(body)
+            if back is not None and not forward:
+                self.server.recorder.feed(CLIENT, blocked or body)
+                self.server.recorder.feed(SERVER, back)
+                return self._answer(back)
+            body = forward or body
         if body:
             self.server.recorder.feed(CLIENT, body[:MAX_MESSAGE], len(body) > MAX_MESSAGE)
         try:
@@ -141,9 +162,11 @@ class _Handler(BaseHTTPRequestHandler):
 class McpHttpProxy(LingeringCloseMixin, ThreadingHTTPServer):
     daemon_threads = True
 
-    def __init__(self, address: tuple[str, int], upstream: str, recorder: McpRecorder) -> None:
+    def __init__(
+        self, address: tuple[str, int], upstream: str, recorder: McpRecorder, guard: Any = None
+    ) -> None:
         super().__init__(address, _Handler)
-        self.upstream, self.recorder = urlsplit(upstream), recorder
+        self.upstream, self.recorder, self.guard = urlsplit(upstream), recorder, guard
         try:
             self.loopback = ipaddress.ip_address(self.server_address[0]).is_loopback
         except ValueError:
@@ -154,8 +177,10 @@ class McpHttpProxy(LingeringCloseMixin, ThreadingHTTPServer):
         return int(self.server_address[1])
 
 
-def start(address: tuple[str, int], upstream: str, recorder: McpRecorder) -> McpHttpProxy:
-    server = McpHttpProxy(address, upstream, recorder)
+def start(
+    address: tuple[str, int], upstream: str, recorder: McpRecorder, guard: Any = None
+) -> McpHttpProxy:
+    server = McpHttpProxy(address, upstream, recorder, guard)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     return server
 
