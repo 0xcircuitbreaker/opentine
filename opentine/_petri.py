@@ -27,6 +27,7 @@ guard's nesting and token budget, at most :data:`MAX_MESSAGES` messages.
 from __future__ import annotations
 
 import json
+import math
 from typing import Any
 
 from opentine.trace._import_guard import shape_checked
@@ -101,7 +102,8 @@ def roles(doc: dict[str, Any]) -> dict[str, Any]:
     judge = meta.get("judge_output") if isinstance(meta.get("judge_output"), dict) else {}
     scores = judge.get("scores") if isinstance(judge.get("scores"), dict) else {}
     clean = {str(k)[:64]: v for k, v in list(scores.items())[:256]
-             if isinstance(v, (int, float)) and not isinstance(v, bool)}  # fmt: skip
+             if isinstance(v, (int, float)) and not isinstance(v, bool)
+             and math.isfinite(v)}  # fmt: skip
     return {
         "transcript": _name(meta.get("transcript_id"), "unknown"),
         AUDITOR: _name(meta.get("auditor_model") or meta.get("evaluator_model"), "unknown"),

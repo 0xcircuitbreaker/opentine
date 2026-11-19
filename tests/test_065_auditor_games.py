@@ -145,3 +145,17 @@ def test_findings_need_a_seal(room, capsys):
                     str(tmp / "auditor.key"), "--findings", str(tmp / "findings.md"),
                     "--verdict", "concern", "--repo", str(tmp / "r"))  # fmt: skip
     assert code != 0
+
+
+def test_an_early_reveal_hidden_behind_a_later_one_is_detected(room, capsys):
+    tmp, _ = room
+    run, _ = _blind(capsys, tmp)
+    secret = ("--secret", str(tmp / "secret.json"))
+    _step(capsys, tmp, "seal", run, "owner.key", "2026-11-01T00:00:00Z", *secret)
+    _step(capsys, tmp, "reveal", run, "auditor.key", "2026-11-01T00:30:00Z", *secret)
+    _step(capsys, tmp, "findings", run, "auditor.key", "2026-11-01T01:00:00Z",
+          "--findings", str(tmp / "findings.md"), "--verdict", "no-concern")  # fmt: skip
+    _step(capsys, tmp, "reveal", run, "owner.key", "2026-11-01T02:00:00Z", *secret)
+    code, out = _tine(capsys, "auditor", "check", "--repo", str(tmp / "r"))
+    assert code == 1 and not out["ok"]
+    assert "fail:audit-game.reveal-before-verdict" in {f["code"] for f in out["findings"]}

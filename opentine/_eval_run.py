@@ -156,11 +156,17 @@ def verify_eval(folder: Path, *, public_key: bytes | None = None) -> dict[str, A
 
 def _judge_check(folder: Path, rows: list[Any]) -> list[dict[str, Any]]:
     """0.65: ``judge.json`` must be what every verdict's signed ``scorer_version`` pins."""
-    from opentine._judge_provenance import matches
+    from opentine._judge_provenance import PREFIX, matches
 
     path = folder / JUDGE if folder.is_dir() else None
     if path is None or not path.is_file():
-        return []
+        # A verdict that signs a judge pin needs the document it pins.
+        pinned = [r for r in rows if isinstance(r, dict)
+                  and str(r.get("scorer_version", "")).startswith(PREFIX)]  # fmt: skip
+        if not pinned:
+            return []
+        return [{"line": 0, "item": None, "reason": "eval.summary-mismatch",
+                 "detail": "judge.json is missing for a judge-pinned verdict"}]  # fmt: skip
     try:
         doc = json.loads(path.read_bytes())
     except ValueError:

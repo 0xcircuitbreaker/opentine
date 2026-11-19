@@ -63,10 +63,14 @@ def judge(name: str, rows: list[dict[str, Any]], pinned: tuple[set[str], str]) -
         ):
             found.append(_finding("fail", "commitment-mismatch", name,
                                   "the reveal does not open the seal"))  # fmt: skip
-        after = claim.get("findings")
-        early = findings is None or after != findings["oid"]
-        if not early and findings["claim"]["at"] > claim["at"]:
-            early = True
+        # Every signed reveal must follow the verdict, not just the latest one.
+        reveals = [r for r in rows if r["signed"] and (r["claim"] or {}).get("step") == "reveal"]
+        early = any(
+            findings is None
+            or r["claim"].get("findings") != findings["oid"]
+            or findings["claim"]["at"] > r["claim"]["at"]
+            for r in reveals
+        )
         if early:
             why = "the target was revealed before the auditor's verdict"
             found.append(_finding("fail", "reveal-before-verdict", name, why))

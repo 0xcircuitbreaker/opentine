@@ -84,3 +84,9 @@ def test_provenance_documents_are_checked():
     assert not _judge_provenance.matches({**doc, "model": ""}, _judge_provenance.pin(doc))
     with pytest.raises(ValueError):
         _judge_provenance.build("m", "p", sampling={"Bad Name": 1})
+
+
+def test_deleting_the_judge_provenance_fails_verification(judged):
+    (judged / "judge.json").unlink()
+    row = verify_eval(judged)
+    assert not row["ok"] and row["failures"][0]["reason"] == "eval.summary-mismatch"

@@ -54,3 +54,12 @@ def test_structural_bombs_and_odd_shapes_are_bounded():
     _petri.to_run(_petri.load(b'{"metadata": {"judge_output": 3}, "events": 5, "messages": 1}'))
     run = _petri.to_run(_petri.load(json.dumps(odd).encode()))
     assert run.steps[-1].outputs["scores"] == {"z": 2}
+
+
+def test_non_finite_scores_are_dropped_so_the_run_stays_canonical():
+    from opentine.kernel import canonical_json
+
+    data = b'{"metadata": {"judge_output": {"scores": {"x": Infinity, "y": NaN, "z": 1}}}}'
+    run = _petri.to_run(_petri.load(data))
+    assert run.metadata["audit"]["scores"] == {"z": 1}
+    canonical_json(run.metadata)
