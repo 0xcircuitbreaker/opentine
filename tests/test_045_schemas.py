@@ -311,6 +311,7 @@ DRIVEN = (
     (("query", "index", "--repo", "repo", "--json"), "tine-cli-query-1"),  # 0.65
     (("experiment", "sign", "exp.json", "--key", "purge.key", "--json"), "tine-cli-experiment-1"),
     (("experiment", "check", "exp.json", "--json"), "tine-cli-experiment-1"),  # 0.67
+    (("elicit", "report", "--repo", "repo", "--json"), "tine-cli-elicit-1"),  # 0.68
     (
         ("reproduce", "exp.json", "--sample", "1", "--key", "purge.key", "--json"),
         "tine-cli-reproduce-1",
