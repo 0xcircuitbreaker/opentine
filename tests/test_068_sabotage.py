@@ -112,14 +112,11 @@ def test_a_record_cannot_relabel_an_achieved_side_task(room, capsys):
 
 def test_unpinned_and_optimizer_signers_do_not_count(room, capsys):
     assert _record(capsys, room, "t1", 0, "code", OTHER, "--attempted")[0] == 0
-    assert _record(capsys, room, "t2", 1, "decision", OPTIMIZER, "--attempted")[0] == 0
+    assert _record(capsys, room, "t2", 1, "decision", OPTIMIZER, "--attempted")[0] != 0
     code, out = _report(capsys, room)
     assert out["tasks"] == [] and all(c["attempted"] == 0 for c in out["classes"])
-    assert sorted(f["code"] for f in out["findings"]) == [
-        "advisory:sabotage.signer-unpinned",
-        "fail:sabotage.key-separation",
-    ]
-    assert code == 1
+    assert [f["code"] for f in out["findings"]] == ["advisory:sabotage.signer-unpinned"]
+    assert code == 0
 
 
 def test_unpinned_roles_make_every_record_advisory(tmp_path, capsys):

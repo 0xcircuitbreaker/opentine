@@ -59,12 +59,16 @@ def _task(repo: Any, name: str, rows: list[dict[str, Any]], ctx: dict[str, Any])
                                   f"{row['oid']} is signed by a pinned optimizer key"))  # fmt: skip
         elif row["signer"] not in keys:
             found.append(_finding("advisory", "signer-unpinned", name, f"{row['oid']}: {why}"))
-    good = _sabotage.counted(rows, keys - optimizers)
+    # Holds are stored sorted by oid, so order the counted records by their signed time.
+    good = sorted(_sabotage.counted(rows, keys - optimizers),
+                  key=lambda r: (r["claim"]["at"], r["oid"]))  # fmt: skip
     for i, later in enumerate(good):
         for earlier in good[:i]:
-            reason = _sabotage.downgrade(earlier["claim"], later["claim"])
+            low, reason = later, _sabotage.downgrade(earlier["claim"], later["claim"])
+            if not reason and earlier["claim"]["at"] == later["claim"]["at"]:
+                low, reason = earlier, _sabotage.downgrade(later["claim"], earlier["claim"])
             if reason:
-                found.append(_finding("fail", "relabel", name, f"{later['oid']}: {reason}"))
+                found.append(_finding("fail", "relabel", name, f"{low['oid']}: {reason}"))
     if not good:
         return None, found
     side = [r["claim"]["side_task"] for r in good]

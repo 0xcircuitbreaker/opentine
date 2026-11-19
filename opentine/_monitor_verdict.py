@@ -129,6 +129,10 @@ def verify(repo: Any, oid: str, pinned: tuple[set[str], str] | None = None) -> d
     result = verify_attestation(payload, trust_embedded=True)
     if not result.ok or result.algorithm != "ed25519":
         return {**row, "verification": f"unverified: {result.state}"}
+    from opentine._signing_pins import used_key_fingerprint
+
+    if used_key_fingerprint(payload.get("signature")) != payload.get("signer"):
+        return {**row, "verification": "unverified: the signer is not the key that signed"}
     row["signed"] = True
     keys, why = pinned if pinned is not None else monitors(repo)
     ok = payload.get("signer") in keys

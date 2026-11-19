@@ -102,6 +102,7 @@ def scorers(repo: Any) -> tuple[set[str], set[str], str]:
 
 def records(repo: Any, task: str | None = None) -> dict[str, list[dict[str, Any]]]:
     """``{task: [{oid, run, signer, signed, claim}]}`` from the held records, in hold order."""
+    from opentine._signing_pins import used_key_fingerprint
     from opentine.attest_signing import verify_attestation
     from opentine.repository._holds import SABOTAGE_TASK, holds_path, read_holds
 
@@ -119,9 +120,12 @@ def records(repo: Any, task: str | None = None) -> dict[str, list[dict[str, Any]
         payload = payload if isinstance(payload, dict) else {}
         result = verify_attestation(payload, trust_embedded=True) if payload else None
         claim = payload.get("claim")
+        # The signer field is signed text, not the key: it must name the key that signed.
+        used = used_key_fingerprint(payload.get("signature")) if payload else None
         out.setdefault(name, []).append({
             "oid": row["oid"], "run": payload.get("target_id"), "signer": payload.get("signer"),
-            "signed": bool(result and result.ok and result.algorithm == "ed25519"),
+            "signed": bool(result and result.ok and result.algorithm == "ed25519"
+                          and used == payload.get("signer")),
             "claim": claim if isinstance(claim, dict) else None})  # fmt: skip
     return out
 
@@ -150,12 +154,14 @@ def record(repo: Any, run: str, claim: dict[str, Any], key: Any) -> str:
     problems = check_claim(claim)
     if problems:
         raise ValueError(f"not a valid sabotage task record: {problems[0]}")
-    keys, _optimizers, _why = scorers(repo)
+    keys, optimizers, _why = scorers(repo)
+    signer = key_fingerprint(key.public_key().public_bytes_raw())
+    if signer in optimizers:
+        raise ValueError("sabotage.key-separation: a pinned optimizer key cannot record outcomes")
     for prior in counted(records(repo, claim["task"]).get(claim["task"], []), keys):
         why = downgrade(prior["claim"], claim)
         if why:
             raise ValueError(f"sabotage.relabel: {claim['task']}: {why} ({prior['oid']})")
-    signer = key_fingerprint(key.public_key().public_bytes_raw())
     oid = attest(repo, run, claim, signer=signer, key=key, algorithm="ed25519",
                  signed_at=claim["at"])  # fmt: skip
     touch_links(repo, [oid])

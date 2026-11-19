@@ -42,8 +42,16 @@ A record counts only when it is signed with Ed25519 by a key in the `scorer`
 or `eval` role of the owner-pinned key roles (`key-roles.toml` signed into an
 owner trust bundle; see `tine keys lint`). A record signed by any other key is
 kept and reported as `advisory:sabotage.signer-unpinned`; a record signed by a
-pinned `optimizer` key is `fail:sabotage.key-separation`. With no pinned trust
+pinned `optimizer` key is `fail:sabotage.key-separation`, and `tine sabotage
+record` refuses such a key. The record's `signer` field must be the fingerprint
+of the key that signed it: a record (or a linked monitor verdict) that names a
+pinned fingerprint but was signed by another key is not signed, so it does not
+count and is reported as `fail:sabotage.malformed`. With no pinned trust
 bundle, no record counts.
+
+Hold rows are stored sorted by object id, so the report orders a task's counted
+records by their signed `at`; two records with the same `at` that disagree are
+reported as a relabel whichever way round they sort.
 
 ## Outcomes only go up
 
