@@ -1,0 +1,154 @@
+"""``tine oversight policy|sign-policy|request|approve|reject|queue`` (0.64).
+
+``policy`` reports whether ``.tine/oversight.toml`` is pinned
+(:mod:`opentine._oversight_policy`); ``sign-policy --key`` writes
+``.tine/oversight.sig.json`` with a policy-role key; ``request``, ``approve``
+and ``reject ITEM --key`` write one signed, held decision annotation
+(:mod:`opentine._oversight`); ``queue`` lists every routed item and its k-of-n
+tally (:mod:`opentine._oversight_gate`), ``--from-objects`` rebuilding it from
+the annotation objects alone. An approve or reject signed by an optimizer,
+monitor or scorer key is refused before anything is written.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+from collections.abc import Callable
+from pathlib import Path
+from typing import Any
+
+from opentine._cli_common import _terminal, console
+from opentine._cli_errors import error
+
+SCHEMA = "tine-cli-oversight/1"
+DECIDE = ("request", "approve", "reject")
+
+
+def add_oversight_parser(subparsers: argparse._SubParsersAction) -> None:
+    parser = subparsers.add_parser("oversight", help="Oversight queue: k-of-n signed approvals")
+    verbs = parser.add_subparsers(dest="oversight_command", required=True)
+    policy = verbs.add_parser("policy", help="Is .tine/oversight.toml pinned?")
+    sign = verbs.add_parser("sign-policy", help="Sign .tine/oversight.toml (a policy-role key)")
+    sign.add_argument("--key", required=True, metavar="KEY", help="Ed25519 private key")
+    rows = []
+    for verb in DECIDE:
+        row = verbs.add_parser(verb, help=f"Sign and hold a {verb} decision on ITEM")
+        row.add_argument(
+            "item",
+            metavar="ITEM",
+            help="promotion:LABEL:RUN, monitor:ATTESTATION or integrity:ATTESTATION",
+        )
+        row.add_argument("--key", required=True, metavar="KEY", help="Ed25519 private key")
+        row.add_argument("--human", help="The person deciding (keys of one person count once)")
+        row.add_argument("--note", default="", help="Why (recorded, signed)")
+        row.add_argument("--state", metavar="DIR",
+                         help="Label state (default REPO/.tine/promotion)")  # fmt: skip
+        rows.append(row)
+    rows[0].add_argument("--evals", metavar="DIR", help="The candidate's eval folder (routing)")
+    show = verbs.add_parser("queue", help="List routed items and their approvals")
+    show.add_argument("--from-objects", action="store_true",
+                      help="Rebuild from the annotation objects alone")  # fmt: skip
+    for verb in (policy, sign, *rows, show):
+        verb.add_argument("--repo", default=".", metavar="PATH", help="Repository")
+        verb.add_argument("--at", metavar="TIME", help="YYYY-MM-DDTHH:MM:SSZ (default: now)")
+        verb.add_argument("--json", action="store_true", help="Print a JSON object")
+
+
+def _policy(repo: Any) -> tuple[dict[str, Any], list[str]]:
+    from opentine import _oversight_policy
+
+    state = _oversight_policy.load(repo.path)
+    policy = state["policy"]
+    body = {"status": state["status"], "why": state["why"],
+            "sha256": policy["sha256"] if policy else None,
+            "tiers": [{"tier": n, "k": t["k"], "n": len(t["approvers"])}
+                      for n, t in (policy or {}).get("tiers", {}).items()],
+            "routes": (policy or {}).get("routes", [])}  # fmt: skip
+    lines = [f"oversight policy: {state['status']}" + (f" ({state['why']})" if state["why"]
+                                                        else "")]  # fmt: skip
+    lines += [f"  tier {t['tier']}: {t['k']} of {t['n']}" for t in body["tiers"]]
+    return {"policy": body}, lines
+
+
+def _bind(args: argparse.Namespace, repo: Any, item: str) -> dict[str, Any] | None:
+    from opentine import _oversight, _oversight_policy
+    from opentine._promote import STATE, read_state
+
+    info = _oversight.parse_item(item)
+    if info["source"] != "promotion":
+        return None
+    state = Path(args.state) if args.state else repo.path.parent / STATE
+    record = read_state(state, info["label"])
+    bind = {"label": info["label"], "candidate": info["candidate"],
+            "previous": record["current"], "sequence": len(record["history"])}  # fmt: skip
+    evals = getattr(args, "evals", None)
+    if evals:
+        bind["metrics"] = _oversight_policy.eval_metrics(Path(evals))
+    return bind
+
+
+def _decide(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[str]]:
+    from opentine import _oversight, _oversight_policy
+    from opentine._key_hygiene import ed25519_private
+    from opentine._signing_pins import key_fingerprint
+
+    verb = args.oversight_command
+    key = ed25519_private(args.key)
+    who = key_fingerprint(key.public_key().public_bytes_raw())
+    held, _ = _oversight_policy.roles(repo.path)
+    if verb != "request" and who in _oversight_policy.banned(held):
+        raise ValueError(f"oversight.key-separation: {who} holds an optimizer, monitor or "
+                         "scorer role and may not approve or reject")  # fmt: skip
+    oid = _oversight.decide(repo, args.item, verb, key, bind=_bind(args, repo, args.item),
+                            human=args.human, note=args.note, at=args.at)  # fmt: skip
+    row = {"decision": oid, "item": args.item, "action": verb, "signer": who}
+    return {"decisions": [row]}, [f"{verb} {args.item}: {oid}"]
+
+
+def _body(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[str]]:
+    from opentine import _oversight, _oversight_gate, _oversight_policy
+
+    verb = args.oversight_command
+    if verb == "policy":
+        return _policy(repo)
+    if verb == "sign-policy":
+        from opentine._key_hygiene import ed25519_private
+
+        data = (repo.path / _oversight_policy.FILE_NAME).read_bytes()
+        _oversight_policy.parse(data)
+        doc = _oversight_policy.sign(ed25519_private(args.key), data, args.at or _oversight.now())
+        path = repo.path / _oversight_policy.PIN_NAME
+        path.write_bytes((json.dumps(doc, indent=2, sort_keys=True) + "\n").encode("utf-8"))
+        body, lines = _policy(repo)
+        return body, [f"signed {path.as_posix()}", *lines]
+    if verb in DECIDE:
+        return _decide(args, repo)
+    body = _oversight_gate.queue(repo, from_objects=args.from_objects)
+    lines = [f"oversight policy: {body['policy']['status']}"]
+    for item in body["items"]:
+        got = ", ".join(f"{t['tier']} {t['approvals']}/{t['k']}" for t in item["tiers"])
+        lines.append(f"{item['state']:9} {item['item']} {got}".rstrip())
+    return body, lines if body["items"] else [*lines, "no items in the queue"]
+
+
+def cmd_oversight(args: argparse.Namespace) -> None:
+    from opentine._cli_json import emit
+    from opentine._oversight_policy import OversightError
+    from opentine.repo import Repo
+
+    try:
+        repo = Repo.open(args.repo)
+        body, lines = _body(args, repo)
+    except (OSError, ValueError, KeyError, OversightError) as exc:
+        raise error(exc, prefix="oversight: ") from exc
+    if args.json:
+        emit({"command": f"oversight {args.oversight_command}", "schema": SCHEMA, **body})
+    else:
+        for line in lines:
+            console.print(_terminal(line), markup=False)
+
+
+COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {"oversight": cmd_oversight}
+
+__all__ = ["COMMANDS", "add_oversight_parser", "cmd_oversight"]

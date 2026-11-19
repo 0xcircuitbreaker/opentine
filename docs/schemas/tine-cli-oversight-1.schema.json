@@ -1,0 +1,424 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-oversight-1.schema.json",
+  "title": "tine oversight ... --json",
+  "description": "The oversight queue. `policy`/`sign-policy` report whether `.tine/oversight.toml` is pinned by a policy-role key; `request`/`approve`/`reject` write one signed, held decision annotation (`opentine.oversight-decision/1`); `queue` lists every routed item with its k-of-n tally per tier and the decisions that do not count.",
+  "anyOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "policy"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-oversight/1"
+        },
+        "command": {
+          "enum": [
+            "oversight policy",
+            "oversight sign-policy"
+          ]
+        },
+        "policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "why",
+            "sha256",
+            "tiers",
+            "routes"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "pinned",
+                "unpinned",
+                "absent"
+              ]
+            },
+            "why": {
+              "type": "string"
+            },
+            "sha256": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tiers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "tier",
+                  "k",
+                  "n"
+                ],
+                "properties": {
+                  "tier": {
+                    "type": "string"
+                  },
+                  "k": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "n": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            },
+            "routes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "source",
+                  "tier",
+                  "label"
+                ],
+                "properties": {
+                  "source": {
+                    "enum": [
+                      "promotion",
+                      "integrity",
+                      "monitor",
+                      "eval"
+                    ]
+                  },
+                  "tier": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "metric": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "above": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "below": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "actions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "decisions"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-oversight/1"
+        },
+        "command": {
+          "enum": [
+            "oversight request",
+            "oversight approve",
+            "oversight reject"
+          ]
+        },
+        "decisions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "decision",
+              "item",
+              "action",
+              "signer"
+            ],
+            "properties": {
+              "decision": {
+                "type": "string",
+                "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+              },
+              "item": {
+                "type": "string",
+                "pattern": "^(promotion|monitor|integrity):.+$"
+              },
+              "action": {
+                "enum": [
+                  "request",
+                  "approve",
+                  "reject"
+                ]
+              },
+              "signer": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "policy",
+        "items"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-oversight/1"
+        },
+        "command": {
+          "const": "oversight queue"
+        },
+        "policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "why",
+            "sha256"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "pinned",
+                "unpinned",
+                "absent"
+              ]
+            },
+            "why": {
+              "type": "string"
+            },
+            "sha256": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "item",
+              "source",
+              "tiers",
+              "state",
+              "rejected_by",
+              "uncounted",
+              "decisions"
+            ],
+            "properties": {
+              "item": {
+                "type": "string",
+                "pattern": "^(promotion|monitor|integrity):.+$"
+              },
+              "source": {
+                "enum": [
+                  "promotion",
+                  "integrity",
+                  "monitor"
+                ]
+              },
+              "tiers": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "tier",
+                    "k",
+                    "n",
+                    "approvals",
+                    "approvers"
+                  ],
+                  "properties": {
+                    "tier": {
+                      "type": "string"
+                    },
+                    "k": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "n": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "approvals": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "approvers": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              },
+              "state": {
+                "enum": [
+                  "pending",
+                  "approved",
+                  "rejected",
+                  "unrouted"
+                ]
+              },
+              "rejected_by": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "uncounted": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "decision",
+                    "signer",
+                    "why"
+                  ],
+                  "properties": {
+                    "decision": {
+                      "type": "string",
+                      "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+                    },
+                    "signer": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "why": {
+                      "enum": [
+                        "unsigned",
+                        "key-separation",
+                        "stale",
+                        "policy-unpinned",
+                        "not-an-approver"
+                      ]
+                    }
+                  }
+                }
+              },
+              "decisions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "decision",
+                    "signer",
+                    "decided_at"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+                    },
+                    "decision": {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "request",
+                            "approve",
+                            "reject"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "signer": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "decided_at": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

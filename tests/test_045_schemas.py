@@ -295,6 +295,8 @@ DRIVEN = (
     (("keys", "lint", "--repo", "repo", "--json"), "tine-cli-keys-lint-1"),  # 0.58
     (("loop", "status", "opt", "--repo", "repo", "--json"), "tine-cli-loop-1"),  # 0.58
     (("monitor", "stops", "--repo", "repo", "--json"), "tine-cli-monitor-1"),  # 0.63
+    (("oversight", "queue", "--repo", "repo", "--json"), "tine-cli-oversight-1"),  # 0.64
+    (("oversight", "policy", "--repo", "repo", "--json"), "tine-cli-oversight-1"),  # 0.64
     (("lineage", "graph", "--repo", "repo", "--format", "json"), "tine-cli-lineage-1"),  # 0.59
     (("lineage", "archive", "--repo", "repo", "--json"), "tine-cli-lineage-1"),  # 0.59
     (("lineage", "index", "--repo", "repo", "--rebuild", "--json"), "tine-cli-lineage-1"),

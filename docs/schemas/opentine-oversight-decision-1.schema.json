@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-oversight-decision-1.schema.json",
+  "title": "opentine.oversight-decision/1 annotation value",
+  "description": "The value of an annotation recording one oversight decision on an item's anchor blob, chained by previous_id. A claim convention, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "item",
+    "decision",
+    "bind",
+    "human",
+    "note",
+    "decided_at"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.oversight-decision/1"
+    },
+    "item": {
+      "type": "string",
+      "pattern": "^(promotion|monitor|integrity):.+$"
+    },
+    "decision": {
+      "enum": [
+        "request",
+        "approve",
+        "reject"
+      ]
+    },
+    "bind": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "label",
+            "candidate",
+            "previous",
+            "sequence"
+          ],
+          "properties": {
+            "label": {
+              "type": "string"
+            },
+            "candidate": {
+              "type": "string"
+            },
+            "previous": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "sequence": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "metrics": {
+              "type": "object"
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "human": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "note": {
+      "type": "string"
+    },
+    "decided_at": {
+      "type": "string"
+    }
+  }
+}
