@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-history-snapshot-1.schema.json",
+  "title": "opentine-history-snapshot/1",
+  "description": "What one branch or remote holds: heads/tags refs, label states (decision rows by sha256), lineage records (by file sha256) and hold rows. A file convention, not a kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "refs",
+    "labels",
+    "lineage",
+    "holds"
+  ],
+  "properties": {
+    "format": {
+      "const": "opentine-history-snapshot/1"
+    },
+    "refs": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "labels": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "current",
+          "history"
+        ],
+        "properties": {
+          "current": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        }
+      }
+    },
+    "lineage": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{64}$"
+      }
+    },
+    "holds": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 2,
+        "maxItems": 2
+      }
+    }
+  }
+}

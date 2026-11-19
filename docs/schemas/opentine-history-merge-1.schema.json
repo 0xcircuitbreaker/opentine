@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-history-merge-1.schema.json",
+  "title": "opentine.history-merge/1 claim",
+  "description": "The claim of an attestation recording one history merge: the three snapshot digests, the merged digest and the conflicts. A claim convention, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "base",
+    "sides",
+    "merged",
+    "conflicts",
+    "target"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.history-merge/1"
+    },
+    "base": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "sides": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$"
+      },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "merged": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "conflicts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "key",
+          "base",
+          "sides"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "ref-diverged",
+              "label-moved",
+              "promotion-diverged",
+              "lineage-id",
+              "hold-weakened",
+              "held-target"
+            ]
+          },
+          "key": {
+            "type": "string"
+          },
+          "base": {},
+          "sides": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2
+          }
+        }
+      }
+    },
+    "target": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}
