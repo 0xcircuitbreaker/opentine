@@ -86,10 +86,12 @@ def step_row(oid: str, payload: dict[str, Any], run: str | None = None,
 
 
 def _signed_attestation(payload: dict[str, Any]) -> bool:
+    from opentine._signing_pins import used_key_fingerprint
     from opentine.attest_signing import verify_attestation
 
     result = verify_attestation(payload, trust_embedded=True)
-    return bool(result.ok and result.algorithm == "ed25519")
+    bound = used_key_fingerprint(payload.get("signature")) == payload.get("signer")
+    return bool(result.ok and result.algorithm == "ed25519" and bound)
 
 
 def monitor_row(oid: str, payload: dict[str, Any]) -> dict[str, Any] | None:

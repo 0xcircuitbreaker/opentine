@@ -91,3 +91,18 @@ def test_record_refuses_a_pinned_optimizer_key(room):
     with pytest.raises(ValueError, match="sabotage.key-separation"):
         _sabotage.record(room["repo"], room["runs"][0], _claim("o1", False, False), key(OPTIMIZER))
     assert _sabotage.records(room["repo"], "o1") == {}
+
+
+def test_the_query_index_does_not_count_a_verdict_signed_by_another_key(room):
+    """``tine query`` must not mark a forged monitor verdict signed for the named monitor."""
+    from opentine import _query_rows as qr
+
+    repo, run = room["repo"], room["runs"][3]
+    forged = attest(repo, run, claim("s8", "block"), signer=_fp(MONITOR), key=key(OPTIMIZER),
+                    algorithm="ed25519")  # fmt: skip
+    honest = attest(repo, run, claim("s7", "block"), signer=_fp(MONITOR), key=key(MONITOR),
+                    algorithm="ed25519")  # fmt: skip
+    signed = {
+        oid: qr.monitor_row(oid, repo.get(oid).payload())["signed"] for oid in (forged, honest)
+    }
+    assert signed == {forged: 0, honest: 1}
