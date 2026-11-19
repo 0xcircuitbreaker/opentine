@@ -1937,7 +1937,8 @@ refused operation exits 1 with `{"error": {"code": "held|stale|done|stopped|exis
 The key-role policy names keys by `sha256:` fingerprint (or raw Ed25519 public
 key hex) under `[roles]`: `optimizer`, `scorer`, `dataset`, `verdict` and the
 optional `approver`, `policy` (signs promotion policies), `stopper` (may
-stop a loop), `eval` and `curator` (signs memory quarantines that verify),
+stop a loop), `eval`, `curator` (signs memory quarantines that verify) and
+`monitor` (signs monitor verdicts that verify, 0.63),
 with `version = 1`. Findings follow owner decision D12:
 `fail:key-separation.shared` and `fail:key-roles.malformed` block;
 `advisory:key-roles.no-policy`, `advisory:key-roles.no-optimizer` and
@@ -1956,6 +1957,20 @@ a hold (`loop-stop:LOOP`) that `tine hold release` refuses, so deleting or
 rewriting `coord/loops/LOOP` does not un-stop the loop. A task whose id starts
 with `LOOP.` is fenced with or without `--loop`. `--json` prints
 `tine-cli-loop/1`. Local repositories only: `--loop` is refused with `--remote`.
+
+## Monitor verdicts and stop tokens (0.63)
+
+| Command | What it does |
+| --- | --- |
+| `tine mcp-proxy --monitor CONFIG --monitor-repo PATH --monitor-key KEY [--monitor-agent NAME] ...` | Scores every `tools/call` with the configured monitor; advisory by default, a blocking gate with `mode = "gate"` |
+| `tine monitor gate --config CONFIG --key KEY [--agent claude-code\|codex\|gemini\|generic] [--fail-closed] --repo PATH` | The hook path: decides one tool call read from stdin and answers in the agent's dialect |
+| `tine monitor stop [--scope SCOPE] --key KEY [--reason T] --repo PATH` | Signs and holds a stop token; gated calls in SCOPE (`*`, `agent:NAME`, `session:ID`) are blocked |
+| `tine monitor stops --repo PATH` | Stop tokens and whether a pinned stopper key signed each |
+| `tine monitor verdicts --repo PATH` | Held monitor verdicts and whether a pinned monitor key signed each |
+| `tine monitor verify [--run RUN]... [--strict] --repo PATH` | Offline: every blocked or replaced action in the runs has its verdict; exit 1 on a `fail:monitor.*` finding |
+
+`--json` prints `tine-cli-monitor/1`. Verdicts follow the claim convention
+`opentine.monitor-verdict/1`; see docs/MONITORS.md.
 
 ## Self-modification lineage (0.58)
 
