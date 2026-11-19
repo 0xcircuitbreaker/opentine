@@ -53,10 +53,21 @@ def _depth_ok(value: Any) -> None:
             stack.extend((child, depth + 1) for child in item)
 
 
+def _no_constant(name: str) -> Any:
+    raise ValueError(f"non-finite number {name}")
+
+
+def _finite(text: str) -> float:
+    value = float(text)
+    if value in (float("inf"), float("-inf")):
+        raise ValueError("number out of range")
+    return value
+
+
 def _json(raw: bytes, where: str) -> Any:
-    try:
-        value = json.loads(raw.decode("utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError, RecursionError) as exc:
+    try:  # ValueError: NaN/Infinity, overflowing floats, ints past the digit limit
+        value = json.loads(raw.decode("utf-8"), parse_constant=_no_constant, parse_float=_finite)
+    except (UnicodeDecodeError, ValueError, RecursionError) as exc:
         raise InspectLogError(f"{where}: not JSON ({type(exc).__name__})") from exc
     _depth_ok(value)
     return value
@@ -131,6 +142,7 @@ def _read_zip(data: bytes) -> dict[str, Any]:
     if len(infos) > MAX_MEMBERS:
         raise InspectLogError(f"more than {MAX_MEMBERS} zip members")
     total = 0
+    seen: set[str] = set()
     members: dict[str, bytes] = {}
     for info in infos:
         if info.file_size > MAX_MEMBER_BYTES:
@@ -141,6 +153,9 @@ def _read_zip(data: bytes) -> dict[str, Any]:
         if total > MAX_TOTAL_BYTES:
             raise InspectLogError(f"zip expands past {MAX_TOTAL_BYTES} bytes")
         name = info.filename
+        if name in seen:
+            raise InspectLogError(f"{name}: zip member name appears twice")
+        seen.add(name)
         if name == "header.json" or name == "_journal/start.json" or name.startswith("samples/"):
             try:
                 with archive.open(info) as handle:

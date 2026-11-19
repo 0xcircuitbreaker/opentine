@@ -44,6 +44,11 @@ def item_name(sample_id: Any, epoch: int) -> str:
     text = str(sample_id) if epoch == 1 else f"{sample_id}@{epoch}"
     if verdicts.NAME_RE.fullmatch(text):
         return text
+    return hashed_name(sample_id, epoch)
+
+
+def hashed_name(sample_id: Any, epoch: int) -> str:
+    """A digest item name that keeps the id's JSON type (``1`` and ``"1"`` differ)."""
     return "sample-" + hashlib.sha256(json.dumps([sample_id, epoch]).encode()).hexdigest()[:24]
 
 
@@ -67,8 +72,11 @@ def write_verdicts(rows: list[dict[str, Any]], key: Any, out_dir: Path, *,
     names = sorted({name for row in rows for name in row["sample"]["scores"]})
     summaries: dict[str, Any] = {}
     skipped: list[dict[str, Any]] = []
+    folders = [slug(name, 64) for name in names]
+    if len(set(folders)) != len(folders):
+        raise ValueError("scorer names collide once made folder names; nothing written")
     for name in names:
-        items, scored = [], []
+        items, scored, taken = [], [], set()
         for row in rows:
             sample = row["sample"]
             if name not in sample["scores"]:
@@ -80,7 +88,11 @@ def write_verdicts(rows: list[dict[str, Any]], key: Any, out_dir: Path, *,
                     {"scorer": name, "sample_id": sample["id"], "epoch": sample["epoch"]}
                 )
                 continue
-            item = {"id": item_name(sample["id"], sample["epoch"]), "input": sample["input"],
+            ident_ = item_name(sample["id"], sample["epoch"])
+            if ident_ in taken:  # 1 vs "1", or "a@2" vs ("a", epoch 2)
+                ident_ = hashed_name(sample["id"], sample["epoch"])
+            taken.add(ident_)
+            item = {"id": ident_, "input": sample["input"],
                     "expected": sample["target"], "output": _answer(sample["output"]),
                     "run": row["run"], "metadata": {"inspect_sample_id": sample["id"],
                                                     "epoch": sample["epoch"]}}  # fmt: skip

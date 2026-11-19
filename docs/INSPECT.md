@@ -16,7 +16,7 @@ tine import inspect logs/2026-11-01_gsm8k.eval --repo . --key eval.key --evals e
 
 - `.json`: one `EvalLog` object (`version`, `status`, `eval`, `results`, `samples`);
 - `.eval`: a zip holding `header.json` (or, from older writers,
-  `_journal/start.json`) and one `samples/<id>_epoch_<n>.json` per sample.
+  `_journal/start.json`) and one `samples/<id>_epoch_<n>.json` per sample. A zip with a member name twice, or any NaN, Infinity, overflowing float or integer past the digit limit, is refused. On export an id that is not a plain name (`..`, separators, other characters) or that collides with another id once printed (`1` and `"1"`) gets a digest member name `samples/sample-<sha256>_epoch_<n>.json`; the id itself is read from the member contents. Verdict item names that would collide likewise get a digest name, and scorers whose folder names collide are refused.
 
 | Inspect | OpenTine |
 | --- | --- |

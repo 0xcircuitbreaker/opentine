@@ -11,8 +11,10 @@ always give the same bytes.
 
 from __future__ import annotations
 
+import hashlib
 import io
 import json
+import re
 import zipfile
 from typing import Any
 
@@ -20,6 +22,7 @@ from opentine._inspect_import import ANNOTATION_KEY, REF_ROOT
 from opentine.repository._annotations import load_run_annotation
 
 ZIP_TIME = (1980, 1, 1, 0, 0, 0)
+_SAFE = re.compile(r"[A-Za-z0-9_-][A-Za-z0-9_.-]{0,127}")
 
 
 def prefixes(repo: Any) -> list[str]:
@@ -82,6 +85,21 @@ def to_json_bytes(log: dict[str, Any]) -> bytes:
     return (json.dumps(log, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
 
 
+def member_name(sample_id: Any, epoch: int, used: set[str]) -> str:
+    """``samples/<id>_epoch_<n>.json`` as Inspect names it, when that is safe and unique.
+
+    An id that could traverse or collide (``..``, separators, other characters,
+    or an integer and a string with the same text) gets a digest name instead;
+    the reader takes the id from the member's contents, not its name.
+    """
+    text = str(sample_id)
+    name = f"samples/{text}_epoch_{epoch}.json"
+    if _SAFE.fullmatch(text) and name not in used:
+        return name
+    digest = hashlib.sha256(json.dumps([sample_id, epoch]).encode()).hexdigest()[:24]
+    return f"samples/sample-{digest}_epoch_{epoch}.json"
+
+
 def to_eval_bytes(log: dict[str, Any]) -> bytes:
     """A deterministic ``.eval`` zip of *log*."""
     header = {key: value for key, value in log.items() if key != "samples"}
@@ -94,8 +112,11 @@ def to_eval_bytes(log: dict[str, Any]) -> bytes:
             archive.writestr(info, json.dumps(value, ensure_ascii=False).encode("utf-8"))
 
         put("header.json", header)
+        used: set[str] = set()
         for sample in log["samples"]:
-            put(f"samples/{sample['id']}_epoch_{sample['epoch']}.json", sample)
+            name = member_name(sample["id"], sample["epoch"], used)
+            used.add(name)
+            put(name, sample)
     return buffer.getvalue()
 
 
