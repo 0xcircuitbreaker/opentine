@@ -1648,8 +1648,10 @@ tine prompt sync [--remote R [--tenant T] [--token-file P]]
 tine memory add TOPIC TEXT --key KEY [--scope S] [--tag T]... [--subject OID]
                 [--supersedes DIGEST] [--author NAME]
 tine memory list [--scope S] [--any-signer]
-tine memory recall QUERY [--limit N]
+tine memory recall QUERY [--limit N] [--min-assurance T0|T1|T2|T3] [--record-to RUN]
 tine memory trust PUB
+tine memory quarantine NOTE --key KEY --why TEXT [--lineage-dir DIR]
+tine memory served NOTE [--lineage-dir DIR]
 tine memory sync [--remote R [--tenant T] [--token-file P]]
 ```
 
@@ -1672,6 +1674,15 @@ and `recall` show only notes that verify under those keys and that no other
 such note supersedes (with no team file, `list --any-signer` shows notes on
 their embedded keys). MCP `recall` returns the same notes under `memories`
 (SPEC 8.20). `--json` follows `tine-cli-memory-1`.
+
+0.61: `recall --record-to RUN` records the served note digests as a step of a
+run still being captured (a finished or attested run is refused);
+`--min-assurance` keeps notes whose subject run reaches the tier. `memory
+quarantine` signs and holds a superseding `quarantine` note and lists every run
+served the note and every lineage variant whose runs consumed it; `memory
+served` lists the same. `tine promote` refuses with
+`promote.memory-quarantined` and `tine lineage check|why` report
+`lineage.memory-quarantined`. See docs/MEMORY.md.
 
 `memory sync` and `prompt sync` send the notes or prompt refs a remote lacks
 and fetch the ones this repository lacks, one ref at a time over the ordinary
