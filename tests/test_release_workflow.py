@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import os
 import re
+import shutil
+import subprocess
 import tomllib
 from pathlib import Path
 
+import pytest
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -153,3 +157,79 @@ def test_publish_accepts_tag_push_and_dispatch_and_keeps_id_token_scoped():
     }
     assert holders == {"github-release", "pypi"}
     assert data["jobs"]["pypi"]["environment"]["name"] == "pypi"
+
+
+_FAKE_GH = """#!/usr/bin/env bash
+# Stub gh for the decide step: answers from FAKE_* environment variables.
+args="$*"
+case "$args" in
+  *contents/pyproject.toml*) printf 'version = "%s"\\n' "$FAKE_PY" ;;
+  *contents/opentine/_version.py*) printf '__version__ = "%s"\\n' "$FAKE_MOD" ;;
+  *compare/*) echo identical ;;
+  *git/ref/tags/*) [[ -n "${FAKE_TAG_EXISTS:-}" ]] && exit 0 || exit 1 ;;
+  *commits\\?sha=*) printf '%b' "$FAKE_COMMITS" ;;
+  *actions/workflows/ci.yml/runs*) echo 1 ;;
+  *) echo "unexpected gh $args" >&2; exit 2 ;;
+esac
+"""
+
+
+def _decide(tmp_path, message, py, mod=None, commits="", tag_exists=False):
+    data = yaml.safe_load(_workflow("release-on-green.yml"))
+    (job,) = data["jobs"].values()
+    script = next(step["run"] for step in job["steps"] if step.get("id") == "decide")
+    stub = tmp_path / "bin"
+    stub.mkdir(exist_ok=True)
+    (stub / "gh").write_text(_FAKE_GH, encoding="utf-8")
+    (stub / "gh").chmod(0o755)
+    output = tmp_path / "out"
+    output.write_text("", encoding="utf-8")
+    env = {
+        **os.environ,
+        "PATH": f"{stub}{os.pathsep}{os.environ['PATH']}",
+        "GH_REPO": "o/r",
+        "HEAD_SHA": "headsha",
+        "HEAD_MESSAGE": message,
+        "GITHUB_OUTPUT": str(output),
+        "FAKE_PY": py,
+        "FAKE_MOD": mod or py,
+        "FAKE_COMMITS": commits,
+        "FAKE_TAG_EXISTS": "1" if tag_exists else "",
+    }
+    result = subprocess.run(
+        ["bash", "-c", script], env=env, capture_output=True, text=True, check=False
+    )
+    lines = output.read_text(encoding="utf-8").split()
+    return result.returncode, dict(line.split("=", 1) for line in lines)
+
+
+needs_bash = pytest.mark.skipif(
+    os.name == "nt" or shutil.which("bash") is None, reason="runs the workflow's bash"
+)
+
+
+@needs_bash
+def test_release_commit_itself_is_tagged(tmp_path):
+    code, out = _decide(tmp_path, "0.60.0 — Title (#117)\n\nbody", "0.60.0")
+    assert code == 0 and out == {"tag": "v0.60.0", "version": "0.60.0"}
+
+
+@needs_bash
+def test_a_green_fix_after_a_red_release_commit_catches_up(tmp_path):
+    commits = "headsha\\tFix a race (#118)\\nrel\\t0.60.0 — Title (#117)\\nold\\t0.59.0 — Old\\n"
+    code, out = _decide(tmp_path, "Fix a race (#118)", "0.60.0", commits=commits)
+    assert code == 0 and out == {"tag": "v0.60.0", "version": "0.60.0"}
+
+
+@needs_bash
+def test_catch_up_needs_the_release_commit_an_untagged_version_and_agreeing_files(tmp_path):
+    no_release = "headsha\\tFix (#118)\\nold\\t0.59.0 — Old\\n"
+    assert _decide(tmp_path, "Fix (#118)", "0.60.0", commits=no_release) == (0, {})
+    tagged = "headsha\\tFix (#118)\\nrel\\t0.60.0 — Title\\n"
+    assert _decide(tmp_path, "Fix (#118)", "0.60.0", commits=tagged, tag_exists=True) == (0, {})
+    assert _decide(tmp_path, "Fix (#118)", "0.60.0", "0.59.0", commits=tagged) == (0, {})
+
+
+def test_release_on_green_catch_up_lists_main_history_from_head():
+    workflow = _workflow("release-on-green.yml")
+    assert "commits?sha=$HEAD_SHA&per_page=100" in workflow

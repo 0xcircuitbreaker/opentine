@@ -131,7 +131,9 @@ def test_http_round_trip_preserves_session_and_guards_host(tmp_path: Path) -> No
             request.add_header("Content-Type", "application/json")
             for key, value in (headers or {}).items():
                 request.add_header(key, value)
-            return urllib.request.urlopen(request, timeout=10)
+            # A hang guard, not a speed limit: on a loaded Windows runner (xdist workers
+            # on every core) the request that saves a run can stall past 10 s.
+            return urllib.request.urlopen(request, timeout=60)
 
         first = post(1, "initialize")
         assert first.headers["Mcp-Session-Id"] == "sess-1"

@@ -1,7 +1,8 @@
 name: Release on green
 
 # Tags and publishes a release once CI is green on a release commit pushed to
-# main. On by default; set the repository variable AUTO_RELEASE to 'false' (or
+# main, or (catch-up) on a later commit when CI failed on the release commit:
+# the head's version, untagged, whose release commit is in head's history. On by default; set the repository variable AUTO_RELEASE to 'false' (or
 # disable this workflow) to stop it.
 on:
   # Safe use: no checkout or execution of the triggering code; only pushes to
@@ -43,23 +44,48 @@ jobs:
         run: |
           set -euo pipefail
           subject="${HEAD_MESSAGE%%$'\n'*}"
-          # Release commits are "<X.Y.Z> — <title>" (em dash); squash merges
-          # append " (#NNN)".
-          if [[ ! "$subject" =~ ^([0-9]+\.[0-9]+\.[0-9]+)\ —\  ]]; then
-            echo "Not a release commit: $subject"
-            exit 0
-          fi
-          version="${BASH_REMATCH[1]}"
-          tag="v${version}"
-
-          # main must still point at (or contain) this commit.
-          gh api "repos/$GH_REPO/compare/$HEAD_SHA...main" --jq '.status' | grep -Eqx 'identical|ahead'
 
           # Version at that exact commit, in both sources of truth.
           pyproject="$(gh api -H 'Accept: application/vnd.github.raw' "repos/$GH_REPO/contents/pyproject.toml?ref=$HEAD_SHA")"
           module="$(gh api -H 'Accept: application/vnd.github.raw' "repos/$GH_REPO/contents/opentine/_version.py?ref=$HEAD_SHA")"
           py_version="$(sed -nE 's/^version = "([^"]+)"$/\1/p' <<<"$pyproject" | head -n1)"
           mod_version="$(sed -nE 's/^__version__ = "([^"]+)"$/\1/p' <<<"$module" | head -n1)"
+
+          # Release commits are "<X.Y.Z> — <title>" (em dash); squash merges
+          # append " (#NNN)".
+          if [[ ! "$subject" =~ ^([0-9]+\.[0-9]+\.[0-9]+)\ —\  ]]; then
+            # Catch-up: CI failed on the release commit and a later fix went
+            # green. Release the version the head carries if its release
+            # commit is in head's history and the tag is still missing; the
+            # tag goes on this green head (the release plus its fixes).
+            if [[ -z "$py_version" || "$py_version" != "$mod_version" ]]; then
+              echo "Not a release commit and no single version at head: $subject"
+              exit 0
+            fi
+            release_commit=""
+            while IFS=$'\t' read -r sha line; do
+              if [[ "$line" =~ ^([0-9]+\.[0-9]+\.[0-9]+)\ —\  ]] && [[ "${BASH_REMATCH[1]}" == "$py_version" ]]; then
+                release_commit="$sha"
+                break
+              fi
+            done < <(
+              gh api "repos/$GH_REPO/commits?sha=$HEAD_SHA&per_page=100" \
+                --jq '.[] | "\(.sha)\t\(.commit.message | split("\n")[0])"'
+            )
+            if [[ -z "$release_commit" ]]; then
+              echo "Not a release commit: $subject"
+              exit 0
+            fi
+            echo "Catch-up: $py_version was introduced by $release_commit; tagging green head $HEAD_SHA"
+            version="$py_version"
+          else
+            version="${BASH_REMATCH[1]}"
+          fi
+          tag="v${version}"
+
+          # main must still point at (or contain) this commit.
+          gh api "repos/$GH_REPO/compare/$HEAD_SHA...main" --jq '.status' | grep -Eqx 'identical|ahead'
+
           if [[ "$py_version" != "$version" || "$mod_version" != "$version" ]]; then
             echo "::error::subject $version, pyproject $py_version, _version.py $mod_version"
             exit 1

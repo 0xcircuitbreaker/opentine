@@ -103,6 +103,37 @@ def test_a_write_racing_the_fanout_rmdir_retries(tmp_path, monkeypatch):
     assert target.read_bytes() == b"x" and len(calls) == 2
 
 
+def test_a_write_into_a_delete_pending_fanout_dir_retries(tmp_path, monkeypatch):
+    """Windows CI (0.60.0): a create inside the fan-out directory gc had just
+    rmdir'd (delete-pending while another handle is open) failed with Errno 13,
+    not ENOENT, and crashed a live recorder's object write."""
+    target = tmp_path / "objects" / "run" / "64" / "7c"
+    real = _paths.tempfile.mkstemp
+    calls = []
+
+    def pending(*args, **kwargs):
+        calls.append(1)
+        if len(calls) == 1:
+            os.rmdir(target.parent)
+            raise PermissionError(13, "Permission denied", str(target.parent))
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(_paths._winretry, "WINDOWS", True)
+    monkeypatch.setattr(_paths.tempfile, "mkstemp", pending)
+    _paths.atomic_bytes(target, b"x")
+    assert target.read_bytes() == b"x" and len(calls) == 2
+
+
+def test_a_real_permission_denial_still_fails_off_windows(tmp_path, monkeypatch):
+    def denied(*args, **kwargs):
+        raise PermissionError(13, "Permission denied")
+
+    monkeypatch.setattr(_paths._winretry, "WINDOWS", False)
+    monkeypatch.setattr(_paths.tempfile, "mkstemp", denied)
+    with pytest.raises(PermissionError):
+        _paths.atomic_bytes(tmp_path / "a" / "b", b"x")
+
+
 # -- auto-pack -------------------------------------------------------------------
 
 
