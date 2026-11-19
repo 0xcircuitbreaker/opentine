@@ -103,12 +103,11 @@ def test_backtests_compare_only_like_with_like_reasoning_visibility(capsys, tmp_
         for s in r["steps"]:
             s["reasoning"] = "redacted"
             s.pop("reasoning_text")
-    rows[5]["steps"][0]["input"]["command"] = "edited later"
     data = "\n".join(json.dumps(r) for r in rows).encode("utf-8")
     code, row = _backtest(capsys, tmp_path, SPEC, data, "--require-reproduced")
     redacted = sum(len(r["steps"]) for r in rows[:5])
     assert code == 0 and row["counts"]["visibility_mismatch"] == redacted
-    assert row["counts"]["input_mismatch"] == 1 and row["diff"] == []
+    assert row["counts"]["input_mismatch"] == 0 and row["diff"] == []
     assert row["groups"]["redacted"]["online"]["judged"] == 0
     assert row["groups"]["redacted"]["online"]["catch_rate"] is None
     code, row = _backtest(capsys, tmp_path, SPEC, data, "--visibility", "captured")
@@ -126,3 +125,23 @@ def test_a_bad_monitor_spec_or_visibility_is_refused(capsys, tmp_path: Path) -> 
         cli.main(["monitor", "backtest", good, "--runs", data, "--visibility", "seen"])
     assert exc.value.code != 0
     capsys.readouterr()
+
+
+def test_a_step_poisoned_after_its_verdict_or_stripped_verdicts_do_not_pass(
+    capsys, tmp_path: Path
+) -> None:
+    rows = trajectories(40)
+    record_online(rows)
+    rows[2]["steps"][0]["input"]["command"] = "edited later"  # same monitor, other input
+    data = "\n".join(json.dumps(r) for r in rows).encode("utf-8")
+    code, row = _backtest(capsys, tmp_path, SPEC, data, "--require-reproduced")
+    assert code == 1 and row["counts"]["not_reproduced"] == 1
+    assert row["counts"]["input_mismatch"] == 0
+    assert [(d["run"], d["outcome"]) for d in row["diff"]] == [("run-0002", "not_reproduced")]
+    for r in rows:
+        for s in r["steps"]:
+            s.pop("verdict", None)
+    data = "\n".join(json.dumps(r) for r in rows).encode("utf-8")
+    code, row = _backtest(capsys, tmp_path, SPEC, data, "--require-reproduced")
+    assert row["bit_identical"] and row["counts"]["reproduced"] == 0
+    assert code == 1 and row["ok"] is False

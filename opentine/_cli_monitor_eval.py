@@ -56,7 +56,9 @@ def _row(args: argparse.Namespace) -> dict:
             if any(p not in GROUPS for p in parts) or parts != sorted(set(parts)):
                 raise ValueError("--visibility is a sorted '+'-joined set of " + ", ".join(GROUPS))
         row = backtest(monitor, runs, visibility=args.visibility)
-        row["ok"] = row["bit_identical"] or not args.require_reproduced
+        # Vacuous success is refused: stripped verdicts must not pass the check.
+        proven = row["bit_identical"] and row["counts"]["reproduced"] > 0
+        row["ok"] = proven or not args.require_reproduced
         return row
     from opentine._monitor_collusion import collusion
 

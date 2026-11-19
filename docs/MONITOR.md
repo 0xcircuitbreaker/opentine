@@ -70,8 +70,9 @@ Every step is replayed through the monitor. Backtests compare like with like:
 - An online verdict whose `reasoning` differs from the step's current
   visibility (for example, reasoning that was redacted after the run) is
   counted as `visibility_mismatch` and not compared.
-- An online verdict whose `input_digest` differs is counted as
-  `input_mismatch` and not compared.
+- An online verdict from another monitor whose `input_digest` differs is
+  counted as `input_mismatch` and not compared. From the same monitor it is
+  `not_reproduced`: the recorded step no longer matches what the monitor saw.
 - Rates are reported per visibility group (the `+`-joined set of states a
   trajectory's steps carry) and never pooled across groups. `--visibility`
   keeps one group and counts the rest as `skipped_trajectories`.
@@ -87,7 +88,11 @@ An online verdict from the same `monitor_digest` must reproduce byte for byte
 (`reproduced`); otherwise it is `not_reproduced` and `bit_identical` is false.
 A verdict from another monitor is `other_monitor`. `diff` lists every compared
 step whose action changed and every step that was not reproduced. Exit status
-is 0 unless `--require-reproduced` is given and a verdict was not reproduced.
+is 0 unless `--require-reproduced` is given and a verdict was not reproduced
+or no verdict was reproduced at all (a file with its verdicts stripped does not
+pass). Recorded trajectories, labels and verdicts are read as given: a backtest
+detects a step edited after its verdict, but not a trajectory rewritten
+together with its verdict; verify signed attestations for that.
 
 ## Collusion tests
 

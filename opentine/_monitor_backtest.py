@@ -14,7 +14,8 @@ reasoning visibility as the replay (``captured``, ``redacted`` or
 are reported per visibility group (the set of states a trajectory's steps
 carry) and never pooled across groups. When the online verdict came from the
 same monitor digest the replay must reproduce its decision bytes exactly
-(``reproduced``); any other outcome is ``not_reproduced``.
+(``reproduced``), the input digest included, so a recorded step
+edited after its verdict is ``not_reproduced`` rather than set aside.
 """
 
 from __future__ import annotations
@@ -68,12 +69,14 @@ def _compare(step: dict[str, Any], replay: dict[str, Any]) -> str:
         return "no_online_verdict"
     if online.get("reasoning") != replay["reasoning"]:
         return "visibility_mismatch"
+    if online.get("monitor_digest") == replay["monitor_digest"]:
+        # Same monitor, same visibility: the input digest is part of the decision
+        # bytes, so a step edited after its verdict is not reproduced.
+        same = decision_bytes(online) == decision_bytes(replay)
+        return "reproduced" if same else "not_reproduced"
     if online.get("input_digest") != replay["input_digest"]:
         return "input_mismatch"
-    if online.get("monitor_digest") != replay["monitor_digest"]:
-        return "other_monitor"
-    same = decision_bytes(online) == decision_bytes(replay)
-    return "reproduced" if same else "not_reproduced"
+    return "other_monitor"
 
 
 def backtest(
