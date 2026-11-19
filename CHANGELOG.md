@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Memory provenance and quarantine
+## 0.61.0 — Memory provenance and quarantine (2026-11-19)
 
 - Served memory notes are recorded at capture time in the consuming run's own
   step evidence: a `tool` step with the attribute `opentine.memory.served`
