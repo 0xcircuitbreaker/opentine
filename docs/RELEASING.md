@@ -86,7 +86,18 @@ variable `AUTO_RELEASE` set to `false` turns it off). A release ships like this:
    `main`. All other gates, the attestation and the `pypi` environment are
    unchanged.
 
-Any non-release commit simply ends the job green with nothing done. To stop
+**Catch-up after a red release commit.** If CI fails on the release commit and
+a later fix commit on `main` goes green, the green run still releases: when the
+head commit is not itself a release commit, the job reads the version from
+`pyproject.toml` and `opentine/_version.py` at the head (they must agree), and
+if `vX.Y.Z` does not exist yet and the commit that introduced that version (the
+most recent commit in the head's history, via the commits API, whose subject is
+`X.Y.Z — …`) is found, it tags `vX.Y.Z` on the *green head* (the release plus
+its fixes) with message `opentine X.Y.Z` and dispatches `publish.yml`. Every
+other guard above (still on `main`, tag absent, the successful-`ci.yml` query)
+applies unchanged.
+
+Any other non-release commit simply ends the job green with nothing done. To stop
 automatic releases, set the repository variable `AUTO_RELEASE` to `false` or
 disable the workflow; it is on by default. Manual tagging (step 5 of the
 checklist) still works exactly as before. For a release with no human step at
