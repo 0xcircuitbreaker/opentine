@@ -28,7 +28,7 @@ from opentine.kernel import canonical_json
 
 SCHEMA = "tine-eval/1"
 EVAL_DOMAIN = b"opentine.eval.v1:"
-SUMMARY, VERDICTS = "eval.json", "verdicts.jsonl"
+SUMMARY, VERDICTS, JUDGE = "eval.json", "verdicts.jsonl", "judge.json"
 PINNED = ("dataset", "scorer", "scorer_version", "threshold", "created_at", "signer")
 
 
@@ -90,6 +90,10 @@ def run_eval(
     atomic_write_text(out / VERDICTS, body, newline="\n")  # hashed bytes: LF on every OS
     summary = {"schema": SCHEMA, "eval": ident, **pinned, **_tally(lines),
                "verdicts_sha256": hashlib.sha256(body.encode("utf-8")).hexdigest()}  # fmt: skip
+    provenance = scorer.config.get("provenance")
+    if provenance is not None:  # 0.65: what the signed scorer_version pins
+        text = json.dumps(provenance, indent=2, sort_keys=True) + "\n"
+        atomic_write_text(out / JUDGE, text, newline="\n")
     atomic_write_text(
         out / SUMMARY, json.dumps(summary, indent=2, sort_keys=True) + "\n", newline="\n"
     )
@@ -145,8 +149,29 @@ def verify_eval(folder: Path, *, public_key: bytes | None = None) -> dict[str, A
         claimed = {k: summary.get(k) for k in ("items", "passed", "failed", "mean_score")}
         if claimed != tally or (evals and summary.get("eval") not in evals):
             failures.append({"line": 0, "item": None, "reason": "eval.summary-mismatch"})
+    failures += _judge_check(folder, rows)
     ident = next(iter(evals)) if len(evals) == 1 else None
     return {"ok": not failures and bool(rows), "eval": ident, **tally, "failures": failures}
+
+
+def _judge_check(folder: Path, rows: list[Any]) -> list[dict[str, Any]]:
+    """0.65: ``judge.json`` must be what every verdict's signed ``scorer_version`` pins."""
+    from opentine._judge_provenance import matches
+
+    path = folder / JUDGE if folder.is_dir() else None
+    if path is None or not path.is_file():
+        return []
+    try:
+        doc = json.loads(path.read_bytes())
+    except ValueError:
+        doc = None
+    for number, row in enumerate(rows, 1):
+        version = row.get("scorer_version") if isinstance(row, dict) else None
+        if not isinstance(version, str) or not matches(doc, version):
+            return [{"line": number, "item": row.get("item") if isinstance(row, dict) else None,
+                     "reason": "eval.summary-mismatch",
+                     "detail": "judge.json is not the provenance the verdict signs"}]  # fmt: skip
+    return []
 
 
 def compare(left: Path, right: Path, *, public_key: bytes | None = None) -> dict[str, Any]:

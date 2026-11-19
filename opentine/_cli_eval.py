@@ -26,6 +26,7 @@ def add_eval_parsers(sub: Any) -> None:
     run.add_argument("--outputs", metavar="FILE.jsonl", help="{id, output, run} lines to score")
     run.add_argument("--run", dest="default_run", metavar="RUN", help="Run for items naming none")
     run.add_argument("--judge-prompt", metavar="FILE", help="llm-judge prompt template")
+    run.add_argument("--judge-rubric", metavar="FILE", help="llm-judge rubric (0.65)")
     run.add_argument("--created-at", metavar="TIME", help="YYYY-MM-DDTHH:MM:SSZ (default: now)")
     run.add_argument(
         "--holdout",
@@ -84,9 +85,12 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
     from opentine._signing_keys import ed25519_private_from_file
 
     prompt = Path(args.judge_prompt).read_text("utf-8") if args.judge_prompt else None
-    scorer = parse(args.scorer, prompt=prompt) if args.scorer.startswith("llm-judge:") else (
-        parse(args.scorer)
-    )  # fmt: skip
+    rubric = Path(args.judge_rubric).read_bytes().decode("utf-8") if args.judge_rubric else None
+    scorer = (
+        parse(args.scorer, prompt=prompt, rubric=rubric)
+        if args.scorer.startswith("llm-judge:")
+        else parse(args.scorer)
+    )
     key = ed25519_private_from_file(args.key, signer=False)
     if args.holdout:
         from opentine._eval_holdout import refuse_touched
