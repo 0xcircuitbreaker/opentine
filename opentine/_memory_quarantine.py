@@ -90,7 +90,6 @@ def quarantine(repo: Any, note: str, key: Any, why: str, *, created_at: str | No
     """Sign, store and hold the quarantine of *note* (a stored note's digest)."""
     from opentine import _memory
     from opentine._signing_pins import key_fingerprint
-    from opentine.kernel import canonical_json
     from opentine.repository import _registry_refs as refs
     from opentine.repository._holds import MEMORY_QUARANTINE, edit_holds, holds_path
     from opentine.repository._link_touch import touch_links
@@ -109,7 +108,7 @@ def quarantine(repo: Any, note: str, key: Any, why: str, *, created_at: str | No
     signed = _memory.sign(record, key)
     oid = refs.add_note(repo, signed)
     check = _memory.check(signed, team=_team(repo) or ())
-    held = repo.put("blob", canonical_json(signed), redact=False)
+    held = oid  # the signed note's own blob: the hold keeps it when its ref is deleted
     touch_links(repo, [held])
     row = {"oid": held, "target": f"{MEMORY_QUARANTINE}{note[12:]}:{oid[12:]}"}
     edit_holds(holds_path(repo), lambda rows: [*(r for r in rows if r != row), row])
