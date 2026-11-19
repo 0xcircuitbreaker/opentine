@@ -110,7 +110,7 @@ class Target:
         return oid
 
 
-def _local_target(root: Path) -> tuple[Target, Any]:
+def _local_target(root: Path, *, throttle: bool = True) -> tuple[Target, Any]:
     from opentine.remote import Identity, LocalKeyProvider, StaticTokenIdentityProvider, server
     from opentine.remote._http_server import ThreadingWSGIServer, TimeoutRequestHandler
 
@@ -123,6 +123,14 @@ def _local_target(root: Path) -> tuple[Target, Any]:
         }
     )
     app = server.reference_app(root, identities=identities, keys=LocalKeyProvider(b"c" * 32))
+    if not throttle:
+        # The shared session server sees every test's deliberate bad-token
+        # requests from one loopback address; five in a row would lock the
+        # whole session out with 429s depending on test order. The lockout is
+        # covered by test_api_throttle, which starts its own throttled server.
+        from opentine.remote._auth_throttle import AuthThrottle
+
+        app.auth_throttle = AuthThrottle(free_failures=1 << 30)
     quiet = type("_Quiet", (TimeoutRequestHandler,), {"log_message": lambda *args: None})
     httpd = make_server("127.0.0.1", 0, app, server_class=ThreadingWSGIServer, handler_class=quiet)
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
@@ -139,7 +147,7 @@ def api(tmp_path_factory):
         local = host in {"127.0.0.1", "localhost", "::1"}
         yield Target(base.rstrip("/"), os.environ["TINE_API_TENANT"], tokens, local)
         return
-    target, httpd = _local_target(tmp_path_factory.mktemp("api-remote"))
+    target, httpd = _local_target(tmp_path_factory.mktemp("api-remote"), throttle=False)
     try:
         yield target
     finally:
