@@ -691,7 +691,7 @@ See [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.53.
 
 ## CLI Reference
 
-`tine` ships 131 subcommands; `tine --help` lists the 13 everyday ones by
+`tine` ships 132 subcommands; `tine --help` lists the 13 everyday ones by
 section and `tine help --all` lists every one. Each one prints its own `--help`, which is
 authoritative when this page has drifted. `tine --version` (`-V`) prints the
 installed version.
