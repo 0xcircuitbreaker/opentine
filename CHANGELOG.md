@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Elicitation and sabotage analytics
+## 0.66.0 — Elicitation and sabotage analytics (2026-11-19)
 
 - `tine elicit link DRAFT --key KEY` signs an `opentine.elicit-link/1` record:
   one task attempted under one elicitation condition (`prompt`, `scaffold`,
