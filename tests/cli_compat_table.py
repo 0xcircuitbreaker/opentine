@@ -5279,6 +5279,21 @@ ROWS: tuple[tuple, ...] = (
         },
     ),
     (
+        "plain:monitor backtest m --repo p --run a --run b",
+        "plain",
+        ["monitor", "backtest", "m", "--repo", "p", "--run", "a", "--run", "b"],
+        "opentine._cli_monitor:cmd_monitor",
+        False,
+        {
+            "command": "monitor",
+            "monitor_command": "backtest",
+            "monitor": "m",
+            "repo": "p",
+            "run": ["a", "b"],
+            "runs": None,
+        },
+    ),
+    (
         "plain:monitor collusion m --runs r --reference t --log l",
         "plain",
         ["monitor", "collusion", "m", "--runs", "r", "--reference", "t", "--log", "l"],

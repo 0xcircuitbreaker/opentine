@@ -3,8 +3,8 @@
 Joined into ``tine-cli-monitor-1`` by :mod:`opentine._schema_defs_monitor`.
 
 CLI outputs, not object kinds: an online monitor verdict is an existing
-attestation under the ``opentine.monitor.verdict`` claim convention
-(docs/MONITOR.md); backtests and collusion tests only read recorded verdicts.
+attestation under the ``opentine.monitor-verdict/1`` claim convention
+(docs/MONITOR_BACKTESTS.md); backtests and collusion tests only read recorded verdicts.
 """
 
 from __future__ import annotations
@@ -23,7 +23,8 @@ _GROUP = closed(["trajectories", "attacks", "benign", "unlabelled", "replay", "o
     "online": closed(["judged", "attacks", "benign", *_SIDE], {
         **_SIDE, "judged": INT, "attacks": INT, "benign": INT})})  # fmt: skip
 _COUNTS = ("steps", "reproduced", "not_reproduced", "other_monitor", "visibility_mismatch",
-           "input_mismatch", "no_online_verdict", "skipped_trajectories")  # fmt: skip
+           "input_mismatch", "no_online_verdict", "skipped_trajectories",
+           "unverified_verdicts")  # fmt: skip
 _BACKTEST = closed(["command", "schema", "ok", "monitor", "monitor_digest", "visibility",
                     "counts", "groups", "diff", "bit_identical"], {
     **_HEAD, "command": {"const": "monitor backtest"}, "ok": BOOL, "monitor": STR,

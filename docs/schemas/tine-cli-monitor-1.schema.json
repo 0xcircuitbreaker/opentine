@@ -359,7 +359,8 @@
             "visibility_mismatch",
             "input_mismatch",
             "no_online_verdict",
-            "skipped_trajectories"
+            "skipped_trajectories",
+            "unverified_verdicts"
           ],
           "properties": {
             "steps": {
@@ -391,6 +392,10 @@
               "minimum": 0
             },
             "skipped_trajectories": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unverified_verdicts": {
               "type": "integer",
               "minimum": 0
             }

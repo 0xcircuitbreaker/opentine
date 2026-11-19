@@ -1,14 +1,16 @@
-# Monitors: verdicts, backtests and collusion tests
+# Monitor backtests and collusion tests (0.63)
 
-OpenTine records what a monitor decided about an agent's actions and lets you
-replay those actions against another monitor offline. Nothing here adds an
-object kind or a `tine verify` code (owner decision E7): an online verdict is
-an existing attestation under the claim convention `opentine.monitor.verdict`,
-and backtests and collusion tests only read recorded verdicts.
+OpenTine records what a monitor decided about an agent's actions
+(docs/MONITORS.md) and lets you replay those actions against another monitor
+offline. Nothing here adds an object kind or a `tine verify` code (owner
+decision E7): an online verdict is an existing attestation under the claim
+convention `opentine.monitor-verdict/1`, and backtests and collusion tests only
+read recorded verdicts.
 
-## The verdict claim convention
+## The decision fields of a recorded verdict
 
-A monitor verdict for one step carries:
+A backtest compares decisions. A verdict for one step, as a backtest reads it,
+carries:
 
 | Field | Meaning |
 | --- | --- |
@@ -58,6 +60,34 @@ line:
 control evaluations (`attack` for catch rate and false-positive rate, `signal`
 for collusion tests). Unlabelled trajectories are replayed but not counted in
 rates.
+
+## Backtests against the gate's verdict records
+
+```
+tine monitor backtest monitor.json --repo PATH --run RUN [--run RUN ...] [--json]
+```
+
+With `--repo` the online verdicts are the gate's own records: the held,
+signed `opentine.monitor-verdict/1` attestations (docs/MONITORS.md). Each
+`tools/call` step of a run recorded by `tine mcp-proxy --save` becomes one step
+(`tool` is the tool name, `input` its arguments). Its verdict is:
+
+- the verdict a blocked or replaced step names, used only when its
+  `input_digest` is the step's own redacted action. A step edited after its
+  verdict, or a relayed replacement (whose verdict scored the original action),
+  keeps the gate's digest and counts as `input_mismatch`, never as a match;
+- otherwise the held verdict whose `input_digest` is the step's action (an
+  advisory verdict on a relayed call).
+
+Only verdicts signed by a key in the owner-pinned `monitor` role are read; the
+others are counted in `unverified_verdicts`. The gate does not record `allow`
+verdicts, so a step without one is `no_online_verdict`. A proxy run carries no
+reasoning text, so its steps are `unavailable`; a verdict that saw reasoning
+counts as `visibility_mismatch`. The gate's `monitor.model_digest` is its
+`monitor_digest`, so a backtest rule spec is always another monitor
+(`other_monitor`, compared on the action) and `--require-reproduced` fails.
+Recorded runs carry no attack labels, so their rates are `null`; the counts and
+`diff` show where the replay and the gate disagree.
 
 ## Backtests
 
@@ -122,5 +152,5 @@ Both commands print `tine-cli-monitor/1` with `--json`
 
 - Backtests replay rule monitors. A model or remote monitor is not
   deterministic in general, so its backtest is a diff, not a reproduction.
-- Backtests read trajectory files; they do not read verdicts from a
-  repository's attestations directly.
+- `--repo` reads only verdicts the gate held (every one that is not `allow`)
+  and steps recorded by the MCP proxy; hook-path calls have no recorded run.

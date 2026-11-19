@@ -6,7 +6,10 @@ Registered under ``tine monitor`` by :mod:`opentine._cli_monitor`.
 monitor and reports catch rate, false-positive rate and the decision diff
 against the recorded online verdicts (:mod:`opentine._monitor_backtest`);
 ``--require-reproduced`` exits 1 when a verdict from the same monitor digest
-is not reproduced byte for byte. ``collusion MONITOR --runs FILE`` runs the
+is not reproduced byte for byte. ``backtest MONITOR --repo PATH --run RUN``
+reads the gate's held, verified verdicts as the online verdicts of the
+recorded proxy runs instead (:mod:`opentine._monitor_records`).
+``collusion MONITOR --runs FILE`` runs the
 untrusted-monitor vs untrusted-policy harness (:mod:`opentine._monitor_collusion`);
 its findings are advisory only and ``--log FILE`` appends the result as one
 JSON line.
@@ -31,6 +34,10 @@ def add_eval_parsers(verbs: argparse._SubParsersAction) -> None:
                       help="Only trajectories whose steps all have this state")  # fmt: skip
     back.add_argument("--require-reproduced", action="store_true",
                       help="Exit 1 unless same-monitor verdicts reproduce exactly")  # fmt: skip
+    back.add_argument("--repo", metavar="PATH",
+                      help="Read the gate's held verdicts from this repository")  # fmt: skip
+    back.add_argument("--run", action="append", default=[], metavar="RUN",
+                      help="With --repo: a recorded proxy run; repeatable")  # fmt: skip
     coll = verbs.add_parser("collusion", help="Untrusted monitor vs untrusted policy (advisory)")
     coll.add_argument("--reference", metavar="MONITOR", help="A trusted reference monitor spec")
     coll.add_argument("--margin", type=float, default=0.2, help="Catch-rate gap (default 0.2)")
@@ -39,9 +46,18 @@ def add_eval_parsers(verbs: argparse._SubParsersAction) -> None:
     coll.add_argument("--log", metavar="FILE", help="Append the result as one JSON line")
     for p in (back, coll):
         p.add_argument("monitor", metavar="MONITOR", help="Monitor spec (JSON)")
-        p.add_argument("--runs", action="append", required=True, metavar="FILE",
+        p.add_argument("--runs", action="append", required=p is coll, metavar="FILE",
                        help="Recorded trajectories (JSON Lines); repeatable")  # fmt: skip
         p.add_argument("--json", action="store_true", help="Machine-readable output")
+
+
+def _recorded(repo_path: str, names: list[str]) -> tuple[list[dict], int]:
+    from opentine._cli_monitor import _runs
+    from opentine._monitor_records import trajectories
+    from opentine.repo import Repo
+
+    repo = Repo.open(repo_path)
+    return trajectories(repo, _runs(repo, names))
 
 
 def _row(args: argparse.Namespace) -> dict:
@@ -49,13 +65,22 @@ def _row(args: argparse.Namespace) -> dict:
     from opentine._monitor_rule import canonical, load
 
     monitor = load(args.monitor)
-    runs = read_trajectories(args.runs)
+    unverified = 0
+    if args.monitor_command == "backtest" and (args.repo is not None or args.run):
+        if args.repo is None or not args.run or args.runs:
+            raise ValueError("--repo needs --run, and replaces --runs")
+        runs, unverified = _recorded(args.repo, args.run)
+    elif not args.runs:
+        raise ValueError("backtest reads --runs FILE or --repo PATH --run RUN")
+    else:
+        runs = read_trajectories(args.runs)
     if args.monitor_command == "backtest":
         if args.visibility is not None:
             parts = args.visibility.split("+")
             if any(p not in GROUPS for p in parts) or parts != sorted(set(parts)):
                 raise ValueError("--visibility is a sorted '+'-joined set of " + ", ".join(GROUPS))
         row = backtest(monitor, runs, visibility=args.visibility)
+        row["counts"]["unverified_verdicts"] = unverified
         # Vacuous success is refused: stripped verdicts must not pass the check.
         proven = row["bit_identical"] and row["counts"]["reproduced"] > 0
         row["ok"] = proven or not args.require_reproduced
@@ -96,7 +121,7 @@ def run(args: argparse.Namespace) -> None:
 
     try:
         row = _row(args)
-    except (OSError, ValueError, UnicodeDecodeError) as exc:
+    except (OSError, ValueError, KeyError, UnicodeDecodeError) as exc:
         raise error(exc, prefix="monitor: ") from exc
     command = args.monitor_command
     if args.json:

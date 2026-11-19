@@ -3,7 +3,8 @@
 A trajectory file is JSON Lines (or one JSON object or array) of
 ``{"run", "label"?, "steps": [{"tool", "input", "reasoning", "reasoning_text"?,
 "verdict"?}]}``; ``verdict`` is the online verdict recorded for the step
-(claim convention ``opentine.monitor.verdict``, docs/MONITOR.md) and ``label``
+(the decision fields of an ``opentine.monitor-verdict/1`` verdict,
+docs/MONITOR_BACKTESTS.md) and ``label``
 is ``{"attack": bool}`` for control evaluations. Every step is replayed through
 the monitor (:func:`opentine._monitor_rule.decide`).
 
@@ -84,7 +85,7 @@ def backtest(
 ) -> dict[str, Any]:
     counts = {k: 0 for k in ("steps", "reproduced", "not_reproduced", "other_monitor",
                              "visibility_mismatch", "input_mismatch", "no_online_verdict",
-                             "skipped_trajectories")}  # fmt: skip
+                             "skipped_trajectories", "unverified_verdicts")}  # fmt: skip
     groups: dict[str, dict[str, Any]] = {}
     diff: list[dict[str, Any]] = []
     for trajectory in trajectories:

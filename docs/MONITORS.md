@@ -174,5 +174,6 @@ mode.
   per call), so an advisory monitor's latency is added to the call there.
 - Each held verdict is one row in `.tine/holds` (at most 4 MiB, about 25 000
   rows).
-- Offline backtests of recorded trajectories against a new monitor, collusion
-  probes and catch-rate metrics are outside this release.
+- Offline backtests (including against these verdict records with
+  `tine monitor backtest --repo`), collusion tests and catch-rate metrics are
+  in docs/MONITOR_BACKTESTS.md.

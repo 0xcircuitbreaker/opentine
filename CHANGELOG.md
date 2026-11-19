@@ -41,10 +41,13 @@
   attacks; its findings (`advisory:monitor-collusion-suspected`,
   `advisory:monitor-misses-reference-catch`) are advisory only and
   `--log FILE` appends the result as one JSON line.
-- Rule monitors are JSON specs; the decision fields of the
-  `opentine.monitor.verdict` claim convention (monitor digest, input digest,
+- `tine monitor backtest MONITOR --repo PATH --run RUN` reads the gate's
+  held, signed verdicts (pinned `monitor` role only) as the online verdicts of
+  runs recorded by `tine mcp-proxy --save`; a step edited after its verdict
+  counts as `input_mismatch`, unverified verdicts as `unverified_verdicts`.
+- Rule monitors are JSON specs; the decision fields of a recorded verdict (monitor digest, input digest,
   reasoning visibility, score, threshold, action) are documented in
-  docs/MONITOR.md. New schema `tine-cli-monitor-1`.
+  docs/MONITOR_BACKTESTS.md. New schema `tine-cli-monitor-1`.
 
 ## 0.61.0 — Memory provenance and quarantine (2026-11-19)
 

@@ -1,6 +1,6 @@
 """Rule monitors and the decision part of a monitor verdict (0.63).
 
-A monitor spec is a JSON object (docs/MONITOR.md)::
+A monitor spec is a JSON object (docs/MONITOR_BACKTESTS.md)::
 
     {"monitor": "NAME", "kind": "rule", "trust": "trusted" | "untrusted",
      "rules": [{"tool": GLOB, "pattern": REGEX, "on": "input" | "reasoning" | "both",
