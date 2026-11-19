@@ -163,5 +163,6 @@ def test_an_early_reveal_hidden_behind_a_later_one_is_detected(room, capsys):
 
 @pytest.mark.skipif(__import__("os").name == "nt", reason="POSIX file modes")
 def test_the_blind_secret_file_is_owner_only(room, capsys):
-    _blind(capsys, room)
-    assert (room / "secret.json").stat().st_mode & 0o777 == 0o600
+    tmp, _ = room
+    _blind(capsys, tmp)
+    assert (tmp / "secret.json").stat().st_mode & 0o777 == 0o600
