@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -61,7 +62,7 @@ def _import(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[s
         secret = _audit_game.secret(who[_petri.TARGET], args.objective)
         sealed = _audit_game.commitment(secret)
         text = json.dumps(secret, indent=2, sort_keys=True) + "\n"
-        Path(args.blind).write_bytes(text.encode("utf-8"))
+        _write_private(Path(args.blind), text.encode("utf-8"))
     run = _petri.to_run(doc, sealed=sealed)
     if args.save:
         run.save(Path(args.save), lenient=True)
@@ -72,6 +73,16 @@ def _import(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[s
             "scores": who["scores"]}  # fmt: skip
     return body, [f"imported {who['transcript']} as {run_id} (role=auditor)"
                   + (f", target sealed {sealed}" if sealed else "")]  # fmt: skip
+
+
+def _write_private(path: Path, data: bytes) -> None:
+    """Write the blind-audit opening owner-only (0600); it unseals the target."""
+    flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0)
+    fd = os.open(path, flags, 0o600)
+    with os.fdopen(fd, "wb") as handle:
+        handle.write(data)
+    if os.name != "nt":
+        os.chmod(path, 0o600)
 
 
 def _secret(path: str) -> dict[str, Any]:

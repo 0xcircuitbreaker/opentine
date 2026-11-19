@@ -159,3 +159,9 @@ def test_an_early_reveal_hidden_behind_a_later_one_is_detected(room, capsys):
     code, out = _tine(capsys, "auditor", "check", "--repo", str(tmp / "r"))
     assert code == 1 and not out["ok"]
     assert "fail:audit-game.reveal-before-verdict" in {f["code"] for f in out["findings"]}
+
+
+@pytest.mark.skipif(__import__("os").name == "nt", reason="POSIX file modes")
+def test_the_blind_secret_file_is_owner_only(room, capsys):
+    _blind(capsys, room)
+    assert (room / "secret.json").stat().st_mode & 0o777 == 0o600
