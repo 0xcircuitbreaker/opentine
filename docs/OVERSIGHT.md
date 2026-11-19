@@ -132,6 +132,11 @@ Every decision is kept by a `tine hold` row whose target starts
 `oversight-decision:`. `tine hold release` refuses it, so `gc` and `prune`
 never delete an approval, a rejection or a request a loop would want gone.
 
+Every decision on an item counts, ordered by `decided_at`, not only those on
+one `previous_id` chain: a fork of the chain (two writers at once, or a
+decision forged to start before a rejection) hides nothing. A signer's newest
+decision replaces its earlier ones.
+
 ## The gate in `tine promote`
 
 When the policy routes a candidate, `tine promote` reads the decisions from
@@ -143,7 +148,7 @@ nothing) and refuses with:
 | `promote.oversight-rejected` | a counted approver's newest decision is `reject` |
 | `promote.oversight-key-separation` | short of k, and an approval was signed by an `optimizer`, `monitor` or `scorer` key (it never counts) |
 | `promote.oversight-stale` | short of k, and approvals are bound to another holder or sequence |
-| `promote.oversight-insufficient` | fewer than k distinct approvers in a routed tier, or the policy is unpinned |
+| `promote.oversight-insufficient` | fewer than k distinct approvers in a routed tier, the policy is unpinned, or `.tine/oversight.toml` is gone while oversight decisions exist |
 
 These are promotion refusals, like the 0.58 codes in docs/EVALS-PROMOTION.md;
 they are not `tine verify` codes.
@@ -163,6 +168,9 @@ from the annotation objects alone, and the two are equal. `--json` prints
 
 * Decisions name an item, not a lineage record: `tine lineage check` does not
   read the queue.
+* With no `.tine/oversight.toml` and no decision yet, nothing is gated, and
+  an older validly signed policy can be restored: the policy is not pinned by
+  sequence outside the repository.
 * Approver-fatigue metrics are not part of this page's gate.
 * The `--from-objects` rebuild and the promote gate scan the repository's
   annotation objects.

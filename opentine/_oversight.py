@@ -152,10 +152,9 @@ def _group(repo: Any, rows: list[dict[str, Any]]) -> dict[str, list[dict[str, An
     out: dict[str, list[dict[str, Any]]] = {}
     for item in sorted({r["item"] for r in rows}):
         mine = {r["id"]: r for r in rows if r["item"] == item}
-        tips = sorted(set(mine) - {r["previous"] for r in mine.values()})
-        # One chain normally; after a concurrent fork the newest tip is the head.
-        tips.sort(key=lambda oid: (mine[oid]["decided_at"] or "", oid))
-        out[item] = chain(repo, tips[-1])
+        # Every decision counts, ordered by time: a fork of the previous_id chain
+        # (concurrent, or forged to start after a rejection) hides nothing.
+        out[item] = sorted(mine.values(), key=lambda r: (str(r["decided_at"] or ""), r["id"]))
     return out
 
 
