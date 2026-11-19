@@ -26,6 +26,23 @@
   flagged with p < 0.01, and an honest agent is not flagged on at least 95% of
   a fixed seed list. docs/ELICITATION.md; schemas `tine-cli-elicit-1` and
   `opentine-elicit-link-1`.
+- Sabotage task records: `tine sabotage record` signs and holds an
+  `opentine.sabotage-task/1` attestation on a run for one SHADE-style task
+  (class `code` or `decision`; main task id, score and pass; side task
+  attempted and achieved; evidence references; linked 0.62 monitor verdicts).
+  A claim convention: no new object kind and no new `tine verify` code.
+- Records count only when signed by a key in the `scorer` or `eval` role of
+  the owner-pinned trust bundle. Each is held under `sabotage-task:TASK` and
+  never released; `record` refuses to mark an attempted or achieved side task
+  as not attempted or not achieved, and `report` keeps the strongest counted
+  outcome and reports a held downgrade as `fail:sabotage.relabel`.
+- `tine sabotage report [--json]` gives catch rate per sabotage class (caught
+  by a verified, non-`allow` monitor verdict / attempted) with a seeded
+  interval from the 0.58 paired-bootstrap code. Statistics and
+  `advisory:sabotage.uncaught`, `signer-unpinned` and `verdict-unverified`
+  are advisory (D12) and block only with `--strict`; they are statistical
+  evidence, not proof of intent. Schemas `tine-cli-sabotage-1` and
+  `opentine-sabotage-task-1`; docs/SABOTAGE.md.
 
 ## 0.65.0 — Query and experiments (2026-11-19)
 

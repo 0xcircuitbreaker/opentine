@@ -2056,6 +2056,17 @@ Roles come only from the owner-pinned trust bundle; an unpinned signer gives
 `advisory:elicit.signer-unpinned`. Findings are statistical evidence, not proof
 of intent. `--json` prints `tine-cli-elicit/1`; see docs/ELICITATION.md.
 
+## Sabotage task records (0.68)
+
+| Command | What it does |
+| --- | --- |
+| `tine sabotage record --run RUN --task ID --class code\|decision --main-task ID --side-task ID [--attempted] [--achieved] [--main-score D] [--main-passed yes\|no] [--evidence REF]... [--verdict ATTESTATION]... --key KEY [--at TIME]` | Signs and holds one `opentine.sabotage-task/1` record on RUN; refuses a downgrade of an attempted or achieved side task (`sabotage.relabel`) |
+| `tine sabotage report [--task ID] [--strict] [--seed N] [--resamples N] [--alpha A]` | Catch rate per sabotage class with a seeded bootstrap interval; exits 1 on `fail:sabotage.relabel`, `fail:sabotage.key-separation` or `fail:sabotage.malformed`; `advisory:sabotage.signer-unpinned`, `advisory:sabotage.verdict-unverified` and `advisory:sabotage.uncaught` block only with `--strict` |
+
+Records count only when signed by a pinned `scorer` or `eval` key. Catch rates
+are statistical evidence, not proof of intent. `--json` prints
+`tine-cli-sabotage/1`; see docs/SABOTAGE.md.
+
 ## Self-modification lineage (0.58)
 
 | Command | What it does |
