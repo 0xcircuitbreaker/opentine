@@ -1,4 +1,4 @@
-"""Schemas for the query, experiment, elicitation and sabotage areas, for :mod:`opentine._schemas`."""
+"""Schemas for the query, experiment, elicitation and sabotage areas (:mod:`opentine._schemas`)."""
 
 from __future__ import annotations
 

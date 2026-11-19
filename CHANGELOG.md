@@ -42,7 +42,10 @@
   `advisory:sabotage.uncaught`, `signer-unpinned` and `verdict-unverified`
   are advisory (D12) and block only with `--strict`; they are statistical
   evidence, not proof of intent. Schemas `tine-cli-sabotage-1` and
-  `opentine-sabotage-task-1`; docs/SABOTAGE.md.
+  `opentine-sabotage-task-1`; docs/SABOTAGE.md.- The 0.65 query index gains `sabotage_tasks`, `elicit_links` and
+  `elicit_items` tables, checked by `tine query --verify` against the pinned
+  `scorer`/`eval` (and, for elicitation, `verdict`) roles; a changed
+  elicitation record makes the index stale. docs/QUERY.md.
 
 ## 0.65.0 — Query and experiments (2026-11-19)
 

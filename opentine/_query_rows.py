@@ -18,6 +18,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from opentine._query_experiments import COLUMNS as _EXPERIMENT_COLUMNS
+from opentine._query_research import COLUMNS as _RESEARCH_COLUMNS
 
 #: The tables and the columns each row has, in order (``oid`` first).
 COLUMNS: dict[str, tuple[str, ...]] = {
@@ -35,6 +36,7 @@ COLUMNS: dict[str, tuple[str, ...]] = {
               "threshold", "passed", "signer", "signed", "created_at"),
 }  # fmt: skip
 COLUMNS.update(_EXPERIMENT_COLUMNS)  # 0.67: experiment manifests and reproduce reports
+COLUMNS.update(_RESEARCH_COLUMNS)  # 0.68: sabotage task records and elicitation links
 #: Columns a row derives from its run (or file), not from the object itself.
 CONTEXT = {"run", "seq", "source", "line"}
 
@@ -150,7 +152,12 @@ def object_rows(repo: Any, oid: str, read: Any = None) -> dict[str, list[dict[st
         return out
     if kind == "attestation":
         row = monitor_row(oid, payload)
-        return {"monitor_verdicts": [row]} if row else {}
+        if row:
+            return {"monitor_verdicts": [row]}
+        from opentine._query_research import sabotage_row
+
+        row = sabotage_row(oid, payload)
+        return {"sabotage_tasks": [row]} if row else {}
     value = payload.get("value")
     if isinstance(value, dict) and value.get("convention") == "opentine.oversight-decision/1":
         row = oversight_row(oid, repo)

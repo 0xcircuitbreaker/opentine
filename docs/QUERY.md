@@ -49,6 +49,9 @@ The index lives at `.tine/query/index.sqlite`.
 | `experiments` | `opentine.experiment-manifest/1` file | `oid`, `source`, `experiment`, `signer`, `signed`, `model`, `model_version`, `result_rows`, `passed_rows`, `usd`, `created_at` |
 | `experiment_results` | result row of a manifest | `oid` (the manifest), `experiment`, `id`, `verdict`, `path`, `score`, `passed` |
 | `reproductions` | `opentine.reproduce-report/1` file | `oid`, `source`, `experiment`, `manifest`, `signer`, `signed`, `sample`, `agreed`, `disagreed`, `verdict`, `tolerance`, `repeats`, `created_at` |
+| `sabotage_tasks` | `opentine.sabotage-task/1` attestation | `oid`, `target` (the run), `signer`, `signed`, `task`, `class`, `main_task`, `main_score`, `main_passed`, `side_task`, `attempted`, `achieved`, `verdicts` (linked monitor verdicts), `at` |
+| `elicit_links` | `opentine.elicit-link/1` file in `.tine/elicit/links/` | `oid`, `source`, `task`, `safety_relevant`, `condition`, `kind`, `cue`, `monitored`, `model`, `model_version`, `signer`, `signed`, `items`, `mean_score`, `attempts`, `tokens`, `usd`, `gpu_hours`, `created_at` |
+| `elicit_items` | item score of an elicitation link | `oid` (the link), `task`, `condition`, `id`, `score` |
 | `meta` | key | `authority` (always `non-authoritative`), `format`, `counts` and what the index was built from |
 
 `oid` is the object id for repository objects. Lineage records and eval
@@ -73,6 +76,16 @@ signer has a pinned role; a report signed by a key that holds `optimizer` is
 `unverified`. Changing an experiment file makes the index `stale`
 ("an experiment folder changed"). Index rows are not `tine experiment check`:
 run that for the result-mismatch and report checks.
+
+Sabotage task records (docs/SABOTAGE.md) are read from the object store; their
+`signed` is 1 only when the signature verifies and the record's `signer` names
+the key that signed it. Elicitation links (docs/ELICITATION.md) are read from
+`.tine/elicit/links/`; their `oid` is the record digest and an item row shares
+it and adds `id`. With `--verify`, both are `verified` only when the signer
+holds a pinned `scorer` or `eval` role (elicitation links also accept
+`verdict`) and not `optimizer`. Changing an elicitation record makes the index
+`stale` ("the elicitation folder changed"). The rows carry no findings: run
+`tine elicit report` and `tine sabotage report` for the advisory statistics.
 
 ## Read-only
 
