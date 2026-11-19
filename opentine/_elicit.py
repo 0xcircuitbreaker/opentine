@@ -60,8 +60,9 @@ def _condition(cond: Any) -> str | None:
         return f"condition cue is one of {', '.join(CUES)}"
     if not isinstance(cond["monitored"], bool):
         return "condition monitored is a boolean"
-    if (cond["kind"], cond["cue"]) in {("eval-cue", "deployment"), ("deployment-cue", "eval")}:
-        return f"a {cond['kind']} condition cannot carry cue {cond['cue']}"
+    implied = {"eval-cue": "eval", "deployment-cue": "deployment"}.get(cond["kind"])
+    if implied and cond["cue"] != implied:  # a cue condition cannot hide or swap its cue
+        return f"a {cond['kind']} condition carries cue {implied}"
     return None
 
 

@@ -5,8 +5,9 @@ named signer) and its signer looked up in the owner-pinned key roles
 (:func:`opentine._experiment_check.roles`, i.e. ``_key_roles_pin``). A record
 that fails any of that is left out of the statistics and reported as a
 ``fail:elicit.*`` finding; an intact record from a signer without a pinned
-``scorer``/``eval``/``verdict`` role is used and reported as
-``advisory:elicit.signer-unpinned``.
+``scorer``/``eval``/``verdict`` role is left out as
+``fail:elicit.signer-unpinned`` once roles are pinned; with no pinned trust
+bundle it is used and reported as ``advisory:elicit.signer-unpinned``.
 """
 
 from __future__ import annotations
@@ -49,6 +50,9 @@ def _accept(name: str, raw: bytes, keys: dict, status: str) -> tuple[dict | None
         return None, [finding("fail", "key-separation", name,
                               f"signer {signer} holds the optimizer role")]  # fmt: skip
     if not any(signer in keys.get(r, []) for r in VERDICT_ROLES):
+        if status == "pinned":  # a self-made key must not feed the statistics
+            return None, [finding("fail", "signer-unpinned", name,
+                                  f"signer {signer} holds no pinned verdict role")]  # fmt: skip
         why = ("the key roles are unpinned (no owner-signed trust bundle)" if status != "pinned"
                else "not a pinned scorer/eval/verdict key")  # fmt: skip
         return doc, [finding("advisory", "signer-unpinned", signer, why)]
