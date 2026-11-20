@@ -1,0 +1,1322 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-budget-1.schema.json",
+  "title": "tine budget ... --json",
+  "description": "Budgets for a loop or agent. `sign-policy` writes a signed `opentine-budget-policy/1`; `apply` and `record` append signed, held ledger entries (`opentine.budget-ledger/1`); `status`, `check` and `ledger` fold the ledger into the policy in force, totals, findings and the next-action decision.",
+  "anyOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "policy"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-budget/1"
+        },
+        "command": {
+          "const": "budget sign-policy"
+        },
+        "policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "subject",
+            "serial",
+            "sha256",
+            "signer"
+          ],
+          "properties": {
+            "subject": {
+              "type": "string",
+              "pattern": "^(loop|agent):[a-z0-9][a-z0-9._-]{0,63}$"
+            },
+            "serial": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "signer": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "entry",
+        "accepted",
+        "flags",
+        "status"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-budget/1"
+        },
+        "command": {
+          "const": "budget apply"
+        },
+        "entry": {
+          "type": "string",
+          "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+        },
+        "accepted": {
+          "type": "boolean"
+        },
+        "flags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+          }
+        },
+        "status": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "subject",
+            "roles",
+            "policy",
+            "totals",
+            "remaining",
+            "over",
+            "decision",
+            "entries",
+            "head",
+            "findings"
+          ],
+          "properties": {
+            "subject": {
+              "type": "string",
+              "pattern": "^(loop|agent):[a-z0-9][a-z0-9._-]{0,63}$"
+            },
+            "roles": {
+              "enum": [
+                "pinned",
+                "unpinned",
+                "absent"
+              ]
+            },
+            "policy": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "schema",
+                    "subject",
+                    "serial",
+                    "limits",
+                    "on_limit",
+                    "issued_at",
+                    "sha256",
+                    "signer",
+                    "entry"
+                  ],
+                  "properties": {
+                    "schema": {
+                      "const": "opentine-budget-policy/1"
+                    },
+                    "subject": {
+                      "type": "string",
+                      "pattern": "^(loop|agent):[a-z0-9][a-z0-9._-]{0,63}$"
+                    },
+                    "serial": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "limits": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "tokens",
+                        "gpu_hours",
+                        "wall_clock_s",
+                        "egress_bytes",
+                        "money_usd"
+                      ],
+                      "properties": {
+                        "tokens": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "gpu_hours": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "wall_clock_s": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "egress_bytes": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "money_usd": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "on_limit": {
+                      "enum": [
+                        "deny",
+                        "escalate"
+                      ]
+                    },
+                    "issued_at": {
+                      "type": "string"
+                    },
+                    "sha256": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    "signer": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^sha256:[0-9a-f]{64}$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "entry": {
+                      "type": "string",
+                      "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+                    }
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "totals": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "tokens",
+                "gpu_hours",
+                "wall_clock_s",
+                "egress_bytes",
+                "money_usd",
+                "input_tokens",
+                "output_tokens",
+                "runs"
+              ],
+              "properties": {
+                "tokens": {
+                  "type": "number"
+                },
+                "gpu_hours": {
+                  "type": "number"
+                },
+                "wall_clock_s": {
+                  "type": "number"
+                },
+                "egress_bytes": {
+                  "type": "number"
+                },
+                "money_usd": {
+                  "type": "number"
+                },
+                "input_tokens": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "output_tokens": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "runs": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "remaining": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "tokens",
+                "gpu_hours",
+                "wall_clock_s",
+                "egress_bytes",
+                "money_usd"
+              ],
+              "properties": {
+                "tokens": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "gpu_hours": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "wall_clock_s": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "egress_bytes": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "money_usd": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            },
+            "over": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "tokens",
+                  "gpu_hours",
+                  "wall_clock_s",
+                  "egress_bytes",
+                  "money_usd"
+                ]
+              }
+            },
+            "decision": {
+              "enum": [
+                "allow",
+                "deny",
+                "escalate"
+              ]
+            },
+            "entries": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "head": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "findings": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "level",
+                  "code",
+                  "entry",
+                  "message"
+                ],
+                "properties": {
+                  "level": {
+                    "enum": [
+                      "fail",
+                      "advisory"
+                    ]
+                  },
+                  "code": {
+                    "type": "string"
+                  },
+                  "entry": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "message": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "entries",
+        "status"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-budget/1"
+        },
+        "command": {
+          "const": "budget record"
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+          }
+        },
+        "status": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "subject",
+            "roles",
+            "policy",
+            "totals",
+            "remaining",
+            "over",
+            "decision",
+            "entries",
+            "head",
+            "findings"
+          ],
+          "properties": {
+            "subject": {
+              "type": "string",
+              "pattern": "^(loop|agent):[a-z0-9][a-z0-9._-]{0,63}$"
+            },
+            "roles": {
+              "enum": [
+                "pinned",
+                "unpinned",
+                "absent"
+              ]
+            },
+            "policy": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "schema",
+                    "subject",
+                    "serial",
+                    "limits",
+                    "on_limit",
+                    "issued_at",
+                    "sha256",
+                    "signer",
+                    "entry"
+                  ],
+                  "properties": {
+                    "schema": {
+                      "const": "opentine-budget-policy/1"
+                    },
+                    "subject": {
+                      "type": "string",
+                      "pattern": "^(loop|agent):[a-z0-9][a-z0-9._-]{0,63}$"
+                    },
+                    "serial": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "limits": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "tokens",
+                        "gpu_hours",
+                        "wall_clock_s",
+                        "egress_bytes",
+                        "money_usd"
+                      ],
+                      "properties": {
+                        "tokens": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "gpu_hours": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "wall_clock_s": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "egress_bytes": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "money_usd": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "on_limit": {
+                      "enum": [
+                        "deny",
+                        "escalate"
+                      ]
+                    },
+                    "issued_at": {
+                      "type": "string"
+                    },
+                    "sha256": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    "signer": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^sha256:[0-9a-f]{64}$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "entry": {
+                      "type": "string",
+                      "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+                    }
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "totals": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "tokens",
+                "gpu_hours",
+                "wall_clock_s",
+                "egress_bytes",
+                "money_usd",
+                "input_tokens",
+                "output_tokens",
+                "runs"
+              ],
+              "properties": {
+                "tokens": {
+                  "type": "number"
+                },
+                "gpu_hours": {
+                  "type": "number"
+                },
+                "wall_clock_s": {
+                  "type": "number"
+                },
+                "egress_bytes": {
+                  "type": "number"
+                },
+                "money_usd": {
+                  "type": "number"
+                },
+                "input_tokens": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "output_tokens": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "runs": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "remaining": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "tokens",
+                "gpu_hours",
+                "wall_clock_s",
+                "egress_bytes",
+                "money_usd"
+              ],
+              "properties": {
+                "tokens": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "gpu_hours": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "wall_clock_s": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "egress_bytes": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "money_usd": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            },
+            "over": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "tokens",
+                  "gpu_hours",
+                  "wall_clock_s",
+                  "egress_bytes",
+                  "money_usd"
+                ]
+              }
+            },
+            "decision": {
+              "enum": [
+                "allow",
+                "deny",
+                "escalate"
+              ]
+            },
+            "entries": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "head": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "findings": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "level",
+                  "code",
+                  "entry",
+                  "message"
+                ],
+                "properties": {
+                  "level": {
+                    "enum": [
+                      "fail",
+                      "advisory"
+                    ]
+                  },
+                  "code": {
+                    "type": "string"
+                  },
+                  "entry": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "message": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "entries",
+        "totals"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-budget/1"
+        },
+        "command": {
+          "const": "budget ledger"
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "previous",
+              "signer",
+              "signed",
+              "entry",
+              "at"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+              },
+              "previous": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "signer": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "signed": {
+                "type": "boolean"
+              },
+              "entry": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "at": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "run": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "money_usd": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "tokens": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "code": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "about": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "totals": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tokens",
+            "gpu_hours",
+            "wall_clock_s",
+            "egress_bytes",
+            "money_usd",
+            "input_tokens",
+            "output_tokens",
+            "runs"
+          ],
+          "properties": {
+            "tokens": {
+              "type": "number"
+            },
+            "gpu_hours": {
+              "type": "number"
+            },
+            "wall_clock_s": {
+              "type": "number"
+            },
+            "egress_bytes": {
+              "type": "number"
+            },
+            "money_usd": {
+              "type": "number"
+            },
+            "input_tokens": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "output_tokens": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "runs": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "status",
+        "flags"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-budget/1"
+        },
+        "command": {
+          "enum": [
+            "budget status",
+            "budget check"
+          ]
+        },
+        "status": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "subject",
+            "roles",
+            "policy",
+            "totals",
+            "remaining",
+            "over",
+            "decision",
+            "entries",
+            "head",
+            "findings"
+          ],
+          "properties": {
+            "subject": {
+              "type": "string",
+              "pattern": "^(loop|agent):[a-z0-9][a-z0-9._-]{0,63}$"
+            },
+            "roles": {
+              "enum": [
+                "pinned",
+                "unpinned",
+                "absent"
+              ]
+            },
+            "policy": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "schema",
+                    "subject",
+                    "serial",
+                    "limits",
+                    "on_limit",
+                    "issued_at",
+                    "sha256",
+                    "signer",
+                    "entry"
+                  ],
+                  "properties": {
+                    "schema": {
+                      "const": "opentine-budget-policy/1"
+                    },
+                    "subject": {
+                      "type": "string",
+                      "pattern": "^(loop|agent):[a-z0-9][a-z0-9._-]{0,63}$"
+                    },
+                    "serial": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "limits": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "tokens",
+                        "gpu_hours",
+                        "wall_clock_s",
+                        "egress_bytes",
+                        "money_usd"
+                      ],
+                      "properties": {
+                        "tokens": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "gpu_hours": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "wall_clock_s": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "egress_bytes": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "money_usd": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "on_limit": {
+                      "enum": [
+                        "deny",
+                        "escalate"
+                      ]
+                    },
+                    "issued_at": {
+                      "type": "string"
+                    },
+                    "sha256": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    "signer": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^sha256:[0-9a-f]{64}$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "entry": {
+                      "type": "string",
+                      "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+                    }
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "totals": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "tokens",
+                "gpu_hours",
+                "wall_clock_s",
+                "egress_bytes",
+                "money_usd",
+                "input_tokens",
+                "output_tokens",
+                "runs"
+              ],
+              "properties": {
+                "tokens": {
+                  "type": "number"
+                },
+                "gpu_hours": {
+                  "type": "number"
+                },
+                "wall_clock_s": {
+                  "type": "number"
+                },
+                "egress_bytes": {
+                  "type": "number"
+                },
+                "money_usd": {
+                  "type": "number"
+                },
+                "input_tokens": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "output_tokens": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "runs": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "remaining": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "tokens",
+                "gpu_hours",
+                "wall_clock_s",
+                "egress_bytes",
+                "money_usd"
+              ],
+              "properties": {
+                "tokens": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "gpu_hours": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "wall_clock_s": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "egress_bytes": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "money_usd": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            },
+            "over": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "tokens",
+                  "gpu_hours",
+                  "wall_clock_s",
+                  "egress_bytes",
+                  "money_usd"
+                ]
+              }
+            },
+            "decision": {
+              "enum": [
+                "allow",
+                "deny",
+                "escalate"
+              ]
+            },
+            "entries": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "head": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "findings": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "level",
+                  "code",
+                  "entry",
+                  "message"
+                ],
+                "properties": {
+                  "level": {
+                    "enum": [
+                      "fail",
+                      "advisory"
+                    ]
+                  },
+                  "code": {
+                    "type": "string"
+                  },
+                  "entry": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "message": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "flags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+          }
+        }
+      }
+    }
+  ]
+}

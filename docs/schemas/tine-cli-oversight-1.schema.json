@@ -98,7 +98,8 @@
                       "promotion",
                       "integrity",
                       "monitor",
-                      "eval"
+                      "eval",
+                      "budget"
                     ]
                   },
                   "tier": {
@@ -187,7 +188,7 @@
               },
               "item": {
                 "type": "string",
-                "pattern": "^(promotion|monitor|integrity):.+$"
+                "pattern": "^(promotion|monitor|integrity|budget):.+$"
               },
               "action": {
                 "enum": [
@@ -304,13 +305,14 @@
             "properties": {
               "item": {
                 "type": "string",
-                "pattern": "^(promotion|monitor|integrity):.+$"
+                "pattern": "^(promotion|monitor|integrity|budget):.+$"
               },
               "source": {
                 "enum": [
                   "promotion",
                   "integrity",
-                  "monitor"
+                  "monitor",
+                  "budget"
                 ]
               },
               "opened_at": {

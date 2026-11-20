@@ -40,7 +40,7 @@ def add_oversight_parser(subparsers: argparse._SubParsersAction) -> None:
         row.add_argument(
             "item",
             metavar="ITEM",
-            help="promotion:LABEL:RUN, monitor:ATTESTATION or integrity:ATTESTATION",
+            help="promotion:LABEL:RUN, monitor:|integrity:ATTESTATION or budget:ANNOTATION",
         )
         row.add_argument("--key", required=True, metavar="KEY", help="Ed25519 private key")
         row.add_argument("--human", help="The person deciding (keys of one person count once)")

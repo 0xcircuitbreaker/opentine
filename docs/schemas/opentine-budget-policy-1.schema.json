@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-budget-policy-1.schema.json",
+  "title": "opentine-budget-policy/1",
+  "description": "A signed budget policy file (tokens, GPU-hours, wall clock, egress bytes, money) for one subject. A file convention, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "subject",
+    "serial",
+    "limits",
+    "on_limit",
+    "issued_at",
+    "signature"
+  ],
+  "properties": {
+    "schema": {
+      "const": "opentine-budget-policy/1"
+    },
+    "subject": {
+      "type": "string",
+      "pattern": "^(loop|agent):[a-z0-9][a-z0-9._-]{0,63}$"
+    },
+    "serial": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tokens": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "gpu_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "wall_clock_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "egress_bytes": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "money_usd": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "on_limit": {
+      "enum": [
+        "deny",
+        "escalate"
+      ]
+    },
+    "issued_at": {
+      "type": "string",
+      "description": "RFC 3339 UTC timestamp"
+    },
+    "signature": {
+      "$ref": "tine-sig-3.schema.json"
+    }
+  }
+}

@@ -52,6 +52,10 @@ SABOTAGE_TASK = "sabotage-task:"
 #: 0.69: rows that keep a signed history-merge record (opentine._history_merge_repo):
 #: released never, so a loop cannot delete the record of what a merge kept or weakened.
 HISTORY_MERGE = "history-merge:"
+#: 0.69: rows that keep budget-ledger entries and the flags routed to oversight
+#: (opentine._budget_ledger): released never, so a loop cannot delete its own spend.
+BUDGET_LEDGER = "budget-ledger:"
+BUDGET_FLAG = "budget-flag:"
 MAX_HOLDS_BYTES = 4 * 1024 * 1024
 
 
@@ -163,6 +167,8 @@ def release(repo, target: str) -> list[dict[str, str]]:
             raise HoldError(f"{target} keeps a sabotage task record: it is never released")
         if any(r["target"].startswith(HISTORY_MERGE) for r in gone):
             raise HoldError(f"{target} keeps a history-merge record: it is never released")
+        if any(r["target"].startswith((BUDGET_LEDGER, BUDGET_FLAG)) for r in gone):
+            raise HoldError(f"{target} keeps a budget-ledger entry: it is never released")
         return [r for r in rows if r not in gone]
 
     edit_holds(holds_path(repo), change)

@@ -29,7 +29,7 @@ STATES = ("pending", "approved", "rejected", "unrouted")
 def _sources(repo: Any) -> list[dict[str, Any]]:
     """Items the repository holds for review: flagged monitor verdicts and taints."""
     from opentine import _monitor_verdict
-    from opentine.repository._holds import TAINT, holds_path, read_holds
+    from opentine.repository._holds import BUDGET_FLAG, TAINT, holds_path, read_holds
 
     found = []
     for oid in _monitor_verdict.held(repo):
@@ -42,6 +42,8 @@ def _sources(repo: Any) -> list[dict[str, Any]]:
     for row in read_holds(holds_path(repo)):
         if row["target"].startswith(TAINT):
             found.append({"item": f"integrity:{row['oid']}", "source": "integrity"})
+        elif row["target"].startswith(BUDGET_FLAG):  # 0.69: a budget violation or limit
+            found.append({"item": f"budget:{row['oid']}", "source": "budget"})
     return found
 
 
