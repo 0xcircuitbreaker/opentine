@@ -124,12 +124,15 @@ def raises(old: dict[str, Any] | None, new: dict[str, Any]) -> list[str]:
     return out
 
 
-def judge(doc: Any, current: dict[str, Any] | None, roles: dict[str, Any]) -> str | None:
+def judge(doc: Any, current: dict[str, Any] | None, roles: dict[str, Any],
+          owner_serial: int = 0) -> str | None:  # fmt: skip
     """``None`` when *doc* may take effect over *current*; else the violation code.
 
     *roles* is :func:`opentine._key_roles_pin.resolve`'s answer. A first policy
     needs no role (it only caps what was uncapped) unless it is signed by an
-    optimizer key.
+    optimizer key. A pinned ``policy`` key's serial is checked against
+    *owner_serial* (the highest serial a pinned policy key put in force), so a
+    policy from any other key, however high its serial, cannot lock it out.
     """
     who = signer(doc)
     if who is None:
@@ -138,11 +141,12 @@ def judge(doc: Any, current: dict[str, Any] | None, roles: dict[str, Any]) -> st
     if who in held.get("optimizer", []):
         return "budget.policy-optimizer-key"
     clean = body(doc)
-    if current is not None and clean["serial"] <= current["serial"]:
+    pinned = held.get("policy", []) if roles.get("status") == "pinned" else []
+    floor = owner_serial if who in pinned else (current or {}).get("serial", 0)
+    if clean["serial"] <= floor:
         return "budget.policy-rollback"
     if current is None or not raises(current["limits"], clean["limits"]):
         return None
-    pinned = held.get("policy", []) if roles.get("status") == "pinned" else []
     return None if who in pinned else "budget.limit-raise"
 
 

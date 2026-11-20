@@ -50,6 +50,10 @@ def _roles(repo: Any) -> dict[str, Any]:
         return {"roles": None, "status": "unpinned", "source": None, "why": str(exc)}
 
 
+def _pinned_policy(roles: dict[str, Any]) -> list[str]:
+    return (roles.get("roles") or {}).get("policy", []) if roles.get("status") == "pinned" else []
+
+
 def _signer_findings(row: dict[str, Any], roles: dict[str, Any]) -> list[dict[str, Any]]:
     if not row["signed"]:
         return [_finding("fail", "budget.ledger-unsigned", row["id"],
@@ -75,6 +79,7 @@ def status(repo: Any, subject: str, *, now_ms: int) -> dict[str, Any]:
     sums: dict[str, list[float]] = {unit: [] for unit in UNITS}
     runs: list[str] = []
     flagged = set()
+    owner_serial = 0
     for oid in _budget_ledger.forks(rows):
         why = "an entry does not continue the ledger's single chain"
         findings.append(_finding("fail", "budget.ledger-fork", oid, why))
@@ -93,7 +98,7 @@ def status(repo: Any, subject: str, *, now_ms: int) -> dict[str, Any]:
         elif value.get("entry") == "policy":
             doc = value.get("policy")
             try:
-                code = _budget_policy.judge(doc, policy, roles)
+                code = _budget_policy.judge(doc, policy, roles, owner_serial)
             except _budget_policy.BudgetError:
                 code = "budget.policy-unsigned"
             if code is None and doc.get("subject") != subject:
@@ -106,6 +111,8 @@ def status(repo: Any, subject: str, *, now_ms: int) -> dict[str, Any]:
             policy = {**_budget_policy.body(doc), "sha256": _budget_policy.digest(doc),
                       "signer": _budget_policy.signer(doc), "entry": row["id"]}  # fmt: skip
             started = int(value.get("at_ms") or 0) if started is None else started
+            if policy["signer"] in _pinned_policy(roles):
+                owner_serial = max(owner_serial, policy["serial"])
         elif value.get("entry") == "flag" and isinstance(value.get("about"), str):
             flagged.add((value.get("code"), value["about"]))
     totals: dict[str, Any] = {u: math.fsum(v) for u, v in sums.items()}

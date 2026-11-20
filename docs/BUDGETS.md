@@ -32,6 +32,9 @@ all of these hold:
   (`used_key_fingerprint`), not a name in the document;
 - the signer is not an `optimizer` key;
 - its `serial` is higher than the serial of the policy in force (no rollback);
+  a pinned `policy` key is compared only with the highest serial a pinned
+  `policy` key put in force, so another key cannot lock the owner out with a
+  very large serial;
 - if it raises or removes any limit, the signer holds the `policy` role in
   the owner-pinned trust bundle (`tine trust bundle create --key-roles`; see
   docs/KEYS.md). A policy that only lowers limits needs no role. The first
@@ -132,7 +135,8 @@ output depends on the agent:
 - anything else: `{"protocol": "opentine-budget/1", "decision", "reason",
   "over"}`.
 
-An error while deciding refuses (fail closed). The proxy answers a refused
+An error while deciding refuses (fail closed), and so does a subject with no
+policy in force (never applied, or its entries removed from the holds). The proxy answers a refused
 `tools/call` with JSON-RPC error `-32002` and
 `data["opentine.budget"] = {"decision", "over"}`. When the proxy also runs a
 monitor, the budget check runs first.

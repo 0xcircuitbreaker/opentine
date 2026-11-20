@@ -7,7 +7,9 @@ a limit is reached it refuses the call: Claude Code / Codex get
 "deny"}``, anything else ``{"protocol": "opentine-budget/1", "decision":
 "allow"|"deny"|"escalate", "reason"}``. ``escalate`` also refuses the call and
 records a flag the oversight queue lists; the subject goes on only under a new
-signed policy. An error while deciding refuses (fail closed); exit status 0.
+signed policy. An error while deciding, or no policy in force for the subject
+(never applied, or its ledger entries removed), refuses (fail closed); exit
+status 0.
 
 Spend reaches the ledger after each step (``tine budget record``), so the step
 that crosses a limit completes and the next action is refused: denied within
@@ -42,6 +44,9 @@ def decide(repo: Any, subject: str, key: Any, now_ms: int) -> dict[str, Any]:
         return {"decision": "deny", "reason": f"budget check failed: {type(exc).__name__}",
                 "over": [], "flags": []}  # fmt: skip
     over = body["over"]
+    if body["policy"] is None:  # a gated subject whose policy is gone or never applied
+        return {"decision": "deny", "reason": f"no budget policy in force for {subject}",
+                "over": over, "flags": body["flags"]}  # fmt: skip
     reason = f"budget for {subject} reached: {', '.join(over)}" if over else "within budget"
     return {"decision": body["decision"], "reason": reason, "over": over, "flags": body["flags"]}
 
