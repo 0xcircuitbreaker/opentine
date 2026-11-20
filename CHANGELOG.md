@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased — Redaction fixes from dataset review
+
+- The publication `path` rule no longer rewrites a tilde that is content: only
+  `~/` and `~<u>/` where a path starts (line start, space, quote, `=`, `:`, an
+  opening bracket) become `<HOME>`. A lone `~`, `foo#!~bar` in test source,
+  `HEAD~3`, `~mask` and `/~user/` in a regex are left alone; `/root`,
+  `/home/<u>`, `/Users/<u>` and `C:\Users\<u>` are unchanged.
+- New publication kind `telemetry`: harness/operator records an agent CLI wrote
+  into captured step output are removed from redacted public copies, with
+  per-harness patterns (`opentine/_redact_telemetry.py`). For Claude Code
+  stream-json, `rate_limit_event` records are dropped, `system`/`init` keeps
+  only model, tools, permission mode and `cwd` as `<CWD>`, and `session_id`,
+  `request_id`, message `uuid`s and `persistedOutputPath` are removed. Counted
+  under `telemetry` in the `redaction` report; the copy stays valid JSON and
+  verifies. The ruleset name is unchanged. See docs/PII.md.
+
 ## 0.70.0 — Redaction of paths and emails (2026-11-20)
 
 - Redacted public copies (`tine bundle create --redacted-public`, `tine publish

@@ -8,8 +8,10 @@ login, people's email addresses. This ruleset, recorded as
 redacted public copy (:mod:`opentine._redacted_derive`):
 
 * ``path``: ``/root``, ``/home/<u>``, ``/Users/<u>``, ``X:\\Users\\<u>`` (also
-  ``/`` and JSON-escaped separators), ``~`` and ``~<u>`` become ``<HOME>``; the
-  rest of the path is kept.
+  ``/`` and JSON-escaped separators), ``~/`` and ``~<u>/`` where a path starts
+  become ``<HOME>``; the rest of the path is kept. A lone ``~`` is content.
+* ``telemetry``: harness/operator records an agent CLI wrote into captured
+  output (:mod:`opentine._redact_telemetry`).
 * ``email``: an address whose domain ends in a known generic or two-letter
   country TLD becomes ``<EMAIL>``, so ``pnpm@10.33.0``, ``icon@2x.png``,
   ``@click.option`` and ``x@w.shape`` are left alone. An scp-style
@@ -28,6 +30,7 @@ import re
 from collections import Counter
 from typing import Any
 
+from opentine import _redact_telemetry
 from opentine._redact_publish_patterns import EMAIL, PATH, URL_USER, login_at
 
 PUBLISH_RULESET = "opentine-redaction/2+publish/1"
@@ -98,6 +101,10 @@ def scrub_text(text: str, *, login: str | None) -> tuple[str, Counter[str]]:
         counts["user"] += 1
         return USER + "@"
 
+    if '"' in text:  # harness telemetry first: it removes paths and ids wholesale
+        text, removed = _redact_telemetry.scrub(text)
+        if removed:
+            counts["telemetry"] += removed
     if "/" in text or "\\" in text or "~" in text or "%" in text:
         text = PATH.sub(path, text)
     if "@" in text or "\uff20" in text or "%40" in text or "\\u0040" in text:
@@ -114,7 +121,10 @@ def scrub_bytes(body: bytes, *, login: str | None) -> tuple[bytes, Counter[str]]
         text = body.decode("utf-8")
     except UnicodeDecodeError:
         return body, Counter()
+    text, removed = _redact_telemetry.scrub_nested(text)  # a JSON blob holding a capture
     clean, counts = scrub_text(text, login=login)
+    if removed:
+        counts["telemetry"] += removed
     if login is not None and '"' in clean:
         clean = _json_actors(clean, login, counts)
     return (clean.encode("utf-8"), counts) if counts else (body, counts)

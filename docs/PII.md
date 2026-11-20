@@ -24,10 +24,11 @@ carries:
 
 | Kind | What | Becomes |
 |---|---|---|
-| `path` | `/root`, `/home/<u>`, `/var/home/<u>`, `/Users/<u>`, `/mnt/<d>/Users/<u>`, `X:\Users\<u>`, UNC `\\host\Users\<u>` / `\\host\home$\<u>` (any separator, JSON-escaped at any depth or URL-encoded), `~`, `~<u>` | `<HOME>`, rest of the path kept |
+| `path` | `/root`, `/home/<u>`, `/var/home/<u>`, `/Users/<u>`, `/mnt/<d>/Users/<u>`, `X:\Users\<u>`, UNC `\\host\Users\<u>` / `\\host\home$\<u>` (any separator, JSON-escaped at any depth or URL-encoded), `~/` and `~<u>/` where a path starts (line start, space, quote, `=`, `:`, opening bracket); never a lone `~` or one inside an identifier, regex or string (`foo#!~bar`, `HEAD~3`, `~mask`) | `<HOME>`, rest of the path kept |
 | `email` | `local@domain.tld` (also `%40`, `\u0040`, fullwidth `＠`) where the TLD is a known generic TLD or a two-letter country code that is not a common file extension | `<EMAIL>` |
 | `user` | the user of `user@host:path`, of any URL's `scheme://user[:pw]@host` and `<login>@host` (a shell prompt), unless a service account (`git`, `hg`, `ubuntu`, `ec2-user`, ...) | `<USER>@host` |
 | `user` | an `actor`, `actors` or `writers` value equal to this machine's login, when that login names a person (not `root`, `local`, `nobody`, ...) | `<USER>` |
+| `telemetry` | harness/operator records an agent CLI wrote into a captured step output, defined per harness in `HARNESSES` (`opentine/_redact_telemetry.py`). Claude Code stream-json: `rate_limit_event` records are dropped; `system`/`init` keeps only `model`, `tools`, `permissionMode` and `cwd` (as `<CWD>`), so skills, plugins, slash commands, capability flags, socket paths, `served_by`, `inference_geo` and `memory_paths` go; `session_id`, `request_id` (`req_...`), message `uuid`s and `persistedOutputPath` are removed at any depth. Works on JSON lines, one JSON document, or a JSON blob whose strings hold the capture; a record counts only when its `type` is the harness's and it carries a `session_id`, so other JSON is untouched, and untouched lines keep their bytes | removed; each record or key counts once |
 
 Left alone on purpose: `pnpm@10.33.0`, `ms@4.0.0`, `@click.option`,
 `@types/node`, `lodash@npm:4.17.21`, `icon@2x.png`, `x@w.shape`,

@@ -27,7 +27,10 @@ _UNC = (
     r"(?<![\w\\])\\{2,}[^\\/\s\"'`]+\\+(?:[^\\/\s\"'`$]+\$\\+)?"
     r"(?i:users|(?:home|homes|profiles)\$?)\\+" + _USER + _END
 )
-_TILDE = r"(?<![\w~/\\.-])~(?:[a-z_][a-z0-9_-]{0,31})?(?=[/\\]|$|[\"'`])"
+#: ``~/`` or ``~user/`` only, and only where a path can start (line start, space,
+#: quote, ``=``, ``:``, an opening bracket): a lone ``~`` and one inside an
+#: identifier, regex or string (``foo#!~bar``) is content, not a home.
+_TILDE = r"(?<![^\s\"'`=:(\[{,;])~(?:[a-z_][a-z0-9_-]{0,31})?(?=/|\\)"
 PATH = re.compile("|".join((_UNIX, _DRIVE, _UNC, _TILDE)))
 
 AT = r"(?:@|＠|\\u0040|%40)"
