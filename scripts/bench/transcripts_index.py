@@ -61,7 +61,7 @@ def embed_and_write(rows: list[dict], workers: int, out: Path) -> dict:
 
 def search(rows: list[dict], path: Path, queries: int) -> dict:
     start = time.perf_counter()
-    index, _ = ti.load(path)
+    index, _, _ = ti.load(path)
     load_s = time.perf_counter() - start
     labels = {r["name"]: r["behaviour"] for r in rows}
     seeded = [n for n, lab in sorted(labels.items()) if lab]

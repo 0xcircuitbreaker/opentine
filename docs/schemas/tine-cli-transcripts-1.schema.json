@@ -19,7 +19,8 @@
         "backend",
         "backend_digest",
         "caps",
-        "counts"
+        "counts",
+        "disagreeing"
       ],
       "properties": {
         "schema": {
@@ -102,6 +103,19 @@
                   "type": "integer",
                   "minimum": 0
                 }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "disagreeing": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
               }
             },
             {

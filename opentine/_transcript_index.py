@@ -18,6 +18,7 @@ from __future__ import annotations
 import hashlib
 import itertools
 import json
+import math
 import os
 import sqlite3
 from contextlib import closing
@@ -112,13 +113,18 @@ def _reusable(path: Path, wanted: dict[str, str]) -> dict[str, tuple]:
 
 
 def build(repo: Any, backend: Any = None, caps: Caps = Caps(), *,
-          workers: int | None = None) -> dict[str, Any]:  # fmt: skip
-    """Write the index; ``{"path", "runs", "embedded", "reused", "truncated"}``."""
+          workers: int | None = None, reuse: bool = True) -> dict[str, Any]:  # fmt: skip
+    """Write the index; ``{"path", "runs", "embedded", "reused", "truncated"}``.
+
+    With ``reuse`` (an incremental refresh) rows of an index built with the same
+    configuration are kept; the index file is writable, so ``reuse=False`` (a
+    rebuild) embeds every run from the objects again.
+    """
     backend = backend or te.HashBackend()
     path = index_path(Path(repo.path))
     oids = run_oids(repo)
     meta = {**config(backend, caps), "runs": runs_digest(oids)}
-    old = _reusable(path, meta)
+    old = _reusable(path, meta) if reuse else {}
     fresh = [o for o in oids if o not in old]
     kept = [old[o] for o in oids if o in old]
     chunks = itertools.chain([kept], _embed_all(repo, fresh, backend, caps, workers))
@@ -145,7 +151,7 @@ def write(path: Path, chunks: Any, meta: dict[str, str]) -> int:
 
 
 def read_meta(path: Path) -> dict[str, str]:
-    with closing(sqlite3.connect(f"{Path(path).resolve().as_uri()}?mode=ro", uri=True)) as db:
+    with closing(_ro(path)) as db:
         return dict(db.execute("SELECT key, value FROM meta"))
 
 
@@ -161,23 +167,72 @@ def staleness(repo: Any, backend: Any = None, caps: Caps = Caps()) -> dict[str, 
         ("backend_digest", "the embedding backend differs (backend digest)"),
         ("caps", "the size caps differ"), ("ann", "the search parameters differ"))
         if meta.get(key) != now[key]]  # fmt: skip
-    if meta.get("runs") != runs_digest(run_oids(repo)):
+    oids = run_oids(repo)
+    if meta.get("runs") != runs_digest(oids):
         reasons.append("runs were added or removed since the build")
+    elif indexed_runs(path) != oids:
+        reasons.append("the indexed runs differ from the repository's runs")
     return {"exists": True, "stale": bool(reasons), "reasons": reasons}
 
 
-def load(path: Path) -> tuple[ann.Index, dict[str, dict[str, Any]]]:
-    """The search index and ``{run: {"steps", "bytes", "truncated", "text_sha256"}}``."""
-    rows, info = [], {}
-    with closing(sqlite3.connect(f"{Path(path).resolve().as_uri()}?mode=ro", uri=True)) as db:
-        for run, steps, size, cut, sha, vector, keys in db.execute(
+def _ro(path: Path) -> sqlite3.Connection:
+    return sqlite3.connect(f"{Path(path).resolve().as_uri()}?mode=ro", uri=True)
+
+
+def indexed_runs(path: Path) -> list[str]:
+    with closing(_ro(path)) as db:
+        return [r for (r,) in db.execute("SELECT run FROM transcripts ORDER BY run")]
+
+
+def valid(vector: tuple[float, ...], dim: int) -> bool:
+    """A unit vector of *dim* finite numbers (half-float rounding allowed)."""
+    if len(vector) != dim or not all(math.isfinite(v) for v in vector):
+        return False
+    return abs(math.fsum(v * v for v in vector) - 1.0) <= 0.01
+
+
+def load(path: Path, runs: Any = None, dim: int | None = None) -> tuple[ann.Index, dict, int]:
+    """The search index, ``{run: {"steps", "bytes", "truncated", "text_sha256"}}`` and how
+    many rows were left out: rows for runs not in *runs*, and vectors that are not unit
+    vectors of *dim* finite numbers (the file is writable, so its rows are checked).
+    """
+    rows, info, rejected = [], {}, 0
+    allowed = set(runs) if runs is not None else None
+    with closing(_ro(path)) as db:
+        for run, steps, size, cut, sha, vector, _keys in db.execute(
             "SELECT * FROM transcripts ORDER BY run"
         ):
-            rows.append((run, ann.unpack(vector), [int(k) for k in keys.split()]))
+            values = ann.unpack(vector) if isinstance(vector, bytes) else ()
+            if (allowed is not None and run not in allowed) or not valid(
+                values, dim or len(values)
+            ):
+                rejected += 1
+                continue
+            rows.append((run, values, None))
             info[run] = {"steps": steps, "bytes": size, "truncated": bool(cut),
                          "text_sha256": sha}  # fmt: skip
-    return ann.Index(rows), info
+    return ann.Index(rows), info, rejected
+
+
+def verify_rows(repo: Any, path: Path, backend: Any = None, caps: Caps = Caps()) -> list[str]:
+    """Runs whose row disagrees with the objects: another transcript sha256, or a vector
+    more than rounding away from embedding the transcript again."""
+    backend = backend or te.HashBackend()
+    read, bad, runs = reader(repo), [], set(run_oids(repo))
+    with closing(_ro(path)) as db:
+        rows = list(db.execute("SELECT run, text_sha256, vector FROM transcripts ORDER BY run"))
+    for run, sha, vector in rows:
+        doc = transcript(repo, run, caps, read) if run in runs else None
+        if doc is None or hashlib.sha256(doc.text.encode("utf-8")).hexdigest() != sha:
+            bad.append(run)
+            continue
+        again = backend.embed([doc.text])[0]
+        stored = ann.unpack(vector) if isinstance(vector, bytes) else ()
+        if len(stored) != len(again) or not ann.dot(again, stored) >= 0.999:
+            bad.append(run)
+    return bad
 
 
 __all__ = ["AUTHORITY", "FORMAT", "build", "config", "embed_rows", "index_path", "load",
-           "read_meta", "run_oids", "runs_digest", "staleness", "text_rows", "write"]  # fmt: skip
+           "indexed_runs", "read_meta", "run_oids", "runs_digest", "staleness", "text_rows",
+           "valid", "verify_rows", "write"]  # fmt: skip

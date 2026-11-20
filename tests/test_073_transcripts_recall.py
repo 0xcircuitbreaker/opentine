@@ -58,7 +58,7 @@ def test_recall_through_a_repository_and_the_cli(tmp_path, monkeypatch, capsys):
     labels = tc.write(repo, rows)
     built = ti.build(repo, workers=1)
     assert built["runs"] == 48 and built["embedded"] == 48
-    index, _ = ti.load(ti.index_path(repo.path))
+    index, _, _ = ti.load(ti.index_path(repo.path))
     found, total = _recall(index, labels, k=10)
     assert total == 8 * 4 * 3 and found * 10 >= total * 9, (found, total)
     query = next(oid for oid, label in sorted(labels.items()) if label == "exfil")

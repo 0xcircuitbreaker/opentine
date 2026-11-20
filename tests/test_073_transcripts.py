@@ -39,6 +39,10 @@ HACK = [("tool", "shell", "sed -i 's/assert result/assert True/' tests/test_core
 
 @pytest.fixture
 def room(tmp_path, monkeypatch):
+    return make_room(tmp_path, monkeypatch)
+
+
+def make_room(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     repo = Repo.init(tmp_path / "r")
     runs = {
@@ -91,7 +95,7 @@ def test_a_new_run_makes_the_index_stale_and_a_rebuild_reuses_vectors(capsys, ro
     code, body = tine(capsys, "transcripts", "search", "later", "--repo", "r")
     assert code == 0 and body["stale"] is True
     assert body["stale_reasons"] == ["runs were added or removed since the build"]
-    code, body = tine(capsys, "transcripts", "index", "--rebuild", "--repo", "r")
+    code, body = tine(capsys, "transcripts", "index", "--refresh", "--repo", "r")
     assert body["counts"] == {"runs": 5, "embedded": 1, "reused": 4, "truncated": 0}
     code, body = tine(capsys, "transcripts", "search", "later", "--repo", "r")
     assert body["stale"] is False and body["indexed"] == 5
@@ -156,11 +160,14 @@ def test_a_model_backend_records_its_weights_digest_and_a_wrong_pin_is_refused()
         te.load("https://example.invalid/model")
 
 
-def test_a_model_backend_index_is_reloaded_from_its_recorded_adapter(capsys, room):
+def test_a_model_backend_index_is_searched_only_with_the_backend_given_again(capsys, room):
     spec = f"{__name__}:_TableModel"
     code, body = tine(capsys, "transcripts", "index", "--rebuild", "--backend", spec,
                       "--repo", "r")  # fmt: skip
     assert code == 0 and body["backend"]["adapter"] == spec
-    code, found = tine(capsys, "transcripts", "search", "tests", "--repo", "r")
+    code, _ = tine(capsys, "transcripts", "search", "tests", "--repo", "r")
+    assert code != 0  # an adapter named in the (writable) index is never imported
+    code, found = tine(capsys, "transcripts", "search", "tests", "--backend", spec,
+                       "--repo", "r")  # fmt: skip
     assert code == 0 and found["backend_digest"] == body["backend_digest"]
     assert ti.read_meta(Path(body["index"]))["backend_digest"] == body["backend_digest"]

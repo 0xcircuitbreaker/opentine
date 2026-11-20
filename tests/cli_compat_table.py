@@ -6669,6 +6669,23 @@ ROWS: tuple[tuple, ...] = (
         },
     ),
     (
+        "plain:transcripts index --refresh --verify --repo r",
+        "plain",
+        ["transcripts", "index", "--refresh", "--verify", "--repo", "r"],
+        "opentine._cli_transcripts:cmd_transcripts",
+        False,
+        {
+            "command": "transcripts",
+            "verb": "index",
+            "target": None,
+            "rebuild": False,
+            "refresh": True,
+            "verify": True,
+            "repo": "r",
+            "json": False,
+        },
+    ),
+    (
         "plain:transcripts index --rebuild --step-bytes 512 --max-bytes 4096 --repo r",
         "plain",
         [

@@ -22,9 +22,14 @@ from opentine import _transcript_embed as te
 from opentine import _transcript_index as ti
 from opentine import _transcript_text as tt
 from tests.query_helpers import tine
-from tests.test_073_transcripts import HACK, _run, room  # noqa: F401
+from tests.test_073_transcripts import HACK, _run, make_room
 
 pytestmark = pytest.mark.filterwarnings("ignore::Warning")
+
+
+@pytest.fixture
+def room(tmp_path, monkeypatch):
+    return make_room(tmp_path, monkeypatch)
 
 
 def _index(capsys) -> Path:
@@ -123,9 +128,12 @@ def test_lookalikes_zero_width_and_base64_do_not_break_similarity():
 
 
 def test_padding_before_the_behaviour_does_not_push_it_past_the_cap(room):
-    pad = [("model", None, "thinking about the overall structure of the codebase " * 30)] * 40
-    run = _run(room["repo"], "padded", [*pad, *HACK])
-    doc = tt.transcript(room["repo"], run)
+    words = "thinking about the overall structure of the codebase " * 30
+    same = [("model", None, words)] * 40
+    doc = tt.transcript(room["repo"], _run(room["repo"], "same", [*same, *HACK]))
+    assert not doc.truncated and doc.steps == 3 and "assert True" in doc.text
+    distinct = [("model", None, f"{words} {i}") for i in range(40)]
+    doc = tt.transcript(room["repo"], _run(room["repo"], "distinct", [*distinct, *HACK]))
     assert doc.truncated and "assert True" in doc.text
 
 
@@ -154,3 +162,7 @@ def test_rows_that_disagree_with_the_objects_are_found(capsys, room):
     _sql(path, ("UPDATE transcripts SET text_sha256 = ? WHERE run = ?",
                 ("0" * 64, room["runs"]["hack1"])))  # fmt: skip
     assert ti.verify_rows(room["repo"], path) == [room["runs"]["hack1"]]
+    code, body = tine(capsys, "transcripts", "index", "--verify", "--repo", "r")
+    assert code == 0 and body["disagreeing"] == [room["runs"]["hack1"]] and body["stale"]
+    code, body = tine(capsys, "transcripts", "index", "--rebuild", "--verify", "--repo", "r")
+    assert code == 0 and body["disagreeing"] == [] and body["stale"] is False

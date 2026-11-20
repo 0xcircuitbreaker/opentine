@@ -6,8 +6,9 @@ text search over every run's steps, tool calls and outputs. It reads a
 derived embedding index, which the commands build when it is missing.
 
 ```
-tine transcripts index [--rebuild] [--backend SPEC] [--weights-digest D]
-                       [--step-bytes N] [--max-bytes N] [--workers N]
+tine transcripts index [--rebuild | --refresh] [--verify] [--backend SPEC]
+                       [--weights-digest D] [--step-bytes N] [--max-bytes N]
+                       [--workers N]
 tine transcripts search TEXT [-k N] [--approx] [--refresh]
 tine transcripts similar RUN [-k N] [--approx] [--refresh]
 ```
@@ -20,10 +21,32 @@ RUN is a ref (`heads/x`) or a run oid; it is left out of its own results.
 `.tine/transcripts/index.sqlite` holds one row per `run` object: its oid,
 the number of steps read, the transcript size, whether a cap cut it, the
 sha256 of the transcript text, the vector and its LSH bucket keys. Deleting
-the file loses nothing; `tine transcripts index --rebuild` writes it again.
-A build is staged next to the index and moved into place. A rebuild keeps
-the vectors of runs already in an index built with the same backend, caps
-and search parameters, so it embeds only new runs.
+the file loses nothing; `tine transcripts index --rebuild` embeds every run
+from its objects again. A build is staged next to the index and moved into
+place. `index --refresh` (and `search`/`similar --refresh`, and the build a
+search makes when there is no index) keeps the vectors of runs already in an
+index built with the same backend, caps and search parameters, so it embeds
+only new runs.
+
+### Nothing in the file is trusted
+
+Anything that can write the store can write this file, including a loop
+whose runs are being triaged. So:
+
+- the backend and caps are the defaults unless given on the command line; a
+  backend or caps recorded in the index are only compared, never used, and
+  an adapter named in the index is never imported (a model-backend index is
+  searched with `--backend MODULE:ATTR` given again);
+- rows for runs that are not in the repository, and vectors that are not
+  unit vectors of finite numbers of the backend's dimension, are left out of
+  every search and make the index stale; LSH bucket keys are recomputed from
+  the vectors, not read;
+- a run without a row makes the index stale even when the recorded `runs`
+  digest was kept;
+- `similar RUN` embeds RUN from its objects, never from its row;
+- `index --verify` re-reads and re-embeds every row and lists, under
+  `disagreeing`, the runs whose transcript sha256 or vector disagree with
+  the objects; `--rebuild` replaces them.
 
 The index is not evidence. A hit says two transcripts are textually close;
 the runs themselves, their signatures and `tine verify` remain the record. No
@@ -42,9 +65,12 @@ lists each difference:
 - `the size caps differ`
 - `the search parameters differ`
 - `runs were added or removed since the build`
+- `the indexed runs differ from the repository's runs`
+- `N rows left out (unknown run or invalid vector)` (search and similar)
+- `N rows disagree with the objects` (`index --verify`)
 
 `search` and `similar` still answer from a stale index, marked `stale` with
-the reasons; `--refresh` rebuilds first. An index built with another backend
+the reasons; `--refresh` brings the index up to date first. An index built with another backend
 is refused rather than compared against a query vector from a different
 backend.
 
@@ -58,9 +84,13 @@ huge run from dominating the build or the vector:
 | Cap | Default | Effect |
 | --- | --- | --- |
 | `--step-bytes` | 2048 | first bytes of each input and each output |
-| `--max-bytes` | 32768 | the whole transcript; later steps are dropped |
+| `--max-bytes` | 32768 | the whole transcript: half to the first steps, half to the last |
 
-A cut transcript is counted under `truncated`. The caps are part of the
+Steps repeated verbatim (same kind, tool, input and output) are kept once, so
+repeated padding costs nothing; over `--max-bytes` the middle steps are
+dropped, so padding at the start cannot push the last steps out (or the
+reverse). Any object over 16 MiB is never read into memory: its step is
+indexed without that text and counted as truncated. A cut transcript is counted under `truncated`. The caps are part of the
 recorded configuration, so changing them makes the index stale.
 
 ## Embedding backends
@@ -74,7 +104,12 @@ same vector on every machine and in every process:
 - each step is embedded on its own and contributes a unit vector, so a long
   step does not drown a short one (the step number is dropped from the
   header);
-- features of the case-folded text: word tokens (`\w+`, at most 20,000), word
+- the text is normalised first (`opentine/_transcript_norm.py`): NFKC,
+  format characters such as zero-width spaces dropped, case folded,
+  Cyrillic and Greek letters that look like Latin ones mapped to Latin, and
+  the decoded text of base64 runs (16 characters or more that decode to
+  printable UTF-8) appended; the rules are in the backend description;
+- features of the normalised text: word tokens (`\w+`, at most 20,000), word
   bigrams, and character 4-grams of the first 4,096 characters at half
   weight; each distinct feature weighs `1 + ln(count)`;
 - each feature is hashed with CRC-32 under two fixed seeds; each hash picks one
@@ -90,9 +125,10 @@ The sha256 of that file is the `weights_digest`, recorded in the backend
 description and so in the backend digest. A model whose weights are not a
 readable local file is refused; a spec that looks like a URL is refused;
 nothing is downloaded. `--weights-digest sha256:HEX` refuses weights with any
-other digest. Later `search` and `similar` calls reload the adapter recorded
-in the index and refuse it when its weights no longer match the recorded
-digest. The optional `embed` extra (numpy) speeds the search scan; it is not
+other digest. `search` and `similar` use the model only when `--backend`
+names it again, and refuse an index whose recorded backend digest differs
+(for example because the weights changed). A model that returns a vector
+of the wrong length or with a non-finite number is refused. The optional `embed` extra (numpy) speeds the search scan; it is not
 needed.
 
 ## Search
@@ -152,7 +188,13 @@ asserts a duration.
 ## Limits
 
 - `transcript-hash/1` matches wording. A behaviour expressed in different
-  words is found only through a model backend.
+  words (a paraphrase, or a different command with the same effect) is found
+  only through a model backend. Lookalike letters, zero-width characters,
+  full-width forms and base64 are normalised; other encodings (hex, rot13,
+  compression) are not.
+- Padding with many distinct steps still dilutes the vector and, over
+  `--max-bytes`, can push a behaviour in the middle of a run out of the
+  transcript; truncated runs are counted so a reviewer can look at them.
 - The index covers runs; memory notes, prompts and packs are not indexed.
 - Hits are not routed to the oversight queue or labelled with signed
   annotations by this release; a reviewer records a finding with the

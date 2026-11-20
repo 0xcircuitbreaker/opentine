@@ -24,6 +24,16 @@
 - `tine dataset contamination --embedding-threshold T` adds embedding
   near-duplicates (cosine >= T, backend digest and threshold recorded) to the
   0.60 contamination check. Opt-in; existing output is unchanged without it.
+- The index file is never trusted: an adapter named in it is never imported,
+  caps come from the command line, rows for unknown runs and non-finite or
+  non-unit vectors are left out and mark it stale, a missing row marks it
+  stale, `similar RUN` embeds RUN from its objects, `index --rebuild` embeds
+  every run again (`--refresh` reuses rows) and `index --verify` lists rows
+  that disagree with the objects.
+- `transcript-hash/1` normalises text before taking features (NFKC, format
+  characters dropped, Cyrillic and Greek lookalikes, decoded base64);
+  repeated steps are kept once, an over-cap transcript keeps its first and
+  last steps, and objects over 16 MiB are never read into memory.
 - A seeded synthetic transcript corpus (`tests/transcript_corpus.py`) with
   eight planted behaviours: recall at top 50 is at least 0.9 (0.94 measured).
 - `scripts/bench/transcripts_index.py` measures 100k transcripts; results and

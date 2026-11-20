@@ -5,15 +5,20 @@
 index (:mod:`opentine._transcript_index`). ``search TEXT`` and ``similar RUN``
 ("find all trajectories like this one") return the ``-k`` nearest runs by
 cosine similarity. Both build the index when it is missing; a stale index
-still answers, marked ``stale`` with the reasons (``--refresh`` rebuilds it
-first). The backend and caps come from the index unless given; a model
-backend is reloaded only when its weights still match the recorded digest.
+still answers, marked ``stale`` with the reasons (``--refresh`` brings it up
+to date first, reusing rows; ``index --rebuild`` embeds every run again).
+
+The index file is writable by anything that can write the store, so nothing
+in it is trusted: the backend and caps are the defaults unless given on the
+command line (an adapter named in the index is never imported), rows for runs
+not in the repository and vectors that are not finite unit vectors are left
+out and make the index stale, and ``similar RUN`` embeds the query run from
+its objects. ``index --verify`` lists rows that disagree with the objects.
 """
 
 from __future__ import annotations
 
 import argparse
-import json
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -35,7 +40,9 @@ def add_transcripts_parser(subparsers: argparse._SubParsersAction) -> None:
     parser.add_argument("-k", type=int, default=10, metavar="N", help="At most N hits")
     parser.add_argument("--approx", action="store_true", help="LSH candidates, then exact scores")
     parser.add_argument("--refresh", action="store_true", help="Rebuild a stale index first")
-    parser.add_argument("--rebuild", action="store_true", help="index: rebuild it now")
+    parser.add_argument("--rebuild", action="store_true", help="index: embed every run again")
+    parser.add_argument("--verify", action="store_true",
+                        help="index: list rows that disagree with the objects")  # fmt: skip
     parser.add_argument("--backend", metavar="SPEC", help="hash (default) or MODULE:ATTR")
     parser.add_argument("--weights-digest", metavar="sha256:HEX",
                         help="Refuse model weights with another digest")  # fmt: skip
@@ -48,19 +55,17 @@ def add_transcripts_parser(subparsers: argparse._SubParsersAction) -> None:
 def _setup(args: argparse.Namespace, repo: Any) -> tuple[Any, Any, dict[str, str]]:
     from opentine import _transcript_embed as te
     from opentine import _transcript_index as ti
-    from opentine._transcript_text import Caps
+    from opentine._transcript_text import MAX_BYTES, STEP_BYTES, Caps
 
     path = ti.index_path(Path(repo.path))
     meta = ti.read_meta(path) if path.is_file() else {}
-    recorded = json.loads(meta.get("backend", "{}"))
-    caps = json.loads(meta.get("caps", "{}"))
-    spec, pin = args.backend, args.weights_digest
-    if spec is None and recorded.get("adapter"):
-        spec, pin = recorded["adapter"], pin or recorded.get("weights_digest")
-    backend = te.load(spec, pin)
-    caps = Caps(args.step_bytes or caps.get("step_bytes", 2048),
-                args.max_bytes or caps.get("max_bytes", 32768))  # fmt: skip
+    backend = te.load(args.backend, args.weights_digest)
+    caps = Caps(args.step_bytes or STEP_BYTES, args.max_bytes or MAX_BYTES)
     return backend, caps, meta
+
+
+def _flag(state: dict[str, Any], why: str) -> dict[str, Any]:
+    return {**state, "stale": True, "reasons": [*state["reasons"], why]}
 
 
 def _index(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[str]]:
@@ -68,13 +73,21 @@ def _index(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[st
     from opentine import _transcript_index as ti
 
     backend, caps, _ = _setup(args, repo)
-    built = ti.build(repo, backend, caps, workers=args.workers) if args.rebuild else None
+    built = None
+    if args.rebuild or args.refresh:
+        built = ti.build(repo, backend, caps, workers=args.workers, reuse=not args.rebuild)
     state = ti.staleness(repo, backend, caps)
+    path = ti.index_path(Path(repo.path))
+    disagreeing = (
+        ti.verify_rows(repo, path, backend, caps) if args.verify and state["exists"] else None
+    )
+    if disagreeing:
+        state = _flag(state, f"{len(disagreeing)} rows disagree with the objects")
     body = {"index": ti.index_path(Path(repo.path)).as_posix(), "authority": ti.AUTHORITY,
             "rebuilt": built is not None, **state, "backend": backend.description(),
             "backend_digest": te.backend_digest(backend), "caps": caps.as_dict(),
             "counts": {k: built[k] for k in ("runs", "embedded", "reused", "truncated")}
-            if built else None}  # fmt: skip
+            if built else None, "disagreeing": disagreeing}  # fmt: skip
     lines = [f"{'rebuilt' if built else 'index'} {body['index']} ({ti.AUTHORITY})",
              f"  backend {body['backend']['name']} {body['backend_digest']}"]  # fmt: skip
     lines += [f"  {k}: {v}" for k, v in sorted((body["counts"] or {}).items())]
@@ -100,7 +113,10 @@ def _find(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[str
         state = ti.staleness(repo, backend, caps)
     if "the embedding backend differs (backend digest)" in state["reasons"]:
         raise ValueError("the index was built with another backend; rebuild it or pass --backend")
-    index, info = ti.load(ti.index_path(Path(repo.path)))
+    index, info, rejected = ti.load(ti.index_path(Path(repo.path)), ti.run_oids(repo),
+                                    backend.dim)  # fmt: skip
+    if rejected:
+        state = _flag(state, f"{rejected} rows left out (unknown run or invalid vector)")
     exclude = None
     if args.verb == "search":
         vector = backend.embed([args.target])[0]
@@ -115,10 +131,7 @@ def _find(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[str
         if not run.startswith("run:"):
             raise ValueError(f"{args.target} is not a run")
         exclude, query = run, {"run": run}
-        if run in index.runs:
-            vector = index.vectors[index.runs.index(run)]
-        else:
-            vector = backend.embed([transcript(repo, run, caps).text])[0]
+        vector = backend.embed([transcript(repo, run, caps).text])[0]
     found = index.search(vector, args.k, exclude=exclude, approx=args.approx)
     hits = [{**h, **info[h["run"]]} for h in found["hits"]]
     body = {"authority": ti.AUTHORITY, "stale": state["stale"], "stale_reasons": state["reasons"],

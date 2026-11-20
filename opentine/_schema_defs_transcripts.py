@@ -21,10 +21,10 @@ _HIT = closed(["run", "score", "steps", "bytes", "truncated", "text_sha256"], {
 _QUERY = {"anyOf": [closed(["text_sha256"], {"text_sha256": STR}), closed(["run"], {"run": STR})]}
 _SHAPES = [
     closed(["command", "schema", "authority", "index", "rebuilt", "exists", "stale", "reasons",
-            "backend", "backend_digest", "caps", "counts"], {
+            "backend", "backend_digest", "caps", "counts", "disagreeing"], {
         **_HEAD, "command": {"const": "transcripts index"}, "index": STR, "rebuilt": BOOL,
         "exists": BOOL, "stale": BOOL, "reasons": strs(), "backend": OBJ, "backend_digest": FPR,
-        "caps": _CAPS, "counts": opt(_COUNTS)}),
+        "caps": _CAPS, "counts": opt(_COUNTS), "disagreeing": opt(strs())}),
     closed(["command", "schema", "authority", "stale", "stale_reasons", "backend_digest",
             "query", "k", "method", "candidates", "indexed", "hits"], {
         **_HEAD, "command": {"enum": ["transcripts search", "transcripts similar"]},

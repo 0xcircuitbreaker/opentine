@@ -2125,7 +2125,7 @@ docs/MODEL_ORGANISMS.md.
 
 | Command | What it does |
 | --- | --- |
-| `tine transcripts index [--rebuild] [--backend SPEC] [--weights-digest D] [--step-bytes N] [--max-bytes N] [--workers N]` | Reports the derived transcript index (`.tine/transcripts/index.sqlite`) and whether it is stale, or rebuilds it; names the embedding backend by its digest |
+| `tine transcripts index [--rebuild \| --refresh] [--verify] [--backend SPEC] [--weights-digest D] [--step-bytes N] [--max-bytes N] [--workers N]` | Reports the derived transcript index (`.tine/transcripts/index.sqlite`) and whether it is stale, refreshes it, or embeds every run again; `--verify` lists rows that disagree with the objects; names the embedding backend by its digest |
 | `tine transcripts search TEXT [-k N] [--approx] [--refresh]` | The `-k` runs whose transcripts are nearest to TEXT (cosine similarity) |
 | `tine transcripts similar RUN [-k N] [--approx] [--refresh]` | Find all trajectories like this one: the `-k` runs nearest to RUN (a ref or run oid), RUN itself excluded |
 

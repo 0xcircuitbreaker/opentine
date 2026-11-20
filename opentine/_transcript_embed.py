@@ -6,7 +6,8 @@ with; a different digest makes it stale, so vectors from two backends are
 never compared.
 
 ``transcript-hash/1`` (the default) is standard library only and deterministic
-across machines and processes. Features of the case-folded text:
+across machines and processes. Features of the text normalised by
+:mod:`opentine._transcript_norm` (lookalikes, zero-width characters, base64):
 
 * word tokens (``\\w+``, at most ``MAX_TOKENS``) and word bigrams;
 * character 4-grams of the first ``CHAR_SPAN`` characters, at half weight.
@@ -34,6 +35,8 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
+from opentine._transcript_norm import RULES, normalise
+
 NAME = "transcript-hash/1"
 DIM = 512
 SEEDS = (0x6F70656E, 0x74696E65)
@@ -52,7 +55,7 @@ def digest_of(description: dict[str, Any]) -> str:
 
 
 def _features(text: str) -> Counter:
-    folded = text.casefold()
+    folded = normalise(text)
     words = _WORD.findall(folded)[:MAX_TOKENS]
     feats: Counter = Counter("w " + w for w in words)
     feats.update("b " + a + " " + b for a, b in zip(words, words[1:]))
@@ -76,7 +79,8 @@ class HashBackend:
         return {"name": NAME, "dim": DIM, "seeds": list(SEEDS), "hash": "crc32",
                 "features": {"tokens": MAX_TOKENS, "bigrams": True, "char_n": CHAR_N,
                              "char_span": CHAR_SPAN, "char_weight": CHAR_WEIGHT},
-                "weighting": "1+ln(count)", "segments": "per step, each unit length",
+                "normalise": RULES, "weighting": "1+ln(count)",
+                "segments": "per step, each unit length",
                 "norm": "l2"}  # fmt: skip
 
     def segment(self, text: str) -> list[float]:
@@ -127,6 +131,10 @@ class ModelBackend:
     def embed(self, texts: list[str]) -> list[list[float]]:
         out = []
         for vector in self.model.embed(texts):
+            if len(vector) != self.dim or not all(math.isfinite(float(v)) for v in vector):
+                raise ValueError(
+                    f"{self.spec} returned a vector that is not {self.dim} finite numbers"
+                )
             norm = math.sqrt(sum(float(v) * float(v) for v in vector))
             out.append([float(v) / norm for v in vector] if norm else [float(v) for v in vector])
         return out
