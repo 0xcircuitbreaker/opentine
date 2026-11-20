@@ -1,5 +1,34 @@
 # Changelog
 
+## Unreleased — Transcript analysis at corpus scale
+
+- `tine transcripts index|search|similar RUN [--json]`: a derived,
+  rebuildable, non-authoritative embedding index over run transcripts (steps,
+  tool calls, outputs) at `.tine/transcripts/index.sqlite`. `similar RUN`
+  finds the trajectories nearest to a run; `search TEXT` ranks runs against a
+  text. Schema `tine-cli-transcripts/1`. See docs/TRANSCRIPTS.md.
+- Default backend `transcript-hash/1`: standard library only and
+  deterministic (per-step hashed token, bigram and character 4-gram features,
+  seeded sparse random projection to 512 dimensions), identified by a backend
+  digest recorded in the index. `--backend MODULE:ATTR` uses a local model
+  whose weights file digest is recorded and can be pinned with
+  `--weights-digest`; nothing is downloaded.
+- Size caps per step input/output (`--step-bytes`, default 2048) and per
+  transcript (`--max-bytes`, default 32768), with truncated transcripts
+  counted. Staleness reports a changed backend, caps, search parameters or
+  run set; a rebuild re-embeds only new runs.
+- Search is exact up to 200,000 runs (numpy speeds it when the `embed` extra
+  is installed) and random-hyperplane LSH with exact re-scoring above that or
+  with `--approx`, falling back to the exact scan when the probes come up
+  short.
+- `tine dataset contamination --embedding-threshold T` adds embedding
+  near-duplicates (cosine >= T, backend digest and threshold recorded) to the
+  0.60 contamination check. Opt-in; existing output is unchanged without it.
+- A seeded synthetic transcript corpus (`tests/transcript_corpus.py`) with
+  eight planted behaviours: recall at top 50 is at least 0.9 (0.94 measured).
+- `scripts/bench/transcripts_index.py` measures 100k transcripts; results and
+  hardware in docs/bench/0.73-transcripts.md.
+
 ## Unreleased — Redaction fixes from dataset review
 
 - The publication `path` rule no longer rewrites a tilde that is content: only

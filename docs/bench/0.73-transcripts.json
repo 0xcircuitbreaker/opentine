@@ -1,0 +1,31 @@
+{
+  "backend_digest": "sha256:5fefb1e41031484e3575a983bce152308dd38d9e1438802d41fe22c54365bad3",
+  "embed_and_write": {
+    "index_bytes": 138575872,
+    "ms_per_transcript": 1.395,
+    "seconds": 139.47,
+    "transcripts": 100000,
+    "truncated": 0,
+    "workers": 4
+  },
+  "hardware": {
+    "cpus": 4,
+    "machine": "x86_64",
+    "numpy": "2.5.3",
+    "processor": "x86_64",
+    "python": "3.13.18"
+  },
+  "object_reading": {
+    "ms_per_run": {
+      "4 workers": 7.711,
+      "serial": 7.119
+    },
+    "runs": 300
+  },
+  "search": {
+    "load_seconds": 4.68,
+    "median_query_seconds": 0.408,
+    "queries": 40,
+    "recall_at_50": 0.9075
+  }
+}
