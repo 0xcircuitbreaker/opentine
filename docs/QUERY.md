@@ -53,6 +53,9 @@ The index lives at `.tine/query/index.sqlite`.
 | `elicit_links` | `opentine.elicit-link/1` file in `.tine/elicit/links/` | `oid`, `source`, `task`, `safety_relevant`, `condition`, `kind`, `cue`, `monitored`, `model`, `model_version`, `signer`, `signed`, `items`, `mean_score`, `attempts`, `tokens`, `usd`, `gpu_hours`, `created_at` |
 | `elicit_items` | item score of an elicitation link | `oid` (the link), `task`, `condition`, `id`, `score` |
 | `history_merges` | `opentine.history-merge/1` attestation | `oid`, `target` (the run), `signer`, `signed`, `ref` (the merge target ref), `base`, `sides` (JSON list of side digests), `merged`, `conflicts` (count). Under `--verify` a row is `verified` only for a pinned `policy` signer without `optimizer`; `tine merge-history verify` re-runs the merge itself |
+| `sandbox_policies` | `opentine.sandbox-policy/1` attestation | `oid`, `target` (the run), `signer`, `signed`, `policy_digest`, `recorded_at`. Under `--verify` a row is `verified` only for a pinned `runner` signer without `optimizer`; `tine containment check` decides a mismatch |
+| `containment_findings` | `opentine.containment-finding/1` attestation (advisory) | `oid`, `target` (the run), `signer`, `signed`, `category`, `step`, `detail`, `evidence_digest`, `found_at` |
+| `budget_ledger` | `opentine.budget-ledger/1` annotation | `oid`, `previous`, `signer`, `signed`, `subject`, `entry` (`spend`, `policy` or `flag`), `run`, `cost`, `tokens`, `code` (a flag's code), `at`. Under `--verify`: a pinned `runner` or `policy` signer without `optimizer`; `tine budget status` decides |
 | `meta` | key | `authority` (always `non-authoritative`), `format`, `counts` and what the index was built from |
 
 `oid` is the object id for repository objects. Lineage records and eval

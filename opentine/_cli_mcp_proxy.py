@@ -12,6 +12,8 @@ the protocol channel.
 0.63: ``--monitor CONFIG --monitor-repo PATH --monitor-key KEY`` puts an
 inline monitor on ``tools/call`` (:mod:`opentine._monitor_mcp`, docs/MONITORS.md):
 advisory by default, a blocking gate only when the config says ``mode = "gate"``.
+0.69: ``--budget SUBJECT --budget-key KEY`` refuses ``tools/call`` once the
+subject's budget is reached (:mod:`opentine._budget_gate`, docs/BUDGETS.md).
 """
 
 from __future__ import annotations
@@ -54,6 +56,12 @@ def add_mcp_proxy_parser(sub: Any) -> None:
                        help="Repository the signed verdicts go to (default: --repo)")  # fmt: skip
     proxy.add_argument("--monitor-key", metavar="KEY", help="Ed25519 key that signs verdicts")
     proxy.add_argument("--monitor-agent", metavar="NAME", help="Agent name stop tokens match")
+    proxy.add_argument(
+        "--budget",
+        metavar="SUBJECT",
+        help="Refuse tools/call once SUBJECT's budget is reached (docs/BUDGETS.md)",
+    )
+    proxy.add_argument("--budget-key", metavar="KEY", help="Ed25519 key that signs budget flags")
     proxy.add_argument("cmd", nargs=argparse.REMAINDER, help="The MCP server command, after --")
 
 
@@ -96,6 +104,27 @@ def _guard(args: argparse.Namespace, session: str) -> Any:
     return McpGuard(gate, err.print)
 
 
+def _budget(args: argparse.Namespace, inner: Any) -> Any:
+    """The budget guard ``--budget`` asks for (wrapping *inner*), else *inner*."""
+    if not getattr(args, "budget", None):
+        return inner
+    from opentine._budget_gate import BudgetMcpGuard
+    from opentine._budget_policy import subject
+    from opentine._key_hygiene import ed25519_private
+    from opentine.repo import Repo
+
+    where = args.monitor_repo or args.repo
+    if not where or not args.budget_key:
+        _fail("--budget needs --repo (or --monitor-repo) and --budget-key: flags are signed")
+    try:
+        guard = BudgetMcpGuard(Repo.open(where), subject(args.budget),
+                               ed25519_private(args.budget_key), inner)  # fmt: skip
+    except (OSError, ValueError) as exc:
+        _fail(f"budget: {exc}")
+    err.print(f"mcp-proxy: budget {args.budget}")
+    return guard
+
+
 def _serve_http(args: argparse.Namespace, command: list[str], recorder: Any) -> int:
     import subprocess
 
@@ -134,10 +163,11 @@ def cmd_mcp_proxy(args: argparse.Namespace) -> None:
     output = Path(args.save or _runs_dir() / f"mcp-proxy-{stamp}-{os.getpid()}.tine")
     transport = "http" if args.http_upstream else "stdio"
     recorder = McpRecorder(output, command or [args.http_upstream], transport, err.print)
-    args.guard = _guard(args, f"mcp-{stamp}-{os.getpid()}")
-    if args.guard is not None:
-        recorder.run.metadata["monitor"] = {**args.guard.gate.monitor.identity,
-                                            "mode": args.guard.gate.config["mode"]}  # fmt: skip
+    monitor = _guard(args, f"mcp-{stamp}-{os.getpid()}")
+    args.guard = _budget(args, monitor)
+    if monitor is not None:
+        recorder.run.metadata["monitor"] = {**monitor.gate.monitor.identity,
+                                            "mode": monitor.gate.config["mode"]}  # fmt: skip
     if threading.current_thread() is threading.main_thread() and hasattr(signal, "SIGTERM"):
         signal.signal(signal.SIGTERM, signal.default_int_handler)
     try:
@@ -152,7 +182,10 @@ def cmd_mcp_proxy(args: argparse.Namespace) -> None:
         code = 130
     if args.guard is not None:
         args.guard.close()
-        counts = args.guard.gate.counts
+    if getattr(args.guard, "denied", 0):
+        err.print(f"mcp-proxy: budget refused {args.guard.denied} tools/call request(s)")
+    if monitor is not None:
+        counts = monitor.gate.counts
         err.print(f"mcp-proxy: monitor forwarded {counts['forward']}, replaced "
                   f"{counts['replace']}, blocked {counts['block']}")  # fmt: skip
     recorder.close(code)

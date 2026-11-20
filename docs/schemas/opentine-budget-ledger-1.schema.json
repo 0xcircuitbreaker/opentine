@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-budget-ledger-1.schema.json",
+  "title": "opentine.budget-ledger/1 annotation value",
+  "description": "The value of an annotation recording one budget-ledger entry (spend, policy or flag) on the subject's anchor blob, chained by previous_id. A claim convention, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "subject",
+    "entry",
+    "at",
+    "at_ms"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.budget-ledger/1"
+    },
+    "subject": {
+      "type": "string",
+      "pattern": "^(loop|agent):[a-z0-9][a-z0-9._-]{0,63}$"
+    },
+    "entry": {
+      "enum": [
+        "spend",
+        "policy",
+        "flag"
+      ]
+    },
+    "at": {
+      "type": "string",
+      "description": "RFC 3339 UTC timestamp"
+    },
+    "at_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "run": {
+      "type": "string"
+    },
+    "cost": {
+      "type": "object"
+    },
+    "gpu_hours": {
+      "type": "number"
+    },
+    "egress_bytes": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "policy": {
+      "type": "object"
+    },
+    "code": {
+      "type": "string"
+    },
+    "detail": {
+      "type": "string"
+    },
+    "about": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

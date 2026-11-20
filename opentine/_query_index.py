@@ -51,7 +51,9 @@ _KEYS = {"runs": "PRIMARY KEY (oid)", "steps": "PRIMARY KEY (run, seq)",
          "experiment_results": "PRIMARY KEY (oid, id)",
          "reproductions": "PRIMARY KEY (oid)", "sabotage_tasks": "PRIMARY KEY (oid)",
          "elicit_links": "PRIMARY KEY (oid)", "elicit_items": "PRIMARY KEY (oid, id)",
-         "history_merges": "PRIMARY KEY (oid)"}  # fmt: skip
+         "history_merges": "PRIMARY KEY (oid)", "sandbox_policies": "PRIMARY KEY (oid)",
+         "containment_findings": "PRIMARY KEY (oid)",
+         "budget_ledger": "PRIMARY KEY (oid)"}  # fmt: skip
 VIEWS = (
     "CREATE VIEW costs AS SELECT oid, run, model, provider, cost, input_tokens, output_tokens"
     " FROM steps",

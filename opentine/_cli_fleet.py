@@ -25,7 +25,11 @@ from pathlib import Path
 
 from opentine._cli_auditor import COMMANDS as AUDITOR_COMMANDS
 from opentine._cli_auditor import add_auditor_parser
+from opentine._cli_budget import COMMANDS as BUDGET_COMMANDS
+from opentine._cli_budget import add_budget_parser
 from opentine._cli_common import BRAND, _terminal, console
+from opentine._cli_containment import COMMANDS as CONTAINMENT_COMMANDS
+from opentine._cli_containment import add_containment_parser
 from opentine._cli_elicit import COMMANDS as ELICIT_COMMANDS
 from opentine._cli_elicit import add_elicit_parser
 from opentine._cli_errors import error
@@ -85,6 +89,8 @@ def add_fleet_parser(subparsers: argparse._SubParsersAction) -> None:
     add_elicit_parser(subparsers)  # 0.68: tine elicit link|report
     add_sabotage_parser(subparsers)  # 0.68: tine sabotage record|report
     add_merge_history_parser(subparsers)  # 0.69: tine merge-history snapshot|plan|apply|verify
+    add_budget_parser(subparsers)  # 0.69: tine budget sign-policy|apply|record|status|check
+    add_containment_parser(subparsers)  # 0.69: tine containment record|check|scan
 
 
 def _fail(message: object) -> SystemExit:
@@ -237,6 +243,8 @@ COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
     **ELICIT_COMMANDS,
     **SABOTAGE_COMMANDS,
     **MERGE_HISTORY_COMMANDS,
+    **BUDGET_COMMANDS,
+    **CONTAINMENT_COMMANDS,
 }
 
 __all__ = ["COMMANDS", "add_fleet_parser", "cmd_fleet"]

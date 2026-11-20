@@ -27,9 +27,11 @@ STATES = ("pending", "approved", "rejected", "unrouted")
 
 
 def _sources(repo: Any) -> list[dict[str, Any]]:
-    """Items the repository holds for review: flagged monitor verdicts and taints."""
+    """Items the repository holds for review: flagged monitor verdicts, taints, budget
+    flags (0.69) and containment evidence (0.69: held findings and policy records of a
+    run whose ``tine containment check`` fails)."""
     from opentine import _monitor_verdict
-    from opentine.repository._holds import TAINT, holds_path, read_holds
+    from opentine.repository._holds import BUDGET_FLAG, TAINT, holds_path, read_holds
 
     found = []
     for oid in _monitor_verdict.held(repo):
@@ -42,6 +44,22 @@ def _sources(repo: Any) -> list[dict[str, Any]]:
     for row in read_holds(holds_path(repo)):
         if row["target"].startswith(TAINT):
             found.append({"item": f"integrity:{row['oid']}", "source": "integrity"})
+        elif row["target"].startswith(BUDGET_FLAG):  # 0.69: a budget violation or limit
+            found.append({"item": f"budget:{row['oid']}", "source": "budget"})
+    return found + _containment(repo)
+
+
+def _containment(repo: Any) -> list[dict[str, Any]]:
+    from opentine import _containment, _containment_detect
+    from opentine._containment import HOLD
+    from opentine._containment_records import held
+
+    found = [{"item": f"containment:{r['oid']}", "source": "containment"}
+             for r in _containment_detect.recorded(repo)]  # fmt: skip
+    for run in sorted({target[len(HOLD) :] for target, _ in held(repo, HOLD)}):
+        if not _containment.check(repo, run, None)["ok"]:
+            found += [{"item": f"containment:{p['oid']}", "source": "containment"}
+                      for p in _containment.recorded(repo, run)]  # fmt: skip
     return found
 
 

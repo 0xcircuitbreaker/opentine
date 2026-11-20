@@ -248,3 +248,64 @@ def test_mirror_records_are_owner_only(tmp_path):
     assert target.stat().st_mode & 0o777 == 0o600
     _mirror_store._write(target, {"upstream": "https://example.invalid/other.git"})
     assert target.stat().st_mode & 0o777 == 0o600
+
+
+# A stand-in ``git`` whose fetch hands the writing to a grandchild, as ``git fetch``
+# does with ``index-pack``; the grandchild records its pid so the test can check it.
+FLOOD_CHILD = """\
+import os, subprocess, sys
+argv = sys.argv[1:]
+if "fetch" not in argv:
+    sys.exit(subprocess.call([REAL_GIT, *argv]))
+where = argv[argv.index("--git-dir") + 1]
+os.makedirs(os.path.join(where, "objects", "pack"), exist_ok=True)
+writer = (
+    "import os, sys, time\\n"
+    "open(sys.argv[2], 'w').write(str(os.getpid()))\\n"
+    "out = open(sys.argv[1], 'wb')\\n"
+    "while True:\\n"
+    "    out.write(b'x' * 65536); out.flush(); time.sleep(0.01)\\n"
+)
+child = subprocess.Popen([sys.executable, "-c", writer,
+                          os.path.join(where, "objects", "pack", "tmp_pack_child"), PIDFILE])
+sys.exit(child.wait())
+"""
+
+
+def _alive(pid: int) -> bool:
+    if os.name == "nt":
+        import ctypes
+
+        handle = ctypes.windll.kernel32.OpenProcess(0x1000 | 0x100000, False, pid)
+        if not handle:
+            return False
+        try:
+            return ctypes.windll.kernel32.WaitForSingleObject(handle, 0) != 0
+        finally:
+            ctypes.windll.kernel32.CloseHandle(handle)
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    with open(f"/proc/{pid}/stat", encoding="ascii") as stat_file:
+        return stat_file.read().split()[2] != "Z"
+
+
+def test_the_limit_kill_reaches_the_process_that_writes_the_pack(tmp_path, monkeypatch):
+    from opentine import _mirror_fetch, _mirror_git
+
+    pidfile = tmp_path / "writer.pid"
+    script = tmp_path / "flood_child.py"
+    script.write_text(f"REAL_GIT = {shutil.which('git')!r}\nPIDFILE = {str(pidfile)!r}\n"
+                      + FLOOD_CHILD, encoding="utf-8")  # fmt: skip
+    real = _mirror_fetch.command_for
+    monkeypatch.setattr(_mirror_fetch, "command_for",
+                        lambda repo, args, pin=(): [sys.executable, str(script),
+                                                    *real(repo, args, pin)[1:]])  # fmt: skip
+    dest = tmp_path / "mirror"
+    with pytest.raises(_mirror_git.GitError) as caught:
+        _mirror_git.fetch((tmp_path / "up").as_uri(), dest, allow_local=True, timeout=60,
+                          max_bytes=256 * 1024)  # fmt: skip
+    assert caught.value.code == "mirror.limit-exceeded"
+    assert not dest.exists()
+    assert not _alive(int(pidfile.read_text(encoding="ascii")))

@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-sandbox-policy-1.schema.json",
+  "title": "opentine.sandbox-policy/1 claim",
+  "description": "The sandbox a run was given. A claim convention on an existing attestation, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "policy",
+    "policy_digest",
+    "recorded_at"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.sandbox-policy/1"
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "network_allowlist",
+        "mounts",
+        "privileges",
+        "image_digest",
+        "seccomp_digest"
+      ],
+      "properties": {
+        "network_allowlist": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "mounts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "mode"
+            ],
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "mode": {
+                "enum": [
+                  "ro",
+                  "rw"
+                ]
+              }
+            }
+          }
+        },
+        "privileges": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "image_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "seccomp_digest": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "policy_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "recorded_at": {
+      "type": "string"
+    }
+  }
+}

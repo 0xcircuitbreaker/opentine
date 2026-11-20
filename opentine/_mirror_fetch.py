@@ -15,8 +15,10 @@ environment entries, read only by that one process (see
 from __future__ import annotations
 
 import base64
+import errno
 import os
 import shutil
+import signal
 import stat
 import subprocess
 import sys
@@ -30,9 +32,42 @@ SAMPLE_SECONDS = 0.05
 
 
 def _writable_retry(func, path, _exc) -> None:
-    # git writes pack and loose object files read-only; Windows refuses to delete those.
-    os.chmod(path, stat.S_IWRITE | stat.S_IREAD)
-    func(path)
+    # git writes pack and loose object files read-only; Windows refuses to delete those,
+    # and briefly refuses (sharing violation) while a just-killed process's handles close.
+    for attempt in range(40):
+        try:
+            os.chmod(path, stat.S_IWRITE | stat.S_IREAD)
+            func(path)
+            return
+        except PermissionError as exc:
+            if getattr(exc, "winerror", None) != 32 or attempt == 39:
+                raise
+            time.sleep(0.05)
+
+
+def _spawn(command: list[str], env: dict[str, str], errors) -> subprocess.Popen:
+    """Start git in its own process group so a kill reaches ``index-pack`` and friends."""
+    if os.name == "nt":
+        flags = subprocess.CREATE_NEW_PROCESS_GROUP
+        return subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                                stderr=errors, env=env, creationflags=flags)  # fmt: skip
+    return subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                            stderr=errors, env=env, start_new_session=True)  # fmt: skip
+
+
+def _kill_tree(process: subprocess.Popen) -> None:
+    """Kill *process* and every process it started, then reap it."""
+    if os.name == "nt":
+        subprocess.run(["taskkill", "/F", "/T", "/PID", str(process.pid)],
+                       capture_output=True, timeout=60, check=False)  # fmt: skip
+    else:
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except OSError as exc:
+            if exc.errno != errno.ESRCH:
+                raise
+    process.kill()
+    process.wait()
 
 
 def remove_tree(path: Path) -> None:
@@ -61,8 +96,7 @@ def _auth_env(credential: str | None) -> dict[str, str]:
 def _watch(command: list[str], env: dict[str, str], dest: Path, timeout: float,
            max_bytes: int) -> None:  # fmt: skip
     with tempfile.TemporaryFile() as errors:
-        process = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                                   stderr=errors, env=env)  # fmt: skip
+        process = _spawn(command, env, errors)
         deadline = time.monotonic() + timeout
         reason = None
         while process.poll() is None:
@@ -72,8 +106,7 @@ def _watch(command: list[str], env: dict[str, str], dest: Path, timeout: float,
             elif time.monotonic() > deadline:
                 reason = GitError("git timed out", "mirror.upstream-unreachable")
             if reason is not None:
-                process.kill()
-                process.wait()
+                _kill_tree(process)
                 raise reason
             time.sleep(SAMPLE_SECONDS)
         if size(dest) > max_bytes:  # the limit outranks however git happened to exit

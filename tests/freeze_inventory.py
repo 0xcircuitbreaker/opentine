@@ -121,6 +121,10 @@ NOT_KINDS = (
     "opentine-sabotage-task-1",
     # 0.69 (release 0.67.0): an attestation claim (history merges) and a snapshot file
     "opentine-history-merge-1", "opentine-history-snapshot-1",
+    # 0.70 (release 0.69.0): an annotation value (budget ledger) and a signed policy file
+    "opentine-budget-ledger-1", "opentine-budget-policy-1",
+    # 0.69: attestation claims (sandbox policies, containment findings)
+    "opentine-sandbox-policy-1", "opentine-containment-finding-1",
 )  # fmt: skip
 DEFERRED_SCHEMAS: dict[str, str] = {}
 #: Backticked SPEC heading words that are not kinds (capabilities, commands, fields).

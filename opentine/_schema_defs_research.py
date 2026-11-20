@@ -1,4 +1,5 @@
-"""Schemas for the query, experiment, elicitation, sabotage and history-merge areas.
+"""Schemas for the query, experiment, elicitation, sabotage, history-merge, budget and
+containment areas.
 
 Collected by :mod:`opentine._schemas`.
 """
@@ -7,6 +8,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from opentine._schema_defs_budget import COMMAND_SCHEMAS as _BUDGET_COMMANDS
+from opentine._schema_defs_budget import SCHEMAS as _BUDGET
+from opentine._schema_defs_containment import COMMAND_SCHEMAS as _CONTAINMENT_COMMANDS
+from opentine._schema_defs_containment import SCHEMAS as _CONTAINMENT
 from opentine._schema_defs_elicit import COMMAND_SCHEMAS as _ELICIT_COMMANDS
 from opentine._schema_defs_elicit import SCHEMAS as _ELICIT
 from opentine._schema_defs_experiment import COMMAND_SCHEMAS as _EXPERIMENT_COMMANDS
@@ -18,13 +23,23 @@ from opentine._schema_defs_query import SCHEMAS as _QUERY
 from opentine._schema_defs_sabotage import COMMAND_SCHEMAS as _SABOTAGE_COMMANDS
 from opentine._schema_defs_sabotage import SCHEMAS as _SABOTAGE
 
-SCHEMAS: dict[str, dict[str, Any]] = {**_QUERY, **_EXPERIMENT, **_ELICIT, **_SABOTAGE, **_MH}
+SCHEMAS: dict[str, dict[str, Any]] = {
+    **_QUERY,
+    **_EXPERIMENT,
+    **_ELICIT,
+    **_SABOTAGE,
+    **_MH,
+    **_BUDGET,
+    **_CONTAINMENT,
+}
 COMMAND_SCHEMAS: dict[str, str] = {
     **_QUERY_COMMANDS,
     **_EXPERIMENT_COMMANDS,
     **_ELICIT_COMMANDS,
     **_SABOTAGE_COMMANDS,
     **_MH_COMMANDS,
+    **_BUDGET_COMMANDS,
+    **_CONTAINMENT_COMMANDS,
 }
 
 __all__ = ["COMMAND_SCHEMAS", "SCHEMAS"]

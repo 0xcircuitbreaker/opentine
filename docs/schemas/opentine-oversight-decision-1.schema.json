@@ -20,7 +20,7 @@
     },
     "item": {
       "type": "string",
-      "pattern": "^(promotion|monitor|integrity):.+$"
+      "pattern": "^(promotion|monitor|integrity|budget|containment):.+$"
     },
     "decision": {
       "enum": [

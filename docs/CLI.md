@@ -2067,6 +2067,34 @@ Records count only when signed by a pinned `scorer` or `eval` key. Catch rates
 are statistical evidence, not proof of intent. `--json` prints
 `tine-cli-sabotage/1`; see docs/SABOTAGE.md.
 
+## Budgets (0.69)
+
+| Command | What it does |
+| --- | --- |
+| `tine budget sign-policy SUBJECT --serial N [--tokens N] [--gpu-hours N] [--wall-clock-s N] [--egress-bytes N] [--money-usd N] [--on-limit deny\|escalate] --key KEY --out PATH` | Writes a signed `opentine-budget-policy/1` for `loop:NAME` or `agent:NAME` |
+| `tine budget apply PATH --key KEY [--repo PATH]` | Appends the policy to the subject's ledger; it takes effect only if it lowers limits or a pinned `policy`-role key signed the raise, with a higher serial; a refused policy is flagged for oversight and exits 1 |
+| `tine budget record SUBJECT RUN... --key KEY [--gpu-hours N] [--egress-bytes N] [--repo PATH]` | Appends each run's recorded cost (the `tine cost` aggregate) as a signed, held `spend` entry |
+| `tine budget status SUBJECT [--key KEY] [--at TIME] [--repo PATH]` | Policy in force, totals, remaining and findings |
+| `tine budget ledger SUBJECT [--repo PATH]` | Every entry in chain order and the totals (equal to the `tine cost` export of the recorded runs) |
+| `tine budget check SUBJECT [--key KEY] [--at TIME] [--repo PATH]` | The next-action decision; exits 1 on `deny` or `escalate` |
+| `tine budget gate SUBJECT --key KEY [--agent claude-code\|codex\|gemini\|generic] [--repo PATH]` | Agent hook: refuses the tool call on stdin once a limit is reached |
+| `tine mcp-proxy --budget SUBJECT --budget-key KEY --repo PATH -- CMD` | Answers `tools/call` with a JSON-RPC error once a limit is reached |
+
+`--json` prints `tine-cli-budget/1`; ledger entries follow the claim
+convention `opentine.budget-ledger/1`. See docs/BUDGETS.md.
+
+## Containment evidence (0.69)
+
+| Command | What it does |
+| --- | --- |
+| `tine containment record RUN --policy FILE --key KEY` | Signs and holds the run's canonicalised sandbox policy and its digest (`opentine.sandbox-policy/1`) |
+| `tine containment check RUN [--policy FILE \| --digest DIGEST] [--strict]` | Compares the recorded policy digest with the declared one; exits 1 on `sandbox-policy-mismatch`; `advisory:containment.runner-unpinned` blocks only with `--strict` |
+| `tine containment scan RUN [--key KEY] [--strict]` | Advisory detectors (egress, credential access, self-replication, unmonitored processes, persistence, limit edits) over the run's tool steps; `--key` signs and holds each new finding |
+
+All commands take `--repo PATH`; `--json` prints `tine-cli-containment/1`.
+Findings and failing policy records are listed in the oversight queue as
+`containment:` items; see docs/CONTAINMENT.md.
+
 ## Merging run histories (0.69)
 
 | Command | What it does |

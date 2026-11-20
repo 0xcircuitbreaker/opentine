@@ -1,5 +1,60 @@
 # Changelog
 
+## 0.69.0 — Containment evidence and budgets (2026-11-20)
+
+- Code mirror: when a fetch passes the size limit or times out, the kill now reaches every process git started (its own process group, or `taskkill /T` on Windows). Before, `index-pack` survived and kept writing after the mirror was deleted. Deleting a partial mirror also retries briefly while Windows closes the killed processes' files.
+
+- `tine budget sign-policy|apply|record|status|ledger|check|gate`: budget
+  policies per loop or agent (`opentine-budget-policy/1`: tokens, GPU-hours,
+  wall clock, egress bytes, money), signed and applied to a per-subject
+  ledger. See docs/BUDGETS.md.
+- The budget ledger: signed `annotation` entries (`opentine.budget-ledger/1`:
+  spend, policy, flag) chained by `previous_id` and held under
+  `budget-ledger:SUBJECT`, released never. Spend comes from each run's
+  recorded `tine cost` aggregate, so the ledger total equals the cost export.
+- Once a limit is reached, the next action is refused (`deny`) or refused and
+  routed to oversight (`escalate`): by `tine budget gate` on the agent hook
+  path and by `tine mcp-proxy --budget SUBJECT --budget-key KEY` (JSON-RPC
+  error `-32002`).
+- An agent raising its own limit is refused and the policy in force stays.
+  This covers an edited policy, one signed by an optimizer or non-`policy`
+  key, and a rolled-back serial. Each is a `fail:` finding recorded as a held
+  flag and listed in the oversight queue as `budget:ANNOTATION` (new route
+  source `budget`).
+- A budget policy signed by a pinned `policy` key is compared only with the
+  highest serial a pinned policy key put in force, so a fresh key cannot lock
+  out the owner's policy with a huge serial. With no policy in force, the gate
+  denies. A run recorded twice counts once (the largest value per unit), so the
+  ledger still equals the `tine cost` export.
+- `tine containment record RUN --policy FILE --key KEY` signs a run's sandbox
+  policy (network allowlist, mounts, privileges, container image digest,
+  seccomp profile digest) as an `opentine.sandbox-policy/1` claim on an
+  attestation. The policy is canonicalised before it is digested, so equal
+  sandboxes give equal digests. The record is held and never released.
+- `tine containment check RUN [--policy FILE | --digest DIGEST]` compares the
+  recorded digest with the declared one and exits 1 with the command-level
+  code `sandbox-policy-mismatch` (not a `tine verify` code). Two differing
+  records on one run are a mismatch too, and the allowlist the detectors use
+  is their intersection, so a later, wider record cannot widen it.
+- `tine containment scan RUN [--key KEY]`: advisory detectors (D12) over
+  recorded tool steps for egress outside the recorded allowlist, credential
+  access, self-replication, unmonitored processes, persistence and edits to
+  the sandbox or limits. Each input string is read unquoted. With a key,
+  findings are signed (`opentine.containment-finding/1`) and held. The
+  monitor gate runs the same detectors on every action and records findings
+  without changing its decision.
+- The oversight queue lists held containment findings, and the policy records
+  of a run whose check fails, as `containment:ATTESTATION` items (new route
+  source `containment`).
+- `tine query` indexes `sandbox_policies`, `containment_findings` and
+  `budget_ledger`; `--verify` needs a pinned `runner` (or, for budget
+  ledgers, `policy`) signer without `optimizer`.
+- New optional key role `runner` (signs ledger entries and sandbox policies),
+  guarded against optimizer keys like the other guarded roles.
+- New schemas: `tine-cli-containment-1`, `opentine-sandbox-policy-1`,
+  `opentine-containment-finding-1` (claim conventions, not object kinds); see
+  docs/CONTAINMENT.md.
+
 ## 0.68.0 — Security and integrity hardening (2026-11-20)
 
 - Audit-game records count as signed only when the payload `signer` names the

@@ -22,9 +22,14 @@ def _send(server, headers, body=b"x", length=None):
         conn.close()
 
 
-def _server(records):
+def _server(records, captured=None):
     # Port 9 on loopback: nothing listens, so a forward fails fast with 502.
-    server = rp.RecordingServer({"openai": "http://127.0.0.1:9"}, records.append)
+    def capture(record):
+        records.append(record)
+        if captured is not None:
+            captured.set()
+
+    server = rp.RecordingServer({"openai": "http://127.0.0.1:9"}, capture)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     return server
 
@@ -63,10 +68,13 @@ def test_an_oversized_request_body_is_refused_unread():
 
 def test_a_loopback_request_is_still_forwarded_and_captured():
     records = []
-    server = _server(records)
+    captured = threading.Event()
+    server = _server(records, captured)
     try:
         hdrs = {"Host": f"localhost:{server.port}", "Origin": "http://127.0.0.1"}
         assert _send(server, hdrs, b"{}") == 502
+        # The proxy replies before it records the exchange; wait for the record.
+        assert captured.wait(60)
         assert len(records) == 1 and records[0]["request"] == b"{}"
     finally:
         server.shutdown()

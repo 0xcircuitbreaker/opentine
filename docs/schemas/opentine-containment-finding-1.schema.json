@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-containment-finding-1.schema.json",
+  "title": "opentine.containment-finding/1 claim",
+  "description": "One advisory containment finding. A claim convention on an existing attestation, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "run",
+    "category",
+    "step",
+    "detail",
+    "evidence_digest",
+    "found_at"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.containment-finding/1"
+    },
+    "run": {
+      "type": "string"
+    },
+    "category": {
+      "enum": [
+        "egress",
+        "credential-access",
+        "self-replication",
+        "unmonitored-process",
+        "persistence",
+        "limit-edit"
+      ]
+    },
+    "step": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "detail": {
+      "type": "string"
+    },
+    "evidence_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "found_at": {
+      "type": "string"
+    }
+  }
+}
