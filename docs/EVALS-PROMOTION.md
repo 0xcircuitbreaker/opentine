@@ -109,6 +109,7 @@ A label moves only when every check passes. Each refusal names its reason:
 | `promote.evals-not-candidate` | the candidate's verdicts do not all score the candidate run |
 | `promote.evals-not-baseline` | the baseline's verdicts do not all score the label's current holder; on a first promotion (no holder), they do not all score one run other than the candidate |
 | `promote.dataset-mismatch` | the two sides scored different datasets |
+| `promote.scorer-mismatch` | the two sides (or the holdout or canary pair) used another scorer, `scorer_version` or `threshold`, or one side mixes several |
 | `promote.n-below-minimum` | there are fewer than `min_n` paired items |
 | `promote.ci-crosses-zero` | the bootstrap interval of the delta does not lie above 0 |
 | `promote.not-significant` | the permutation test shows no significant gain at `alpha` |
@@ -214,6 +215,9 @@ for a second move.
 The baseline eval is checked like the gate's: signed by an `eval_signers` key
 and scoring the run the candidate replaced (or, when it replaced none, one
 run other than the candidate).
+The canary pair must also pass the gate's like-with-like checks: the same
+items, dataset and scorer config, and at least `min_n` paired items; a canary
+that fails them is refused (exit 1) and neither passes nor reverts.
 On a significant regression in the policy's metric, it reverts automatically
 and signs a decision with `reason: "canary-regression"` that carries the
 statistics.

@@ -117,22 +117,37 @@ def _eval(folder: Path, policy: dict[str, Any], runs: str | None, side: str, out
             "verdicts_sha256": sha, "items": checked["items"]}  # fmt: skip
 
 
+def _alike(pair: str, a: Path, b: Path, row: dict, policy: dict[str, Any], out: list) -> bool:
+    """Both sides scored the same items of one dataset under one scorer config, n >= min_n."""
+    from opentine._eval_run import read_verdicts
+
+    if row["stats"] is None:
+        # Fail closed: a pair the comparison cannot verify never counts as a gain.
+        out.append(refusal("promote.eval-invalid", f"{pair}: the comparison does not verify"))
+        return False
+    sides = [read_verdicts(a), read_verdicts(b)]
+    if len({frozenset(r["item"] for r in rows) for rows in sides}) != 1:
+        out.append(refusal("promote.item-mismatch", f"{pair}: the two sides scored other items"))
+    if len({frozenset(r["dataset"] for r in rows) for rows in sides}) != 1:
+        out.append(refusal("promote.dataset-mismatch", f"{pair}: the sides scored other datasets"))
+    configs = {frozenset((r["scorer"], r["scorer_version"], r["threshold"]) for r in rows)
+               for rows in sides}  # fmt: skip
+    if len(configs) != 1 or any(len(c) != 1 for c in configs):
+        why = f"{pair}: the sides used other scorers, versions or thresholds"
+        out.append(refusal("promote.scorer-mismatch", why))
+    if row["stats"]["n"] < policy["min_n"]:
+        out.append(refusal("promote.n-below-minimum",
+                           f"{pair}: n={row['stats']['n']} < min_n={policy['min_n']}"))  # fmt: skip
+    return True
+
+
 def _beats(pair: str, a: Path, b: Path, policy: dict[str, Any], out: list) -> dict | None:
     from opentine._eval_compare import statistical
 
     row = statistical(a, b, method=policy["test"], alpha=policy["alpha"], seed=policy["seed"],
                       resamples=policy["resamples"])  # fmt: skip
-    if row["stats"] is None:
-        # Fail closed: a pair the comparison cannot verify never counts as a gain.
-        out.append(refusal("promote.eval-invalid", f"{pair}: the comparison does not verify"))
+    if not _alike(pair, a, b, row, policy, out):
         return None
-    from opentine._eval_run import read_verdicts
-
-    if {r["item"] for r in read_verdicts(a)} != {r["item"] for r in read_verdicts(b)}:
-        out.append(refusal("promote.item-mismatch", f"{pair}: the two sides scored other items"))
-    if row["stats"]["n"] < policy["min_n"]:
-        out.append(refusal("promote.n-below-minimum",
-                           f"{pair}: n={row['stats']['n']} < min_n={policy['min_n']}"))  # fmt: skip
     m = row["stats"]["metrics"][policy["metric"]]
     if policy["test"] == "paired-bootstrap" and not (m["ci"] and Decimal(m["ci"][0]) > 0):
         out.append(
