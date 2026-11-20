@@ -28,8 +28,9 @@ STATES = ("pending", "approved", "rejected", "unrouted")
 
 def _sources(repo: Any) -> list[dict[str, Any]]:
     """Items the repository holds for review: flagged monitor verdicts, taints, budget
-    flags (0.69) and containment evidence (0.69: held findings and policy records of a
-    run whose ``tine containment check`` fails)."""
+    flags (0.69), containment evidence (0.69: held findings and policy records of a
+    run whose ``tine containment check`` fails) and custody gaps and refused tagged
+    loads (0.72, :mod:`opentine._weight_custody_review`)."""
     from opentine import _monitor_verdict
     from opentine.repository._holds import BUDGET_FLAG, TAINT, holds_path, read_holds
 
@@ -46,7 +47,9 @@ def _sources(repo: Any) -> list[dict[str, Any]]:
             found.append({"item": f"integrity:{row['oid']}", "source": "integrity"})
         elif row["target"].startswith(BUDGET_FLAG):  # 0.69: a budget violation or limit
             found.append({"item": f"budget:{row['oid']}", "source": "budget"})
-    return found + _containment(repo)
+    from opentine._weight_custody_review import items as custody_items
+
+    return found + _containment(repo) + custody_items(repo)  # 0.72: custody gaps, refusals
 
 
 def _containment(repo: Any) -> list[dict[str, Any]]:

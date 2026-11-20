@@ -55,15 +55,18 @@ def parse_item(item: str) -> dict[str, Any]:
         label, _, candidate = rest.partition(":")
         if LABEL_RE.fullmatch(label) and RUN_RE.fullmatch(candidate):
             return {"source": source, "label": label, "candidate": candidate, "oid": None}
-    elif source in ("monitor", "integrity", "containment") and rest.startswith(
+    elif source in ("monitor", "integrity", "containment", "organism") and rest.startswith(
         "attestation:sha256:"
     ):
         return {"source": source, "label": None, "candidate": None, "oid": rest}
     elif source == "budget" and rest.startswith("annotation:sha256:"):  # 0.69: a budget flag
         return {"source": source, "label": None, "candidate": None, "oid": rest}
+    elif source == "custody" and rest.startswith(("attestation:sha256:", "blob:sha256:")):
+        # 0.72: a custody gap (an event attestation) or a refused tagged load (an access blob)
+        return {"source": source, "label": None, "candidate": None, "oid": rest}
     raise ValueError(f"{item!r} is not an oversight item (promotion:LABEL:RUN, monitor:"
-                     "ATTESTATION, integrity:|containment:ATTESTATION or "
-                     "budget:ANNOTATION)")  # fmt: skip
+                     "ATTESTATION, integrity:|containment:|organism:ATTESTATION, "
+                     "budget:ANNOTATION or custody:ATTESTATION|BLOB)")  # fmt: skip
 
 
 def anchor_bytes(item: str) -> bytes:

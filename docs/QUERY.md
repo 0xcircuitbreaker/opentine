@@ -56,6 +56,8 @@ The index lives at `.tine/query/index.sqlite`.
 | `sandbox_policies` | `opentine.sandbox-policy/1` attestation | `oid`, `target` (the run), `signer`, `signed`, `policy_digest`, `recorded_at`. Under `--verify` a row is `verified` only for a pinned `runner` signer without `optimizer`; `tine containment check` decides a mismatch |
 | `containment_findings` | `opentine.containment-finding/1` attestation (advisory) | `oid`, `target` (the run), `signer`, `signed`, `category`, `step`, `detail`, `evidence_digest`, `found_at` |
 | `budget_ledger` | `opentine.budget-ledger/1` annotation | `oid`, `previous`, `signer`, `signed`, `subject`, `entry` (`spend`, `policy` or `flag`), `run`, `cost`, `tokens`, `code` (a flag's code), `at`. Under `--verify`: a pinned `runner` or `policy` signer without `optimizer`; `tine budget status` decides |
+| `weight_custody` | `opentine.weight-custody/1` attestation (0.72) | `oid`, `target`, `signer`, `signed`, `artifact`, `event`, `seq`, `prev`, `location`, `digest`, `size`, `run`, `tags` (comma-separated), `recorded_at`. Every custody attestation in the store, held or not. Under `--verify`: a pinned `runner` or `policy` signer without `optimizer`; `tine custody check` decides |
+| `organism_records` | `opentine.organism-tag/1`, `-approval/1` or `-untag/1` attestation (0.72) | `oid`, `target`, `signer`, `signed`, `record` (`tag`, `approval` or `untag`), `artifact`, `run` (an approval's run), `at`. Under `--verify`: a pinned `policy`, `curator` or `approver` signer without `optimizer`; `tine organism status` decides |
 | `meta` | key | `authority` (always `non-authoritative`), `format`, `counts` and what the index was built from |
 
 `oid` is the object id for repository objects. Lineage records and eval

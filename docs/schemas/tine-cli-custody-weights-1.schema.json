@@ -1,0 +1,330 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-custody-weights-1.schema.json",
+  "title": "tine custody record --artifact|chain|check --json",
+  "description": "Checkpoint and weight custody. `check` exits 1 on `custody-gap`, `custody-chain-broken` or `custody-unapproved-load` (command-level codes); `custody.signer-unpinned` is advisory.",
+  "anyOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "artifact",
+        "event",
+        "record",
+        "seq",
+        "prev",
+        "digest",
+        "size"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-custody-weights/1"
+        },
+        "command": {
+          "const": "custody record"
+        },
+        "artifact": {
+          "type": "string"
+        },
+        "event": {
+          "enum": [
+            "created",
+            "copied",
+            "loaded",
+            "exported",
+            "destroyed",
+            "approved"
+          ]
+        },
+        "record": {
+          "type": "string",
+          "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "prev": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "digest": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "size": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "artifact",
+        "events"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-custody-weights/1"
+        },
+        "command": {
+          "const": "custody chain"
+        },
+        "artifact": {
+          "type": "string"
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "record",
+              "seq",
+              "event",
+              "signer",
+              "verification",
+              "claim",
+              "problems"
+            ],
+            "properties": {
+              "record": {
+                "type": "string",
+                "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+              },
+              "seq": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "event": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "signer": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "verification": {
+                "type": "string",
+                "pattern": "^(verified|unverified: .+)$"
+              },
+              "claim": {
+                "type": [
+                  "object",
+                  "null"
+                ]
+              },
+              "problems": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "strict",
+        "artifact",
+        "tagged",
+        "locations",
+        "events",
+        "findings"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-custody-weights/1"
+        },
+        "command": {
+          "const": "custody check"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "strict": {
+          "type": "boolean"
+        },
+        "artifact": {
+          "type": "string"
+        },
+        "tagged": {
+          "type": "boolean"
+        },
+        "locations": {
+          "type": "object",
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "record",
+              "seq",
+              "event",
+              "signer",
+              "verification",
+              "location",
+              "digest"
+            ],
+            "properties": {
+              "record": {
+                "type": "string",
+                "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+              },
+              "seq": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "event": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "signer": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "verification": {
+                "type": "string",
+                "pattern": "^(verified|unverified: .+)$"
+              },
+              "location": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "digest": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "record",
+              "message"
+            ],
+            "properties": {
+              "code": {
+                "enum": [
+                  "fail:custody-gap",
+                  "fail:custody-chain-broken",
+                  "fail:custody-unapproved-load",
+                  "advisory:custody.signer-unpinned"
+                ]
+              },
+              "record": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

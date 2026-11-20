@@ -2095,6 +2095,32 @@ All commands take `--repo PATH`; `--json` prints `tine-cli-containment/1`.
 Findings and failing policy records are listed in the oversight queue as
 `containment:` items; see docs/CONTAINMENT.md.
 
+## Checkpoint and weight custody (0.71)
+
+| Command | What it does |
+| --- | --- |
+| `tine custody record EVENT LOCATION --artifact NAME --sign-key KEY [--file PATH \| --digest DIGEST] [--max-bytes N] [--run RUN] [--data DIGEST]... [--lineage NODE] [--tag model-organism]` | Signs, hash-chains and holds one custody event (`created`, `copied`, `loaded`, `exported`, `destroyed`, `approved`); `--file` is read only to digest it |
+| `tine custody chain NAME` | Lists the artifact's events with their chain and pinned-role state |
+| `tine custody check NAME [--file LOCATION=PATH]... [--strict]` | Reports gaps; exits 1 on `custody-gap`, `custody-chain-broken` or `custody-unapproved-load`; `advisory:custody.signer-unpinned` blocks only with `--strict` |
+| `tine custody gate [--agent claude-code\|codex\|generic]` | Agent hook: denies a tool call naming a `model-organism` artifact without a pinned approval; fails closed |
+
+`--json` prints `tine-cli-custody-weights/1`; events follow the claim
+convention `opentine.weight-custody/1`. See docs/CUSTODY.md.
+
+## Model organisms (0.72)
+
+| Command | What it does |
+| --- | --- |
+| `tine organism tag ARTIFACT --reason TEXT [--name NAME ...] --key KEY` | Signs and holds an `opentine.organism-tag/1` record (a pinned `policy` or `curator` key, never an `optimizer` key); ARTIFACT is `sha256:HEX` or a local file, hashed and never stored |
+| `tine organism approve ARTIFACT --run RUN --why TEXT --key KEY` | Signs and holds an approval for one run to load the artifact (a pinned `approver` key without `optimizer`, `monitor` or `scorer`) |
+| `tine organism untag ARTIFACT --key KEY` | Releases the live tags once each tag's oversight item `organism:ATTESTATION` is approved k-of-n; exits 1 with `organism.untag-unapproved` otherwise |
+| `tine organism status [ARTIFACT]` | Tags, untags, approvals and the held access log |
+| `tine organism gate [--agent claude-code\|codex\|gemini\|generic] [--run RUN] [--fail-closed]` | Agent hook: refuses a tool call that references a tagged artifact without an approval for the run; every access is logged and held; an unreadable registry refuses every call |
+| `tine mcp-proxy --organism-gate [--organism-run RUN] --repo PATH -- CMD` | The same gate on `tools/call` (JSON-RPC error `-32003`) |
+
+All commands take `--repo PATH`; `--json` prints `tine-cli-organism/1`. See
+docs/MODEL_ORGANISMS.md.
+
 ## Merging run histories (0.69)
 
 | Command | What it does |
