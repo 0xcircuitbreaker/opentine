@@ -62,20 +62,24 @@ _INPUT = closed(["variant", "generation", "parents", "loop", "flags", "items",
 EXPORT = closed(["convention", "alpha", "seed", "resamples", "variants", "reported"], {
     "convention": {"const": "opentine.trends/1"}, "alpha": STR, "seed": INT, "resamples": INT,
     "variants": {"type": "array", "items": _INPUT}, "reported": RESULT})  # fmt: skip
-LENGTHS = closed(["kind", "suite", "lengths", "signer", "signed_at", "signature"], {
-    "kind": {"const": "opentine.trends.task-lengths/1"}, "suite": STR,
+LENGTHS = closed(["kind", "suite", "dataset", "lengths", "signer", "signed_at", "signature"], {
+    "kind": {"const": "opentine.trends.task-lengths/1"}, "suite": STR, "dataset": _SHA,
     "lengths": {"type": "object", "additionalProperties": _MINUTES}, "signer": FPR,
     "signed_at": TIME, "signature": SIG})  # fmt: skip
-_CLI = closed(["command", "schema", "signers", "lengths", "excluded", "export_sha256",
+_CLI = closed(["command", "schema", "signers", "lengths", "excluded", "unchecked", "export_sha256",
                *_RESULT], {
     "command": {"const": "trends"}, "schema": {"const": "tine-cli-trends/1"},
     "signers": {"enum": ["pinned", "unpinned"]},
-    "lengths": closed(["status", "suite", "signer"], {
+    "lengths": closed(["status", "suite", "signer", "dataset"], {
         "status": {"enum": ["trusted", "missing", "invalid", "roles-unpinned",
                             "signer-untrusted"]},
-        "suite": opt(STR), "signer": opt(STR)}),
+        "suite": opt(STR), "signer": opt(STR), "dataset": opt(_SHA)}),
     "excluded": {"type": "array", "items": closed(["variant", "code"], {
         "variant": _SHA, "code": {"enum": ["lineage.record-invalid", "lineage.cycle"]}})},
+    "unchecked": {"type": "array", "items": closed(["variant", "code"], {
+        "variant": _SHA, "code": {"enum": ["lineage.record-invalid", "lineage.cycle",
+                                           "lineage.evidence-missing", "lineage.signer-untrusted",
+                                           "trends.run-relabelled"]}})},
     "export_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, **_RESULT})  # fmt: skip
 _SIGNED = closed(["command", "schema", "signed", "suite", "signer", "items"], {
     "command": {"const": "trends"}, "schema": {"const": "tine-cli-trends/1"}, "signed": STR,

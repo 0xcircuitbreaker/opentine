@@ -182,6 +182,8 @@ def compute(data: dict[str, Any]) -> dict[str, Any]:
     if data.get("convention") != CONVENTION:
         raise ValueError(f"not an {CONVENTION} export")
     check("paired-bootstrap", data["alpha"], data["seed"], data["resamples"])
+    if data["seed"] >= 2**53:
+        raise ValueError("--seed must be below 2^53 (a browser reads it exactly)")
     alpha = Fraction(Decimal(data["alpha"]))
     by_id = {row["variant"]: row for row in data["variants"]}
     rows = [_variant(data, row, by_id, alpha) for row in data["variants"]]

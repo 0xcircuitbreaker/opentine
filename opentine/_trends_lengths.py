@@ -4,7 +4,7 @@ The 50%-success horizon needs, per eval item, how long the task takes a
 human (minutes). Those lengths are a signed file convention, not an object
 kind (docs/TRENDS.md)::
 
-    {"kind": "opentine.trends.task-lengths/1", "suite": "NAME",
+    {"kind": "opentine.trends.task-lengths/1", "suite": "NAME", "dataset": "sha256:<hex>",
      "lengths": {"<item id>": "<minutes, decimal>"}, "signer": "sha256:<fpr>",
      "signed_at": "YYYY-MM-DDTHH:MM:SSZ", "signature": {tine-sig/3, Ed25519}}
 
@@ -27,7 +27,8 @@ from opentine import _signed_record as sr
 
 KIND = "opentine.trends.task-lengths/1"
 DOMAIN = b"opentine.trends.task-lengths.v1:"
-FIELDS = ("kind", "suite", "lengths", "signer", "signed_at")
+FIELDS = ("kind", "suite", "dataset", "lengths", "signer", "signed_at")
+DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
 DEFAULT = Path(".tine") / "trends" / "task-lengths.json"
 MINUTES = re.compile(r"(0|[1-9][0-9]{0,8})(\.[0-9]{0,5}[1-9])?")
 MAX_ITEMS = 1_000_000
@@ -44,17 +45,21 @@ def _check_lengths(lengths: Any) -> dict[str, str]:
     return lengths
 
 
-def sign(lengths: dict[str, str], key: Any, *, suite: str, at: str) -> dict[str, Any]:
+def sign(lengths: dict[str, str], key: Any, *, suite: str, dataset: str,
+         at: str) -> dict[str, Any]:  # fmt: skip
     """The signed record for *lengths* (item id -> minutes)."""
     from opentine._signing_pins import key_fingerprint
 
     if not sr.NAME.fullmatch(suite):
         raise ValueError("--suite is 1..256 of A-Z a-z 0-9 _ . : / @ + -")
+    if not (isinstance(dataset, str) and DIGEST.fullmatch(dataset)):
+        raise ValueError("--dataset is the eval dataset digest, sha256:HEX")
     if not sr.WHEN.fullmatch(at):
         raise ValueError("--at is YYYY-MM-DDTHH:MM:SSZ")
     body = {
         "kind": KIND,
         "suite": suite,
+        "dataset": dataset,
         "lengths": dict(sorted(_check_lengths(lengths).items())),
         "signer": key_fingerprint(key.public_key().public_bytes_raw()),
         "signed_at": at,
@@ -70,6 +75,8 @@ def verify(record: Any) -> dict[str, Any]:
     _check_lengths(body["lengths"])
     if not (isinstance(body["suite"], str) and sr.NAME.fullmatch(body["suite"])):
         raise sr.RecordError("trends-lengths.malformed", "the suite name is invalid")
+    if not (isinstance(body["dataset"], str) and DIGEST.fullmatch(body["dataset"])):
+        raise sr.RecordError("trends-lengths.malformed", "the dataset digest is invalid")
     sr.check_signature(record, body, domain=DOMAIN, code="trends-lengths", subject="task lengths")
     if used_key_fingerprint(record.get("signature")) != body["signer"]:
         raise sr.RecordError("trends-lengths.signer-mismatch",
@@ -78,14 +85,16 @@ def verify(record: Any) -> dict[str, Any]:
 
 
 def load(path: Path, store: Path | None) -> dict[str, Any]:
-    """``{"status", "suite", "signer", "lengths"}``; ``lengths`` is empty unless trusted.
+    """``{"status", "suite", "signer", "dataset", "lengths"}``; ``dataset`` is ``None`` and
+    ``lengths`` empty unless trusted.
 
     ``status``: ``trusted``, ``missing``, ``invalid``, ``roles-unpinned`` or
     ``signer-untrusted``.
     """
     from opentine._key_roles_pin import pinned
 
-    out: dict[str, Any] = {"status": "missing", "suite": None, "signer": None, "lengths": {}}
+    out: dict[str, Any] = {"status": "missing", "suite": None, "signer": None, "dataset": None,
+                           "lengths": {}}  # fmt: skip
     try:
         raw = Path(path).read_bytes()
     except OSError:
@@ -101,7 +110,7 @@ def load(path: Path, store: Path | None) -> dict[str, Any]:
     signer = body["signer"]
     if signer not in roles.get("dataset", []) or signer in roles.get("optimizer", []):
         return {**out, "status": "signer-untrusted"}
-    return {**out, "status": "trusted", "lengths": body["lengths"]}
+    return {**out, "status": "trusted", "dataset": body["dataset"], "lengths": body["lengths"]}
 
 
 __all__ = ["DEFAULT", "DOMAIN", "KIND", "load", "sign", "verify"]

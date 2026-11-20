@@ -178,6 +178,7 @@ def test_sign_lengths_cli(tmp_path, capsys) -> None:
     out = tmp_path / "signed.json"
     assert tine(["trends", "--sign-lengths", (tmp_path / "l.json").as_posix(), "--key",
                 (tmp_path / "k").as_posix(), "--task-lengths", out.as_posix(), "--at", AT,
+                "--dataset", "sha256:" + "ab" * 32,
                 "--json"]) == 0  # fmt: skip
     printed = json.loads(capsys.readouterr().out)
     _schemas.validate(printed, "tine-cli-trends-1")

@@ -15,7 +15,7 @@
   untrusted eval evidence keep a row with their metrics withheld; invalid
   records and parent cycles are listed under `excluded`.
 - Task lengths are a signed file convention, `opentine.trends.task-lengths/1`
-  (`tine trends --sign-lengths FILE --key KEY`), used only when signed by a
+  (`tine trends --sign-lengths FILE --key KEY --dataset DIGEST`), used only when signed by a
   `dataset`-role key from the owner-pinned trust bundle that is not an
   optimizer key; otherwise the horizon is withheld and `lengths.status` says why.
 - `--export` writes `opentine-trends/1` (inputs plus the reported numbers);
@@ -25,6 +25,12 @@
 - Acceptance: on `tests/data/trends_horizon_synth.json` (100 seeded datasets
   from a known logistic, `scripts/gen_trends_synth.py`) the planted horizon is
   inside the 95% interval in 96 of 100.
+- Fail closed against a loop: unpinned eval signers withhold metrics;
+  `unchecked[]` (withheld, excluded or relabelled variants) fails
+  `--fail-on-regression`; task lengths are bound to an eval dataset digest
+  (`--dataset`); an item scored by several cited evals keeps its worst
+  verdict; cost counts only finite non-negative spend from a pinned `runner`
+  key; `tine lineage record` refuses to re-sign a variant with another claim.
 - New schemas `tine-cli-trends-1`, `opentine-trends-1`,
   `opentine-trends-task-lengths-1`. No new object kinds or `tine verify` codes.
 

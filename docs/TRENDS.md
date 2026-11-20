@@ -10,7 +10,7 @@ byte for byte.
 tine trends [--loop LOOP] [--alpha 0.05] [--seed 0] [--resamples 2000]
             [--task-lengths FILE] [--promotion-policy TOML]
             [--fail-on-regression] [--export FILE] [--json] --repo PATH
-tine trends --sign-lengths LENGTHS.json --key KEY [--suite NAME] [--at TIME]
+tine trends --sign-lengths LENGTHS.json --key KEY --dataset DIGEST [--suite NAME] [--at TIME]
 ```
 
 ## Inputs, and what counts
@@ -65,7 +65,38 @@ Per variant (`variants[]`):
 Per generation (`generations[]`): variant, flagged and regression counts, and
 the best unflagged variant by mean score with its horizon. `regressions[]`
 lists every variant/parent pair that regressed. `tine trends` exits 0 unless
-`--fail-on-regression` is given and there is a regression.
+`--fail-on-regression` is given and there is a regression or an `unchecked`
+variant (below).
+
+## What a loop cannot do to the report
+
+The loop signs its own lineage records, so the report does not trust what the
+records alone could fake:
+
+* **Unpinned eval signers.** With no owner-pinned `scorer` role and no
+  `--promotion-policy`, a verdict's signer is proven but not trusted, so every
+  variant that cites evals gets `lineage.signer-untrusted` and its metrics are
+  withheld.
+* **Hiding a regression by dropping evidence.** `unchecked[]` lists each
+  variant whose regression status cannot be established: excluded records,
+  withheld metrics (`lineage.evidence-missing`, `lineage.signer-untrusted`)
+  and relabelled runs. `--fail-on-regression` exits 1 when it is not empty.
+* **Re-rooting.** `tine lineage record` refuses to re-sign an existing variant
+  with a different claim (new parents or evals): records are append-only. A
+  mutation run recorded as more than one variant gets the command-level flag
+  `trends.run-relabelled` on each.
+* **Cherry-picking runs by citation order.** Items are keyed by
+  `<dataset>:<item>`. An item scored by more than one cited eval keeps its
+  worst verdict, whatever order the evals are cited in.
+* **Swapping the task suite.** Task lengths name the eval `dataset` digest
+  they were signed for (`--sign-lengths ... --dataset sha256:HEX`) and apply
+  only to verdicts of that dataset.
+* **Cost.** A spend entry counts only when its signer holds the pinned
+  `runner` role and no `optimizer` role. A counted `total_cost` that is not a
+  finite non-negative number makes that run's cost `null`.
+
+The seed and resample count are the caller's choice and are recorded in the
+export; anyone can rerun with other seeds (see "Not covered").
 
 ## The export and browser recomputation
 
@@ -93,7 +124,8 @@ Byte equality holds because no number depends on a platform library:
   `log` and `sqrt` are computed by range reduction and a fixed number of series
   or Newton terms, and minutes print as `floor(v*1e6 + 0.5)` micro-units.
 
-`--seed` is limited to 0..2^53-1 so a browser reads it exactly.
+`--seed` is limited to 0..2^53-1 so a browser reads it exactly; `compute`
+refuses an export with a larger seed.
 
 ## Acceptance: planted horizons
 
@@ -134,3 +166,9 @@ The `tine uplift` half of plan item 0.73 (versioned task suites, human
 baseline records, AI-assisted vs unassisted paired runs, perceived vs measured
 speed) is not part of this command; task lengths here are only the per-item
 minutes the horizon needs.
+
+A caller can rerun `tine trends` with many seeds and report the one it likes;
+the seed is in the export, but nothing pins it. Lineage, eval and task-length
+files are plain files: a loop with write access to the folder can still delete
+a variant record outright (only re-signing through `tine lineage record` is
+refused), and nothing holds them.

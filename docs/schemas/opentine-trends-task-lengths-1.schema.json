@@ -8,6 +8,7 @@
   "required": [
     "kind",
     "suite",
+    "dataset",
     "lengths",
     "signer",
     "signed_at",
@@ -19,6 +20,10 @@
     },
     "suite": {
       "type": "string"
+    },
+    "dataset": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
     },
     "lengths": {
       "type": "object",

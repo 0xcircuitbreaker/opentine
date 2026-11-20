@@ -55,6 +55,8 @@ def add_trends_parser(subparsers: argparse._SubParsersAction) -> None:
                    help="Sign this {item: minutes} JSON as task lengths and exit")  # fmt: skip
     p.add_argument("--key", metavar="KEY", help="Ed25519 key for --sign-lengths")
     p.add_argument("--suite", default="default", help="Suite name for --sign-lengths")
+    p.add_argument("--dataset", metavar="DIGEST",
+                   help="Eval dataset digest the lengths are for (--sign-lengths)")  # fmt: skip
     p.add_argument("--at", metavar="TIME", help="YYYY-MM-DDTHH:MM:SSZ (default: now)")
 
 
@@ -69,11 +71,11 @@ def _sign(args: argparse.Namespace) -> dict:
     from opentine._signing_keys import ed25519_private_from_file
     from opentine._trends_lengths import sign
 
-    if not args.key:
-        raise error("trends --sign-lengths needs --key", USAGE, prefix="trends: ")
+    if not (args.key and args.dataset):
+        raise error("trends --sign-lengths needs --key and --dataset", USAGE, prefix="trends: ")
     lengths = json.loads(Path(args.sign_lengths).read_bytes().decode("utf-8"))
     record = sign(lengths, ed25519_private_from_file(args.key, signer=False), suite=args.suite,
-                  at=args.at or _now())  # fmt: skip
+                  dataset=args.dataset, at=args.at or _now())  # fmt: skip
     path = _lengths_path(args)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes((json.dumps(record, indent=2, sort_keys=True) + "\n").encode("utf-8"))
@@ -94,7 +96,7 @@ def report(args: argparse.Namespace) -> tuple[dict, dict]:
     from opentine._lineage import read_folder
     from opentine._lineage_trust import status
     from opentine._trends import compute
-    from opentine._trends_collect import collect
+    from opentine._trends_collect import collect, unchecked
     from opentine._trends_lengths import load
 
     check("paired-bootstrap", args.alpha, args.seed, args.resamples)
@@ -103,13 +105,14 @@ def report(args: argparse.Namespace) -> tuple[dict, dict]:
     files = read_folder(_folder(args), max_files=args.max_files, max_bytes=args.max_bytes)
     signers = trust(args)
     lengths = load(_lengths_path(args), Path(args.repo) / ".tine")
-    export, excluded = collect(Path(args.repo), files, lengths=lengths["lengths"], trust=signers,
+    export, excluded = collect(Path(args.repo), files, lengths=lengths, trust=signers,
                                alpha=args.alpha, seed=args.seed, resamples=args.resamples,
                                loop=args.loop)  # fmt: skip
     result = compute(export)
     export = {**export, "reported": result}
     row = {"signers": status(signers), "lengths": {k: lengths[k] for k in ("status", "suite",
-           "signer")}, "excluded": excluded,
+           "signer", "dataset")}, "excluded": excluded,
+           "unchecked": unchecked(export["variants"], excluded),
            "export_sha256": hashlib.sha256(export_bytes(export)).hexdigest(), **result}  # fmt: skip
     return row, export
 
@@ -129,6 +132,8 @@ def _text(row: dict) -> str:
                      f"{', '.join(reg['metrics'])}")  # fmt: skip
     for code in row["flags"]:
         lines.append(f"  flag {code}")
+    for gap in row["unchecked"]:
+        lines.append(f"  UNCHECKED {gap['variant']}: {gap['code']}")
     return "\n".join(lines)
 
 
@@ -153,7 +158,8 @@ def cmd_trends(args: argparse.Namespace) -> None:
         console.print(_terminal(f"SIGNED {row['signed']} ({row['items']} items)"), markup=False)
     else:
         console.print(_terminal(_text(row)), markup=False)
-    if export is not None and args.fail_on_regression and row["regressions"]:
+    # fail closed: a variant whose evidence is withheld, excluded or relabelled may hide one
+    if export is not None and args.fail_on_regression and (row["regressions"] or row["unchecked"]):
         raise SystemExit(1)
 
 

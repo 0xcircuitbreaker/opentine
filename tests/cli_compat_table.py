@@ -6667,6 +6667,8 @@ ROWS: tuple[tuple, ...] = (
             "fail_closed": True,
             "repo": ".",
         },
+    ),
+    (
         "plain:trends --json --export t.json",
         "plain",
         ["trends", "--json", "--export", "t.json"],
@@ -6684,11 +6686,27 @@ ROWS: tuple[tuple, ...] = (
         },
     ),
     (
-        "plain:trends --sign-lengths l.json --key k --suite s",
+        "plain:trends --sign-lengths l.json --key k --suite s --dataset sha256:ab",
         "plain",
-        ["trends", "--sign-lengths", "l.json", "--key", "k", "--suite", "s"],
+        [
+            "trends",
+            "--sign-lengths",
+            "l.json",
+            "--key",
+            "k",
+            "--suite",
+            "s",
+            "--dataset",
+            "sha256:ab",
+        ],  # fmt: skip
         "opentine._cli_trends:cmd_trends",
         False,
-        {"command": "trends", "sign_lengths": "l.json", "key": "k", "suite": "s"},
+        {
+            "command": "trends",
+            "sign_lengths": "l.json",
+            "key": "k",
+            "suite": "s",
+            "dataset": "sha256:ab",
+        },  # fmt: skip
     ),
 )

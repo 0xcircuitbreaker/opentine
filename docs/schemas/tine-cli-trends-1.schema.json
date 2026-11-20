@@ -13,6 +13,7 @@
         "signers",
         "lengths",
         "excluded",
+        "unchecked",
         "export_sha256",
         "convention",
         "alpha",
@@ -42,7 +43,8 @@
           "required": [
             "status",
             "suite",
-            "signer"
+            "signer",
+            "dataset"
           ],
           "properties": {
             "status": {
@@ -73,6 +75,17 @@
                   "type": "null"
                 }
               ]
+            },
+            "dataset": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
             }
           }
         },
@@ -94,6 +107,32 @@
                 "enum": [
                   "lineage.record-invalid",
                   "lineage.cycle"
+                ]
+              }
+            }
+          }
+        },
+        "unchecked": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "variant",
+              "code"
+            ],
+            "properties": {
+              "variant": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "code": {
+                "enum": [
+                  "lineage.record-invalid",
+                  "lineage.cycle",
+                  "lineage.evidence-missing",
+                  "lineage.signer-untrusted",
+                  "trends.run-relabelled"
                 ]
               }
             }

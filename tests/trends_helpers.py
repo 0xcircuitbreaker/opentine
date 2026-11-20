@@ -41,11 +41,21 @@ def passing(run: str, i: int) -> bool:
     return (i * 37) % 100 < SHAPES[run][i % len(LENGTHS)]
 
 
+def items() -> list[dict[str, str]]:
+    return [{"id": f"main-{i:03d}", "input": f"task {i}", "expected": "yes"} for i in range(N)]
+
+
+def dataset() -> str:
+    """The eval dataset digest the task lengths are bound to."""
+    from opentine._eval_dataset import dataset_digest
+
+    return dataset_digest(items())
+
+
 def make_eval(out: Path, run: str, when: str) -> Path:
-    items = [{"id": f"main-{i:03d}", "input": f"task {i}", "expected": "yes"} for i in range(N)]
     outputs = {f"main-{i:03d}": {"output": "yes" if passing(run, i) else "no", "run": run}
                for i in range(N)}  # fmt: skip
-    run_eval(items, parse("exact"), key(EVALER), out, outputs=outputs, created_at=when)
+    run_eval(items(), parse("exact"), key(EVALER), out, outputs=outputs, created_at=when)
     return out
 
 
@@ -55,9 +65,10 @@ def roles_toml(dataset: str = DATASET) -> str:
             f'optimizer = ["{fingerprint(RECORDER)}"]\n')  # fmt: skip
 
 
-def write_lengths(root: Path, signer: str = DATASET) -> Path:
+def write_lengths(root: Path, signer: str = DATASET, bound: str | None = None) -> Path:
     lengths = {f"main-{i:03d}": minutes(i) for i in range(N)}
-    signed = sign(lengths, key(signer), suite="synthetic", at=AT)
+    bound = bound or dataset()
+    signed = sign(lengths, key(signer), suite="synthetic", dataset=bound, at=AT)
     path = root / ".tine" / "trends" / "task-lengths.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes((json.dumps(signed, indent=2, sort_keys=True) + "\n").encode("utf-8"))
@@ -88,5 +99,5 @@ def build(base: Path, *, pin: bool = True) -> tuple[Path, dict[str, str]]:
     return root, v
 
 
-__all__ = ["DATASET", "LENGTHS", "N", "build", "make_eval", "minutes", "passing", "roles_toml",
-           "write_lengths"]  # fmt: skip
+__all__ = ["DATASET", "LENGTHS", "N", "build", "dataset", "items", "make_eval", "minutes",
+           "passing", "roles_toml", "write_lengths"]  # fmt: skip

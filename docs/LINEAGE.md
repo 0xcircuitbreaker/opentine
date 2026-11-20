@@ -187,6 +187,10 @@ the TS `checkLineage` fixture are unchanged.
 regressions against parents and tainted or quarantined inputs, with an export a
 browser recomputes byte for byte. See docs/TRENDS.md.
 
+From 0.72 `tine lineage record` refuses to re-sign a variant that already has a
+record with a different claim (other parents, evals or run): records are
+append-only, so a loop cannot re-root a regressed variant to drop its parent.
+
 ## Not yet
 
 The Tineyard view of the graph comes later. Record signers are proven, not
