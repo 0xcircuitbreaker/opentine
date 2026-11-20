@@ -1,5 +1,8 @@
 """``tine custody record|log|verify``: the chain of custody (0.39, ``_custody``).
 
+Checkpoint and weight custody (0.71: ``record --artifact``, ``chain``, ``check``,
+``gate``) is :mod:`opentine._cli_custody_weights`.
+
 ``record ACTION SUBJECT --sign-key KEY`` appends a record signed with the
 actor's Ed25519 key (``tine keygen``); ``record timestamp SIG_BOUND --token
 T.tsr`` stores an RFC 3161 token over an earlier record's ``sig_bound`` (shown
@@ -38,6 +41,9 @@ def add_custody_parser(sub: Any) -> None:
     for parser in (rec, log, verify):
         parser.add_argument("--repo", default=".")
         parser.add_argument("--json", action="store_true", help="Emit a JSON object instead")
+    from opentine._cli_custody_weights import add_weight_arguments
+
+    add_weight_arguments(rec, actions)  # 0.71: checkpoint and weight custody
 
 
 def _actor() -> str:
@@ -71,7 +77,13 @@ def _record(args: argparse.Namespace, base: Any) -> None:
 
 
 def cmd_custody(args: argparse.Namespace) -> None:
-    from opentine import _custody
+    from opentine import _cli_custody_weights, _custody
+
+    if args.custody_command == "gate":
+        raise SystemExit(_cli_custody_weights.gate(args))
+    if args.custody_command in ("chain", "check") or getattr(args, "artifact", None):
+        _cli_custody_weights.run_weights(args)
+        return
     from opentine._cli_du import _repo
 
     try:
