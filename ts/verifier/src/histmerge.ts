@@ -26,6 +26,9 @@ export const KINDS = ["ref-diverged", "label-moved", "promotion-diverged", "line
   "held-target"];
 const RUN = /^run:sha256:[0-9a-f]{64}$/;
 const HEX = /^[0-9a-f]{64}$/;
+// Label names and lineage ids become file names on apply: only these shapes.
+const LABEL_NAME = /^[a-z0-9][a-z0-9._-]{0,63}$/;
+const LINEAGE_ID = /^sha256:[0-9a-f]{64}$/;
 
 type Label = { current: string | null; history: string[] };
 export interface Snapshot {
@@ -64,6 +67,7 @@ export function normalize(value: JValue): Snapshot {
   const raw = value.get("labels");
   if (!isObject(raw)) throw bad("labels is an object");
   for (const [name, state] of raw) {
+    if (!LABEL_NAME.test(name)) throw bad("label names are [a-z0-9][a-z0-9._-]{0,63}");
     if (!isObject(state) || state.size !== 2 || !state.has("current") || !state.has("history")) throw bad("label");
     const current = state.get("current");
     const history = state.get("history");
@@ -77,7 +81,9 @@ export function normalize(value: JValue): Snapshot {
   }
   const pairs = new Map((holds as string[][]).map((h) => [canonicalText(h), [h[0], h[1]] as [string, string]]));
   if (pairs.size !== holds.length) throw bad("holds are unique");
-  return { refs: strMap(value.get("refs"), "refs"), labels, lineage: strMap(value.get("lineage"), "lineage"),
+  const lineage = strMap(value.get("lineage"), "lineage");
+  for (const k of lineage.keys()) if (!LINEAGE_ID.test(k)) throw bad("lineage ids are sha256:HEX");
+  return { refs: strMap(value.get("refs"), "refs"), labels, lineage,
     holds: sortPairs([...pairs.values()]) };
 }
 
@@ -126,7 +132,7 @@ export function merge(baseIn: JValue, oursIn: JValue, theirsIn: JValue): MergeRe
   const all = new Map([...b.holds, ...o.holds, ...t.holds].map((h) => [canonicalText(h), h]));
   const guarded = new Set<string>();
   for (const [k, [target, oid]] of all) {
-    if (ho.has(k) !== ht.has(k) && !hb.has(k) && GUARDS.some((g) => target.startsWith(g))) {
+    if (GUARDS.some((g) => target.startsWith(g))) {
       guarded.add(oid);
       guarded.add(target.slice(target.indexOf(":") + 1));
     }

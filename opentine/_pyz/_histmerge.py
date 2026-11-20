@@ -28,6 +28,8 @@ KINDS = ("ref-diverged", "label-moved", "promotion-diverged", "lineage-id", "hol
 RUN = re.compile(r"run:sha256:[0-9a-f]{64}")
 HEX = re.compile(r"[0-9a-f]{64}")
 _NONE = {"current": None, "history": []}
+_LABEL = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}")
+_LINEAGE = re.compile(r"sha256:[0-9a-f]{64}")
 
 
 def _canon(value: Any) -> bytes:
@@ -43,6 +45,10 @@ def normalize(snap: Any) -> dict:
             isinstance(k, str) and isinstance(v, str) and k and v for k, v in snap[name].items()
         ):
             raise ValueError(f"{name} maps names to strings")
+    if not all(_LINEAGE.fullmatch(k) for k in snap["lineage"]):
+        raise ValueError("lineage ids are sha256:HEX")
+    if isinstance(snap["labels"], dict) and not all(_LABEL.fullmatch(k) for k in snap["labels"]):
+        raise ValueError("label names are [a-z0-9][a-z0-9._-]{0,63}")
     labels = {}
     for name, state in (snap["labels"] if isinstance(snap["labels"], dict) else {}).items():
         if not isinstance(state, dict) or set(state) != {"current", "history"}:
@@ -95,7 +101,7 @@ def merge(base: Any, ours: Any, theirs: Any) -> dict:
     rows: list[dict] = []
     hb, ho, ht = ({(h[0], h[1]) for h in s["holds"]} for s in (b, o, t))
     guarded: set = set()
-    for target, oid in (ho ^ ht) - hb:
+    for target, oid in hb | ho | ht:
         if target.startswith(GUARDS):
             guarded |= {oid, target.split(":", 1)[1]}
     refs = {}

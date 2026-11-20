@@ -4994,6 +4994,192 @@
     {
       "base": {
         "format": "opentine-history-snapshot/1",
+        "holds": [
+          [
+            "integrity-taint:run:sha256:0000000000000000000000000000000000000000000000000000000000000003",
+            "attestation:sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          ]
+        ],
+        "labels": {
+          "prod": {
+            "current": "run:sha256:0000000000000000000000000000000000000000000000000000000000000001",
+            "history": [
+              "0000000000000000000000000000000000000000000000000000000000000028"
+            ]
+          }
+        },
+        "lineage": {},
+        "refs": {}
+      },
+      "expect": {
+        "conflict_rows": [
+          {
+            "base": {
+              "current": "run:sha256:0000000000000000000000000000000000000000000000000000000000000001",
+              "history": [
+                "0000000000000000000000000000000000000000000000000000000000000028"
+              ]
+            },
+            "key": "labels/prod",
+            "kind": "held-target",
+            "sides": [
+              {
+                "current": "run:sha256:0000000000000000000000000000000000000000000000000000000000000001",
+                "history": [
+                  "0000000000000000000000000000000000000000000000000000000000000028"
+                ]
+              },
+              {
+                "current": "run:sha256:0000000000000000000000000000000000000000000000000000000000000003",
+                "history": [
+                  "0000000000000000000000000000000000000000000000000000000000000028",
+                  "0000000000000000000000000000000000000000000000000000000000000029"
+                ]
+              }
+            ]
+          },
+          {
+            "base": null,
+            "key": "refs/heads/main",
+            "kind": "held-target",
+            "sides": [
+              "run:sha256:0000000000000000000000000000000000000000000000000000000000000003",
+              null
+            ]
+          }
+        ],
+        "conflicts": 2,
+        "conflicts_match": true,
+        "merged": "sha256:ed8b5d7f78009aab60dd53da3fba728f75377728985c3f935509c4aa5209bd36",
+        "merged_matches": true,
+        "merged_snapshot": {
+          "format": "opentine-history-snapshot/1",
+          "holds": [
+            [
+              "integrity-taint:run:sha256:0000000000000000000000000000000000000000000000000000000000000003",
+              "attestation:sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            ]
+          ],
+          "labels": {
+            "prod": {
+              "current": "run:sha256:0000000000000000000000000000000000000000000000000000000000000001",
+              "history": [
+                "0000000000000000000000000000000000000000000000000000000000000028"
+              ]
+            }
+          },
+          "lineage": {},
+          "refs": {}
+        },
+        "ok": true,
+        "signature": "verified-tofu"
+      },
+      "id": "taint-in-base",
+      "ours": {
+        "format": "opentine-history-snapshot/1",
+        "holds": [
+          [
+            "integrity-taint:run:sha256:0000000000000000000000000000000000000000000000000000000000000003",
+            "attestation:sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          ]
+        ],
+        "labels": {
+          "prod": {
+            "current": "run:sha256:0000000000000000000000000000000000000000000000000000000000000001",
+            "history": [
+              "0000000000000000000000000000000000000000000000000000000000000028"
+            ]
+          }
+        },
+        "lineage": {},
+        "refs": {}
+      },
+      "public_key": null,
+      "record": {
+        "claim": {
+          "base": "sha256:ed8b5d7f78009aab60dd53da3fba728f75377728985c3f935509c4aa5209bd36",
+          "conflicts": [
+            {
+              "base": {
+                "current": "run:sha256:0000000000000000000000000000000000000000000000000000000000000001",
+                "history": [
+                  "0000000000000000000000000000000000000000000000000000000000000028"
+                ]
+              },
+              "key": "labels/prod",
+              "kind": "held-target",
+              "sides": [
+                {
+                  "current": "run:sha256:0000000000000000000000000000000000000000000000000000000000000001",
+                  "history": [
+                    "0000000000000000000000000000000000000000000000000000000000000028"
+                  ]
+                },
+                {
+                  "current": "run:sha256:0000000000000000000000000000000000000000000000000000000000000003",
+                  "history": [
+                    "0000000000000000000000000000000000000000000000000000000000000028",
+                    "0000000000000000000000000000000000000000000000000000000000000029"
+                  ]
+                }
+              ]
+            },
+            {
+              "base": null,
+              "key": "refs/heads/main",
+              "kind": "held-target",
+              "sides": [
+                "run:sha256:0000000000000000000000000000000000000000000000000000000000000003",
+                null
+              ]
+            }
+          ],
+          "convention": "opentine.history-merge/1",
+          "merged": "sha256:ed8b5d7f78009aab60dd53da3fba728f75377728985c3f935509c4aa5209bd36",
+          "sides": [
+            "sha256:0a2c1c4180b8953bd10819705da99eeba4978993a5201ea18c0471dde6275014",
+            "sha256:ed8b5d7f78009aab60dd53da3fba728f75377728985c3f935509c4aa5209bd36"
+          ],
+          "target": null
+        },
+        "evidence_ids": [],
+        "signature": {
+          "alg": "ed25519",
+          "public_key": "e34d3a01b6112e1429ead61668405f4ef4be4f8853abee5079d28ac6c13ffdd0",
+          "scheme": "tine-attest/2",
+          "signed_at": "2026-12-01T00:00:00Z",
+          "signer": "sha256:93bca823e5c824191c0c1d3245465c9317962fb0cc1dc8e2347050c48d11eb75",
+          "value": "bbd8248afa99f51479220a5f05370aeb94ee2b36005ef8c105d768504464415343fd4a8d1de79fc11899fc48f7803f2122d457a70f0e3483f09c0b0b766d4f07"
+        },
+        "signer": "sha256:93bca823e5c824191c0c1d3245465c9317962fb0cc1dc8e2347050c48d11eb75",
+        "target_id": "run:sha256:abababababababababababababababababababababababababababababababab"
+      },
+      "theirs": {
+        "format": "opentine-history-snapshot/1",
+        "holds": [
+          [
+            "integrity-taint:run:sha256:0000000000000000000000000000000000000000000000000000000000000003",
+            "attestation:sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          ]
+        ],
+        "labels": {
+          "prod": {
+            "current": "run:sha256:0000000000000000000000000000000000000000000000000000000000000003",
+            "history": [
+              "0000000000000000000000000000000000000000000000000000000000000028",
+              "0000000000000000000000000000000000000000000000000000000000000029"
+            ]
+          }
+        },
+        "lineage": {},
+        "refs": {
+          "heads/main": "run:sha256:0000000000000000000000000000000000000000000000000000000000000003"
+        }
+      }
+    },
+    {
+      "base": {
+        "format": "opentine-history-snapshot/1",
         "holds": [],
         "labels": {},
         "lineage": {

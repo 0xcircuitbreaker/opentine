@@ -21,8 +21,8 @@ included, because a conflict names its two side values sorted, never "ours" and
 ``lineage-id``         one variant id names two different records
 ``hold-weakened``      a hold of the base is gone on one side (it is kept)
 ``held-target``        a ref or label moved onto an object that a loop-stop,
-                       taint or quarantine hold added on one side names (it
-                       stays at the base value)
+                       taint or quarantine hold in the base or on either side
+                       names (it stays at the base value)
 
 Nothing is resolved in favour of the side that weakens a hold: holds are the
 union of all three, and refs and lineage records are append-only (one missing
@@ -32,6 +32,7 @@ on one side is not a deletion: a merge never deletes a ref or a record).
 from __future__ import annotations
 
 import hashlib
+import re
 from typing import Any
 
 from opentine.kernel import canonical_json
@@ -43,6 +44,9 @@ GUARDS = ("loop-stop:", "integrity-taint:", "memory-quarantine:")
 KINDS = ("ref-diverged", "label-moved", "promotion-diverged", "lineage-id", "hold-weakened",
          "held-target")  # fmt: skip
 _EMPTY_LABEL = {"current": None, "history": []}
+#: Label names and lineage ids become file names on apply: only these shapes.
+LABEL_RE = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}")
+LINEAGE_RE = re.compile(r"sha256:[0-9a-f]{64}")
 
 
 def empty() -> dict[str, Any]:
@@ -61,9 +65,13 @@ def normalize(snapshot: Any) -> dict[str, Any]:
             isinstance(k, str) and isinstance(v, str) and k and v for k, v in table.items()
         ):
             raise ValueError(f"{name} maps names to strings")
+    if not all(LINEAGE_RE.fullmatch(k) for k in snapshot["lineage"]):
+        raise ValueError("lineage ids are sha256:HEX")
     labels = snapshot["labels"]
     if not isinstance(labels, dict):
         raise ValueError("labels is an object")
+    if not all(isinstance(k, str) and LABEL_RE.fullmatch(k) for k in labels):
+        raise ValueError("label names are [a-z0-9][a-z0-9._-]{0,63}")
     for label, state in labels.items():
         if not isinstance(state, dict) or set(state) != {"current", "history"}:
             raise ValueError(f"label {label!r} is {{current, history}}")
@@ -128,10 +136,10 @@ def _label(base: dict, ours: dict, theirs: dict) -> tuple[dict, str | None]:
 
 
 def _guarded(base: set, ours: set, theirs: set) -> set[str]:
-    """Names (oids and target suffixes) a guard hold added on exactly one side protects."""
+    """Names (oids and target suffixes) a guard hold in base or on either side protects."""
     out: set[str] = set()
-    for target, oid in ours ^ theirs:
-        if (target, oid) not in base and target.startswith(GUARDS):
+    for target, oid in base | ours | theirs:
+        if target.startswith(GUARDS):
             out.add(oid)
             out.add(target.split(":", 1)[1])
     return out

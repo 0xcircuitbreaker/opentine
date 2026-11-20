@@ -67,7 +67,12 @@ def _every_kind() -> dict[str, tuple[dict, dict, dict]]:
     tainted["holds"] = [["integrity-taint:" + c, "attestation:sha256:" + "e" * 64]]
     promoted["labels"]["prod"] = {"current": c, "history": [h[0], h[1]]}
     promoted["refs"] = {"heads/main": c}
-    return {"every-kind": (base, ours, theirs), "taint": (taint_base, tainted, promoted)}
+    held = hm.normalize(taint_base)  # a taint already in the base still guards (review)
+    held["holds"] = tainted["holds"]
+    moved = hm.normalize(promoted)
+    moved["holds"] = tainted["holds"]
+    return {"every-kind": (base, ours, theirs), "taint": (taint_base, tainted, promoted),
+            "taint-in-base": (held, hm.normalize(held), moved)}  # fmt: skip
 
 
 def build_fixture() -> dict:

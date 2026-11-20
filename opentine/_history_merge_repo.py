@@ -106,6 +106,21 @@ def _label_files(merged: dict, ours: dict, theirs_state: Path | None, state: Pat
     return moved
 
 
+def _signer_may_merge(repo: Any, key: Any) -> None:
+    """An optimizer key never lands a merge; with pinned roles only a policy key does."""
+    from opentine._key_roles_pin import resolve
+    from opentine._promote import _who
+
+    found = resolve(Path(repo.path))
+    roles, who = found["roles"] or {}, _who(key)
+    if who in roles.get("optimizer", []):
+        raise ValueError("history-merge.signer: an optimizer key may not land a merge")
+    if found["status"] == "pinned" and who not in roles.get("policy", []):
+        raise ValueError(
+            "history-merge.signer: the pinned key roles do not list this key as policy"
+        )
+
+
 def plan(repo: Any, base: Any, theirs: Any, *, state: Path, lineage: Path) -> dict[str, Any]:
     ours = snapshot(repo, state=state, lineage=lineage)
     return {"ours": ours, **merge(base, ours, theirs)}
@@ -120,6 +135,7 @@ def apply(repo: Any, key: Any, base: Any, theirs: Any, *, state: Path, lineage: 
     from opentine.coord._merge_queue import enqueue
     from opentine.repository._holds import HISTORY_MERGE, edit_holds, holds_path
 
+    _signer_may_merge(repo, key)
     found = plan(repo, base, theirs, state=Path(state), lineage=Path(lineage))
     ours, merged = found["ours"], found["merged"]
     if found["conflicts"]:

@@ -49,3 +49,19 @@ test("the merge is the same whichever side is ours", () => {
     assert.equal(canonicalText(one.conflicts.map(conflictJson)), canonicalText(two.conflicts.map(conflictJson)));
   }
 });
+
+test("label names and lineage ids that would become paths are refused", () => {
+  const snap = (table: string, name: string): JValue => {
+    const body: JValue = table === "lineage" ? "a".repeat(64)
+      : new Map<string, JValue>([["current", null], ["history", []]]);
+    const out = new Map<string, JValue>([["format", "opentine-history-snapshot/1"],
+      ["refs", new Map<string, JValue>()], ["labels", new Map<string, JValue>()],
+      ["lineage", new Map<string, JValue>()], ["holds", []]]);
+    (out.get(table) as JObject).set(name, body);
+    return out;
+  };
+  for (const [table, name] of [["lineage", "sha256:../../promotion/prod"], ["lineage", "sha256:" + "A".repeat(64)],
+    ["labels", "../prod"], ["labels", "a/b"], ["labels", "a\\b"], ["labels", ".."]]) {
+    assert.throws(() => merge(snap(table, name), snap(table, name), snap(table, name)), /malformed/);
+  }
+});

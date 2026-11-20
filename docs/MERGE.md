@@ -60,7 +60,7 @@ sorted by kind, then key.
 | `promotion-diverged` | The label's decision histories do not extend each other (or one side rewrote the base history). |
 | `lineage-id` | One variant id names two different record files. |
 | `hold-weakened` | A hold of the base is missing on one side. The hold is kept. |
-| `held-target` | A ref or label moved onto an object that a `loop-stop:`, `integrity-taint:` or `memory-quarantine:` hold added on one side names. The ref or label stays at its base value. |
+| `held-target` | A ref or label moved onto an object that a `loop-stop:`, `integrity-taint:` or `memory-quarantine:` hold in the base or on either side names. The ref or label stays at its base value. |
 
 No conflict is resolved in favour of the side that weakens a hold: a dropped
 hold is kept and reported, and a taint added on one branch stops the other
@@ -119,6 +119,12 @@ trust bundle (SPEC 4.19, pinned key roles): when roles are pinned, the signer
 must hold the `policy` role and must not hold the `optimizer` role
 (`signer_trusted`); with no pinned bundle the output says `signers:
 unpinned`.
+
+`apply` checks the signing key before anything moves: a key listed as
+`optimizer` (pinned, or in the unpinned `.tine/key-roles.toml`, which may still
+refuse) never lands a merge, and when roles are pinned only a `policy` key does.
+Snapshot label names must match `[a-z0-9][a-z0-9._-]{0,63}` and lineage ids
+`sha256:HEX`, because both become file names when a merge lands.
 
 The Python reference (`opentine/_history_merge_record.py`), the pyz
 (`opentine/_pyz/_histmerge.py`) and the TS verifier
