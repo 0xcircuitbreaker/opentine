@@ -1,5 +1,28 @@
 # Changelog
 
+## Unreleased — Checkpoint and weight custody
+
+- `tine organism tag|untag|approve|status|gate`: model-organism custody for
+  checkpoints trained to misbehave. Artifacts are named by sha256 digest only
+  and never stored. A tag (`opentine.organism-tag/1`) is signed by a pinned
+  `policy` or `curator` key (never an `optimizer` key). A load approval
+  (`opentine.organism-approval/1`) binds the artifact digest to one requesting
+  run and is signed by a pinned `approver` key with no optimizer, monitor or
+  scorer role. Every record is held (`organism:`), and `tine hold release`
+  refuses it.
+- `tine organism gate` (agent hook) and `tine mcp-proxy --organism-gate`
+  refuse a tool call that references a tagged artifact (by digest or a
+  recorded name) without an approval for the run. Every access, allowed or
+  refused, is logged as a held `opentine.organism-access/1` entry. An
+  unreadable tag registry refuses every call.
+- Untagging (`opentine.organism-untag/1`) takes effect only while each released
+  tag's oversight item `organism:ATTESTATION` is approved k-of-n. The oversight
+  policy gains the route source `organism`; with no route, untagging is
+  refused.
+- Schemas `tine-cli-organism-1`, `opentine-organism-tag-1`,
+  `opentine-organism-approval-1`, `opentine-organism-untag-1` and
+  `opentine-organism-access-1`; docs/MODEL_ORGANISMS.md.
+
 ## 0.70.0 — Redaction of paths and emails (2026-11-20)
 
 - Redacted public copies (`tine bundle create --redacted-public`, `tine publish

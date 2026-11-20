@@ -100,7 +100,8 @@
                       "monitor",
                       "eval",
                       "budget",
-                      "containment"
+                      "containment",
+                      "organism"
                     ]
                   },
                   "tier": {
@@ -189,7 +190,7 @@
               },
               "item": {
                 "type": "string",
-                "pattern": "^(promotion|monitor|integrity|budget|containment):.+$"
+                "pattern": "^(promotion|monitor|integrity|budget|containment|organism):.+$"
               },
               "action": {
                 "enum": [
@@ -306,7 +307,7 @@
             "properties": {
               "item": {
                 "type": "string",
-                "pattern": "^(promotion|monitor|integrity|budget|containment):.+$"
+                "pattern": "^(promotion|monitor|integrity|budget|containment|organism):.+$"
               },
               "source": {
                 "enum": [
@@ -314,7 +315,8 @@
                   "integrity",
                   "monitor",
                   "budget",
-                  "containment"
+                  "containment",
+                  "organism"
                 ]
               },
               "opened_at": {

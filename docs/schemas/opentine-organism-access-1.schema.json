@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-organism-access-1.schema.json",
+  "title": "opentine.organism-access/1 entry",
+  "description": "One gated access to a tagged artifact, allowed or refused: a held blob, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "artifact",
+    "run",
+    "outcome",
+    "tool",
+    "approval",
+    "at"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.organism-access/1"
+    },
+    "artifact": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "run": {
+      "type": "string"
+    },
+    "outcome": {
+      "enum": [
+        "allowed",
+        "refused"
+      ]
+    },
+    "tool": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "approval": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "at": {
+      "type": "string"
+    }
+  }
+}

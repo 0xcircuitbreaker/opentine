@@ -1,0 +1,329 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-organism-1.schema.json",
+  "title": "tine organism ... --json",
+  "description": "Model-organism tags, load approvals and the access log.",
+  "anyOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "artifact",
+        "record"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-organism/1"
+        },
+        "command": {
+          "enum": [
+            "organism tag",
+            "organism untag",
+            "organism approve"
+          ]
+        },
+        "artifact": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "record": {
+          "type": "string",
+          "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "artifacts"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-organism/1"
+        },
+        "command": {
+          "const": "organism status"
+        },
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "artifact",
+              "tagged",
+              "live",
+              "names",
+              "tags",
+              "untags",
+              "approvals",
+              "accesses"
+            ],
+            "properties": {
+              "artifact": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "tagged": {
+                "type": "boolean"
+              },
+              "live": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+                }
+              },
+              "names": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "record",
+                    "signer",
+                    "verification",
+                    "names",
+                    "reason",
+                    "tagged_at",
+                    "released_by"
+                  ],
+                  "properties": {
+                    "record": {
+                      "type": "string",
+                      "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+                    },
+                    "signer": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "verification": {
+                      "type": "string",
+                      "pattern": "^(verified|unverified: .+)$"
+                    },
+                    "names": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "reason": {
+                      "type": "string"
+                    },
+                    "tagged_at": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "released_by": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "untags": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "record",
+                    "releases",
+                    "verification",
+                    "effective"
+                  ],
+                  "properties": {
+                    "record": {
+                      "type": "string",
+                      "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+                    },
+                    "releases": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "verification": {
+                      "type": "string",
+                      "pattern": "^(verified|unverified: .+)$"
+                    },
+                    "effective": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              },
+              "approvals": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "record",
+                    "run",
+                    "signer",
+                    "why",
+                    "approved_at",
+                    "verification",
+                    "valid"
+                  ],
+                  "properties": {
+                    "record": {
+                      "type": "string",
+                      "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+                    },
+                    "run": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "signer": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "why": {
+                      "type": "string"
+                    },
+                    "approved_at": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "verification": {
+                      "type": "string",
+                      "pattern": "^(verified|unverified: .+)$"
+                    },
+                    "valid": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              },
+              "accesses": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "run",
+                    "outcome",
+                    "tool",
+                    "approval",
+                    "at"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "^blob:sha256:[0-9a-f]{64}$"
+                    },
+                    "run": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "outcome": {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "allowed",
+                            "refused"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "tool": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "approval": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "at": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

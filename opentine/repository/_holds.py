@@ -59,6 +59,9 @@ BUDGET_FLAG = "budget-flag:"
 #: 0.69: rows that keep a signed sandbox policy or containment finding
 #: (opentine._containment): released never, so a loop cannot delete what it tried.
 CONTAINMENT = "containment:"
+#: 0.72: rows that keep a model-organism tag, untag, load approval or access-log entry
+#: (opentine._organism): released never, so a loop cannot untag or erase an access.
+ORGANISM = "organism:"
 MAX_HOLDS_BYTES = 4 * 1024 * 1024
 
 
@@ -174,6 +177,8 @@ def release(repo, target: str) -> list[dict[str, str]]:
             raise HoldError(f"{target} keeps a budget-ledger entry: it is never released")
         if any(r["target"].startswith(CONTAINMENT) for r in gone):
             raise HoldError(f"{target} keeps a containment record: it is never released")
+        if any(r["target"].startswith(ORGANISM) for r in gone):
+            raise HoldError(f"{target} keeps a model-organism record: it is never released")
         return [r for r in rows if r not in gone]
 
     edit_holds(holds_path(repo), change)

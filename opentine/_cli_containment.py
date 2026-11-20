@@ -19,11 +19,14 @@ from typing import Any
 
 from opentine._cli_common import _terminal, console
 from opentine._cli_errors import error
+from opentine._cli_organism import COMMANDS as ORGANISM_COMMANDS
+from opentine._cli_organism import add_organism_parser
 
 SCHEMA = "tine-cli-containment/1"
 
 
 def add_containment_parser(subparsers: argparse._SubParsersAction) -> None:
+    add_organism_parser(subparsers)  # 0.72: tine organism tag|untag|approve|status|gate
     parser = subparsers.add_parser("containment", help="Sandbox policy and containment evidence")
     verbs = parser.add_subparsers(dest="containment_command", required=True)
     rec = verbs.add_parser("record", help="Sign and hold a run's sandbox policy")
@@ -128,4 +131,7 @@ def cmd_containment(args: argparse.Namespace) -> None:
         raise SystemExit(1)
 
 
-COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {"containment": cmd_containment}
+COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
+    "containment": cmd_containment,
+    **ORGANISM_COMMANDS,
+}

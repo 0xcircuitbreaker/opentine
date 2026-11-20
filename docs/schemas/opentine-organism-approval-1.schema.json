@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-organism-approval-1.schema.json",
+  "title": "opentine.organism-approval/1 claim",
+  "description": "Lets one run load a tagged artifact. A claim convention on an existing attestation, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "artifact",
+    "run",
+    "why",
+    "approved_at"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.organism-approval/1"
+    },
+    "artifact": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "run": {
+      "type": "string"
+    },
+    "why": {
+      "type": "string"
+    },
+    "approved_at": {
+      "type": "string"
+    }
+  }
+}
