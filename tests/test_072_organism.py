@@ -103,11 +103,11 @@ def test_an_approval_is_bound_to_the_artifact_and_the_requesting_run(repo):
     assert other["hookSpecificOutput"]["permissionDecision"] == "deny"
     by_digest = {"protocol": "opentine-monitor/1", "session": "s2", "run": "s1",
                  "tool": {"name": "load", "input": {"digest": ART}}}  # fmt: skip
-    assert _hook(repo, by_digest, agent="generic")["decision"] == "allow"
+    assert _hook(repo, by_digest, agent="generic")["decision"] == "block"  # payload run ignored
     rows = _organism_registry.accesses(repo, ART)
     assert sorted((a["run"], a["outcome"], a["approval"]) for a in rows) == [
         ("s1", "allowed", oid),
-        ("s1", "allowed", oid),
+        ("s2", "refused", None),
         ("s2", "refused", None),
     ]
 

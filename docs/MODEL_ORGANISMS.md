@@ -51,16 +51,18 @@ of a string after splitting on whitespace, quotes and `=`. A call references a
 tagged artifact when a string or word:
 
 - contains the artifact's 64-hex digest; or
-- equals one of the tag's `names`, or ends with `/NAME` (backslashes are read
-  as `/`).
+- equals one of the tag's `names` or its last path segment, or ends with
+  `/NAME` or `/SEGMENT` (backslashes are read as `/`). A short, common file
+  name therefore over-matches; that errs on the refusing side.
 
 Tagging a file adds its path as a name. A call that references a tagged
 artifact goes through only when a valid approval binds that artifact to the
 requesting run. Every such call is recorded in the access log and held,
 whether it was allowed or refused.
 
-The requesting run is set in this order: `--run` (or `--organism-run` on the
-proxy); then the payload's `run` field; then the agent's `session_id`. For an
+The requesting run is `--run` (or `--organism-run` on the proxy), else the
+agent's `session_id`. A `run` field in the hook payload is ignored: it is a
+claim the caller makes about itself. For an
 MCP proxy with no `--organism-run`, it is the proxy's session name.
 
 ### The hook
@@ -88,7 +90,9 @@ through.
 
 If the tag registry cannot be read, every gated call is refused. That covers
 an unreadable holds file, a held tag or untag record that cannot be read, and
-a repository that cannot be opened. A hook payload that cannot be parsed is let
+a repository that cannot be opened. Tags are also read from the object store,
+so dropping a tag's hold row (or deleting the holds file) does not untag an
+artifact; only an effective untag record does. A hook payload that cannot be parsed is let
 through by default, as with every OpenTine hook (D12). Pass `--fail-closed` to
 refuse it instead.
 
@@ -117,5 +121,8 @@ live again. If no route covers organisms, untagging is refused.
   pair the gate with containment evidence (docs/CONTAINMENT.md).
 - The gate only sees tool calls that go through the hook or the proxy. A
   process with direct filesystem access is not mediated.
+- Access-log entries are found through their hold rows. A process that can
+  rewrite the holds file can hide an entry from `status` (the blob remains
+  until garbage collection). Keep the repository out of the loop's write reach.
 - Access-log entries are held but unsigned. They show what the gate decided.
   They do not prove who made the call.

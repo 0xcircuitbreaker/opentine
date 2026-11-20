@@ -4,7 +4,8 @@
 run. A call references a tagged artifact when any string in its arguments
 (or any whitespace-, quote- or ``=``-separated word of one) holds the
 artifact's 64-hex digest, or equals or ends with ``/NAME`` for a name its tag
-recorded. Such a call is allowed only with a valid approval record bound to
+recorded (or that name's last path segment). Such a call is allowed only with a
+valid approval record bound to
 that artifact *and* that run (:mod:`opentine._organism`); allowed or not, every
 access is logged and held. A registry that cannot be read refuses every call
 (fail closed). Renamed or re-encoded copies are not detected here: weights are
@@ -52,7 +53,8 @@ def _hits(entry: dict[str, Any], artifact: str, words: list[str]) -> bool:
         if hexd in word.lower():
             return True
         for name in entry["names"]:
-            if word == name or word.endswith("/" + name.lstrip("/")):
+            base = name.rstrip("/").rsplit("/", 1)[-1]
+            if word in (name, base) or word.endswith(("/" + name.lstrip("/"), "/" + base)):
                 return True
     return False
 
@@ -103,7 +105,7 @@ def hook(raw: bytes, args: Any) -> dict[str, Any]:
     except Exception as exc:  # noqa: BLE001 - D12: an unreadable payload proceeds by default
         return {"outcome": "block" if args.fail_closed else "forward", "artifacts": [],
                 "logged": [], "reason": f"cannot gate: {type(exc).__name__}: {exc}"}  # fmt: skip
-    run = args.run or str(payload.get("run") or event["session"])
+    run = args.run or event["session"]  # never a run the payload claims for itself
     try:
         repo = Repo.open(args.repo)
     except Exception:  # noqa: BLE001 - no repository: the registry is unreadable

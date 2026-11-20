@@ -16,6 +16,7 @@ from opentine._organism import (
     ACCESS,
     APPROVAL,
     BANNED_APPROVER,
+    DIGEST_RE,
     HOLD,
     TAG,
     TAG_ROLES,
@@ -56,6 +57,19 @@ def _claims(repo: Any, kind: str, convention: str) -> list[dict[str, Any]]:
     return out
 
 
+def _stored_tags(repo: Any, seen: set[str]) -> list[dict[str, Any]]:
+    """Tag attestations in the object store whose hold row is gone (dropping it never untags)."""
+    out = []
+    for oid in repo.iter_oids():
+        if not oid.startswith("attestation:") or oid in seen:
+            continue
+        row = records.read(repo, oid)
+        claim = row["claim"]
+        if claim and claim.get("convention") == TAG and DIGEST_RE.match(str(claim.get("artifact"))):
+            out.append(row)
+    return out
+
+
 def oversight_state(repo: Any, tag_record: str) -> str:
     """The k-of-n oversight state of untagging *tag_record* (``unrouted`` grants nothing)."""
     from opentine import _oversight, _oversight_policy
@@ -75,7 +89,8 @@ def oversight_state(repo: Any, tag_record: str) -> str:
 def registry(repo: Any) -> dict[str, dict[str, Any]]:
     """``{artifact: {"tagged", "live", "names", "tags", "untags"}}`` for every tagged artifact."""
     out: dict[str, dict[str, Any]] = {}
-    for row in _claims(repo, "tag", TAG):
+    held_tags = _claims(repo, "tag", TAG)
+    for row in held_tags + _stored_tags(repo, {r["oid"] for r in held_tags}):
         claim = row["claim"]
         entry = out.setdefault(claim["artifact"], {"tags": [], "untags": []})
         names = claim.get("names") if isinstance(claim.get("names"), list) else []
