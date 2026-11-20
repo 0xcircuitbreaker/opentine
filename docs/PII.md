@@ -13,6 +13,42 @@ that ruleset plus personal data, used where you ask for it:
 Write-side redaction is unchanged: stored objects are scrubbed of credentials
 only. Nothing in this document sends text off the machine.
 
+## Publication redaction (Unreleased)
+
+A redacted public copy (`tine bundle create --redacted-public`, `tine publish
+hf`) is the version of a run meant for other people, so it also loses what
+names the machine and the people on it. After the credential ruleset, every
+blob and payload of the copy goes through `opentine-redaction/2+publish/1`
+(`opentine/_redact_publish.py`), the name its `opentine.redacted-copy` record
+carries:
+
+| Kind | What | Becomes |
+|---|---|---|
+| `path` | `/root`, `/home/<u>`, `/var/home/<u>`, `/Users/<u>`, `/mnt/<d>/Users/<u>`, `X:\Users\<u>`, UNC `\\host\Users\<u>` / `\\host\home$\<u>` (any separator, JSON-escaped at any depth or URL-encoded), `~`, `~<u>` | `<HOME>`, rest of the path kept |
+| `email` | `local@domain.tld` (also `%40`, `\u0040`, fullwidth `＠`) where the TLD is a known generic TLD or a two-letter country code that is not a common file extension | `<EMAIL>` |
+| `user` | the user of `user@host:path`, of any URL's `scheme://user[:pw]@host` and `<login>@host` (a shell prompt), unless a service account (`git`, `hg`, `ubuntu`, `ec2-user`, ...) | `<USER>@host` |
+| `user` | an `actor`, `actors` or `writers` value equal to this machine's login, when that login names a person (not `root`, `local`, `nobody`, ...) | `<USER>` |
+
+Left alone on purpose: `pnpm@10.33.0`, `ms@4.0.0`, `@click.option`,
+`@types/node`, `lodash@npm:4.17.21`, `icon@2x.png`, `x@w.shape`,
+`user@localhost`, `git@github.com:org/repo`, `/var/homebrew`, `/homework`,
+`https://example.com/Users/list`. `tests/test_070_redaction_paths_emails.py`
+holds the full table of true and false positives; `tests/test_070_redaction_review.py`
+the red-team rows. Tree entry names are redacted too (re-sorted; a clash refuses
+the copy).
+
+Not caught: base64 or otherwise encoded text inside tool output, an address
+split across lines, lookalike letters other than `＠`, lowercase `/users/<u>`,
+and a bare login name outside the forms above.
+
+Replacements contain no quote or backslash, so JSON stays JSON; two object
+keys that would collapse into one refuse the copy. The copy is rebuilt and
+checked like any other (`validate_run_graph`, signed record over the pack),
+and `bundle create` prints `redaction: {ruleset, objects: {oid: {kind: n}},
+totals}`. `tine op log --redact` applies the same rules to what it prints; the
+op log on disk is hash-chained and is never rewritten. Stored objects are
+unchanged: write-side redaction remains credentials only.
+
 ## Detectors
 
 Every detector is a pattern that proposes a candidate and a validator that

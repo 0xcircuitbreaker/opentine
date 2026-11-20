@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.70.0 — Redaction of paths and emails (2026-11-20)
+
+- Redacted public copies (`tine bundle create --redacted-public`, `tine publish
+  hf`) now also run a publication ruleset after the credential ruleset, and
+  their `opentine.redacted-copy` record names it `opentine-redaction/2+publish/1`:
+  home directories (`/root`, `/home/<u>`, `/Users/<u>`, `C:\Users\<u>`, `~`,
+  `~<u>`) become `<HOME>` with the rest of the path kept; email addresses with a
+  known TLD become `<EMAIL>` (package specifiers such as `pnpm@10.33.0`,
+  decorators, `icon@2x.png` and `x@w.shape` are left alone); the user of an
+  scp-style or `ssh://` login becomes `<USER>` unless it is a service account
+  such as `git`; and `actor` / `actors` / `writers` values equal to the local
+  login name become `<USER>`. The copy stays a valid, verifiable run.
+- Review: also UNC home shares, `/var/home`, WSL `/mnt/<d>/Users`, URL-encoded
+  and doubly JSON-escaped paths, `%40` / `\u0040` / fullwidth `＠` addresses,
+  any URL's userinfo user, `<login>@host` prompts and tree entry names; per-object
+  counts no longer double when two sources derive the same object.
+- `tine bundle create --redacted-public` prints a `redaction` key: the ruleset,
+  per-object counts by kind (`path`, `email`, `user`) and totals.
+- `tine op log --redact` shows the op log with the same rules applied to what
+  it prints (the log itself is hash-chained and unchanged).
+- Stored objects are unchanged: write-side redaction is still credentials only.
+
 ## 0.69.0 — Containment evidence and budgets (2026-11-20)
 
 - Code mirror: when a fetch passes the size limit or times out, the kill now reaches every process git started (its own process group, or `taskkill /T` on Windows). Before, `index-pack` survived and kept writing after the mirror was deleted. Deleting a partial mirror also retries briefly while Windows closes the killed processes' files.

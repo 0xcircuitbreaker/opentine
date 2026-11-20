@@ -39,7 +39,9 @@ def refuse_keys(args: argparse.Namespace) -> None:
         raise ValueError("--key-file, --ed25519-key-file and --key-id sign --redacted-public")
 
 
-def create_public(repo: Any, args: argparse.Namespace) -> bytes:
+def create_public(
+    repo: Any, args: argparse.Namespace, counts: dict[str, dict[str, int]] | None = None
+) -> bytes:
     from opentine._redacted_derive import public_bundle
     from opentine._signing_keys import ed25519_private_from_file, hmac_key_from_file
     from opentine.repository._refs import normalize_ref
@@ -60,8 +62,26 @@ def create_public(repo: Any, args: argparse.Namespace) -> bytes:
     else:
         raise ValueError("--redacted-public signs: pass --key-file or --ed25519-key-file")
     return public_bundle(
-        repo, ref, run, key, algorithm=algorithm, key_id=args.key_id, pack_format=args.pack_format
+        repo,
+        ref,
+        run,
+        key,
+        algorithm=algorithm,
+        key_id=args.key_id,
+        pack_format=args.pack_format,
+        counts=counts,
     )
+
+
+def redaction_summary(counts: dict[str, dict[str, int]]) -> dict[str, Any]:
+    """The ``redaction`` key of ``bundle create --redacted-public``: counts per object."""
+    from opentine._redact_publish import PUBLISH_RULESET
+
+    totals: dict[str, int] = {}
+    for per in counts.values():
+        for kind, number in per.items():
+            totals[kind] = totals.get(kind, 0) + number
+    return {"ruleset": PUBLISH_RULESET, "objects": counts, "totals": totals}
 
 
 def verified(checked: Any, args: argparse.Namespace) -> dict[str, Any]:

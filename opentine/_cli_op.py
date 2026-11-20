@@ -13,6 +13,11 @@ def add_op_parsers(sub: argparse._SubParsersAction) -> None:
     actions = op.add_subparsers(dest="op_action", required=True)
     log = actions.add_parser("log", help="List logged ops, newest first")
     log.add_argument("-n", "--limit", type=int, default=None)
+    log.add_argument(
+        "--redact",
+        action="store_true",
+        help="Show the local login as <USER> and home paths/emails as placeholders",
+    )
     verify = actions.add_parser(
         "verify", help="Check the op log's tiles, hash chain and signed checkpoint (offline)"
     )
@@ -54,6 +59,10 @@ def cmd_op(args: argparse.Namespace) -> None:
             console.print(f"[{BRAND}]# Verified[/] op log of {len(ops)} op(s)")
         return
     newest = list(reversed(ops))[: args.limit]
+    if args.redact:  # the log itself is hash-chained: only what is shown is redacted
+        from opentine._redact_publish import login, scrub_value
+
+        newest = [scrub_value(op, login=login())[0] for op in newest]
     if args.json:
         print(json.dumps({"ops": newest}, sort_keys=True))
         return
