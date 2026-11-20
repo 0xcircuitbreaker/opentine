@@ -47,7 +47,16 @@ tier = "low"
 [[route]]
 source = "integrity"            # held integrity taints (fail: findings)
 tier = "low"
+
+[[route]]
+source = "organism"             # untagging a model organism (0.72)
+tier = "high"
 ```
+
+`budget` and `containment` items route the same way. An `organism:ATTESTATION`
+item names a model-organism tag record. An untag takes effect only while that
+item is `approved`, and with no `organism` route an untag never takes effect
+(docs/MODEL_ORGANISMS.md).
 
 An item routed into several tiers must satisfy each of them.
 

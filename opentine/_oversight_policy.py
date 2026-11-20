@@ -11,6 +11,7 @@ that send items into tiers::
     alice = ["sha256:<a1>", "sha256:<a2>"]
     [[route]]
     source = "promotion"         # promotion | integrity | monitor | eval | budget | containment
+                                 # | organism (0.72: untagging a model organism)
     label = "prod*"              # promotion and eval: a label glob (default *)
     tier = "high"
     [[route]]
@@ -45,7 +46,7 @@ from typing import Any
 FILE_NAME = "oversight.toml"
 PIN_NAME = "oversight.sig.json"
 POLICY = "opentine.oversight-policy/1"
-SOURCES = ("promotion", "integrity", "monitor", "eval", "budget", "containment")
+SOURCES = ("promotion", "integrity", "monitor", "eval", "budget", "containment", "organism")
 EVAL_METRICS = ("pass_rate", "mean_score")
 BANNED_ROLES = ("optimizer", "monitor", "scorer")
 MONITOR_ACTIONS = ("flag", "defer", "block")
@@ -78,7 +79,7 @@ def _route(row: Any, tiers: dict[str, Any]) -> dict[str, Any]:
         raise OversightError(f"a route is a table of {', '.join(sorted(_ROUTE_KEYS))}")
     if row.get("source") not in SOURCES or row.get("tier") not in tiers:
         raise OversightError("a route names a source (promotion, integrity, monitor, eval, "
-                             "budget, containment) and a declared tier")  # fmt: skip
+                             "budget, containment, organism) and a declared tier")  # fmt: skip
     out = {"source": row["source"], "tier": row["tier"], "label": str(row.get("label", "*"))}
     if row["source"] == "eval":
         if row.get("metric") not in EVAL_METRICS:

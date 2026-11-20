@@ -127,6 +127,9 @@ NOT_KINDS = (
     "opentine-sandbox-policy-1", "opentine-containment-finding-1",
     # 0.72 (release 0.71.0): an attestation claim (checkpoint and weight custody events)
     "opentine-weight-custody-1",
+    # 0.72 (release 0.71.0): attestation claims (organism tags, approvals, untags), a held blob
+    "opentine-organism-tag-1", "opentine-organism-approval-1", "opentine-organism-untag-1",
+    "opentine-organism-access-1",
 )  # fmt: skip
 DEFERRED_SCHEMAS: dict[str, str] = {}
 #: Backticked SPEC heading words that are not kinds (capabilities, commands, fields).

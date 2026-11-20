@@ -1,5 +1,5 @@
 """Schemas for the query, experiment, elicitation, sabotage, history-merge, budget,
-containment and weight custody areas.
+containment, weight custody and model-organism areas.
 
 Collected by :mod:`opentine._schemas`.
 """
@@ -20,6 +20,8 @@ from opentine._schema_defs_experiment import COMMAND_SCHEMAS as _EXPERIMENT_COMM
 from opentine._schema_defs_experiment import SCHEMAS as _EXPERIMENT
 from opentine._schema_defs_merge_history import COMMAND_SCHEMAS as _MH_COMMANDS
 from opentine._schema_defs_merge_history import SCHEMAS as _MH
+from opentine._schema_defs_organism import COMMAND_SCHEMAS as _ORGANISM_COMMANDS
+from opentine._schema_defs_organism import SCHEMAS as _ORGANISM
 from opentine._schema_defs_query import COMMAND_SCHEMAS as _QUERY_COMMANDS
 from opentine._schema_defs_query import SCHEMAS as _QUERY
 from opentine._schema_defs_sabotage import COMMAND_SCHEMAS as _SABOTAGE_COMMANDS
@@ -34,6 +36,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     **_BUDGET,
     **_CONTAINMENT,
     **_CUSTODY,
+    **_ORGANISM,
 }
 COMMAND_SCHEMAS: dict[str, str] = {
     **_QUERY_COMMANDS,
@@ -44,6 +47,7 @@ COMMAND_SCHEMAS: dict[str, str] = {
     **_BUDGET_COMMANDS,
     **_CONTAINMENT_COMMANDS,
     **_CUSTODY_COMMANDS,
+    **_ORGANISM_COMMANDS,
 }
 
 __all__ = ["COMMAND_SCHEMAS", "SCHEMAS"]
