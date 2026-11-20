@@ -86,8 +86,9 @@ def _from_bundle(store: Path, owner: str) -> dict[str, list[str]] | None:
 
     try:
         note = bundle_path(store).read_bytes()
-    except FileNotFoundError:
-        return None
+    except FileNotFoundError as exc:
+        # A pinned owner and no bundle fails closed: deleting the file is not a downgrade.
+        raise KeyRoleError(f"trust bundle missing for the pinned owner: {exc}") from exc
     except OSError as exc:
         raise KeyRoleError(f"trust bundle: {exc}") from exc
     try:

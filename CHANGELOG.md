@@ -1,5 +1,56 @@
 # Changelog
 
+## 0.68.0 — Security and integrity hardening (2026-11-20)
+
+- Audit-game records count as signed only when the payload `signer` names the
+  key that actually signed (`used_key_fingerprint`); a findings record signed
+  by any key and claiming the pinned auditor's fingerprint no longer counts.
+- Loop stops (`verify_stop`) and monitor stop tokens (`verify_token`) report
+  `unverified` when the payload `signer` does not name the signing key, so a
+  stop can no longer be attributed to the pinned stopper by another key.
+- With an owner key pinned, a missing trust bundle now fails closed
+  (`KeyRoleError`) instead of falling back to the unsigned `key-roles.toml` as
+  `unpinned`; deleting `.tine/trust-bundle.note` no longer lets an optimizer
+  key land a history merge or downgrade any role check. The owner pin is
+  global, so a pinned owner now needs a bundle in every repository (or
+  `$OPENTINE_TRUST_BUNDLE`) (CRYPTO-2, SIGN-1).
+- `tine promote --canary` now applies the gate's checks to the canary pair:
+  the same item set (`promote.item-mismatch`), the same dataset
+  (`promote.dataset-mismatch`) and at least `min_n` paired items
+  (`promote.n-below-minimum`). An empty, tiny or cherry-picked canary used to
+  pass silently, and a single bad item could revert an honest promotion.
+- The promotion gate (main, holdout and canary pairs) refuses evals whose
+  scorer, `scorer_version` or `threshold` differ between the sides, or vary
+  within one side, with the new command-level refusal `promote.scorer-mismatch`.
+  A candidate scored under a lower threshold could raise `pass_rate` without
+  improving.
+- `tine integrity scan`: the canary index
+  (`.tine/integrity/canary-index.sqlite`) is no longer trusted as written.
+  Each `scanned` row is an HMAC under this user's local 0600 secret over the
+  scan key, object id, its hits and the index location; a row that does not
+  verify (hits deleted, rows planted or copied) is read again, so editing the
+  cache cannot hide a canary leak. The index is opened without following
+  links, and a linked or non-regular index path is not used (every object is
+  read). Older indexes rescan once. (audit fs-1)
+- Authentication, share-token, admin and signup throttles now key clients the
+  same way the connection limiter does: IPv4 address or IPv6 /64 (IPv4-mapped
+  addresses fold to IPv4). A host rotating source addresses inside its /64 can
+  no longer reset its lockout every five guesses or flood out another client's
+  lockout record.
+- `tine merge-history` refuses a snapshot whose holds name anything but a
+  run oid and a 1..1024 character target. Before, `apply` could write such a
+  row into `.tine/holds`, after which every hold read failed (holds-merge-poison).
+- `tine merge-history apply` no longer copies label state files from
+  `--theirs-state`. A loop could hand-write `.tine/promotion/<label>.json` in its
+  own clone (no signed decision, no VSA) and a routine merge would land its
+  candidate on the label without oversight, holdout, monitor or guards. A label
+  that differs is now refused with `history-merge.label-gated`; labels move only
+  by `tine promote`.
+- `tine record`'s localhost proxy now refuses a request body over 16 MiB with 413
+  before reading it, as the MCP proxy and OTLP receiver already did (PARSE-1).
+- `tine record`'s proxy now refuses a non-loopback Host or any non-loopback Origin
+  with 403, so a web page (DNS rebinding or a simple cross-origin POST) can no
+  longer inject exchanges into a recorded run (PARSE-2).
 ## 0.67.0 — Merging run histories (2026-11-20)
 
 - `tine merge-history snapshot|plan|apply|verify` merges what parallel loops

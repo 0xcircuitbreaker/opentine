@@ -82,8 +82,11 @@ Otherwise it lands the merge as ordinary ref updates plus one signed record:
 - **Merge queue.** A ref that a merge queue owns (`coord/merge-queue/ID` with
   that target) is not moved directly: its new run is enqueued, and the queue
   lands it under its gates and fencing as usual.
-- **Labels** take the other side's label state file from `--theirs-state`;
-  each decision row must hash to what the merged snapshot names.
+- **Labels** are never moved by a merge. A label that differs between the
+  sides is refused (`history-merge.label-gated`): a label state file is plain
+  JSON with no signed decision or VSA, so landing it would skip every promote
+  gate. Run `tine promote` on this side instead so oversight, holdout, monitor
+  and guards apply.
 - **Lineage records** are copied from `--theirs-lineage`; each file must hash
   to the merged snapshot's digest and verify as a signed record.
 - **Holds** are only ever added.

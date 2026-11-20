@@ -4,7 +4,9 @@ Stdlib only. Each provider gets a path prefix (``/openai/...``); the child's SDK
 is pointed there through its own base-URL variable, and the proxy forwards the
 rest of the path to the upstream that variable named before (or the provider's
 public default). Bytes go back to the child unchanged, SSE included, while a
-bounded copy is kept for the recorder. Request and response *headers* are never
+bounded copy is kept for the recorder. Request bodies over ``MAX_CAPTURE`` and
+requests naming a non-loopback Host or Origin are refused before anything is read.
+Request and response *headers* are never
 captured, so an ``Authorization`` or ``x-api-key`` cannot reach the run.
 """
 
@@ -21,6 +23,7 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from opentine._http_linger import LingeringCloseMixin
+from opentine._otlp_http import LOOPBACK_NAMES, _host_name
 
 #: name -> (base-URL env vars, public default, provider, wire dialect).
 UPSTREAMS: dict[str, tuple[tuple[str, ...], str, str, str]] = {
@@ -97,12 +100,22 @@ class _Handler(BaseHTTPRequestHandler):
         if name not in UPSTREAMS:
             self.send_error(404, "unknown provider prefix")
             return
+        # A loopback-only proxy: a foreign Host (DNS rebinding) or any web Origin
+        # could otherwise put attacker-chosen exchanges into the recorded run.
+        origin = self.headers.get("Origin")
+        if _host_name(self.headers.get("Host") or "") not in LOOPBACK_NAMES or (
+            origin is not None and (urlsplit(origin).hostname or "") not in LOOPBACK_NAMES
+        ):
+            self.close_connection = True
+            self.send_error(403, "only loopback Host and Origin are accepted")
+            return
         try:
             length = int(self.headers.get("Content-Length") or 0)
         except ValueError:
             length = -1
-        if length < 0:
-            self.send_error(400, "invalid Content-Length")
+        if length < 0 or length > MAX_CAPTURE:
+            self.close_connection = True
+            self.send_error(413 if length > 0 else 400, "bad or oversized request body")
             return
         body = self.rfile.read(length) if length else b""
         if not self.server.bases.get(name):

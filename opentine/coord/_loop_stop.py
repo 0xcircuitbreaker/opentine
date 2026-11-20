@@ -127,6 +127,7 @@ def loop_state(repo: Any, loop: str) -> dict[str, Any]:
 
 def verify_stop(repo: Any, loop: str, oid: Any) -> str:
     """``verified`` when *oid* is an Ed25519-signed ``opentine.loop-stop/1`` for *loop*."""
+    from opentine._signing_pins import used_key_fingerprint
     from opentine.attest_signing import verify_attestation
 
     try:
@@ -141,6 +142,8 @@ def verify_stop(repo: Any, loop: str, oid: Any) -> str:
     result = verify_attestation(payload, trust_embedded=True)
     if not result.ok or result.algorithm != "ed25519":
         return f"unverified: {result.state}"
+    if used_key_fingerprint(payload.get("signature")) != payload.get("signer"):
+        return "unverified: the signer field does not name the key that signed"
     return _stopper(repo, payload.get("signer"))
 
 

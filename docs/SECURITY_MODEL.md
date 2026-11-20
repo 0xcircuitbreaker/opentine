@@ -971,3 +971,14 @@ provider forced on through `OPENSSL_CONF`) is the gate; on other platforms its
 real-provider test skips. Ed25519 is approved, but an OpenSSL 3.0 FIPS provider
 may not ship it, in which case Ed25519 operations fail inside OpenSSL.
 
+## Known limits
+
+- `coord._loop_hold.held_stop` picks among several held loop stops by the
+  lowest object id. A planted stop with a smaller id can take over which stop
+  is reported (its signer and verification). Every held stop still blocks, so
+  this cannot lift a stop; it only affects attribution. Audit-game `latest()`
+  orders signed records by their self-claimed `at`, and seal and reveal
+  signers are not role-checked. Records now count as signed only when their
+  `signer` is the signing key, so a later findings record from a non-auditor
+  key wins `latest()` but is reported as `advisory:audit-game.auditor-unpinned`
+  rather than as the auditor's verdict.

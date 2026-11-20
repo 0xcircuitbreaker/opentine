@@ -72,6 +72,7 @@ def stop(repo: Any, scope: str, key: Any, *, reason: str = "", now: float | None
 
 def verify_token(repo: Any, oid: str, scope: str) -> str:
     """``verified`` when *oid* is a pinned-stopper-signed token for *scope*."""
+    from opentine._signing_pins import used_key_fingerprint
     from opentine.attest_signing import verify_attestation
     from opentine.coord._loop_stop import _stopper
 
@@ -87,6 +88,8 @@ def verify_token(repo: Any, oid: str, scope: str) -> str:
     result = verify_attestation(payload, trust_embedded=True)
     if not result.ok or result.algorithm != "ed25519":
         return f"unverified: {result.state}"
+    if used_key_fingerprint(payload.get("signature")) != payload.get("signer"):
+        return "unverified: the signer field does not name the key that signed"
     return _stopper(repo, payload.get("signer"))
 
 

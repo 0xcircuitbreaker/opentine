@@ -87,12 +87,30 @@ def _surfaces(repo: Any) -> dict[str, str]:
 
 
 def _open_index(root: Path) -> sqlite3.Connection:
+    """The index, opened without following links; a linked or odd path is not used
+    (an in-memory cache instead, so every object is read)."""
+    from opentine._actions_trust import check_location, connect
+
     path = Path(root) / INDEX
     path.parent.mkdir(parents=True, exist_ok=True)
-    db = sqlite3.connect(path)
+    try:
+        check_location(path)
+        db = connect(path)
+    except (ValueError, sqlite3.Error):
+        db = sqlite3.connect(":memory:")
     db.execute("CREATE TABLE IF NOT EXISTS scanned (oid TEXT PRIMARY KEY, canaries TEXT)")
     db.execute("CREATE TABLE IF NOT EXISTS hits (oid TEXT, canary TEXT, PRIMARY KEY (oid, canary))")
     return db
+
+
+def _stamp(root: Path, key: str, oid: str, hits: list[str]) -> str:
+    """A ``scanned`` row's value: the scan key bound (HMAC under this user's local
+    secret) to the object id, its hits and the index location, so a row edited,
+    copied or planted by whoever can write ``.tine/`` does not verify (audit fs-1)."""
+    from opentine._actions_trust import keyed_stamp
+
+    stamp = f"{key}\0{oid}\0{','.join(sorted(hits))}"
+    return keyed_stamp(stamp, (Path(root).absolute() / INDEX).as_posix()).rsplit(":", 1)[1]
 
 
 def _registrations(repo: Any) -> set[str]:
@@ -124,8 +142,11 @@ def _scan_objects(root: Path, rows: list[dict[str, Any]], key: str) -> tuple[lis
     db = _open_index(root)
     try:
         known = dict(db.execute("SELECT oid, canaries FROM scanned"))
+        cached_hits: dict[str, list[str]] = {}
+        for o, c in db.execute("SELECT oid, canary FROM hits"):
+            cached_hits.setdefault(o, []).append(c)
         for oid in oids:
-            if known.get(oid) == key:
+            if oid in known and known[oid] == _stamp(root, key, oid, cached_hits.get(oid, [])):
                 counts["cached"] += 1
                 continue
             counts["read"] += 1
@@ -133,10 +154,11 @@ def _scan_objects(root: Path, rows: list[dict[str, Any]], key: str) -> tuple[lis
                 body = ObjectEnvelope.decode(repo.raw(oid), oid).body
             except Exception:  # noqa: BLE001 - an unreadable object is searched as stored
                 body = repo.raw(oid)
+            hits = sorted(search(body, pattern, spelled))
             db.execute("DELETE FROM hits WHERE oid = ?", (oid,))
-            db.executemany("INSERT INTO hits VALUES (?, ?)",
-                           [(oid, c) for c in sorted(search(body, pattern, spelled))])  # fmt: skip
-            db.execute("INSERT OR REPLACE INTO scanned VALUES (?, ?)", (oid, key))
+            db.executemany("INSERT INTO hits VALUES (?, ?)", [(oid, c) for c in hits])
+            db.execute("INSERT OR REPLACE INTO scanned VALUES (?, ?)",
+                       (oid, _stamp(root, key, oid, hits)))  # fmt: skip
         db.commit()
         present = set(oids)
         found = [(o, c) for o, c in db.execute("SELECT oid, canary FROM hits ORDER BY oid, canary")

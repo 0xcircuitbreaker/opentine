@@ -4,7 +4,9 @@ A client could guess bearer tokens as fast as the server answered 401s. After
 ``free_failures`` consecutive failures a client is now locked out for a delay
 that doubles with each further failure (capped at ``max_delay``) and gets 429
 with ``Retry-After`` -- without its credentials being checked -- until the delay
-passes. A success clears the record. Clients are keyed by peer address.
+passes. A success clears the record. Clients are keyed by peer: an IPv4
+address or an IPv6 /64 (``_http_server._peer``), since one host is routinely
+handed a whole /64 and could otherwise rotate addresses every few guesses.
 
 A 500 used to name the exception class to the caller; it now says only
 ``internal`` with a request id, and the exception is logged server-side.
@@ -19,6 +21,8 @@ import time
 import uuid
 from collections import OrderedDict
 from collections.abc import Callable
+
+from opentine.remote._http_server import _peer
 
 LOG = logging.getLogger("opentine.remote")
 
@@ -45,11 +49,12 @@ class AuthThrottle:
     def retry_after(self, client: str) -> int:
         """Seconds the client must still wait, or 0 if it may try now."""
         with self._lock:
-            _, until = self._clients.get(client, (0, 0.0))
+            _, until = self._clients.get(_peer(client), (0, 0.0))
         remaining = until - self.clock()
         return math.ceil(remaining) if remaining > 0 else 0
 
     def failed(self, client: str) -> None:
+        client = _peer(client)
         with self._lock:
             count, _ = self._clients.pop(client, (0, 0.0))
             count += 1
@@ -63,7 +68,7 @@ class AuthThrottle:
 
     def succeeded(self, client: str) -> None:
         with self._lock:
-            self._clients.pop(client, None)
+            self._clients.pop(_peer(client), None)
 
 
 def internal_error(exc: BaseException) -> dict[str, str]:

@@ -56,7 +56,7 @@ def test_an_unreadable_holds_file_taints(room: Path, tmp_path, capsys):
 
 def test_an_unsigned_policy_role_cannot_pin_the_protected_list(room: Path):
     assert load_list(room)[2] == []
-    (room / ".tine" / "trust-bundle.note").unlink()  # only the unsigned file is left
+    (room / ".tine" / "trust-bundle.note").unlink()  # a pinned owner fails closed
     findings = load_list(room)[2]
     assert [f["code"] for f in findings] == ["fail:protected-list-unsigned"]
-    assert "unpinned" in findings[0]["detail"]
+    assert "trust bundle missing" in findings[0]["detail"]

@@ -220,7 +220,7 @@ def canary(key: Any, policy: dict[str, Any], candidate: str, label: str, *, stat
            at: str | None = None) -> dict:  # fmt: skip
     """Post-promotion canary: a signed, significant regression reverts the label."""
     from opentine._eval_compare import statistical
-    from opentine._promote_checks import _eval
+    from opentine._promote_checks import _alike, _eval
 
     refusals: list[dict[str, str]] = []
     _eval(canary_evals, policy, candidate, "canary candidate", refusals)
@@ -233,8 +233,8 @@ def canary(key: Any, policy: dict[str, Any], candidate: str, label: str, *, stat
         raise PromotionRefused(refusals)
     row = statistical(baseline, canary_evals, method=policy["test"], alpha=policy["alpha"],
                       seed=policy["seed"], resamples=policy["resamples"])  # fmt: skip
-    if row["stats"] is None:
-        raise PromotionRefused([refusal("promote.eval-invalid", "the canary comparison failed")])
+    if not _alike("canary", baseline, canary_evals, row, policy, refusals) or refusals:
+        raise PromotionRefused(refusals)  # a tiny, partial or off-dataset canary decides nothing
     if policy["metric"] not in row["stats"]["regressions"]:
         current = read_state(state, label)["current"]
         return {"action": "canary", "label": label, "candidate": candidate, "previous": current,
