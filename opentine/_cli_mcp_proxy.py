@@ -14,6 +14,8 @@ inline monitor on ``tools/call`` (:mod:`opentine._monitor_mcp`, docs/MONITORS.md
 advisory by default, a blocking gate only when the config says ``mode = "gate"``.
 0.69: ``--budget SUBJECT --budget-key KEY`` refuses ``tools/call`` once the
 subject's budget is reached (:mod:`opentine._budget_gate`, docs/BUDGETS.md).
+0.72: ``--organism-gate`` refuses a ``tools/call`` that loads a tagged model
+organism without an approval for ``--organism-run`` (docs/MODEL_ORGANISMS.md).
 """
 
 from __future__ import annotations
@@ -62,6 +64,9 @@ def add_mcp_proxy_parser(sub: Any) -> None:
         help="Refuse tools/call once SUBJECT's budget is reached (docs/BUDGETS.md)",
     )
     proxy.add_argument("--budget-key", metavar="KEY", help="Ed25519 key that signs budget flags")
+    proxy.add_argument("--organism-gate", action="store_true",
+                       help="Refuse loading a tagged model organism without approval")  # fmt: skip
+    proxy.add_argument("--organism-run", metavar="RUN", help="The run approvals must name")
     proxy.add_argument("cmd", nargs=argparse.REMAINDER, help="The MCP server command, after --")
 
 
@@ -125,6 +130,24 @@ def _budget(args: argparse.Namespace, inner: Any) -> Any:
     return guard
 
 
+def _organism(args: argparse.Namespace, inner: Any, session: str) -> Any:
+    """The model-organism guard ``--organism-gate`` asks for (wrapping *inner*)."""
+    if not getattr(args, "organism_gate", False):
+        return inner
+    from opentine._organism_gate import OrganismMcpGuard
+    from opentine.repo import Repo
+
+    where = args.monitor_repo or args.repo
+    if not where:
+        _fail("--organism-gate needs --repo (or --monitor-repo): the tag registry lives there")
+    try:
+        repo = Repo.open(where)
+    except (OSError, ValueError):
+        repo = None  # an unreadable registry refuses every tools/call (fail closed)
+    err.print(f"mcp-proxy: model-organism gate (run {args.organism_run or session})")
+    return OrganismMcpGuard(repo, args.organism_run or session, inner)
+
+
 def _serve_http(args: argparse.Namespace, command: list[str], recorder: Any) -> int:
     import subprocess
 
@@ -164,7 +187,7 @@ def cmd_mcp_proxy(args: argparse.Namespace) -> None:
     transport = "http" if args.http_upstream else "stdio"
     recorder = McpRecorder(output, command or [args.http_upstream], transport, err.print)
     monitor = _guard(args, f"mcp-{stamp}-{os.getpid()}")
-    args.guard = _budget(args, monitor)
+    args.guard = _organism(args, _budget(args, monitor), f"mcp-{stamp}-{os.getpid()}")
     if monitor is not None:
         recorder.run.metadata["monitor"] = {**monitor.gate.monitor.identity,
                                             "mode": monitor.gate.config["mode"]}  # fmt: skip

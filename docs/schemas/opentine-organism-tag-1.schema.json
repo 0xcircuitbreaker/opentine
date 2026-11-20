@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-organism-tag-1.schema.json",
+  "title": "opentine.organism-tag/1 claim",
+  "description": "Marks an artifact (by digest) as a model organism. A claim convention on an existing attestation, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "artifact",
+    "names",
+    "reason",
+    "tagged_at"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.organism-tag/1"
+    },
+    "artifact": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "names": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "reason": {
+      "type": "string"
+    },
+    "tagged_at": {
+      "type": "string"
+    }
+  }
+}

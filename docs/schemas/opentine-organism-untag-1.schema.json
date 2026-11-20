@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-organism-untag-1.schema.json",
+  "title": "opentine.organism-untag/1 claim",
+  "description": "Releases tag records; effective only with k-of-n oversight approval. A claim convention on an existing attestation, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "artifact",
+    "releases",
+    "untagged_at"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.organism-untag/1"
+    },
+    "artifact": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "releases": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+      }
+    },
+    "untagged_at": {
+      "type": "string"
+    }
+  }
+}

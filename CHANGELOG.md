@@ -25,6 +25,61 @@
   `.claude/projects/<p>/<uuid>/` paths, which become `<SESSION>`. Patterns
   are per harness in `opentine/_redact_harnesses.py`; tool `input` and
   `parameters` are untouched; everything counts under `telemetry`.
+## 0.71.0 — Checkpoint and weight custody (2026-11-20)
+
+- Custody gaps and refused tagged loads go to the oversight queue: the source
+  `custody` (items `custody:ATTESTATION|BLOB`) lists each event a `fail:`
+  finding of `tine custody check` names, each load `tine custody gate` refused
+  (now held as `opentine.weight-custody-refusal/1`, hold
+  `custody:weights-refused:`, never released) and each refused `tine organism
+  gate` access. Approving an item never allows a load.
+- `tine query` gains the tables `weight_custody` and `organism_records`.
+- New schema `opentine-weight-custody-refusal-1`.
+- `tine custody record EVENT LOCATION --artifact NAME` records checkpoint and
+  weight custody events (`created`, `copied`, `loaded`, `exported`,
+  `destroyed`, `approved`). Weights are referenced by digest only: `--file` is
+  read as a size-capped streaming SHA-256 (`--max-bytes`, default 1 TiB) and
+  never stored or uploaded.
+- Each event is a signed attestation claim (`opentine.weight-custody/1`, a claim
+  convention, not an object kind), hash-chained per artifact (`seq`, `prev`) and
+  kept by a `custody:weights:` hold that `tine hold release` refuses. Events link
+  the checkpoint to its training run (`--run`), data commitments (`--data`) and
+  lineage node (`--lineage`). The signer is bound to the signing key; event
+  signers count only with a `runner` role, approvals only with a `policy` role,
+  both from the owner-pinned trust bundle.
+- `tine custody chain NAME` and `tine custody check NAME [--file LOCATION=PATH]`
+  report chain breaks (`custody-chain-broken`) and gaps (`custody-gap`): an
+  artifact seen at a new location or digest without a copy event, a load
+  without a preceding create or copy, use after destroy. Unpinned signers are
+  advisory unless `--strict`.
+- `--tag model-organism` on the created event makes loads stricter: a load
+  without an earlier pinned approval of that digest is
+  `custody-unapproved-load`, and `tine custody gate` (agent `PreToolUse` hook)
+  denies tool calls naming the artifact's locations or digests until one
+  exists. The gate fails closed on an unreadable payload or record.
+- New schemas `tine-cli-custody-weights-1` and `opentine-weight-custody-1`;
+  docs/CUSTODY.md.
+
+- `tine organism tag|untag|approve|status|gate`: model-organism custody for
+  checkpoints trained to misbehave. Artifacts are named by sha256 digest only
+  and never stored. A tag (`opentine.organism-tag/1`) is signed by a pinned
+  `policy` or `curator` key (never an `optimizer` key). A load approval
+  (`opentine.organism-approval/1`) binds the artifact digest to one requesting
+  run and is signed by a pinned `approver` key with no optimizer, monitor or
+  scorer role. Every record is held (`organism:`), and `tine hold release`
+  refuses it.
+- `tine organism gate` (agent hook) and `tine mcp-proxy --organism-gate`
+  refuse a tool call that references a tagged artifact (by digest or a
+  recorded name) without an approval for the run. Every access, allowed or
+  refused, is logged as a held `opentine.organism-access/1` entry. An
+  unreadable tag registry refuses every call.
+- Untagging (`opentine.organism-untag/1`) takes effect only while each released
+  tag's oversight item `organism:ATTESTATION` is approved k-of-n. The oversight
+  policy gains the route source `organism`; with no route, untagging is
+  refused.
+- Schemas `tine-cli-organism-1`, `opentine-organism-tag-1`,
+  `opentine-organism-approval-1`, `opentine-organism-untag-1` and
+  `opentine-organism-access-1`; docs/MODEL_ORGANISMS.md.
 
 ## 0.70.0 — Redaction of paths and emails (2026-11-20)
 
