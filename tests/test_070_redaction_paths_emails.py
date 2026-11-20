@@ -28,7 +28,7 @@ PATHS = [
     ("~/notes.txt", "<HOME>/notes.txt"),
     ("~bob/notes.txt", "<HOME>/notes.txt"),
     ("file:///home/u/x", "file://<HOME>/x"),
-    ("/var/home/x", "/var/home/x"),
+    ("/var/home/x", "<HOME>"),  # Silverblue: /var/home/<user>
     ("/homework/a", "/homework/a"),
     ("/rootfs/etc", "/rootfs/etc"),
     ("/home", "/home"),
