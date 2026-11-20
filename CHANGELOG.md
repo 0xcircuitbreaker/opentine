@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Checkpoint and weight custody
+## 0.71.0 — Checkpoint and weight custody (2026-11-20)
 
 - Custody gaps and refused tagged loads go to the oversight queue: the source
   `custody` (items `custody:ATTESTATION|BLOB`) lists each event a `fail:`
