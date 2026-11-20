@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-trends-task-lengths-1.schema.json",
+  "title": "opentine.trends.task-lengths/1",
+  "description": "Signed human task lengths (minutes) per eval item, for the time horizon. Used only when signed by a pinned dataset-role key that is not an optimizer key. A file convention, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "suite",
+    "lengths",
+    "signer",
+    "signed_at",
+    "signature"
+  ],
+  "properties": {
+    "kind": {
+      "const": "opentine.trends.task-lengths/1"
+    },
+    "suite": {
+      "type": "string"
+    },
+    "lengths": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^(0|[1-9][0-9]{0,8})(\\.[0-9]{0,5}[1-9])?$"
+      }
+    },
+    "signer": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "signed_at": {
+      "type": "string",
+      "description": "RFC 3339 UTC timestamp"
+    },
+    "signature": {
+      "$ref": "tine-sig-3.schema.json"
+    }
+  }
+}

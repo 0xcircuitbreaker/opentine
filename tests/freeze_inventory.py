@@ -130,6 +130,8 @@ NOT_KINDS = (
     # 0.72 (release 0.71.0): attestation claims (organism tags, approvals, untags), a held blob
     "opentine-organism-tag-1", "opentine-organism-approval-1", "opentine-organism-untag-1",
     "opentine-organism-access-1",
+    # 0.72: file conventions (the trends export and signed task lengths)
+    "opentine-trends-1", "opentine-trends-task-lengths-1",
 )  # fmt: skip
 DEFERRED_SCHEMAS: dict[str, str] = {}
 #: Backticked SPEC heading words that are not kinds (capabilities, commands, fields).

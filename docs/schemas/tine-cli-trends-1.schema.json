@@ -1,0 +1,576 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-trends-1.schema.json",
+  "title": "tine trends --json",
+  "description": "Capability trends over lineage generations, from signed records only: per variant the mean score and pass rate with 0.57 bootstrap intervals, cost per success, the 50%-success time horizon with a studentized bootstrap interval, and paired comparisons with each parent; per generation a summary. Or, with --sign-lengths, the signed task-lengths file written.",
+  "anyOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "signers",
+        "lengths",
+        "excluded",
+        "export_sha256",
+        "convention",
+        "alpha",
+        "seed",
+        "resamples",
+        "variants",
+        "generations",
+        "regressions",
+        "flags"
+      ],
+      "properties": {
+        "command": {
+          "const": "trends"
+        },
+        "schema": {
+          "const": "tine-cli-trends/1"
+        },
+        "signers": {
+          "enum": [
+            "pinned",
+            "unpinned"
+          ]
+        },
+        "lengths": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "suite",
+            "signer"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "trusted",
+                "missing",
+                "invalid",
+                "roles-unpinned",
+                "signer-untrusted"
+              ]
+            },
+            "suite": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "signer": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "excluded": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "variant",
+              "code"
+            ],
+            "properties": {
+              "variant": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "code": {
+                "enum": [
+                  "lineage.record-invalid",
+                  "lineage.cycle"
+                ]
+              }
+            }
+          }
+        },
+        "export_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "convention": {
+          "const": "opentine.trends/1"
+        },
+        "alpha": {
+          "type": "string"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "resamples": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "variant",
+              "generation",
+              "parents",
+              "flags",
+              "n",
+              "score",
+              "pass_rate",
+              "cost_per_success",
+              "horizon",
+              "vs_parents"
+            ],
+            "properties": {
+              "variant": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "generation": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "parents": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                }
+              },
+              "flags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "n": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "score": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "mean",
+                  "ci"
+                ],
+                "properties": {
+                  "mean": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "ci": {
+                    "anyOf": [
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                        },
+                        "minItems": 2,
+                        "maxItems": 2
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              },
+              "pass_rate": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "mean",
+                  "ci"
+                ],
+                "properties": {
+                  "mean": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "ci": {
+                    "anyOf": [
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                        },
+                        "minItems": 2,
+                        "maxItems": 2
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              },
+              "cost_per_success": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "horizon": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "n",
+                  "lengths",
+                  "minutes",
+                  "ci",
+                  "reason",
+                  "failed_resamples"
+                ],
+                "properties": {
+                  "n": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "lengths": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "minutes": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "ci": {
+                    "anyOf": [
+                      {
+                        "type": "array",
+                        "items": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "minItems": 2,
+                        "maxItems": 2
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "reason": {
+                    "enum": [
+                      null,
+                      "fewer-than-two-lengths",
+                      "no-fit"
+                    ]
+                  },
+                  "failed_resamples": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              },
+              "vs_parents": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "parent",
+                    "n",
+                    "regressions",
+                    "score",
+                    "pass_rate"
+                  ],
+                  "properties": {
+                    "parent": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    "n": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "regressions": {
+                      "type": "array",
+                      "items": {
+                        "enum": [
+                          "score",
+                          "pass_rate"
+                        ]
+                      }
+                    },
+                    "score": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "delta",
+                        "ci",
+                        "significant"
+                      ],
+                      "properties": {
+                        "delta": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "ci": {
+                          "anyOf": [
+                            {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                              },
+                              "minItems": 2,
+                              "maxItems": 2
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "significant": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "pass_rate": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "delta",
+                        "ci",
+                        "significant"
+                      ],
+                      "properties": {
+                        "delta": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "ci": {
+                          "anyOf": [
+                            {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                              },
+                              "minItems": 2,
+                              "maxItems": 2
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "significant": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "generations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "generation",
+              "variants",
+              "flagged",
+              "regressions",
+              "best"
+            ],
+            "properties": {
+              "generation": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "variants": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "flagged": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "regressions": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "best": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "variant",
+                      "score",
+                      "horizon_minutes"
+                    ],
+                    "properties": {
+                      "variant": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "score": {
+                        "type": "string",
+                        "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                      },
+                      "horizon_minutes": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "regressions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "variant",
+              "parent",
+              "metrics"
+            ],
+            "properties": {
+              "variant": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "parent": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "metrics": {
+                "type": "array",
+                "items": {
+                  "enum": [
+                    "score",
+                    "pass_rate"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "flags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "signed",
+        "suite",
+        "signer",
+        "items"
+      ],
+      "properties": {
+        "command": {
+          "const": "trends"
+        },
+        "schema": {
+          "const": "tine-cli-trends/1"
+        },
+        "signed": {
+          "type": "string"
+        },
+        "suite": {
+          "type": "string"
+        },
+        "signer": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "items": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  ]
+}
