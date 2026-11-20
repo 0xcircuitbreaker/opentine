@@ -2132,6 +2132,17 @@ docs/MODEL_ORGANISMS.md.
 All commands take `--repo PATH`; `--json` prints `tine-cli-transcripts/1`. The
 index is non-authoritative and rebuildable. See docs/TRANSCRIPTS.md.
 
+## Transcript clusters and behaviour flags (0.74)
+
+| Command | What it does |
+| --- | --- |
+| `tine transcripts cluster [--corpus FILE.jsonl ...] [--k N] [--seed S] [--backend MODULE:ATTR]` | Seeded k-means over the redacted text of every run (or `{id, text}` lines); clusters are named `tc-` + a digest of their members and list the verified flags among them; the backend digest is recorded |
+| `tine transcripts label LABEL (--run RUN ... \| --cluster ID [--k N --seed S] \| --like RUN [--top N]) --key KEY [--note TEXT] [--at TIME]` | Signs and holds an `opentine.transcript-flag/1` record with a pinned `scorer` or `curator` key; an optimizer key, an unpinned role or an unreadable role policy is refused |
+| `tine transcripts flags [--label L] [--run RUN] [--like RUN --top N]` | Lists flags with their verification; `--like` adds the runs most like one run |
+
+All commands take `--repo PATH`; `--json` prints `tine-cli-transcripts/1`. See
+docs/TRANSCRIPT_FLAGS.md.
+
 ## Merging run histories (0.69)
 
 | Command | What it does |

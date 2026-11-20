@@ -29,7 +29,9 @@ SCHEMA = "tine-cli-containment/1"
 
 def add_containment_parser(subparsers: argparse._SubParsersAction) -> None:
     add_organism_parser(subparsers)  # 0.72: tine organism tag|untag|approve|status|gate
-    add_transcripts_parser(subparsers)  # 0.74: tine transcripts index|search|similar
+    add_transcripts_parser(
+        subparsers
+    )  # 0.74: tine transcripts index|search|similar|cluster|label|flags
     parser = subparsers.add_parser("containment", help="Sandbox policy and containment evidence")
     verbs = parser.add_subparsers(dest="containment_command", required=True)
     rec = verbs.add_parser("record", help="Sign and hold a run's sandbox policy")

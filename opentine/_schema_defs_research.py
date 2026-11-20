@@ -1,5 +1,5 @@
 """Schemas for the query, experiment, elicitation, sabotage, history-merge, budget,
-containment, weight custody, model-organism and transcript-index areas.
+containment, weight custody, model-organism and transcript-analysis areas.
 
 Collected by :mod:`opentine._schemas`.
 """

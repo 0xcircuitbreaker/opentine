@@ -105,7 +105,9 @@ def test_a_forged_vector_is_replaced_by_rebuild_and_not_used_as_the_query(capsys
     _sql(path, ("UPDATE transcripts SET vector = ? WHERE run IN (?, ?)",
                 (benign, room["runs"]["hack1"], room["runs"]["hack2"])))  # fmt: skip
     code, body = tine(capsys, "transcripts", "similar", "heads/hack2", "-k", "1", "--repo", "r")
-    assert code == 0 and body["hits"][0]["run"] != room["runs"]["plain1"]
+    # hack1 now carries plain1's vector, so the two tie (run ids decide the order); had the
+    # forged hack2 row been used as the query, the top score would be 1.0
+    assert code == 0 and body["hits"][0]["score"] < 0.999
     code, body = tine(capsys, "transcripts", "index", "--rebuild", "--repo", "r")
     assert body["counts"]["embedded"] == 4 and body["counts"]["reused"] == 0
     code, body = tine(capsys, "transcripts", "similar", "heads/hack2", "-k", "1", "--repo", "r")

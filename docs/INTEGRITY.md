@@ -308,8 +308,10 @@ vector family. `tests/test_060_integrity.py` regenerates the fixture from
 - Canaries (0.60): sealed holdout items (TINEAES), `tine dataset unseal`
   access records, exposure budgets and holdout rotation are separate plan
   items. The scan reads repository objects and raw files, so it does not
-  inflate compressed exports. Embedding near-duplicates wait for a pinned
-  embedding model. No TypeScript reader reads canary records yet.
+  inflate compressed exports. Embedding near-duplicates are opt-in
+  (`--embedding-threshold`, 0.74) and see shared vocabulary, not meaning, unless
+  a pinned local model is given. No TypeScript reader reads canary records
+  yet.
 - The remaining advisory heuristics of the plan (skip insertion,
   special-casing, visible/holdout gap, judge vs ground truth, fabricated tool
   evidence) and the seeded red-team corpus with its benign baseline.

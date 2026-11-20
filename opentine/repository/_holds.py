@@ -67,6 +67,9 @@ WEIGHT_CUSTODY_REFUSED = "custody:weights-refused:"
 #: 0.72: rows that keep a model-organism tag, untag, load approval or access-log entry
 #: (opentine._organism): released never, so a loop cannot untag or erase an access.
 ORGANISM = "organism:"
+#: 0.74: rows that keep a signed behaviour flag on transcripts (opentine._transcript_flags):
+#: released never, so a loop cannot delete the record that flagged it.
+TRANSCRIPT_FLAG = "transcript-flag:"
 MAX_HOLDS_BYTES = 4 * 1024 * 1024
 
 
@@ -186,6 +189,8 @@ def release(repo, target: str) -> list[dict[str, str]]:
             raise HoldError(f"{target} keeps a weight custody record: it is never released")
         if any(r["target"].startswith(ORGANISM) for r in gone):
             raise HoldError(f"{target} keeps a model-organism record: it is never released")
+        if any(r["target"].startswith(TRANSCRIPT_FLAG) for r in gone):
+            raise HoldError(f"{target} keeps a transcript behaviour flag: it is never released")
         return [r for r in rows if r not in gone]
 
     edit_holds(holds_path(repo), change)

@@ -1,4 +1,5 @@
-"""``tine transcripts index|search|similar`` (0.74, release 0.73.0).
+"""``tine transcripts index|search|similar`` (0.74); ``cluster|label|flags`` live in
+:mod:`opentine._cli_transcripts_flags`.
 
 ``index [--rebuild] [--backend SPEC] [--weights-digest D] [--step-bytes N]
 [--max-bytes N] [--workers N]`` reports or rebuilds the derived transcript
@@ -27,28 +28,41 @@ from opentine._cli_common import _terminal, console
 from opentine._cli_errors import error
 
 SCHEMA = "tine-cli-transcripts/1"
-VERBS = ("index", "search", "similar")
+VERBS = ("index", "search", "similar", "cluster", "label", "flags")
 
 
 def add_transcripts_parser(subparsers: argparse._SubParsersAction) -> None:
-    parser = subparsers.add_parser(
-        "transcripts", help="Embedding search over run transcripts (derived index)"
-    )
-    parser.add_argument("verb", choices=VERBS)
-    parser.add_argument("target", nargs="?", metavar="TEXT|RUN", help="search text or a run")
+    from opentine._cli_transcripts_flags import add_flag_verbs
+
+    parser = subparsers.add_parser("transcripts", help="Search, cluster and flag run transcripts")
+    verbs = parser.add_subparsers(dest="verb", required=True)
+    for name, text in (
+        ("index", "Report or rebuild the derived transcript index"),
+        ("search", "Runs nearest a text"),
+        ("similar", "Runs nearest a run"),
+    ):
+        _index_options(verbs.add_parser(name, help=text), name)
+    add_flag_verbs(verbs)  # cluster, label, flags
+
+
+def _index_options(parser: argparse.ArgumentParser, verb: str) -> None:
+    if verb != "index":
+        parser.add_argument("target", nargs="?", metavar="TEXT|RUN", help="search text or a run")
+        parser.add_argument("-k", type=int, default=10, metavar="N", help="At most N hits")
+        parser.add_argument("--approx", action="store_true",
+                            help="LSH candidates, then exact scores")  # fmt: skip
     parser.add_argument("--repo", default=".", metavar="PATH", help="Repository")
-    parser.add_argument("-k", type=int, default=10, metavar="N", help="At most N hits")
-    parser.add_argument("--approx", action="store_true", help="LSH candidates, then exact scores")
     parser.add_argument("--refresh", action="store_true", help="Rebuild a stale index first")
-    parser.add_argument("--rebuild", action="store_true", help="index: embed every run again")
-    parser.add_argument("--verify", action="store_true",
-                        help="index: list rows that disagree with the objects")  # fmt: skip
+    if verb == "index":
+        parser.add_argument("--rebuild", action="store_true", help="Embed every run again")
+        parser.add_argument("--verify", action="store_true",
+                            help="List rows that disagree with the objects")  # fmt: skip
     parser.add_argument("--backend", metavar="SPEC", help="hash (default) or MODULE:ATTR")
     parser.add_argument("--weights-digest", metavar="sha256:HEX",
                         help="Refuse model weights with another digest")  # fmt: skip
     parser.add_argument("--step-bytes", type=int, metavar="N", help="Cap per input/output")
     parser.add_argument("--max-bytes", type=int, metavar="N", help="Cap per transcript")
-    parser.add_argument("--workers", type=int, metavar="N", help="index: worker processes")
+    parser.add_argument("--workers", type=int, metavar="N", help="Worker processes")
     parser.add_argument("--json", action="store_true", help="Print a JSON object")
 
 
@@ -146,12 +160,15 @@ def _find(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[str
 
 def cmd_transcripts(args: argparse.Namespace) -> None:
     from opentine._cli_json import emit
+    from opentine._cli_transcripts_flags import HANDLERS
     from opentine.repo import Repo
 
+    handler = HANDLERS.get(args.verb) or (_index if args.verb == "index" else _find)
     try:
-        repo = Repo.open(args.repo)
-        body, lines = (_index if args.verb == "index" else _find)(args, repo)
-    except (OSError, ValueError, KeyError) as exc:
+        flagless = args.verb == "cluster" and args.corpus
+        repo = None if flagless else Repo.open(args.repo)
+        body, lines = handler(args, repo)
+    except (OSError, ValueError, KeyError, PermissionError) as exc:
         raise error(exc, prefix=f"transcripts {args.verb}: ") from exc
     if args.json:
         emit({"command": f"transcripts {args.verb}", "schema": SCHEMA, **body})
