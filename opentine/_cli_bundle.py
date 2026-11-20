@@ -41,14 +41,18 @@ def cmd_bundle(args: argparse.Namespace, console) -> None:
         if bool(args.refs) == bool(args.all):
             raise ValueError("name refs to bundle, or pass --all (not both)")
         if args.redacted_public:  # 0.46: one run's redacted copy and its signed record
-            data = _bundle_share.create_public(repo, args)
+            counts: dict[str, dict[str, int]] = {}
+            data = _bundle_share.create_public(repo, args, counts)
         else:
             _bundle_share.refuse_keys(args)
             refs, fmt = args.refs or None, args.pack_format
             data = _bundle.create(repo, refs, pack_format=fmt, transparency=args.transparency)
         _atomic_bytes(Path(args.file), data)
         checked = _bundle.verify(data)
-        _print({"bundle": checked.digest, "bytes": len(data), "refs": checked.refs})
+        report = {"bundle": checked.digest, "bytes": len(data), "refs": checked.refs}
+        if args.redacted_public:  # per-object publication redaction counts
+            report["redaction"] = _bundle_share.redaction_summary(counts)
+        _print(report)
     elif action in ("unbundle", "import"):
         name = args.as_name or _bundle.namespace(Path(args.file).name)
         _print(_bundle.unbundle(repo, _bundle.read_file(args.file), name, force=args.force))

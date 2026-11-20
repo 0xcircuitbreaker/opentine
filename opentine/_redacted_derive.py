@@ -6,7 +6,10 @@ attestations, which stay private) and rebuilds it bottom-up in memory:
 * a plain blob is re-redacted with the current ruleset until it is stable;
 * a tree blob (schema 2) keeps its entries, its links rewritten;
 * every JSON payload (event, run) is redacted again, then each oid it names is
-  rewritten to the oid of the object derived from it.
+  rewritten to the oid of the object derived from it;
+* after the credential ruleset, the publication ruleset (:mod:`opentine._redact_publish`:
+  home paths, email addresses, the local login in actor fields) runs on blobs
+  and payloads alike, and the record names ``opentine-redaction/2+publish/1``.
 
 A blob the repository does not hold (purged, or cut by a shallow fetch) keeps
 its oid and stays a boundary of the pack, with its tombstone carried beside it.
@@ -18,9 +21,11 @@ the caller's key, and writes an ordinary bundle whose one ref names the copy.
 from __future__ import annotations
 
 import hashlib
+from collections import Counter
 from typing import Any
 
-from opentine._redact_obfuscated import REDACTION_RULESET
+from opentine import _redact_publish
+from opentine._redact_publish import PUBLISH_RULESET
 from opentine._redacted_copy import KIND, sign
 from opentine._v3_guards import guarded_redaction
 from opentine.kernel import TREE_SCHEMA, ObjectEnvelope, validate_links
@@ -78,9 +83,13 @@ class _View:
         return ObjectEnvelope.decode(self.raw(oid), oid)
 
 
-def _derived(envelope: ObjectEnvelope, mapping: dict[str, str]) -> ObjectEnvelope:
+def _derived(
+    envelope: ObjectEnvelope, mapping: dict[str, str], login: str | None, counts: Counter[str]
+) -> ObjectEnvelope:
     if envelope.encoding == "raw" and envelope.schema != TREE_SCHEMA:
-        return ObjectEnvelope.create("blob", _stable(envelope.body), envelope.schema)
+        body, found = _redact_publish.scrub_bytes(_stable(envelope.body), login=login)
+        counts.update(found)
+        return ObjectEnvelope.create("blob", body, envelope.schema)
     if envelope.encoding == "raw":  # a tree: its entries are links
         import json
 
@@ -89,12 +98,23 @@ def _derived(envelope: ObjectEnvelope, mapping: dict[str, str]) -> ObjectEnvelop
         tree = _rewrite(json.loads(envelope.body, parse_int=_parse_int), mapping)
         return ObjectEnvelope.create("blob", canonical_json(tree), envelope.schema)
     where = f"redacted copy {envelope.object_type!r}"
-    payload = _rewrite(guarded_redaction(envelope.payload(), where=where), mapping)
+    payload, found = _redact_publish.scrub_value(
+        guarded_redaction(envelope.payload(), where=where), login=login
+    )
+    counts.update(found)
+    payload = _rewrite(payload, mapping)
     return ObjectEnvelope.create(envelope.object_type, payload, envelope.schema)
 
 
-def derive(repo: Any, run: str) -> tuple[str, dict[str, bytes], set[str], int]:
-    """``(public run, derived objects, boundary oids, objects changed)`` for *run*."""
+def derive(
+    repo: Any, run: str, counts: dict[str, dict[str, int]] | None = None
+) -> tuple[str, dict[str, bytes], set[str], int]:
+    """``(public run, derived objects, boundary oids, objects changed)`` for *run*.
+
+    *counts*, when given, is filled with ``{derived oid: {kind: n}}`` for each
+    object the publication ruleset changed (kinds ``path``, ``email``, ``user``).
+    """
+    login = _redact_publish.login()
     if not run.startswith("run:") or not repo.has(run):
         raise KeyError(f"no such run in this repository: {run}")
     mapping: dict[str, str] = {}
@@ -116,8 +136,13 @@ def derive(repo: Any, run: str) -> tuple[str, dict[str, bytes], set[str], int]:
             stack.append((oid, True))
             stack.extend((link, False) for link in links[oid] if link not in mapping)
             continue
-        new = _derived(repo.get(oid), mapping)
+        found: Counter[str] = Counter()
+        new = _derived(repo.get(oid), mapping, login, found)
         mapping[oid] = new.oid
+        if counts is not None and found:
+            per = counts.setdefault(new.oid, {})
+            for kind, number in found.items():
+                per[kind] = per.get(kind, 0) + number
         objects[new.oid] = new.encode()
     view = _View(objects, boundary)
     for oid in objects:
@@ -127,20 +152,21 @@ def derive(repo: Any, run: str) -> tuple[str, dict[str, bytes], set[str], int]:
 
 
 def public_bundle(repo: Any, ref: str, run: str, key: Any, *, algorithm: str,
-                  key_id: str | None = None, pack_format: str = "TINEPACK3") -> bytes:  # fmt: skip
+                  key_id: str | None = None, pack_format: str = "TINEPACK3",
+                  counts: dict[str, dict[str, int]] | None = None) -> bytes:  # fmt: skip
     """A bundle holding only *run*'s redacted copy under *ref*, and its signed record."""
     from opentine import _bundle
     from opentine.repository import _pack5, _tombstones
     from opentine.repository._pack5 import V5
 
-    public, objects, boundary, changed = derive(repo, run)
+    public, objects, boundary, changed = derive(repo, run, counts)
     pack = create_pack(_View(objects, boundary), sorted(objects))
     record = {
         "kind": KIND,
         "copy_version": 1,
         "source_run": run,
         "public_run": public,
-        "ruleset": REDACTION_RULESET,
+        "ruleset": PUBLISH_RULESET,
         "objects": len(objects),
         "redacted": changed,
         "pack": "",

@@ -6507,4 +6507,12 @@ ROWS: tuple[tuple, ...] = (
             "member_command": [],
         },
     ),
+    (
+        "plain:op log --redact",
+        "plain",
+        ["op", "log", "--redact"],
+        "opentine._cli_op:cmd_op",
+        False,
+        {"command": "op", "op_action": "log", "redact": True, "json": False},
+    ),
 )
