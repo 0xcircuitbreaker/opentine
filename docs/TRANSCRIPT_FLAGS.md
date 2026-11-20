@@ -26,7 +26,15 @@ unique.
 The default backend is `opentine.tfidf-hash/1`. It needs the standard library
 only, downloads nothing and gives the same vectors on every machine:
 
-- features: case-folded `\w+` words and word bigrams (at most 20,000 words);
+- normalisation (`opentine/_transcript_normalise.py`): Unicode NFKC, case
+  folding, format characters (zero-width spaces and joiners, bidi controls)
+  dropped, common Cyrillic and Greek lookalikes mapped to Latin letters, and
+  the words of tokens that decode as base64 UTF-8 text added, so lookalike,
+  zero-width, full-width and base64 rewrites do not move a transcript away
+  from known bad ones;
+- features: `\w+` words and word bigrams over every word (streamed; there is
+  no word cap a run could pad past), hashes masked to 21 bits so the
+  feature table stays bounded;
 - each feature is hashed with CRC-32 seeded with 74 into one of 2048 buckets,
   with its sign taken from bit 20 of the hash (a sparse random projection);
 - weight `(1 + ln tf) * (ln((N + 1) / (df + 1)) + 1)`, IDF over the corpus
@@ -176,6 +184,14 @@ Results and hardware: docs/bench/0.74-transcripts.md. No test asserts a
 duration.
 
 ## Not yet
+
+- Paraphrase and dilution are not defended: rewording with other vocabulary,
+  or padding a transcript with a large amount of benign text, lowers its
+  similarity to known bad runs. Nested or otherwise encoded payloads (hex,
+  gzip, base64 inside base64) are not decoded.
+- A model backend's `weights_digest` is what the adapter declares; opentine
+  does not hash the weight files itself. A model must return `dim` finite
+  numbers per text or the space is refused.
 
 - Flags do not open oversight items yet; a reviewer reads them with
   `tine transcripts flags`.

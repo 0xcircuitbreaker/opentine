@@ -34,14 +34,14 @@ from opentine.kernel import canonical_json
 NAME = "opentine.tfidf-hash/1"
 DIM = 2048
 SEED = 74
-MAX_WORDS = 20000
-_WORD = re.compile(r"\w+")
+HASH_MASK = (1 << 21) - 1  # keeps bucket (h % dim, dim | 2**21) and sign (bit 20)
 _DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
 Sparse = dict[int, float]
 
 
 def params(dim: int = DIM, seed: int = SEED) -> dict[str, Any]:
     return {"name": NAME, "dim": dim, "seed": seed, "features": "word+word-bigram",
+            "normalise": "nfkc+casefold+drop-Cf+confusables/1+base64-decode", "mask": 21,
             "hash": "crc32(feature, seed); bucket=h%dim; sign=bit20",
             "weight": "(1+ln tf)*(ln((N+1)/(df+1))+1)", "similarity": "centred cosine"}  # fmt: skip
 
@@ -55,9 +55,17 @@ def backend_digest(dim: int = DIM, seed: int = SEED) -> str:
 
 
 def features(text: str, seed: int = SEED) -> Counter[int]:
-    words = _WORD.findall(text.casefold())[:MAX_WORDS]
-    grams = words + [f"{a} {b}" for a, b in zip(words, words[1:], strict=False)]
-    return Counter(zlib.crc32(g.encode("utf-8"), seed) for g in grams)
+    """Hashed word and bigram counts over every normalised word (streamed, no cap)."""
+    from opentine._transcript_normalise import words
+
+    out: Counter[int] = Counter()
+    previous = None
+    for word in words(text):
+        out[zlib.crc32(word.encode("utf-8"), seed) & HASH_MASK] += 1
+        if previous is not None:
+            out[zlib.crc32(f"{previous} {word}".encode(), seed) & HASH_MASK] += 1
+        previous = word
+    return out
 
 
 def _normalise(vector: Sparse) -> Sparse:
@@ -84,8 +92,7 @@ class Space:
         if model is not None:
             dense = model.embed([texts[i] for i in self.ids]) if self.ids else []
             self.dim = int(model.dim)
-            self.vectors = {i: _normalise(dict(enumerate(map(float, v))))
-                            for i, v in zip(self.ids, dense, strict=True)}  # fmt: skip
+            self.vectors = {i: self._dense(v) for i, v in zip(self.ids, dense, strict=True)}
         else:
             counts = {i: features(texts[i], seed) for i in self.ids}
             df: Counter[int] = Counter()
@@ -102,6 +109,15 @@ class Space:
         self._mm = sum(m * m for m in self.mean)
         self._norm = {i: self._centred_norm(v) for i, v in self.vectors.items()}
 
+    def _dense(self, values: Any) -> Sparse:
+        """A model's vector, refused unless it has ``dim`` finite numbers."""
+        vector = [float(v) for v in values]
+        if len(vector) != self.dim:
+            raise ValueError(f"the model returned dimension {len(vector)}, not {self.dim}")
+        if not all(math.isfinite(v) for v in vector):
+            raise ValueError("the model returned a vector that is not all finite numbers")
+        return _normalise(dict(enumerate(vector)))
+
     def _weigh(self, counts: Counter[int]) -> Sparse:
         vector: Sparse = {}
         for h, tf in counts.items():
@@ -116,7 +132,7 @@ class Space:
     def embed(self, text: str) -> Sparse:
         """A vector for *text* in this space (IDF from the fitted corpus)."""
         if self.model is not None:
-            return _normalise(dict(enumerate(map(float, self.model.embed([text])[0]))))
+            return self._dense(self.model.embed([text])[0])
         return self._weigh(features(text, self.seed))
 
     def query(self, vectors: list[Sparse]) -> list[float]:

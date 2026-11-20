@@ -2,6 +2,13 @@
 
 ## Unreleased — Transcript analysis at corpus scale
 
+- Transcript features are taken after Unicode NFKC, case folding, dropping
+  format characters, mapping Cyrillic and Greek lookalikes and decoding
+  base64 tokens, over every word (no 20,000-word cap to pad past); the
+  backend digest changes accordingly. `--corpus` lines with duplicate keys
+  or NaN/Infinity are refused, a model returning the wrong dimension or
+  non-finite numbers is refused, and a flag's `labelled_at` must be
+  `YYYY-MM-DDTHH:MM:SSZ`.
 - `tine transcripts cluster [--corpus FILE.jsonl] [--k N] [--seed S]`:
   seeded spherical k-means over the redacted text of every run (or a JSONL
   corpus), with the deterministic standard-library embedding

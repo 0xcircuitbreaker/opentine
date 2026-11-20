@@ -35,6 +35,7 @@ STANDARD = ("reward-hacking", "test-deletion", "sabotage-side-task")
 LABELLER_ROLES = ("scorer", "curator")
 _LABEL = re.compile(r"[a-z0-9][a-z0-9-]{0,63}")
 _CLUSTER = re.compile(r"tc-[0-9a-f]{16}")
+_AT = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z")
 _RUN = re.compile(r"run:sha256:[0-9a-f]{64}")
 _FIELDS = ("convention", "label", "evidence", "cluster", "labeller", "backend", "note",
            "labelled_at")  # fmt: skip
@@ -61,6 +62,8 @@ def check_claim(claim: Any) -> list[str]:
         problems.append("cluster is tc-<16 hex> or null")
     if not isinstance(claim["note"], str) or not isinstance(claim["labelled_at"], str):
         problems.append("note and labelled_at are strings")
+    elif not _AT.fullmatch(claim["labelled_at"]):
+        problems.append("labelled_at is YYYY-MM-DDTHH:MM:SSZ")
     return problems
 
 

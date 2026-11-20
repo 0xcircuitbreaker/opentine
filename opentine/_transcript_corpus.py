@@ -31,6 +31,27 @@ def from_repo(repo: Any, *, limit: int = MAX_RUNS) -> dict[str, str]:
     return out
 
 
+def _pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    out: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in out:
+            raise ValueError(f"duplicate key {key!r}")
+        out[key] = value
+    return out
+
+
+def _constant(name: str) -> Any:
+    raise ValueError(f"{name} is not a finite number")
+
+
+def _loads(line: str, where: str) -> Any:
+    """Strict JSON: no duplicate keys, no NaN or Infinity (a later key cannot hide text)."""
+    try:
+        return json.loads(line, object_pairs_hook=_pairs, parse_constant=_constant)
+    except ValueError as exc:
+        raise ValueError(f"{where}: {exc}") from None
+
+
 def from_files(paths: list[str]) -> tuple[dict[str, str], dict[str, str]]:
     """``({id: text}, {id: behaviour})`` from JSONL corpus files; ids must be unique."""
     texts: dict[str, str] = {}
@@ -39,8 +60,8 @@ def from_files(paths: list[str]) -> tuple[dict[str, str], dict[str, str]]:
         for number, line in enumerate(Path(path).read_bytes().decode("utf-8").splitlines(), 1):
             if not line.strip():
                 continue
-            row = json.loads(line)
             where = f"{Path(path).as_posix()}:{number}"
+            row = _loads(line, where)
             if not isinstance(row, dict) or not isinstance(row.get("id"), str):
                 raise ValueError(f"{where}: a corpus line is an object with a string id")
             if not isinstance(row.get("text"), str):
