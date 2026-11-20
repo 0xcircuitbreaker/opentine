@@ -48,7 +48,11 @@ def add_weight_arguments(rec: argparse.ArgumentParser, verbs: Any) -> None:
         verb.add_argument("--json", action="store_true", help="Emit a JSON object instead")
     gate = verbs.add_parser("gate", help="0.71: hook gate for model-organism loads (stdin)")
     gate.add_argument("--repo", default=".")
-    gate.add_argument("--agent", default="claude-code", choices=["claude-code", "codex", "generic"])
+    gate.add_argument(
+        "--agent",
+        choices=["claude-code", "codex", "generic"],
+        help="Hook dialect (default: claude-code)",
+    )
 
 
 def _record(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[str]]:
