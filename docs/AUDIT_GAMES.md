@@ -113,6 +113,17 @@ tine auditor check --repo .
 Every claim also has `convention`, `game`, `step` and `at`. The schema is
 `opentine-audit-game-1`.
 
+### Where to keep the secret
+
+The `--blind` file is the opening of the seal: it names the target and holds
+the nonce. The audited agent can usually read the repository working tree, so
+`import-petri` refuses a `--blind` path inside the repository (resolved,
+symlinks followed) unless `--allow-in-repo` is given, and never overwrites an
+existing file. Keep it outside the repository, for example in an owner-only
+config directory such as `~/.config/opentine/games/g1.json`. It is written
+owner-only (0600). A reveal copies its fields into a signed record in the
+repository, so after `tine auditor reveal` the opening is public.
+
 With `--blind`, the stored run names the target only as
 `sealed:sha256:...`. Message text is imported as written, so a transcript in
 which the target states its own name still shows that name.

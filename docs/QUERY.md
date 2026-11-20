@@ -52,6 +52,7 @@ The index lives at `.tine/query/index.sqlite`.
 | `sabotage_tasks` | `opentine.sabotage-task/1` attestation | `oid`, `target` (the run), `signer`, `signed`, `task`, `class`, `main_task`, `main_score`, `main_passed`, `side_task`, `attempted`, `achieved`, `verdicts` (linked monitor verdicts), `at` |
 | `elicit_links` | `opentine.elicit-link/1` file in `.tine/elicit/links/` | `oid`, `source`, `task`, `safety_relevant`, `condition`, `kind`, `cue`, `monitored`, `model`, `model_version`, `signer`, `signed`, `items`, `mean_score`, `attempts`, `tokens`, `usd`, `gpu_hours`, `created_at` |
 | `elicit_items` | item score of an elicitation link | `oid` (the link), `task`, `condition`, `id`, `score` |
+| `history_merges` | `opentine.history-merge/1` attestation | `oid`, `target` (the run), `signer`, `signed`, `ref` (the merge target ref), `base`, `sides` (JSON list of side digests), `merged`, `conflicts` (count). Under `--verify` a row is `verified` only for a pinned `policy` signer without `optimizer`; `tine merge-history verify` re-runs the merge itself |
 | `meta` | key | `authority` (always `non-authoritative`), `format`, `counts` and what the index was built from |
 
 `oid` is the object id for repository objects. Lineage records and eval

@@ -15,7 +15,7 @@ import hashlib
 import json
 import os
 from collections.abc import Callable
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 from opentine._cli_common import _terminal, console
@@ -32,6 +32,8 @@ def add_auditor_parser(subparsers: argparse._SubParsersAction) -> None:
     imp.add_argument("--save", metavar="PATH", help="Also write a portable .tine artifact")
     imp.add_argument("--blind", metavar="SECRET", help="Seal the target; write the secret here")
     imp.add_argument("--objective", default="", help="Hidden objective sealed with --blind")
+    imp.add_argument("--allow-in-repo", action="store_true",
+                     help="Allow the --blind secret inside the repository")  # fmt: skip
     seal = verbs.add_parser("seal", help="Sign and hold a game's sealed commitment")
     found = verbs.add_parser("findings", help="Sign and hold the auditor's findings")
     found.add_argument("--findings", required=True, metavar="FILE", help="Findings document")
@@ -59,6 +61,7 @@ def _import(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[s
     who = _petri.roles(doc)
     sealed = None
     if args.blind:
+        _check_placement(Path(args.blind), [Path(args.repo), Path(repo.path)], args.allow_in_repo)
         secret = _audit_game.secret(who[_petri.TARGET], args.objective)
         sealed = _audit_game.commitment(secret)
         text = json.dumps(secret, indent=2, sort_keys=True) + "\n"
@@ -75,9 +78,27 @@ def _import(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[s
                   + (f", target sealed {sealed}" if sealed else "")]  # fmt: skip
 
 
+def _check_placement(path: Path, roots: list[Path], allow_in_repo: bool) -> None:
+    """Refuse an opening the audited agent could read: inside the repository, or existing."""
+    if os.path.lexists(path):
+        raise ValueError(f"{path} exists; the blind secret is never overwritten")
+    target = path.parent.resolve() / path.name
+    for root in roots:
+        home = root.resolve()
+        inside = target.is_relative_to(home) or _folded(target).is_relative_to(_folded(home))
+        if not allow_in_repo and inside:
+            raise ValueError(f"{path} is inside the repository, where the auditor can read it; "
+                             "keep the secret outside it, or pass --allow-in-repo")  # fmt: skip
+
+
+def _folded(path: Path) -> PurePosixPath:
+    """Case-folded form, so a variant on a case-insensitive filesystem still matches."""
+    return PurePosixPath(path.as_posix().casefold())
+
+
 def _write_private(path: Path, data: bytes) -> None:
     """Write the blind-audit opening owner-only (0600); it unseals the target."""
-    flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0)
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
     fd = os.open(path, flags, 0o600)
     with os.fdopen(fd, "wb") as handle:
         handle.write(data)

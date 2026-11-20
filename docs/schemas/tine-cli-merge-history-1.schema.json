@@ -1,0 +1,906 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-merge-history-1.schema.json",
+  "title": "tine merge-history ... --json",
+  "description": "Three-way merge of refs, labels, lineage records and holds across branches or remotes. Conflicts are reported, never auto-resolved toward the side that weakens a hold; `apply` lands a conflict-free merge as ref updates plus a signed, held `opentine.history-merge/1` attestation.",
+  "anyOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "digest",
+        "snapshot"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-merge-history/1"
+        },
+        "command": {
+          "const": "merge-history snapshot"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "snapshot": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "format",
+            "refs",
+            "labels",
+            "lineage",
+            "holds"
+          ],
+          "properties": {
+            "format": {
+              "const": "opentine-history-snapshot/1"
+            },
+            "refs": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "labels": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "current",
+                  "history"
+                ],
+                "properties": {
+                  "current": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "history": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    }
+                  }
+                }
+              }
+            },
+            "lineage": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            },
+            "holds": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 2,
+                "maxItems": 2
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "ours",
+        "merged",
+        "conflicts",
+        "digests"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-merge-history/1"
+        },
+        "command": {
+          "const": "merge-history plan"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "ours": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "format",
+            "refs",
+            "labels",
+            "lineage",
+            "holds"
+          ],
+          "properties": {
+            "format": {
+              "const": "opentine-history-snapshot/1"
+            },
+            "refs": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "labels": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "current",
+                  "history"
+                ],
+                "properties": {
+                  "current": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "history": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    }
+                  }
+                }
+              }
+            },
+            "lineage": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            },
+            "holds": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 2,
+                "maxItems": 2
+              }
+            }
+          }
+        },
+        "merged": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "format",
+            "refs",
+            "labels",
+            "lineage",
+            "holds"
+          ],
+          "properties": {
+            "format": {
+              "const": "opentine-history-snapshot/1"
+            },
+            "refs": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "labels": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "current",
+                  "history"
+                ],
+                "properties": {
+                  "current": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "history": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    }
+                  }
+                }
+              }
+            },
+            "lineage": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            },
+            "holds": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 2,
+                "maxItems": 2
+              }
+            }
+          }
+        },
+        "conflicts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "key",
+              "base",
+              "sides"
+            ],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "ref-diverged",
+                  "label-moved",
+                  "promotion-diverged",
+                  "lineage-id",
+                  "hold-weakened",
+                  "held-target"
+                ]
+              },
+              "key": {
+                "type": "string"
+              },
+              "base": {},
+              "sides": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2
+              }
+            }
+          }
+        },
+        "digests": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "base",
+            "sides",
+            "merged"
+          ],
+          "properties": {
+            "base": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "sides": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "merged": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "applied",
+        "ours",
+        "merged",
+        "conflicts",
+        "digests"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-merge-history/1"
+        },
+        "command": {
+          "const": "merge-history apply"
+        },
+        "ok": {
+          "const": false
+        },
+        "applied": {
+          "const": false
+        },
+        "ours": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "format",
+            "refs",
+            "labels",
+            "lineage",
+            "holds"
+          ],
+          "properties": {
+            "format": {
+              "const": "opentine-history-snapshot/1"
+            },
+            "refs": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "labels": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "current",
+                  "history"
+                ],
+                "properties": {
+                  "current": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "history": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    }
+                  }
+                }
+              }
+            },
+            "lineage": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            },
+            "holds": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 2,
+                "maxItems": 2
+              }
+            }
+          }
+        },
+        "merged": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "format",
+            "refs",
+            "labels",
+            "lineage",
+            "holds"
+          ],
+          "properties": {
+            "format": {
+              "const": "opentine-history-snapshot/1"
+            },
+            "refs": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "labels": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "current",
+                  "history"
+                ],
+                "properties": {
+                  "current": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "history": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    }
+                  }
+                }
+              }
+            },
+            "lineage": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            },
+            "holds": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 2,
+                "maxItems": 2
+              }
+            }
+          }
+        },
+        "conflicts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "key",
+              "base",
+              "sides"
+            ],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "ref-diverged",
+                  "label-moved",
+                  "promotion-diverged",
+                  "lineage-id",
+                  "hold-weakened",
+                  "held-target"
+                ]
+              },
+              "key": {
+                "type": "string"
+              },
+              "base": {},
+              "sides": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2
+              }
+            }
+          }
+        },
+        "digests": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "base",
+            "sides",
+            "merged"
+          ],
+          "properties": {
+            "base": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "sides": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "merged": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "applied",
+        "ours",
+        "merged",
+        "conflicts",
+        "digests",
+        "record",
+        "refs_moved",
+        "queued",
+        "labels_moved",
+        "lineage_added",
+        "holds_added"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-merge-history/1"
+        },
+        "command": {
+          "const": "merge-history apply"
+        },
+        "ok": {
+          "const": true
+        },
+        "applied": {
+          "const": true
+        },
+        "ours": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "format",
+            "refs",
+            "labels",
+            "lineage",
+            "holds"
+          ],
+          "properties": {
+            "format": {
+              "const": "opentine-history-snapshot/1"
+            },
+            "refs": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "labels": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "current",
+                  "history"
+                ],
+                "properties": {
+                  "current": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "history": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    }
+                  }
+                }
+              }
+            },
+            "lineage": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            },
+            "holds": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 2,
+                "maxItems": 2
+              }
+            }
+          }
+        },
+        "merged": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "format",
+            "refs",
+            "labels",
+            "lineage",
+            "holds"
+          ],
+          "properties": {
+            "format": {
+              "const": "opentine-history-snapshot/1"
+            },
+            "refs": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "labels": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "current",
+                  "history"
+                ],
+                "properties": {
+                  "current": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "history": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    }
+                  }
+                }
+              }
+            },
+            "lineage": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            },
+            "holds": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 2,
+                "maxItems": 2
+              }
+            }
+          }
+        },
+        "conflicts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "key",
+              "base",
+              "sides"
+            ],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "ref-diverged",
+                  "label-moved",
+                  "promotion-diverged",
+                  "lineage-id",
+                  "hold-weakened",
+                  "held-target"
+                ]
+              },
+              "key": {
+                "type": "string"
+              },
+              "base": {},
+              "sides": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2
+              }
+            }
+          }
+        },
+        "digests": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "base",
+            "sides",
+            "merged"
+          ],
+          "properties": {
+            "base": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "sides": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "merged": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          }
+        },
+        "record": {
+          "type": "string",
+          "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+        },
+        "refs_moved": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "queued": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "ref",
+              "run",
+              "queue"
+            ],
+            "properties": {
+              "ref": {
+                "type": "string"
+              },
+              "run": {
+                "type": "string"
+              },
+              "queue": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "labels_moved": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "lineage_added": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "holds_added": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "signature",
+        "merged",
+        "merged_matches",
+        "conflicts_match",
+        "conflicts",
+        "signers",
+        "signer_trusted"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-merge-history/1"
+        },
+        "command": {
+          "const": "merge-history verify"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "signature": {
+          "type": "string"
+        },
+        "merged": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "merged_matches": {
+          "type": "boolean"
+        },
+        "conflicts_match": {
+          "type": "boolean"
+        },
+        "conflicts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "signers": {
+          "enum": [
+            "pinned",
+            "unpinned"
+          ]
+        },
+        "signer_trusted": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

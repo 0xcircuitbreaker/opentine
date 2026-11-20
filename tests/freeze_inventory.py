@@ -119,6 +119,8 @@ NOT_KINDS = (
     "opentine-elicit-link-1",
     # 0.68 (release 0.66.0): an attestation claim (sabotage task records)
     "opentine-sabotage-task-1",
+    # 0.69 (release 0.67.0): an attestation claim (history merges) and a snapshot file
+    "opentine-history-merge-1", "opentine-history-snapshot-1",
 )  # fmt: skip
 DEFERRED_SCHEMAS: dict[str, str] = {}
 #: Backticked SPEC heading words that are not kinds (capabilities, commands, fields).

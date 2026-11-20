@@ -41,6 +41,8 @@ from opentine._cli_lineage import COMMANDS as LINEAGE_COMMANDS
 from opentine._cli_lineage import add_lineage_parser
 from opentine._cli_loop import COMMANDS as LOOP_COMMANDS
 from opentine._cli_loop import add_loop_parser
+from opentine._cli_merge_history import COMMANDS as MERGE_HISTORY_COMMANDS
+from opentine._cli_merge_history import add_merge_history_parser
 from opentine._cli_monitor import COMMANDS as MONITOR_COMMANDS
 from opentine._cli_monitor import add_monitor_parser
 from opentine._cli_oversight import COMMANDS as OVERSIGHT_COMMANDS
@@ -82,6 +84,7 @@ def add_fleet_parser(subparsers: argparse._SubParsersAction) -> None:
     add_experiment_parser(subparsers)  # 0.67: tine experiment sign|check, tine reproduce
     add_elicit_parser(subparsers)  # 0.68: tine elicit link|report
     add_sabotage_parser(subparsers)  # 0.68: tine sabotage record|report
+    add_merge_history_parser(subparsers)  # 0.69: tine merge-history snapshot|plan|apply|verify
 
 
 def _fail(message: object) -> SystemExit:
@@ -233,6 +236,7 @@ COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
     **EXPERIMENT_COMMANDS,
     **ELICIT_COMMANDS,
     **SABOTAGE_COMMANDS,
+    **MERGE_HISTORY_COMMANDS,
 }
 
 __all__ = ["COMMANDS", "add_fleet_parser", "cmd_fleet"]
