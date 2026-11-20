@@ -151,6 +151,23 @@ The coverage on the larger sample is about 94% (binomial standard error about
 0.9 points), so 95-of-100 on any one set of 100 seeds is near the method's
 nominal rate rather than a wide margin.
 
+## In `tine query`
+
+`tine query index --rebuild` writes one `trend_points` row per variant that
+`tine trends` would report, trusted the same way (pinned `scorer` keys, no
+optimizer): `generation`, `n`, mean `score`, `pass_rate`, `cost_per_success`,
+`flags` and `withheld`. The row's `oid` is the variant's lineage record, so
+
+```sql
+SELECT t.generation, t.variant, t.score, l.signer
+FROM trend_points t JOIN lineage_variants l USING (variant)
+ORDER BY t.generation
+```
+
+lists the trend by lineage generation. Task lengths are not read there, so the
+horizon, intervals and regressions stay in `tine trends`. The index is
+non-authoritative; `--verify` re-derives each point from the lineage folder.
+
 ## Freeze
 
 No object kinds and no `tine verify` codes. `opentine.trends/1` (the export)

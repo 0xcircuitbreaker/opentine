@@ -57,6 +57,15 @@
 - New schemas `tine-cli-trends-1`, `opentine-trends-1`,
   `opentine-trends-task-lengths-1`. No new object kinds or `tine verify` codes.
 
+- `tine query` indexes uplift and trends: `uplift_suites` and `uplift_records`
+  (every uplift attestation, with the lineage `generation` a record names) and
+  `trend_points` (one row per lineage variant: generation, point estimates,
+  flags and whether its metrics are withheld, keyed by the variant's lineage
+  record so it joins `lineage_variants` and `lineage_edges`). `--verify`
+  re-derives trend points from the lineage folder; the index goes stale when the
+  pinned key roles change. `--verify` now also applies the custody and organism
+  role requirements, which were documented but not looked up.
+
 ## 0.71.0 — Checkpoint and weight custody (2026-11-20)
 
 - Custody gaps and refused tagged loads go to the oversight queue: the source

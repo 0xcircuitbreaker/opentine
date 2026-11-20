@@ -23,6 +23,7 @@ from opentine import _query_experiments as qx
 from opentine import _query_index as qi
 from opentine import _query_research as qe
 from opentine import _query_rows as qr
+from opentine import _query_uplift as qu
 
 
 def _lineage_files(store: Path) -> dict[str, bytes]:
@@ -54,7 +55,8 @@ def sources(store: Path, dirs: list[str], exps: list[str]) -> dict[str, str]:
                                 sort_keys=True),
             "experiments": json.dumps({"dirs": exps, "digest": qi.files_digest(
                 qx.experiment_files(store, exps))}, sort_keys=True),
-            "elicit": qi.files_digest(qe.elicit_files(store))}  # fmt: skip
+            "elicit": qi.files_digest(qe.elicit_files(store)),
+            "trends": qu.trust_digest(store)}  # fmt: skip
 
 
 #: Below this many objects the build reads in-process; above, in worker processes.
@@ -107,6 +109,7 @@ def build(repo: Any, dirs: list[str] | None = None, *, workers: int | None = Non
     files = {"evals": [r for source, raw in sorted(eval_files(store, dirs).items())
                        for r in qr.verdict_lines(source, raw)],
              **qr.lineage_rows(_lineage_files(store)),
+             **qu.trend_rows(store, _lineage_files(store)),
              **qx.rows(qx.experiment_files(store, exps)),
              **qe.rows(qe.elicit_files(store))}  # fmt: skip
     meta = {"fingerprint": fingerprint, "objects": qi.objects_digest(oids),
@@ -141,7 +144,8 @@ def staleness(repo: Any, *, exact: bool = False) -> dict[str, Any]:
     for key, why in (("lineage", "the lineage folder changed"),
                      ("evals", "an eval folder changed"),
                      ("experiments", "an experiment folder changed"),
-                     ("elicit", "the elicitation folder changed")):  # fmt: skip
+                     ("elicit", "the elicitation folder changed"),
+                     ("trends", "the pinned key roles changed")):  # fmt: skip
         if meta.get(key) != now[key]:
             reasons.append(why)
     fingerprint = qi.fingerprint(store)

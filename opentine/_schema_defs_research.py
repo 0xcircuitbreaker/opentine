@@ -26,10 +26,10 @@ from opentine._schema_defs_query import COMMAND_SCHEMAS as _QUERY_COMMANDS
 from opentine._schema_defs_query import SCHEMAS as _QUERY
 from opentine._schema_defs_sabotage import COMMAND_SCHEMAS as _SABOTAGE_COMMANDS
 from opentine._schema_defs_sabotage import SCHEMAS as _SABOTAGE
-from opentine._schema_defs_uplift import COMMAND_SCHEMAS as _UPLIFT_COMMANDS
-from opentine._schema_defs_uplift import SCHEMAS as _UPLIFT
 from opentine._schema_defs_trends import COMMAND_SCHEMAS as _TRENDS_COMMANDS
 from opentine._schema_defs_trends import SCHEMAS as _TRENDS
+from opentine._schema_defs_uplift import COMMAND_SCHEMAS as _UPLIFT_COMMANDS
+from opentine._schema_defs_uplift import SCHEMAS as _UPLIFT
 
 SCHEMAS: dict[str, dict[str, Any]] = {
     **_QUERY,

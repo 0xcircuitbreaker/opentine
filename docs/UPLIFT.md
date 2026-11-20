@@ -78,6 +78,14 @@ Rules:
 These are claim conventions on an existing object kind. No object kind and no
 `tine verify` code is added.
 
+## In `tine query`
+
+Every suite and record attestation is a row of `uplift_suites` or
+`uplift_records` (see docs/QUERY.md), held or not; a record's `generation`
+joins `trend_points.generation` and the 0.58 lineage generations. Under
+`--verify` a row is `verified` only for a pinned `scorer` or `eval` signer that
+holds no `optimizer` role. `tine uplift` decides which records count.
+
 ## The export
 
 `tine uplift horizon` and `tine uplift compare` read the suite's **export**
