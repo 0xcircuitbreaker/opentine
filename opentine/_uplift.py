@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import hashlib
 import re
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 from typing import Any
 
 from opentine._sabotage import ROLES, scorers
@@ -38,19 +38,17 @@ KINDS = ("baseline", "run", "speed")
 CONDITIONS = ("human", "ai", "ai-assisted", "unassisted")
 ID_RE = re.compile(r"[A-Za-z0-9_.:-]{1,128}")
 DIGEST_RE = re.compile(r"sha256:[0-9a-f]{64}")
+MINUTES_RE = re.compile(r"(?:0|[1-9][0-9]{0,8})(?:\.[0-9]{1,6})?")
 _REC_FIELDS = ("convention", "record", "suite", "task", "subject", "condition", "success",
                "minutes", "perceived_minutes", "generation", "at")  # fmt: skip
 
 
 def minutes_ok(value: Any) -> bool:
-    """A positive decimal string."""
-    if not isinstance(value, str):
+    """A positive plain decimal string: up to 9 integer and 6 fractional digits, no exponent,
+    sign or spaces, so every length is finite and non-zero as a float (no inf, NaN or 0)."""
+    if not isinstance(value, str) or not MINUTES_RE.fullmatch(value):
         return False
-    try:
-        number = Decimal(value)
-    except InvalidOperation:
-        return False
-    return number.is_finite() and number > 0
+    return Decimal(value) > 0
 
 
 def suite_digest(suite: dict[str, Any]) -> str:
@@ -102,7 +100,7 @@ def check_claim(claim: Any) -> list[str]:
             problems.append(f"{name} is 1-128 of A-Z a-z 0-9 _ . : -")
     if cond not in CONDITIONS or (kind == "baseline") != (cond == "human"):
         problems.append("a baseline is condition human; a run or speed record is not")
-    if claim["success"] not in (True, False, None) or (
+    if not isinstance(claim["success"], (bool, type(None))) or (
         kind != "speed" and claim["success"] is None
     ):
         problems.append("success is a boolean (null only on a speed record)")

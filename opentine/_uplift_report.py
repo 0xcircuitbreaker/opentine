@@ -18,13 +18,18 @@ from typing import Any
 from opentine._uplift_export import digest_of
 from opentine._uplift_fit import fmt, horizon
 
+#: Bounds that keep a caller from narrowing the interval: a handful of resamples or a large
+#: alpha gives a narrow, flattering interval; a huge count only burns CPU.
+MIN_RESAMPLES, MAX_RESAMPLES = 100, 100_000
+MIN_ALPHA = Fraction(1, 1000)
+
 
 def _params(seed: int, resamples: int, alpha: str) -> dict[str, Any]:
-    if resamples < 1:
-        raise ValueError("--resamples must be at least 1")
+    if not MIN_RESAMPLES <= resamples <= MAX_RESAMPLES:
+        raise ValueError(f"--resamples is {MIN_RESAMPLES}..{MAX_RESAMPLES}")
     level = Fraction(alpha)
-    if not 0 < level < 1:
-        raise ValueError("--alpha is between 0 and 1")
+    if not MIN_ALPHA <= level <= Fraction(1, 2):
+        raise ValueError("--alpha is between 0.001 and 0.5")
     return {"seed": seed, "resamples": resamples, "alpha": alpha}
 
 

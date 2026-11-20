@@ -88,15 +88,15 @@ def _raw(capsysbinary, *argv: str) -> tuple[int, bytes]:
 def test_horizon_from_repo_equals_recompute_from_export_byte_for_byte(room, capsysbinary):
     export = (room["base"] / "export.json").as_posix()
     code, live = _raw(capsysbinary, "uplift", "horizon", "--suite", room["suite"], "--seed", "4",
-                      "--resamples", "60", "--export", export, *room["args"])  # fmt: skip
+                      "--resamples", "100", "--export", export, *room["args"])  # fmt: skip
     body = json.loads(live)
     assert code == 0, body
     _schemas.validate(body, "tine-cli-uplift-1")
-    assert body["fit"]["status"] == "ok" and body["seed"] == 4 and body["resamples"] == 60
+    assert body["fit"]["status"] == "ok" and body["seed"] == 4 and body["resamples"] == 100
     assert [t["generation"] for t in body["trend"]] == [0, 1]
     _schemas.validate(json.loads(Path(export).read_bytes()), "opentine-uplift-export-1")
     code2, again = _raw(capsysbinary, "uplift", "horizon", "--from", export, "--seed", "4",
-                        "--resamples", "60")  # fmt: skip
+                        "--resamples", "100")  # fmt: skip
     assert code2 == 0 and again == live
 
 
@@ -141,7 +141,7 @@ def test_records_compare_and_refusals(room, capsys):
     assert _rec(capsys, room, SCORER, "--type", "baseline", "--task", "t01", "--subject", "x",
                 "--condition", "ai", "--success", "no")[0] != 0  # fmt: skip
     code, out = tine(capsys, "uplift", "compare", "--suite", room["suite"], "--a", "unassisted",
-                     "--b", "ai-assisted:bob", "--resamples", "5", *room["args"])  # fmt: skip
+                     "--b", "ai-assisted:bob", "--resamples", "100", *room["args"])  # fmt: skip
     assert code == 0, out
     _schemas.validate(out, "tine-cli-uplift-1")
     assert out["paired_tasks"] == 1 and out["b_over_a_minutes"] == "1.200000"
@@ -167,7 +167,7 @@ def test_records_compare_and_refusals(room, capsys):
     )
     # a human-only horizon has too few points: refused, exit 1
     code, out = tine(capsys, "uplift", "horizon", "--suite", room["suite"], "--condition",
-                     "human", "--resamples", "5", *room["args"])  # fmt: skip
+                     "human", "--resamples", "100", *room["args"])  # fmt: skip
     assert code == 1 and out["fit"]["status"] == "insufficient-data"
     assert "fail:uplift.fit-refused" in [f["code"] for f in out["findings"]]
 
@@ -194,7 +194,7 @@ def test_suite_digest_without_key_and_tampered_export(room, capsys):
     assert code == 0 and out["record"].startswith("attestation:"), out
     _schemas.validate(out, "tine-cli-uplift-1")
     export = room["base"] / "e.json"
-    assert tine(capsys, "uplift", "horizon", "--suite", room["suite"], "--resamples", "5",
+    assert tine(capsys, "uplift", "horizon", "--suite", room["suite"], "--resamples", "100",
                 "--export", export.as_posix(), *room["args"])[0] == 0  # fmt: skip
     doc = json.loads(export.read_bytes())
     doc["definition"]["tasks"][0]["minutes"] = "999"

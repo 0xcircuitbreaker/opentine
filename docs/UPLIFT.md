@@ -21,7 +21,9 @@ A suite is a JSON file with exactly four fields:
 ```
 
 `minutes` is the task length (typically the human-expert baseline time) as a
-positive decimal string. The suite is addressed by its **digest**:
+positive plain decimal string (at most 9 integer and 6 fractional digits, no
+exponent, sign or spaces, so no length is infinite, zero or NaN as a float).
+The suite is addressed by its **digest**:
 `sha256:` over `opentine.uplift-suite/1`, a NUL byte and the canonical JSON of
 the suite object. Changing any task, length or the scoring text gives a new
 digest, so results from two suite versions are never mixed.
@@ -127,6 +129,17 @@ than 3 distinct task lengths, no successes or no failures
 includes perfect separation), or success does not fall with length
 (`no-decline`). When more than a tenth of the resamples fail, the report adds
 `advisory:uplift.unstable-bootstrap`.
+
+`--resamples` is 100..100000 and `--alpha` is 0.001..0.5: a handful of
+resamples or a large alpha would print a narrow, flattering interval. The seed
+and count are in every report, so a reader can rerun with other seeds; picking
+a favourable seed among many runs is not prevented, only made visible.
+
+A record held under its suite by more than one hold row counts once. `--from`
+refuses an export with duplicate keys, `NaN`/`Infinity`, a non-boolean
+`success`, a malformed finding, or record rows that repeat an oid or are not
+sorted by oid. The export is not signed: `export_digest` in the report names
+the exact export a number came from.
 
 `trend` repeats the fit for each lineage `generation` present, with the same
 seed and resample count. A generation with too few records shows its refusal

@@ -58,10 +58,12 @@ def build(repo: Any, digest: str) -> dict[str, Any]:
     keys, optimizers, why = _uplift.scorers(repo)
     records: list[dict[str, Any]] = []
     findings: list[dict[str, str]] = []
+    seen: set[str] = set()
     for row in _uplift.rows(repo, digest):
         claim, oid = row["claim"] or {}, row["oid"]
-        if claim.get("convention") == _uplift.SUITE:
-            continue
+        if claim.get("convention") == _uplift.SUITE or oid in seen:
+            continue  # a repeated hold row never counts a record twice
+        seen.add(oid)
         if not row["signed"] or row["signer"] not in keys | optimizers:
             findings.append(_finding("advisory", "signer-unpinned", oid, why))
         elif row["signer"] in optimizers:
@@ -89,11 +91,45 @@ def dump(export: dict[str, Any]) -> bytes:
     return canonical_json(export) + b"\n"
 
 
-def load(path: str | Path) -> dict[str, Any]:
-    """Read and check an export file (refuses a definition that does not match)."""
+def _pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    out = dict(pairs)
+    if len(out) != len(pairs):
+        raise ValueError("duplicate key")  # one reader, one meaning: no last-wins laundering
+    return out
+
+
+def _constant(name: str) -> Any:
+    raise ValueError(f"{name} is not a number")
+
+
+def _rows_ok(export: dict[str, Any]) -> bool:
     from opentine import _uplift
 
-    export = json.loads(Path(path).read_bytes())
+    records, findings = export["records"], export["findings"]
+    if not isinstance(records, list) or not isinstance(findings, list):
+        return False
+    for row in records:
+        if not isinstance(row, dict) or set(row) != {"oid", *_ROW}:
+            return False
+        claim = {"convention": _uplift.RECORD, "suite": export["suite"], "at": "",
+                 **{k: row[k] for k in _ROW}}  # fmt: skip
+        if not isinstance(row["oid"], str) or _uplift.check_claim(claim):
+            return False
+    oids = [row["oid"] for row in records]
+    keys = {"level", "code", "oid", "message"}
+    return oids == sorted(set(oids)) and all(  # build's order, each record once
+        isinstance(f, dict) and set(f) == keys and all(isinstance(v, str) for v in f.values())
+        for f in findings
+    )
+
+
+def load(path: str | Path) -> dict[str, Any]:
+    """Read and check an export file: no duplicate keys or NaN, a definition matching the
+    suite digest, well-formed rows sorted by oid with no repeats."""
+    from opentine import _uplift
+
+    export = json.loads(Path(path).read_bytes(), object_pairs_hook=_pairs,
+                        parse_constant=_constant)  # fmt: skip
     if not isinstance(export, dict) or export.get("format") != FORMAT:
         raise ValueError(f"{path}: not an {FORMAT} file")
     if set(export) != {"format", "suite", "definition", "records", "findings"}:
@@ -102,11 +138,8 @@ def load(path: str | Path) -> dict[str, Any]:
         _uplift.suite_digest(export["definition"]) != export["suite"]
     ):
         raise ValueError(f"{path}: the definition does not match the suite digest")
-    for row in export["records"]:
-        claim = {"convention": _uplift.RECORD, "suite": export["suite"], "at": "",
-                 **{k: row.get(k) for k in _ROW}}  # fmt: skip
-        if not isinstance(row, dict) or set(row) != {"oid", *_ROW} or _uplift.check_claim(claim):
-            raise ValueError(f"{path}: a record row is malformed")
+    if not _rows_ok(export):
+        raise ValueError(f"{path}: a record or finding is malformed, repeated or out of order")
     return export
 
 
