@@ -1,0 +1,244 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-transcripts-1.schema.json",
+  "title": "tine transcripts index|search|similar --json",
+  "description": "Embedding search over run transcripts through a derived, non-authoritative index (`.tine/transcripts/index.sqlite`). `index` reports or rebuilds it and names the embedding backend by its digest; `search` and `similar` return the nearest runs by cosine similarity, with the search method (exact, lsh, exact-fallback) and whether the index is stale.",
+  "anyOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "authority",
+        "index",
+        "rebuilt",
+        "exists",
+        "stale",
+        "reasons",
+        "backend",
+        "backend_digest",
+        "caps",
+        "counts"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-transcripts/1"
+        },
+        "authority": {
+          "const": "non-authoritative"
+        },
+        "command": {
+          "const": "transcripts index"
+        },
+        "index": {
+          "type": "string"
+        },
+        "rebuilt": {
+          "type": "boolean"
+        },
+        "exists": {
+          "type": "boolean"
+        },
+        "stale": {
+          "type": "boolean"
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "backend": {
+          "type": "object"
+        },
+        "backend_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "caps": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "step_bytes",
+            "max_bytes"
+          ],
+          "properties": {
+            "step_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "max_bytes": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "counts": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "runs",
+                "embedded",
+                "reused",
+                "truncated"
+              ],
+              "properties": {
+                "runs": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "embedded": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "reused": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "truncated": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "authority",
+        "stale",
+        "stale_reasons",
+        "backend_digest",
+        "query",
+        "k",
+        "method",
+        "candidates",
+        "indexed",
+        "hits"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-transcripts/1"
+        },
+        "authority": {
+          "const": "non-authoritative"
+        },
+        "command": {
+          "enum": [
+            "transcripts search",
+            "transcripts similar"
+          ]
+        },
+        "stale": {
+          "type": "boolean"
+        },
+        "stale_reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "backend_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "query": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "text_sha256"
+              ],
+              "properties": {
+                "text_sha256": {
+                  "type": "string"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "run"
+              ],
+              "properties": {
+                "run": {
+                  "type": "string"
+                }
+              }
+            }
+          ]
+        },
+        "k": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "method": {
+          "enum": [
+            "exact",
+            "lsh",
+            "exact-fallback"
+          ]
+        },
+        "candidates": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "indexed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "hits": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "run",
+              "score",
+              "steps",
+              "bytes",
+              "truncated",
+              "text_sha256"
+            ],
+            "properties": {
+              "run": {
+                "type": "string"
+              },
+              "score": {
+                "type": "number"
+              },
+              "steps": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "bytes": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "truncated": {
+                "type": "boolean"
+              },
+              "text_sha256": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

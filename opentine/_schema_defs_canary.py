@@ -58,14 +58,18 @@ _CONT = closed(["command", "schema", "ok", "method", "counts", "exact", "near", 
         "threshold": NUM, "coverage": STR}),
     "counts": closed(["holdout", "corpus", "candidates", "exact", "near", "chunked"], {
         "holdout": INT, "corpus": INT, "candidates": INT, "exact": INT, "near": INT,
-        "chunked": INT}),
+        "chunked": INT, "embedding": INT}),
     "chunked": {"type": "array", "items": closed(["id", "found_in", "coverage"], {
         "id": STR, "found_in": _LIST_OF, "coverage": NUM})},
     "exact": {"type": "array", "items": closed(["id", "oid", "found_in"], {
         "id": STR, "oid": STR, "found_in": _LIST_OF})},
     "near": {"type": "array", "items": closed(
         ["id", "found_in", "jaccard", "minhash_estimate"], {
-            "id": STR, "found_in": STR, "jaccard": NUM, "minhash_estimate": NUM})}})  # fmt: skip
+            "id": STR, "found_in": STR, "jaccard": NUM, "minhash_estimate": NUM})},
+    "embedding": closed(["backend", "backend_digest", "threshold", "near"], {
+        "backend": STR, "backend_digest": STR, "threshold": NUM,
+        "near": {"type": "array", "items": closed(["id", "found_in", "cosine"], {
+            "id": STR, "found_in": STR, "cosine": NUM})}})})  # fmt: skip
 
 SCHEMAS: dict[str, dict[str, Any]] = {
     "tine-cli-canary-1": doc("tine-cli-canary-1",
@@ -82,7 +86,9 @@ SCHEMAS: dict[str, dict[str, Any]] = {
         "`canary-sign` signs a scorer's per-canary code lengths for one run (`run`) and "
         "writes the attestation `canary-check` reads to `out` (`sha256` its bytes). "
         "`contamination` reports exact blob-oid matches and word 5-gram MinHash "
-        "near-duplicates whose exact Jaccard is at or above the recorded threshold.",
+        "near-duplicates whose exact Jaccard is at or above the recorded threshold; with "
+        "`--embedding-threshold` it also reports embedding near-duplicates (`embedding`: "
+        "backend, backend digest, cosine threshold, hits).",
         {"oneOf": [_ADD, _LIST, _CHECK, _SIGN, _CONT]}),
 }  # fmt: skip
 COMMAND_SCHEMAS: dict[str, str] = {

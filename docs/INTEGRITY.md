@@ -256,8 +256,16 @@ The command reports two kinds of leak and records the method in the result:
   found in the union of corpus shingles (its `coverage`) is at or above the
   threshold.
 
-The command exits 1 on any leak. Embedding similarity is out of scope for this
-check.
+- Embedding (0.74, opt-in with `--embedding-threshold T`): each item's text is
+  embedded with the transcript backend (`transcript-hash/1`, or a local model
+  named by `--embedding-backend MODULE:ATTR` whose weights digest is recorded)
+  and items whose nearest corpus items have cosine similarity at or above `T`
+  are reported under `embedding.near`, with the backend digest and threshold.
+  This catches rewordings that keep the vocabulary but break 5-gram overlap.
+  Items already reported as exact, near or chunked are not repeated. See
+  docs/TRANSCRIPTS.md.
+
+The command exits 1 on any leak.
 
 ### Mutations and what a writer can still do
 

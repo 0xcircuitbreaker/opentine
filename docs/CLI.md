@@ -2121,6 +2121,17 @@ convention `opentine.weight-custody/1`. See docs/CUSTODY.md.
 All commands take `--repo PATH`; `--json` prints `tine-cli-organism/1`. See
 docs/MODEL_ORGANISMS.md.
 
+## Transcript search (0.74)
+
+| Command | What it does |
+| --- | --- |
+| `tine transcripts index [--rebuild] [--backend SPEC] [--weights-digest D] [--step-bytes N] [--max-bytes N] [--workers N]` | Reports the derived transcript index (`.tine/transcripts/index.sqlite`) and whether it is stale, or rebuilds it; names the embedding backend by its digest |
+| `tine transcripts search TEXT [-k N] [--approx] [--refresh]` | The `-k` runs whose transcripts are nearest to TEXT (cosine similarity) |
+| `tine transcripts similar RUN [-k N] [--approx] [--refresh]` | Find all trajectories like this one: the `-k` runs nearest to RUN (a ref or run oid), RUN itself excluded |
+
+All commands take `--repo PATH`; `--json` prints `tine-cli-transcripts/1`. The
+index is non-authoritative and rebuildable. See docs/TRANSCRIPTS.md.
+
 ## Merging run histories (0.69)
 
 | Command | What it does |
@@ -2170,7 +2181,7 @@ promote` (`promote.score-tainted`) and reported by `tine lineage check|why`
 | `tine integrity scan [--file PATH]... --repo PATH` | Finds registered canaries in runs, prompts, memory and exported packs; a content-addressed index reads only objects not yet scanned; exit 1 on any match |
 | `tine dataset canary-check LENGTHS.json [--margin-bits M] [--strict] [--run RUN] --repo PATH` | Refuses (`dataset.canary-below-entropy`, exit 1) a model that codes a counted canary below its declared entropy; the lengths must be signed by a pinned scorer key (`canary.unsigned`) |
 | `tine dataset canary-sign LENGTHS.json --run RUN --key KEY [--out FILE] [--at TIME]` | Signs a scorer's per-canary code lengths (`{"model", "lengths": [{"canary_sha256", "code_bits"}]}`) as an `opentine.integrity.canary-lengths` attestation bound to `RUN`; writes `FILE` (default `LENGTHS.signed.json`) for `canary-check` and `promote --canary-lengths` |
-| `tine dataset contamination HOLDOUT.jsonl --against CORPUS.jsonl [--threshold J] [--repo PATH]` | Reports exact blob-oid matches and word 5-gram MinHash near-duplicates at or above the threshold (default 0.8); exit 1 on any leak |
+| `tine dataset contamination HOLDOUT.jsonl --against CORPUS.jsonl [--threshold J] [--embedding-threshold T [--embedding-backend SPEC]] [--repo PATH]` | Reports exact blob-oid matches and word 5-gram MinHash near-duplicates at or above the threshold (default 0.8), and with `--embedding-threshold` embedding near-duplicates at cosine >= T (0.74); exit 1 on any leak |
 
 The `dataset` verbs print `tine-cli-canary/1` and `scan` prints
 `tine-cli-integrity/1` with `--json`. See docs/INTEGRITY.md.
