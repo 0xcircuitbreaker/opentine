@@ -136,6 +136,24 @@ def _tool_input(raw: bytes) -> Any:
     return payload["tool_input"]
 
 
+def _log_refusals(repo: Any, raw: bytes, decision: dict[str, Any]) -> None:
+    """Hold each refused artifact for the oversight queue (0.72); the denial stands
+    whether or not the log can be written."""
+    from opentine import _oversight
+    from opentine._weight_custody_review import log_refusal
+
+    if decision["decision"] != "block":
+        return
+    try:
+        payload = json.loads(raw)
+        tool = payload.get("tool_name") or (payload.get("tool") or {}).get("name")
+        for artifact in decision["artifacts"]:
+            log_refusal(repo, artifact, decision["reason"],
+                        tool if isinstance(tool, str) else None, _oversight.now())  # fmt: skip
+    except Exception:  # noqa: BLE001 - a log failure never turns a denial into an allow
+        return
+
+
 def gate(args: argparse.Namespace, stream: IO[bytes] | None = None,
          out: IO[bytes] | None = None) -> int:  # fmt: skip
     """Decide one tool call; always one JSON object on stdout and exit status 0."""
@@ -146,9 +164,12 @@ def gate(args: argparse.Namespace, stream: IO[bytes] | None = None,
         raw = (stream or sys.stdin.buffer).read(MAX_PAYLOAD + 1)
         if len(raw) > MAX_PAYLOAD:
             raise ValueError("the payload is larger than 8 MiB")
-        decision = gate_mod.decide(Repo.open(args.repo), _tool_input(raw))
+        repo = Repo.open(args.repo)
+        decision = gate_mod.decide(repo, _tool_input(raw))
     except Exception as exc:  # noqa: BLE001 - fail closed: anything unreadable denies
         decision = {"decision": "block", "reason": f"custody gate: {exc}", "artifacts": []}
+    else:
+        _log_refusals(repo, raw, decision)
     if args.agent == "generic":
         doc: dict[str, Any] = {"protocol": PROTOCOL, **decision}
     elif decision["decision"] == "allow":

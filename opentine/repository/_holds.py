@@ -62,6 +62,8 @@ CONTAINMENT = "containment:"
 #: 0.71: rows that keep a signed checkpoint/weight custody event
 #: (opentine._weight_custody): released never, so a loop cannot delete a copy or a load.
 WEIGHT_CUSTODY = "custody:weights:"
+#: 0.72: a refused load of a model-organism artifact (opentine._weight_custody_review).
+WEIGHT_CUSTODY_REFUSED = "custody:weights-refused:"
 #: 0.72: rows that keep a model-organism tag, untag, load approval or access-log entry
 #: (opentine._organism): released never, so a loop cannot untag or erase an access.
 ORGANISM = "organism:"
@@ -180,8 +182,8 @@ def release(repo, target: str) -> list[dict[str, str]]:
             raise HoldError(f"{target} keeps a budget-ledger entry: it is never released")
         if any(r["target"].startswith(CONTAINMENT) for r in gone):
             raise HoldError(f"{target} keeps a containment record: it is never released")
-        if any(r["target"].startswith(WEIGHT_CUSTODY) for r in gone):
-            raise HoldError(f"{target} keeps a weight custody event: it is never released")
+        if any(r["target"].startswith((WEIGHT_CUSTODY, WEIGHT_CUSTODY_REFUSED)) for r in gone):
+            raise HoldError(f"{target} keeps a weight custody record: it is never released")
         if any(r["target"].startswith(ORGANISM) for r in gone):
             raise HoldError(f"{target} keeps a model-organism record: it is never released")
         return [r for r in rows if r not in gone]

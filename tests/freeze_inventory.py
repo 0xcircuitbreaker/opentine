@@ -126,7 +126,7 @@ NOT_KINDS = (
     # 0.69: attestation claims (sandbox policies, containment findings)
     "opentine-sandbox-policy-1", "opentine-containment-finding-1",
     # 0.72 (release 0.71.0): an attestation claim (checkpoint and weight custody events)
-    "opentine-weight-custody-1",
+    "opentine-weight-custody-1", "opentine-weight-custody-refusal-1",
     # 0.72 (release 0.71.0): attestation claims (organism tags, approvals, untags), a held blob
     "opentine-organism-tag-1", "opentine-organism-approval-1", "opentine-organism-untag-1",
     "opentine-organism-access-1",

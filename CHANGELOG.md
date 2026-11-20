@@ -2,6 +2,14 @@
 
 ## Unreleased — Checkpoint and weight custody
 
+- Custody gaps and refused tagged loads go to the oversight queue: the source
+  `custody` (items `custody:ATTESTATION|BLOB`) lists each event a `fail:`
+  finding of `tine custody check` names, each load `tine custody gate` refused
+  (now held as `opentine.weight-custody-refusal/1`, hold
+  `custody:weights-refused:`, never released) and each refused `tine organism
+  gate` access. Approving an item never allows a load.
+- `tine query` gains the tables `weight_custody` and `organism_records`.
+- New schema `opentine-weight-custody-refusal-1`.
 - `tine custody record EVENT LOCATION --artifact NAME` records checkpoint and
   weight custody events (`created`, `copied`, `loaded`, `exported`,
   `destroyed`, `approved`). Weights are referenced by digest only: `--file` is

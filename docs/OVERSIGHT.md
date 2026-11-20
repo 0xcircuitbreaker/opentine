@@ -58,6 +58,16 @@ item names a model-organism tag record. An untag takes effect only while that
 item is `approved`, and with no `organism` route an untag never takes effect
 (docs/MODEL_ORGANISMS.md).
 
+A `custody:ATTESTATION|BLOB` item (0.72, route `source = "custody"`) names a
+weight custody event that a `fail:` finding of `tine custody check` points at
+(a gap, a broken chain or an unapproved load), or a refused load of a tagged
+artifact: an `opentine.weight-custody-refusal/1` entry held by `tine custody
+gate` (hold `custody:weights-refused:NAME`, never released) or an
+`opentine.organism-access/1` entry whose `outcome` is `refused`. Custody items
+are recomputed from the held records on every read. Approving one records a
+review; it never allows a load, which still needs a custody or organism
+approval (docs/CUSTODY.md).
+
 An item routed into several tiers must satisfy each of them.
 
 ### Pinning

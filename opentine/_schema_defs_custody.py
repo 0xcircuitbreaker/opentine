@@ -3,7 +3,8 @@
 ``tine-cli-custody-weights-1`` is the ``tine custody record --artifact|chain|check
 --json`` output. A custody event is a claim on an attestation (an existing object
 kind), published as ``opentine-weight-custody-1``: a claim convention, not an
-object kind (docs/CUSTODY.md).
+object kind (docs/CUSTODY.md). A refused load is a held blob published as
+``opentine-weight-custody-refusal-1`` (0.72).
 """
 
 from __future__ import annotations
@@ -61,6 +62,13 @@ SCHEMAS: dict[str, dict[str, Any]] = {
         "opentine.weight-custody/1 claim", "One custody event of a weight artifact, referenced "
         "by digest only. A claim convention on an existing attestation, not an object kind.",
         CLAIM),
+    "opentine-weight-custody-refusal-1": doc("opentine-weight-custody-refusal-1",
+        "opentine.weight-custody-refusal/1 entry", "One load of a model-organism artifact "
+        "that `tine custody gate` refused (0.72): a held blob listed in the oversight queue, "
+        "not an object kind.",
+        closed(["convention", "artifact", "reason", "tool", "at"], {
+            "convention": {"const": "opentine.weight-custody-refusal/1"}, "artifact": STR,
+            "reason": STR, "tool": opt(STR), "at": STR})),
 }  # fmt: skip
 COMMAND_SCHEMAS: dict[str, str] = {
     f"custody {verb}": "tine-cli-custody-weights-1" for verb in ("record", "chain", "check")

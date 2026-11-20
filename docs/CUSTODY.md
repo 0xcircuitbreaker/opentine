@@ -92,6 +92,24 @@ Matching is by substring of the tool input (keys and values); a load through a
 path no event names (a symlink, an alias, re-encoded bytes) is not seen. The
 `loaded` events form the access log.
 
+## Review and query (0.72)
+
+Each call the gate denies is logged as a held blob
+`opentine.weight-custody-refusal/1` (`artifact`, `reason`, `tool`, `at`; hold
+`custody:weights-refused:NAME`, which `tine hold release` refuses). Writing the
+log never changes the decision: a denial stands when the log cannot be written.
+
+`tine oversight queue` lists, under the source `custody`, every event that a
+`fail:` finding of `tine custody check` names, every held refusal and every
+refused `tine organism gate` access (docs/OVERSIGHT.md). The items are
+recomputed from the held records on each read; with no `custody` route they are
+`unrouted` and are not listed. Approving an item records a review and does not
+allow a load.
+
+`tine query` indexes every custody attestation in the object store as
+`weight_custody` and every organism tag, approval and untag as
+`organism_records` (docs/QUERY.md). The rows are derived and non-authoritative.
+
 ## JSON
 
 `--json` on `record --artifact`, `chain` and `check` prints
