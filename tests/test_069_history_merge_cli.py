@@ -232,9 +232,12 @@ def test_labels_and_lineage_records_come_from_the_other_side_checked(room, capsy
                    state.as_posix(), "--theirs-lineage", lineage.as_posix())  # fmt: skip
     assert code == 1  # a record that does not hash to the snapshot is refused
     record.write_bytes(good)
-    code, out = _run(capsys, room, *argv, "--theirs-state", state.as_posix(),
+    code, _ = tine(capsys, "merge-history", *argv, "--repo", repo, "--theirs-state",
+                   state.as_posix(), "--theirs-lineage", lineage.as_posix())  # fmt: skip
+    assert code == 1  # a moved label is refused: labels move only by `tine promote` (audit)
+    theirs["labels"] = base["labels"]
+    files[1] = _write(room, "theirs.json", theirs)
+    code, out = _run(capsys, room, *argv[:4], files[1], *argv[5:],
                      "--theirs-lineage", lineage.as_posix())  # fmt: skip
-    assert code == 0 and out["labels_moved"] == ["prod"] and len(out["lineage_added"]) == 1
-    after = _snap(capsys, room)
-    assert after["labels"] == out["merged"]["labels"]
-    assert after["lineage"] == out["merged"]["lineage"]
+    assert code == 0 and out["labels_moved"] == [] and len(out["lineage_added"]) == 1
+    assert _snap(capsys, room)["lineage"] == out["merged"]["lineage"]

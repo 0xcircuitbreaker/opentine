@@ -2,8 +2,9 @@
 
 ## Unreleased — Security and integrity audit
 
-- `tine merge-history` refuses a snapshot whose holds name anything but a
-  run oid and a 1..1024 character target. Before, `apply` could write such a
-  row into `.tine/holds`, after which every hold read failed (holds-merge-poison).
-
-## 0.67.0 — Merging run histories (2026-11-20)
+- `tine merge-history apply` no longer copies label state files from
+  `--theirs-state`. A loop could hand-write `.tine/promotion/<label>.json` in its
+  own clone (no signed decision, no VSA) and a routine merge would land its
+  candidate on the label without oversight, holdout, monitor or guards. A label
+  that differs is now refused with `history-merge.label-gated`; labels move only
+  by `tine promote`.

@@ -11,9 +11,10 @@ attestation, no new kind:
 * refs move by one compare-and-swap transaction from this repository's own
   values; a ref a merge queue owns (``coord/merge-queue/*`` with that target)
   is not moved but its new run is enqueued, so the queue lands it;
-* label states and lineage records come from the other side's folders, and
-  each file must hash to what the merged snapshot names (lineage records must
-  also verify as signed);
+* lineage records come from the other side's folder, and each file must hash
+  to what the merged snapshot names and verify as signed;
+* a label that differs is refused (``history-merge.label-gated``): label state
+  files carry no signed decision, so labels move only by ``tine promote``;
 * holds are only ever added;
 * the ``opentine.history-merge/1`` attestation is stored and held
   (``history-merge:`` rows are never released).
@@ -101,8 +102,10 @@ def _label_files(merged: dict, ours: dict, theirs_state: Path | None, state: Pat
         if record is None or _label(record) != want:
             raise ValueError(f"history-merge.label-missing: no label state {label} matching the "
                              "merge under --theirs-state")  # fmt: skip
-        text = json.dumps(record, indent=2, sort_keys=True) + "\n"
-        moved.append((label, state / f"{label}.json", text.encode("utf-8")))
+        # A label state file is plain JSON with no signed decision or VSA behind it, so
+        # landing it would skip every promote gate (audit): labels move only by promote.
+        raise ValueError(f"history-merge.label-gated: label {label} differs; a merge never "
+                         "moves a label, run `tine promote` here so its gates apply")  # fmt: skip
     return moved
 
 
