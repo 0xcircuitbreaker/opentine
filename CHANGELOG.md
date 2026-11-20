@@ -1,5 +1,27 @@
 # Changelog
 
+## Unreleased — Containment evidence and budgets
+
+- `tine budget sign-policy|apply|record|status|ledger|check|gate`: budget
+  policies per loop or agent (`opentine-budget-policy/1`: tokens, GPU-hours,
+  wall clock, egress bytes, money), signed and applied to a per-subject
+  ledger. See docs/BUDGETS.md.
+- The budget ledger: signed `annotation` entries (`opentine.budget-ledger/1`:
+  spend, policy, flag) chained by `previous_id` and held under
+  `budget-ledger:SUBJECT`, released never. Spend comes from each run's
+  recorded `tine cost` aggregate, so the ledger total equals the cost export.
+- Once a limit is reached, the next action is refused (`deny`) or refused and
+  routed to oversight (`escalate`): by `tine budget gate` on the agent hook
+  path and by `tine mcp-proxy --budget SUBJECT --budget-key KEY` (JSON-RPC
+  error `-32002`).
+- An agent raising its own limit is refused and the policy in force stays.
+  This covers an edited policy, one signed by an optimizer or non-`policy`
+  key, and a rolled-back serial. Each is a `fail:` finding recorded as a held
+  flag and listed in the oversight queue as `budget:ANNOTATION` (new route
+  source `budget`).
+- New optional key role `runner` (signs ledger entries), guarded against
+  optimizer keys like the other guarded roles.
+
 ## 0.68.0 — Security and integrity hardening (2026-11-20)
 
 - Audit-game records count as signed only when the payload `signer` names the
