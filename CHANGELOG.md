@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Uplift and capability trends
+## 0.72.0 — Uplift and capability trends (2026-11-20)
 
 - `tine uplift suite|record|horizon|compare`: versioned task suites addressed
   by a suite digest (task list, lengths, scoring), human baseline records,
@@ -66,6 +66,31 @@
   pinned key roles change. `--verify` now also applies the custody and organism
   role requirements, which were documented but not looked up.
 
+### Also in this release: redaction fixes from the dataset review
+
+- The publication `path` rule no longer rewrites a tilde that is content: only
+  `~/` and `~<u>/` where a path starts (line start, space, quote, `=`, `:`, an
+  opening bracket) become `<HOME>`. A lone `~`, `foo#!~bar` in test source,
+  `HEAD~3`, `~mask` and `/~user/` in a regex are left alone; `/root`,
+  `/home/<u>`, `/Users/<u>` and `C:\Users\<u>` are unchanged.
+- New publication kind `telemetry`: harness/operator records an agent CLI wrote
+  into captured step output are removed from redacted public copies, with
+  per-harness patterns (`opentine/_redact_telemetry.py`). For Claude Code
+  stream-json, `rate_limit_event` records are dropped, `system`/`init` keeps
+  only model, tools, permission mode and `cwd` as `<CWD>`, and `session_id`,
+  `request_id`, message `uuid`s and `persistedOutputPath` are removed. Counted
+  under `telemetry` in the `redaction` report; the copy stays valid JSON and
+  verifies. The ruleset name is unchanged. See docs/PII.md.
+- The `telemetry` rule now strips harness telemetry on its own, closing gaps a
+  dataset review had to scrub separately: records of OpenTine's own
+  claude-code adapter blobs, keyed by `event` rather than `type` (including
+  the `init` payload, reduced like `system`/`init`); the same inside
+  `gen_ai.prompt` OTel attributes, whose `{"key", "value"}` id attributes are
+  removed too; `inference_geo` in every `usage` block; message `uuid`s in
+  transcript records carrying `sessionId`; and session UUIDs inside
+  `.claude/projects/<p>/<uuid>/` paths, which become `<SESSION>`. Patterns
+  are per harness in `opentine/_redact_harnesses.py`; tool `input` and
+  `parameters` are untouched; everything counts under `telemetry`.
 ## 0.71.0 — Checkpoint and weight custody (2026-11-20)
 
 - Custody gaps and refused tagged loads go to the oversight queue: the source

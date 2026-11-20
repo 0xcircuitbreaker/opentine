@@ -100,27 +100,65 @@ class _Batch:
         yield {}
 
 
-@pytest.mark.parametrize("budget", [Budget(max_steps=3), Budget(max_duration=0.2)])
-def test_budget_is_enforced_between_tool_calls_in_one_batch(budget):
+class _Clock:
+    """Injected duration source for the run loop: advances only when told."""
+
+    def __init__(self, monkeypatch):
+        from opentine import _runtime_loop
+
+        self.now = 0.0
+        monkeypatch.setattr(_runtime_loop, "_clock", lambda: self.now)
+
+
+def _skipped(run: Run) -> list:
+    return [
+        step
+        for step in run.steps
+        if step.kind == StepKind.tool and "not executed" in str(step.outputs.get("result"))
+    ]
+
+
+@pytest.mark.parametrize("budget", [Budget(max_steps=3), Budget(max_duration=3.5)])
+def test_budget_is_enforced_between_tool_calls_in_one_batch(budget, monkeypatch):
+    clock = _Clock(monkeypatch)
     executed: list[str] = []
 
     def act(target: str) -> str:
         """Do one side effect."""
         executed.append(target)
-        time.sleep(0.05)
+        clock.now += 1.0
         return "ok"
 
     run = Agent(_Batch(), tools=[act], budget=budget).run_sync("go")
 
-    assert len(executed) < 10, "the model, not the budget, decided how many ran"
+    assert 0 < len(executed) < 10, "the model, not the budget, decided how many ran"
     assert run.metadata["budget_state"]["breached"] is True
-    skipped = [
-        step
-        for step in run.steps
-        if step.kind == StepKind.tool and "not executed" in str(step.outputs.get("result"))
-    ]
     # Every call in the batch is answered, so a resume sees a complete batch.
-    assert len(skipped) + len(executed) == 50
+    assert len(_skipped(run)) + len(executed) == 50
+
+
+def test_budget_breached_before_first_call_answers_whole_batch(monkeypatch):
+    clock = _Clock(monkeypatch)
+    executed: list[str] = []
+
+    def act(target: str) -> str:
+        """Do one side effect."""
+        executed.append(target)
+        return "ok"
+
+    model = _Batch()
+    complete = model.complete
+
+    async def slow_complete(*args, **kwargs):
+        clock.now += 10.0  # the model call alone spends the duration budget
+        return await complete(*args, **kwargs)
+
+    model.complete = slow_complete
+    run = Agent(model, tools=[act], budget=Budget(max_duration=0.2)).run_sync("go")
+
+    assert executed == []
+    assert run.metadata["budget_state"]["breached"] is True
+    assert len(_skipped(run)) == 50
 
 
 # --------------------------------------------------------------------------- #
