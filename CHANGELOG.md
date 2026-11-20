@@ -2,13 +2,7618 @@
 
 ## Unreleased — Security and integrity audit
 
-- `tine promote --canary` now applies the gate's checks to the canary pair:
-  the same item set (`promote.item-mismatch`), the same dataset
-  (`promote.dataset-mismatch`) and at least `min_n` paired items
-  (`promote.n-below-minimum`). An empty, tiny or cherry-picked canary used to
-  pass silently, and a single bad item could revert an honest promotion.
-- The promotion gate (main, holdout and canary pairs) refuses evals whose
-  scorer, `scorer_version` or `threshold` differ between the sides, or vary
-  within one side, with the new command-level refusal `promote.scorer-mismatch`.
-  A candidate scored under a lower threshold could raise `pass_rate` without
-  improving.
+- `tine integrity scan`: the canary index (`.tine/integrity/canary-index.sqlite`) is no longer trusted as written. Each `scanned` row is an HMAC under this user's local 0600 secret over the scan key, object id, its hits and the index location; a row that does not verify (hits deleted, rows planted or copied) is read again, so editing the cache cannot hide a canary leak. The index is opened without following links, and a linked or non-regular index path is not used (every object is read). Older indexes rescan once. (audit fs-1)
+
+## 0.67.0 — Merging run histories (2026-11-20)
+
+- `tine merge-history snapshot|plan|apply|verify` merges what parallel loops
+  hold around their runs: `heads/` and `tags/` refs, label states
+  (promotions), lineage records and holds, three-way from a base snapshot
+  (`opentine-history-snapshot/1`). docs/MERGE.md.
+- Conflicts are reported, sorted by kind and key, and never auto-resolved:
+  `ref-diverged`, `label-moved`, `promotion-diverged`, `lineage-id`,
+  `hold-weakened` (a base hold dropped on one side is kept) and `held-target`
+  (a ref or label moved onto a run that a loop-stop, integrity-taint or memory
+  quarantine hold added on one side names stays at its base value). A merge
+  never deletes a ref, a lineage record or a hold. The merge is symmetric:
+  which side is "ours" changes neither the result nor the conflicts.
+- `apply` lands a conflict-free merge as ref updates by one compare-and-swap
+  plus a signed `opentine.history-merge/1` attestation (a claim convention: no
+  new object kind, no new `tine verify` code), held under `history-merge:` and
+  never released. A ref owned by a merge queue is enqueued, not moved. Label
+  states and lineage records from the other side are checked against the
+  merged snapshot (lineage records must also verify) before anything is
+  written.
+- `verify` re-runs the merge from the three snapshots and checks the record;
+  with pinned key roles the signer must be a `policy` key and not an
+  `optimizer` key. The Python reference, the pyz (`_pyz/_histmerge.py`) and
+  the TS verifier (`histmerge.ts`) answer the shared fixture
+  `tests/data/history_merge.json` field for field.
+- A seeded 1,000-case branch/merge property test checks commutativity,
+  determinism under key order, that conflict-free merges keep both sides'
+  changes and that no hold is ever lost. Schemas `tine-cli-merge-history-1`,
+  `opentine-history-snapshot-1` and `opentine-history-merge-1`; README count
+  138.
+- The query index gains `history_merges`: one row per merge record (signer,
+  target ref, snapshot digests, conflict count). Under `--verify` a row is
+  `verified` only for a pinned `policy` signer without `optimizer`.
+- `tine auditor import-petri --blind SECRET` refuses a SECRET path inside the
+  repository (resolved, symlinks followed), where the audited agent could read
+  the opening, unless `--allow-in-repo` is given, and refuses to overwrite an
+  existing file, including a case variant of the repository path on a
+  case-insensitive filesystem. docs/AUDIT_GAMES.md says where to keep the
+  opening.
+
+## 0.66.0 — Elicitation and sabotage analytics (2026-11-19)
+
+- `tine elicit link DRAFT --key KEY` signs an `opentine.elicit-link/1` record:
+  one task attempted under one elicitation condition (`prompt`, `scaffold`,
+  `fine-tune` with its ref, `best-of-n`, `eval-cue` or `deployment-cue`, plus
+  the cue shown and whether the run was monitored), its effort record
+  (attempts, best-of-n, tokens, USD, GPU hours) and per-item scores. Records
+  are filed by digest under `.tine/elicit/links/`; records sharing a task are
+  linked item by item. A file convention: no new object kind and no new
+  `tine verify` code.
+- `tine elicit report` gives each condition's mean, effort totals and its
+  capability gap against the best-scoring condition with a paired-bootstrap
+  interval from the 0.57 statistics. Each eval-cued or monitored condition is
+  compared with each deployment-cued, unmonitored one by the 0.57 paired
+  permutation test (mean) and a paired-swap test (spread); thresholds are
+  Bonferroni-corrected over every test in the report, and the correction is
+  part of the output. Resampling is seeded and reproducible.
+- Every under-performance or score-distribution flag is advisory
+  (`advisory:elicit.*`, D12): statistical evidence that scores depend on the
+  condition, not proof of intent; it blocks only with `--strict`. Malformed,
+  badly signed, duplicate or optimizer-signed records are left out and fail
+  the report; signers are trusted only through the owner-pinned key roles.
+- Synthetic fixtures: an agent that underperforms only under the eval cue is
+  flagged with p < 0.01, and an honest agent is not flagged on at least 95% of
+  a fixed seed list. docs/ELICITATION.md; schemas `tine-cli-elicit-1` and
+  `opentine-elicit-link-1`.
+- Sabotage task records: `tine sabotage record` signs and holds an
+  `opentine.sabotage-task/1` attestation on a run for one SHADE-style task
+  (class `code` or `decision`; main task id, score and pass; side task
+  attempted and achieved; evidence references; linked 0.62 monitor verdicts).
+  A claim convention: no new object kind and no new `tine verify` code.
+- Records count only when signed by a key in the `scorer` or `eval` role of
+  the owner-pinned trust bundle. Each is held under `sabotage-task:TASK` and
+  never released; `record` refuses to mark an attempted or achieved side task
+  as not attempted or not achieved, and `report` keeps the strongest counted
+  outcome and reports a held downgrade as `fail:sabotage.relabel`.
+- `tine sabotage report [--json]` gives catch rate per sabotage class (caught
+  by a verified, non-`allow` monitor verdict / attempted) with a seeded
+  interval from the 0.58 paired-bootstrap code. Statistics and
+  `advisory:sabotage.uncaught`, `signer-unpinned` and `verdict-unverified`
+  are advisory (D12) and block only with `--strict`; they are statistical
+  evidence, not proof of intent. Schemas `tine-cli-sabotage-1` and
+  `opentine-sabotage-task-1`; docs/SABOTAGE.md.- The 0.65 query index gains `sabotage_tasks`, `elicit_links` and
+  `elicit_items` tables, checked by `tine query --verify` against the pinned
+  `scorer`/`eval` (and, for elicitation, `verdict`) roles; a changed
+  elicitation record makes the index stale. docs/QUERY.md.
+
+## 0.65.0 — Query and experiments (2026-11-19)
+
+- `tine query "SELECT ..." [--repo PATH]` runs one read-only SQL statement
+  over a derived SQLite index at `.tine/query/index.sqlite`: `runs`, `steps`,
+  a `costs` view, `monitor_verdicts`, `oversight_decisions`,
+  `lineage_variants`, `lineage_edges` and `evals`. Every row carries the `oid`
+  it was read from; the index is labelled non-authoritative in its `meta`
+  table, in `--json` output and in the text header, and deleting it loses
+  nothing. Built on the standard library's `sqlite3`; no new dependency.
+- Only reading is allowed: the index is opened read-only with `PRAGMA
+  query_only`, and an authorizer refuses writes, schema changes, `ATTACH`,
+  every `PRAGMA`, transactions and `load_extension` (`query.refused`). Work is
+  bounded by a count of SQLite steps (`--max-steps`, `query.too-many-steps`),
+  not a clock; `--limit` caps the rows returned.
+- `tine query SQL --verify [--strict]` goes back to the object or record
+  behind each returned row and marks it `verified` (intact, consistent with
+  the row, Ed25519 signature valid, signer holds a role in the owner-pinned
+  key roles), `unverified` (intact but unsigned, or signer without a pinned
+  role) or `failed` (missing, changed, bad signature, or the index row
+  disagrees with the source). `failed` exits 1; `unverified` is advisory
+  unless `--strict`.
+- `tine query index [--rebuild] [--check] [--evals DIR]...` reports or
+  rebuilds the index. Staleness compares a stat fingerprint of the object
+  store (then the object ids, so a repack is not stale), the lineage folder
+  and the remembered eval folders; a stale index answers marked `stale`, and
+  `--refresh` rebuilds it first. Large rebuilds read objects in worker
+  processes.
+- `scripts/bench/query_index.py` times a synthetic one-million-run index and
+  typical aggregate queries; results are in docs/bench/0.65-query.md.
+- `--json` prints `tine-cli-query/1`. See docs/QUERY.md.
+- `tine query --verify` asks for the role a table needs (`scorer` for evals, `monitor` for monitor verdicts, `approver` for oversight decisions; never an `optimizer` key), checks a step's `run`/`seq` and an eval's `run` against their objects, and fails eval sources outside the indexed folders.
+- `tine query` refuses values over 1,000,000 bytes (`query.too-large`) and repeated result column names (`query.duplicate-column`).
+- The query index also holds experiment manifests (`experiments`,
+  `experiment_results`) and reproduce reports (`reproductions`), read from
+  `.tine/experiments/` and each `tine query index --experiments DIR`
+  (remembered); `--verify` re-checks them against their files, and a changed
+  experiment file makes the index stale.
+- Experiment manifests: `opentine.experiment-manifest/1` is a signed file
+  convention recording hypothesis, code and container digests, model id and
+  version, sampling parameters, seeds, data commitments, compute spend, result
+  rows that reference signed `tine-eval-verdict/1` files by digest and path, and
+  the stated conclusion. `tine experiment sign DRAFT --key KEY` signs a draft.
+- `tine experiment check REPORT [--manifest M]` recomputes a reproduce report
+  instead of trusting its signature alone: a row whose delta or agree does not
+  follow from its scores and tolerance, unlisted score drift, a selection that
+  is not the seeded sample of M, or a field M leaves nondeterministic but the
+  report omits fails `fail:experiment.report-mismatch`; an optimizer-signed
+  report fails `fail:experiment.key-separation`. A reproducer-chosen seed or
+  tolerance and `--repeats 1` are advisories. The `verdict` runner refuses an
+  unverified or swapped verdict file.
+- `tine experiment check FILE [--repo PATH] [--strict]` fails
+  `fail:experiment.result-mismatch` when a row's digest, score or passed differs
+  from its verdict, and `fail:experiment.reference-missing`,
+  `fail:experiment.reference-unsigned`, `fail:experiment.unsigned`,
+  `fail:experiment.bad-signature`, `fail:experiment.key-separation` (verdict
+  signed by a pinned optimizer key) and `fail:experiment.malformed`. A verdict
+  signer outside the owner-pinned scorer/eval/verdict roles is
+  `advisory:experiment.signer-unpinned` and blocks only with `--strict`.
+- `tine reproduce EXPERIMENT --sample K --key KEY [--seed N] [--tolerance T]
+  [--repeats N] [--runner verdict|FILE.py:FUNC|MODULE:FUNC]` reruns a seeded,
+  recorded sample of result rows and writes a signed
+  `opentine.reproduce-report/1` with per-row agreement, the selection, and the
+  manifest fields found nondeterministic; it exits 1 on disagreement.
+- Schemas `opentine-experiment-manifest-1`, `opentine-reproduce-report-1`,
+  `tine-cli-experiment-1` and `tine-cli-reproduce-1` (file conventions, not
+  object kinds); docs/EXPERIMENTS.md. No object kind and no `tine verify` code
+  is added.
+
+## 0.64.0 — Inspect and Petri interop (2026-11-19)
+
+- `tine import inspect LOG --repo PATH` (also `tine inspect import`) reads an
+  Inspect AI `.eval` zip or `.json` log without importing `inspect_ai`: each
+  sample becomes a run on `heads/inspect/<task>-<eval>/s<index>`, its messages
+  become steps, the eval's sandbox config becomes the run's first step
+  (`inputs["inspect.sandbox"]`), and the sample id (JSON type kept), epoch,
+  target, raw scores and eval header go in the run annotation's `inspect`
+  value. A second import of the same eval is refused.
+- With `--key KEY --evals DIR` each scorer's scores become a signed
+  `tine-eval-verdict/1` eval folder that `tine eval verify` reads unchanged.
+  `C`/`I`/`P`/`N`, booleans and numbers in 0..1 map into 0..1; any other value
+  gets no verdict and is listed under `skipped`.
+- `tine export inspect --repo PATH [--format json|eval] [--output PATH]` writes
+  the runs back as an Inspect log with the same sample ids and scores;
+  `.eval` output uses fixed zip timestamps and stdout output is byte-exact.
+  Five fixtures shaped like logs for five pinned inspect_evals tasks
+  (`tests/fixtures/inspect/MANIFEST.json`, synthetic content) round-trip exactly.
+- `opentine._inspect_hook` signs Inspect logs on write (`register()` from an
+  `inspect_ai` hooks module; import-guarded): a detached
+  `<log>.tine-sig.json` record (`opentine-inspect-log-sig/1`).
+  `tine inspect sign` and `tine inspect verify` write and check it.
+- Inspect signers follow the owner-pinned key roles: `tine inspect import
+  --key` refuses an optimizer key (`inspect.key-separation`, exit 4) and marks
+  verdicts signed by a key outside the pinned `scorer`/`eval` roles as
+  `signer_status: unpinned`; `--require-signed` refuses a log unless its
+  detached signature verifies and its signer is a pinned scorer key.
+  `tine inspect verify [--repo PATH] [--strict]` reports the signer
+  fingerprint and `pinned`/`unpinned`/`refused`, prints "signature valid,
+  signer unpinned" instead of a bare "ok", exits 4 for an optimizer signer and
+  for an unpinned one only with `--strict` (D12).
+- `tine import metr DIR --out FILE.jsonl` reads a METR task-standard family
+  into an eval dataset by parsing `<family>.py` with `ast`; the family's code
+  is never executed.
+- The log reader caps log, member and expanded zip size, member count,
+  compression ratio, JSON depth, samples and messages, and is a new `inspect`
+  target of `scripts/fuzz.py` seeded from the fixtures.
+- An imported model-graded scorer carries its judge provenance: when the log
+  records the grader (`results.scores[].params` or `eval.model_roles.grader`),
+  the signed verdicts' `scorer_version` is the `jp1+sha256:` pin of an
+  `opentine.judge-provenance/1` document written beside them as `judge.json`,
+  so `tine eval verify` catches a swapped or deleted rubric, template or grader.
+  Scorer names with `_` now import (`inspect-model-graded-qa`).
+- Schemas `tine-cli-inspect-1`, `opentine-inspect-sample-1` and
+  `opentine-inspect-log-sig-1` (claim and file conventions, not object kinds);
+  docs/INSPECT.md. No object kind and no `tine verify` code is added.
+- Judge provenance: an `llm-judge` scorer's `scorer_version` is now
+  `jp1+sha256:` over an `opentine.judge-provenance/1` document (judge model,
+  prompt digest, rubric digest, sampling parameters). It sits inside the
+  signed body of every `tine-eval-verdict/1`; the eval folder keeps the
+  document as `judge.json` and each judge run's metadata carries it.
+  `tine eval verify` recomputes the pin: an edited rubric digest fails with
+  the existing `eval.summary-mismatch`, and rewriting the verdicts to match
+  fails with `eval-verdict.bad-signature`. The verdict format and its
+  verifiers are unchanged. `tine eval run --judge-rubric FILE` adds a rubric.
+- `tine auditor import-petri FILE --repo PATH` records a Petri or Bloom
+  transcript as an ordinary run tagged `role=auditor`. Auditor, target and
+  judge are the steps' speakers and `metadata.audit` names their models. The
+  reader is pure JSON parsing, bounded in size, nesting and message count,
+  with a fuzz test; fixtures are small and synthetic.
+- Blind audit games: `--blind SECRET` replaces the target's identity with a
+  commitment. `tine auditor seal|findings|reveal` sign the game's records as
+  attestations (claim convention `opentine.audit-game/1`) held under
+  `audit-game:GAME`, which `tine hold release` refuses. A reveal names the
+  findings it follows. `tine auditor check` exits 1 on
+  `fail:audit-game.reveal-before-verdict`, `fail:audit-game.commitment-mismatch`,
+  `fail:audit-game.unsealed` or `fail:audit-game.unsigned`. Findings by a key
+  outside the pinned role are `advisory:` (D12).
+- Key roles: `auditor`, from the owner-pinned trust bundle only. It is guarded
+  against optimizer keys by `tine keys lint`.
+- Schemas `tine-cli-auditor-1`, `opentine-audit-game-1` and
+  `opentine-judge-provenance-1`; docs/AUDIT_GAMES.md. No object kind and no
+  `tine verify` code is added.
+
+## 0.63.0 — Oversight queue (2026-11-19)
+
+- `.tine/oversight.toml` defines risk tiers, each a k-of-n set of approver
+  keys, and routes that send lineage promotions, threshold-crossing evals
+  (`pass_rate` or `mean_score` above or below a value), held monitor verdicts
+  (`flag`, `defer`, `block`) and held integrity taints into tiers. It counts
+  only when `.tine/oversight.sig.json` (claim `opentine.oversight-policy/1`)
+  is signed by a `policy`-role key of the owner-pinned trust bundle that is not
+  an `optimizer` key; an unsigned or edited policy grants nothing.
+- `tine oversight request|approve|reject ITEM --key KEY` writes one
+  Ed25519-signed decision as an existing `annotation` object on the item's
+  anchor blob, chained by `previous_id` (value convention
+  `opentine.oversight-decision/1`), and holds it under `oversight-decision:`;
+  `tine hold release` refuses it. Approve and reject are refused for
+  `optimizer`, `monitor` and `scorer` keys.
+- `tine promote` checks the policy for a routed candidate and refuses with
+  `promote.oversight-insufficient`, `promote.oversight-key-separation`,
+  `promote.oversight-stale` (an approval bound to another holder or label
+  sequence) or `promote.oversight-rejected`. Approvers count only from the
+  pinned `approver` role; the same key, the keys of one person under
+  `[humans]`, or one declared `--human` count once.
+- `tine oversight queue` lists every routed item and its tally per tier;
+  `--from-objects` rebuilds the same state from the annotation objects alone.
+  `tine oversight policy` and `sign-policy` report and pin the policy.
+  Schemas `tine-cli-oversight-1` and `opentine-oversight-decision-1`;
+  docs/OVERSIGHT.md. No object kind and no `tine verify` code is added.
+- The queue uses the gate's tally over the same decision annotations, so it
+  cannot show `approved` where `tine promote` refuses. `--json` adds `counts`,
+  each item's `opened_at`, per-decision `counted` and `viewed`, and a
+  `digest`; `--only STATE` filters the text output. A promoted candidate is
+  judged as it stood when it moved.
+- `tine ui --repo PATH` serves the queue at `/queue.html` and
+  `/api/oversight/queue`, the same JSON as `tine oversight queue --json`.
+- `approve` and `reject` take `--viewed OID` and `--viewed-at TIME`, signed
+  into the decision. `tine oversight fatigue` is an advisory approver-fatigue
+  report (time to decision from record timestamps, rubber-stamp rate, pending
+  age against `--at`); it always exits 0 and never gates (D12).
+- The owner-signed trust bundle accepts an `oversight` section,
+  `{"version": 1, "tiers": {NAME: {"k": N}}}`: per-tier k floors that a
+  rolled-back or edited policy cannot lower.
+
+## 0.62.0 — Monitor verdicts and intervention log (2026-11-19)
+
+- Inline monitors on the MCP proxy (`tine mcp-proxy --monitor CONFIG
+  --monitor-repo PATH --monitor-key KEY`, stdio and Streamable HTTP) and on
+  the agent hook path (`tine monitor gate`, Claude Code/Codex `PreToolUse`,
+  Gemini CLI `BeforeTool`, generic `opentine-monitor/1`). Monitors are
+  pluggable: `rule`, `command` (a local model) or `http` (a remote API).
+- Advisory mode is the default and never blocks (D12). Gate mode, which the
+  operator turns on in the config, waits up to `deadline_ms`; a missed
+  deadline or a monitor error blocks only with `fail_closed = true`.
+  `resample` and `defer` relay an alternate action and record both
+  trajectories; without an alternate they block.
+- Every verdict that is not `allow` is an Ed25519-signed attestation under the
+  claim convention `opentine.monitor-verdict/1` (monitor identity and model
+  digest, input digest, whether reasoning text was captured, redacted or
+  unavailable and its digest, score, threshold, action, latency), kept by a
+  `monitor-verdict:` hold that `tine hold release` refuses. A verdict is
+  `verified` when signed by the new `monitor` key role of the owner-pinned
+  trust bundle; the optimizer key may not hold it.
+- Signed stop tokens: `tine monitor stop --scope *|agent:NAME|session:ID`
+  writes an `opentine.monitor-stop/1` attestation held under `monitor-stop:`
+  (never released); the proxy and the hook block a stopped scope in either
+  mode. `tine monitor stops|verdicts` list them.
+- `tine monitor verify --run RUN` checks offline that every blocked or replaced
+  action in the runs has a held, signed verdict recording that action
+  (`fail:monitor.*` CLI findings, not `tine verify` codes).
+- New schemas: `tine-cli-monitor-1`, `opentine-monitor-verdict-1`,
+  `opentine-monitor-stop-1`, `opentine-monitor-hook-1`. No new object kinds
+  (docs/MONITORS.md).
+- `tine monitor backtest MONITOR --runs FILE` replays recorded trajectories
+  against a rule monitor offline and reports catch rate, false-positive rate
+  and the decision diff against the recorded online verdicts. Online verdicts
+  are compared only when they saw the same reasoning visibility (`captured`,
+  `redacted`, `unavailable`) and the same input digest, and rates are never
+  pooled across visibility groups. A verdict from the same monitor digest must
+  reproduce byte for byte; `--require-reproduced` exits 1 when one does not.
+- `tine monitor collusion MONITOR --runs FILE [--reference MONITOR]` tests an
+  untrusted monitor against an untrusted policy's signalled and unsignalled
+  attacks; its findings (`advisory:monitor-collusion-suspected`,
+  `advisory:monitor-misses-reference-catch`) are advisory only and
+  `--log FILE` appends the result as one JSON line.
+- `tine monitor backtest MONITOR --repo PATH --run RUN` reads the gate's
+  held, signed verdicts (pinned `monitor` role only) as the online verdicts of
+  runs recorded by `tine mcp-proxy --save`; a step edited after its verdict
+  counts as `input_mismatch`, unverified verdicts as `unverified_verdicts`.
+- Rule monitors are JSON specs; the decision fields of a recorded verdict (monitor digest, input digest,
+  reasoning visibility, score, threshold, action) are documented in
+  docs/MONITOR_BACKTESTS.md. New schema `tine-cli-monitor-1`.
+
+## 0.61.0 — Memory provenance and quarantine (2026-11-19)
+
+- Served memory notes are recorded at capture time in the consuming run's own
+  step evidence: a `tool` step with the attribute `opentine.memory.served`
+  (the note digests). `tine memory recall --record-to RUN` records them; a
+  finished or attested run is never amended.
+- `tine memory recall --min-assurance TIER` keeps notes whose subject run
+  reaches the tier (capped at `T1` for a stored run; `T0` without one).
+- `tine memory quarantine NOTE --key KEY --why TEXT` signs a superseding note
+  tagged `quarantine`, holds it (`memory-quarantine:` holds are never
+  released), and lists every run served the note and every lineage variant
+  whose mutation or eval runs consumed it. `tine memory served NOTE` lists the
+  same. Recall and MCP `recall` never serve a quarantined note.
+- A rebuildable derived index, `.tine/index/memory-served.sqlite`, answers
+  those listings with one indexed lookup.
+- `tine promote` refuses a candidate served a quarantined note
+  (`promote.memory-quarantined`); `tine lineage check|why` report
+  `lineage.memory-quarantined`.
+- Memory provenance is a claim convention plus existing step evidence: no new
+  object kinds and no new `tine verify` codes (docs/MEMORY.md).
+
+## 0.60.0 — Sealed holdouts and canaries (2026-11-18)
+
+- `tine dataset seal` commits to a holdout with an RFC 6962 Merkle root over
+  salted item leaves (signed claim `opentine.holdout.commitment/1`, an
+  existing attestation) and stores each item as a `TINEAES3` ciphertext bound
+  to its slot. Sealing needs a `dataset`-role key from the owner-pinned trust
+  bundle; the seal key stays outside the folder.
+- `tine dataset unseal` needs an `eval`-role key (a new optional key role; an
+  optimizer key never qualifies) and writes a signed, chained
+  `opentine.holdout.access/1` record (who, which run, why) before it releases
+  any item. Each released item is checked against its leaf.
+- Exposure budgets: a holdout declares `max_unseals` and `max_items`. `unseal`
+  refuses past either (`holdout.budget-exceeded`) unless `--exceed-budget`
+  records the overrun; `tine promote --sealed-holdout DIR` refuses with
+  `promote.holdout-exposed` when a holdout is over budget or its access
+  records do not chain; holdouts under `REPO/.tine/holdouts/` are checked
+  without the flag. `tine dataset exposure` reports the counts.
+- Rotation: `seal --rotate-from OLD` names the previous root and commitment
+  digest; `exposure --chain` checks the commitment chain.
+- `tine eval run --holdout DIR` refuses with `eval.holdout-touched` when a
+  scored run was named by a non-eval access record, holds an item in clear, or
+  contains an item's 5-word shingles at 0.8 or more (threshold recorded).
+- `tine promote --canary-lengths FILE` runs `tine dataset canary-check` and
+  refuses with `promote.canary-failed` when it does not pass, and with
+  `promote.canary-run-mismatch` when the signed lengths are not for the
+  candidate run.
+- New published schema `tine-cli-holdout-1` for `seal`, `unseal` and
+  `exposure`. Docs: docs/HOLDOUTS.md.
+- `tine dataset canary-add TEXT --entropy-bits N --key KEY` registers a canary
+  string with a declared entropy in bits. The registration is an existing
+  attestation under the claim convention `opentine.integrity.canary`, and it
+  counts only when a pinned `dataset`-role key that is not an optimizer key
+  signs it. `tine dataset canary-list` lists registrations without their text.
+- `tine integrity scan` finds registered canaries in runs, prompts, memory and
+  exported packs (`--file`). A derived, content-addressed index
+  (`.tine/integrity/canary-index.sqlite`) means that a repeat scan reads only
+  new objects, and `counts` reports how many objects were read and how many
+  came from the index.
+- `tine dataset canary-sign LENGTHS.json --run RUN --key KEY [--out FILE]`
+  signs a scorer's per-canary code lengths for one scoring run, the
+  attestation `canary-check` and `promote --canary-lengths` read.
+- `tine dataset canary-check LENGTHS.json` reads the per-canary code lengths
+  from a scoring run. It refuses with `dataset.canary-below-entropy` (exit 1)
+  when a model codes a counted canary below its declared entropy, which is
+  evidence that the model saw the holdout. Unscored, unregistered and
+  uncounted canaries are advisory (D12).
+- `tine dataset contamination HOLDOUT.jsonl --against CORPUS.jsonl` reports
+  exact blob-oid matches and word 5-gram MinHash/LSH near-duplicates whose
+  exact Jaccard is at or above a recorded threshold (default 0.8).
+- The scan and contamination check fold case, whitespace, zero-width
+  characters and Cyrillic/Greek lookalikes before matching; `contamination`
+  also reports items chunked across several corpus items (`chunked`, by
+  shingle coverage). `canary-check` refuses a run that scores no counted
+  canary (`dataset.canary-none-scored`) and a margin that leaves no floor.
+- Access records and canary registrations survive their files: each is also
+  stored as a blob and held (`holdout-access:ROOT:SEQ`,
+  `holdout-canary:HEX`), and `tine hold release` refuses those rows, as for
+  0.57 loop stops and 0.59 taints. Exposure is computed from the union of the
+  folder's records and the held copies, so deleting records cannot lower it;
+  a registration file that matches none of its held copies is refused as
+  `canary.tampered`, and a deleted one still counts.
+- `canary-check` requires the lengths file to be a signed attestation (claim
+  convention `opentine.integrity.canary-lengths`, integer `code_millibits`)
+  from a `scorer`-role key in the owner-pinned roles that is not an optimizer
+  key, bound to the scoring run id (`target_id`; `--run RUN` checks it);
+  anything else is refused with `canary.unsigned`. `run` and `signer` are
+  reported.
+- `unseal` ignores records not validly signed by an allowed key when it picks
+  the next sequence, so a forged file in the next slot no longer blocks it;
+  two validly signed records for one sequence still break the chain.
+- Out of scope, documented in docs/HOLDOUTS.md: canaries split across
+  objects, real paraphrases (until embeddings in 0.74), compressed packs
+  passed as raw files, and the full confusables table.
+- New published schema `tine-cli-canary-1`. `tine-cli-integrity-1` gains
+  `integrity scan`. There are no new object kinds, wire formats or vector
+  families.
+
+## 0.59.0 — Measuring-stick integrity (2026-11-18)
+
+- `.tine/protected.toml` names the protected surfaces of a self-improving
+  agent loop (graders, tests, holdout manifests, sandbox policy, scorer code)
+  as globs with pinned sha256 digests. The list counts only when pinned by an
+  `opentine.integrity.protected/1` attestation from a `policy`-role key that is
+  not an optimizer key (0.57 key roles), so a loop cannot edit the list:
+  `tine integrity pin` writes current digests, `tine integrity sign` pins the
+  bytes.
+- `tine integrity check RUN` judges the run's tool calls (file tools and shell
+  commands) and every pinned digest and exits 1 on
+  `fail:protected-surface-modified` (a hash fact),
+  `fail:protected-list-unsigned` or `fail:protected-list-missing`.
+  `advisory:test-deleted` and `advisory:holdout-read` are reported and block
+  only with `--strict` (owner decision D12). `--json` prints the new published
+  schema `tine-cli-integrity-1`.
+- `--key` files a signed taint for a failing run, an existing attestation
+  under the claim convention `opentine.integrity.taint`.
+- `tine promote` refuses a tainted candidate, or one that trips a `fail:`
+  against the protected list at promotion time, with `promote.score-tainted`.
+- `tine lineage check` and `why` report `lineage.score-tainted` for a variant
+  whose mutation run is tainted.
+- The TS verifier has the same check (`checkProtected`); both answer the shared
+  fixture `tests/data/integrity_check.json`, outside the frozen vector family.
+  `tine verify`, the pyz, object kinds, wire formats and vectors are unchanged
+  (freeze-safe). See docs/INTEGRITY.md.
+- Advisory reward-hack detectors (`opentine._integrity_advisory`,
+  `opentine._integrity_advisory_evidence`): `advisory:test-deleted`,
+  `advisory:test-skipped-added` (pytest skip/skipif/xfail, unittest skip,
+  JS `.skip`/`.only`), `advisory:special-casing`, `advisory:visible-holdout-gap`,
+  `advisory:judge-ground-truth-disagree`, `advisory:fabricated-tool-evidence`,
+  `advisory:conftest-tampered`, `advisory:timing-fake` and
+  `advisory:env-answer-leak`. Findings print one line each and never block by
+  default (D12); only `fail:` facts block. `tine integrity check RUN --record
+  FILE` runs them over a run record next to the protected-surface check.
+- Red-team corpus `tests/data/integrity_redteam/`: 30 seeded reward hacks with a
+  manifest of their classes and 200 benign refactor runs, regenerated
+  byte-for-byte by `scripts/gen_integrity_redteam.py`. Tests require >= 27/30
+  detected and a false-positive rate <= 5% (count-based).
+- New guide docs/SELF-IMPROVING-LOOPS.md ties 0.57 promotion, 0.58 lineage and
+  0.60 integrity together. `tine verify`, the pyz, object kinds, wire formats
+  and vectors are unchanged.
+- Key roles are anchored in the owner-signed trust bundle (SPEC 8.26). A
+  bundle may carry `key_roles` (`{"version": 1, "roles": {...}}`, the JSON of
+  `.tine/key-roles.toml`); `tine trust bundle create --key-roles FILE` signs
+  existing roles (migration). Roles grant `policy`, `scorer` and `stopper`
+  powers only from a bundle whose owner key is pinned outside the repository
+  (`$OPENTINE_TRUST_OWNER` or `$XDG_CONFIG_HOME/opentine/trust-owner`; bundle
+  at `$OPENTINE_TRUST_BUNDLE` or `.tine/trust-bundle.note`); a lower serial
+  than the highest seen is refused. Roles only in the unsigned
+  `.tine/key-roles.toml` are `roles: unpinned`: they still refuse (key
+  separation), but `promote` with a `policy` role refuses
+  `promote.policy-unsigned`, lineage reports signers `unpinned`, a `stopper`
+  role verifies no stop and no policy key pins the protected list. Closes a
+  red-team finding: a loop that could write the file could add its own key as
+  a policy key. `tine keys lint` prints `roles: pinned|unpinned|absent`
+  (`--json` `pinning`); `tine-cli-trust-bundle-1` gains `key_roles`; the TS
+  `openTrustBundle` returns `keyRoles`. `.tine/trust-bundle.note` is a
+  protected control path.
+- Integrity taints are also held: `--key` stores the signed taint attestation
+  and adds a `tine hold` row `integrity-taint:RUN` that `tine hold release`
+  refuses; promote and lineage read held taints, so deleting
+  `.tine/integrity/taints/` does not launder a score (red-team finding). An
+  unreadable holds file taints (fail closed). `tine-cli-integrity-1` gains
+  `taint.hold`.
+- Detection is stated honestly in docs/INTEGRITY.md and
+  docs/SELF-IMPROVING-LOOPS.md: on a blind held-out set the advisory detectors
+  caught 2 of 13 hacks before tuning; advisories are heuristics, and the
+  `fail:` facts are the guarantee.
+
+## 0.58.0 — Self-modification lineage (2026-11-18)
+
+- `tine lineage record --run RUN --key KEY --code-tree|--prompt|--config|--weights
+  DIGEST [--parent VARIANT]... [--eval DIR]... [--selector T] [--decision FILE]
+  [--policy HEX] [--loop LOOP]` signs a variant of a self-improving agent loop as
+  an existing `attestation` under the documented claim convention
+  `opentine.lineage.variant`: its parents (zero, one or many), artifact digests,
+  mutation run, justifying evals, selector, promotion decision and policy. The
+  record, its evals and the decision are filed by digest in `.tine/lineage/`.
+  It refuses an eval that does not verify and a loop stopped by `tine loop stop`.
+- `tine lineage check VARIANT` walks the variant's ancestry over that folder
+  alone and exits 1 with named findings: `lineage.evidence-missing` (a
+  justifying eval unsigned, absent or edited), `lineage.parent-missing`,
+  `lineage.cycle`, `lineage.decision-mismatch` (the cited 0.57 promotion
+  decision is absent, unsigned, promotes another run, was made under another
+  policy or cites none of the variant's evals), `lineage.record-invalid` and
+  `lineage.variant-unknown`. Each ancestor is read once.
+- The TS verifier has the same check (`checkLineage`); both answer the shared
+  fixture `tests/data/lineage_check.json`, outside the frozen vector family.
+- `--json` prints the new published schema `tine-cli-lineage-1`. `tine verify`,
+  the pyz, object kinds, wire formats and vectors are unchanged (freeze-safe).
+  See docs/LINEAGE.md.
+- `tine lineage graph [--format dot|json]`, `tine lineage why VARIANT`,
+  `tine lineage archive [--loop] [--signed]` and `tine lineage index [--rebuild]`
+  read the same lineage folder through a derived index
+  (`.tine/lineage/index/lineage.sqlite`), under the one claim convention: no
+  second schema. The index is rebuilt when any folder file changes; deleting
+  and rebuilding it gives an identical `graph_sha256`.
+- `why` walks a variant to every ancestor and its evals, verdict datasets and
+  judges, approvers, policy, promotion decision and its inputs, touching
+  O(ancestors + evidence) index rows (`visited` reports them). It re-derives
+  each ancestor from its record, rebuilds a hand-edited index once
+  (`rebuilt`), and carries `tine lineage check`'s `ok` and `findings`, exiting
+  1 when the check refuses. `--max-nodes` caps the walk (`truncated`); `graph`
+  reports parent cycles under `cyclic`; `signed` means the signature verifies
+  under the signer's key (a copied block does not count).
+- Signer trust: `check` and `why` pin eval signers to the `scorer` role of
+  `.tine/key-roles.toml` (and, with `--promotion-policy`, the policy's
+  `eval_signers`). A justifying verdict signed by any other key, or by an
+  `optimizer` key, is `lineage.signer-untrusted`, so a loop cannot sign its own
+  evals. With no roles the output reports `signers: unpinned` as a warning.
+  The TS `checkLineage` takes the same trust; the shared fixture has the cases.
+- Every lineage command but `record` refuses a folder over 200000 files or
+  1 GiB (`--max-files`, `--max-bytes`) before reading it.
+
+## 0.57.0 — Signed promotion and eval statistics (2026-11-18)
+
+- `tine eval compare A B --ci paired-bootstrap|permutation [--alpha] [--seed]
+  [--resamples]` adds per-metric statistics (`score`, `pass_rate`): both means,
+  the delta, a paired-bootstrap interval or a sign-flip permutation p-value, and
+  the regressions. The arithmetic is exact (integer micro-units) and the result
+  is deterministic given the seed. It prints a table, or `--json` under the new
+  published schema `tine-cli-eval-compare-1`.
+- `--export FILE` writes the paired items the numbers come from;
+  `scripts/eval_compare_reproduce.py FILE` (standard library only) reproduces
+  `stats` from it byte for byte. `--attest KEY --out FILE` signs the result as an
+  existing `attestation` whose claim follows the documented convention
+  `opentine.eval-compare/1`.
+- `tine promote TARGET --baseline LABEL` is a signed promotion gate. A label moves
+  only when trusted, signed eval verdicts beat the baseline under the policy's
+  test, with a minimum n and a holdout. It also needs approvals from listed
+  approvers, a spend under the budget cap, and an `opentine.admission-policy`
+  that covers `labels/LABEL`. Every refusal is named (`promote.n-below-minimum`,
+  `promote.ci-crosses-zero`, `promote.missing-approver`, `promote.over-budget`
+  and others).
+- A promotion emits the existing admission VSA. Its `inputAttestations` list
+  the eval folders, approvals and signed comparisons (the frozen-safe lineage),
+  and a signed decision attestation goes with it.
+- `--approve` signs an approval, `--revert --reason` writes a signed revert
+  decision, and `--canary DIR` reverts automatically on a signed, significant
+  regression. `tine promote TARGET --name NAME` (the `promotions/<name>` ref)
+  is unchanged.
+- No new object kinds, wire formats or vector families. The claim conventions
+  `opentine.eval-compare/1`, `opentine.promotion-approval/1` and
+  `opentine.promotion-decision/1` are documented in `docs/EVALS-PROMOTION.md`,
+  and verifiers report them `unchecked`. A promote, revert, promote sequence
+  verifies offline in the Python reference, the pyz and the TS verifier
+  (`tests/data/promotion_chain.json`).
+- `tine keys lint` checks key separation for self-improving agent loops: the
+  key-role policy `.tine/key-roles.toml` names the `optimizer`, `scorer`,
+  `dataset`, `verdict` and (optional) `approver` keys, and the lint exits 1
+  when the optimizer key, or a candidate signing key given with
+  `--optimizer-key`, also holds any of the others (`fail:key-separation.shared`)
+  or the policy is malformed. Advisory findings (no policy, a role nobody
+  holds) never block unless `--strict`. `--json` prints `tine-cli-keys-lint/1`.
+  `opentine._key_roles.check_separation` is the same check for the promotion
+  gate.
+
+- `tine loop stop LOOP --ed25519-key-file KEY` is the kill switch: a signed
+  attestation with the `opentine.loop-stop/1` claim convention (no new object
+  kind), indexed by `coord/loops/LOOP`. `tine task add --loop LOOP` marks a task
+  as a generation of LOOP; once stopped, its `claim` and `heartbeat` are refused
+  with code `stopped`. The fence reads the stop record, never a clock, so a
+  clock-skewed fleet is refused at once and the running generation ends within
+  one lease period. `tine loop status LOOP` reports the stop and whether it
+  verifies; `--json` prints `tine-cli-loop/1`.
+
+- The promotion gate and the kill switch close the ways a loop could route
+  around them. With a `policy` role in `.tine/key-roles.toml`, `tine promote`
+  needs `--policy-attestation`: an `opentine.promotion-policy/1` attestation
+  (`tine promote promote.toml --sign-policy`) over the policy and its label
+  policy from a `policy` key that is not the promoting or an optimizer key
+  (`promote.policy-unsigned`). Approvals name the holder they replace and
+  the label's sequence, so a revert retires them (`promote.approval-stale`).
+  A first promotion's baseline must score one run other than the candidate,
+  and the canary checks its baseline's run and signer like the gate. The
+  candidate run's `opentine.loop` or `opentine.task` metadata names its loop,
+  so a stopped loop is refused without `--loop`.
+- A loop stop is also kept by a hold that `tine hold release` refuses; the
+  fence and `promote` read it, so deleting or rewriting `coord/loops/LOOP`
+  does not un-stop the loop. An optional `stopper` role reports a stop from
+  another key as `unverified` (it still fences). A task whose id starts with
+  `LOOP.` is fenced without `--loop`, and adding a task to a stopped loop is
+  refused. Limits: `--spent` is declared, label state is local, and there is
+  no remote loop stop.
+
+- **Behaviour change**, storage: auto-pack now writes the current local pack
+  format. The first time it packs a version-2 repository (what `tine init`
+  writes) it moves the descriptor to storage version 3, so packs at rest, and
+  each run's own pack after that, are `TINELP3`: read by every release since
+  0.13 (the 0.34 peer-compat job now reads a version-3 repository) and by the
+  TypeScript verifier. Existing packs are not rewritten. `tine repo storage gc
+  --downgrade` pins `"auto_pack": {"format": 1}` so auto-pack never undoes it;
+  `OPENTINE_AUTO_PACK_FORMAT=1` does the same per process.
+- `Repo.pack()` keeps emitting `TINEPACK3`, and bundle and transfer defaults
+  are unchanged: the published 0.34 reader refuses a `TINEPACK5` pack
+  (`invalid pack header`), so that default cannot flip while 0.34 is a
+  supported peer.
+- `tine promote --baseline` runs the key-separation check on the promoting
+  key (`promote.key-separation`, from the repository's `.tine/key-roles.toml`)
+  and, with `--loop LOOP`, refuses while that loop is stopped
+  (`promote.loop-stopped`). `--revert` is never blocked by a stop.
+
+## 0.56.0 — Onboarding and capture breadth (2026-11-18)
+
+- OTLP import maps OpenInference attributes (span kind, model, provider, token
+  counts including cache and reasoning details, tool, agent and session ids)
+  onto their GenAI semantic-convention equivalents beside the original keys;
+  `input.value` / `output.value` become step content when nothing else carried
+  any.
+- An imported run now exports with every attribute its source spans carried
+  and with its original event kind, so span -> run -> export keeps framework
+  attributes instead of dropping them.
+- Framework recipes and conformance fixtures for the Claude Agent SDK, OpenAI
+  Agents SDK, LangGraph and Pydantic AI over OTLP (docs/CAPTURE.md), each
+  round-tripped and checked for redaction of a seeded secret in the prompt.
+- `tine init --auto` sets up a repository, a local encrypted signing key and
+  the per-turn hooks of every agent CLI found on the machine (the same
+  reversible edit as `tine enable`), turns capture on, prints the OTLP and MCP
+  proxy commands, and offers the run push beside git (`--push-beside-git`
+  installs the pre-push hook, gated by the pre-push redaction scan).
+  `--dry-run` writes nothing. When the project's dependency manifests name
+  one of the four framework-recipe frameworks, it also prints that
+  framework's OTLP recipe.
+- `tine doctor --bundle PATH.tar.gz` writes a redacted diagnostics tarball
+  (`doctor.json`, `agents.json`, `hooks/<agent>.json`); each member is
+  re-scanned and nothing is written if a credential shape survives.
+- Acceptance tests: from a clean home, Copilot CLI, Factory Droid and
+  Antigravity fixtures each give a signed run in two commands, and a secret
+  seeded into the agent's prompt is absent from every stored object.
+- The Entire importer fixture is refreshed against Entire CLI v0.13.3: it now
+  carries the compact `transcript.jsonl` and `compact_transcript_start`. The
+  importer still reads the raw `full.jsonl`, and the same checkpoint imports
+  to identical events from the `entire/checkpoints/v1` branch and from
+  `refs/entire/checkpoints/*`.
+
+## 0.55.0 — Code mirror and review runner (2026-11-18)
+
+- `tine serve --mirror` serves a read-only code mirror (`caps.project.mirror`,
+  SPEC 8.18): link a slot of the current project manifest with `PUT
+  project/mirror`, sync it by polling (`--mirror-poll-seconds`) or a webhook
+  (`POST project/mirror/sync`, `429` inside the minimum interval), and read it
+  with `GET project/code/refs|tree|blob|raw|history|compare|search`. Off by
+  default.
+- Every mirror answer is labelled with its upstream, its last-sync time and
+  `computed_by: "host"`; the stored sync state is the body of the frozen
+  `opentine.mirror-state` (a host statement, never signed as a user).
+- Code search reuses the `repo-search --hybrid` fusion (BM25 plus
+  `hash-ngram/1` vectors) over an index kept inside each tenant's mirror.
+- The mirror refuses push, git smart HTTP (`info/refs`, `git-upload-pack`,
+  `git-receive-pack`), archive downloads and LFS with `403` and a
+  `mirror.*-refused` code, and refuses a public project over private code.
+  Unknown refs and paths and unreadable tenants are the uniform `404`.
+- `DELETE project/mirror` unlinks: the mirror, its state and its caches are
+  deleted.
+- Limits: the upstream's size (`--mirror-max-mb` and the tenant's
+  `mirror_bytes` quota), its ref count and the blob size served are published
+  in the capability; an upstream over a limit pauses the mirror with
+  `mirror.limit-exceeded`. Only `https://` upstreams are fetched
+  (`--mirror-allow-local` adds `file://` for self-hosting and tests).
+- `docs/api/openapi-v1.yaml` and the TS SDK operation table cover the 17 new
+  routes (refusals included); the response shapes are API shapes, not object
+  kinds.
+- A successful mirror sync spools one `mirror-sync` push per created, moved
+  or deleted ref (`pushes/<digest>.json` in the tenant's mirror directory),
+  each checked by the runner and ready for `tine review runner --event`.
+- `tine review runner REVIEW --fleet TOML --event PUSH.json --out DIR` runs the
+  reviewer fleet, `.tine/evals.toml` and an admission VSA on one push from a
+  mirror sync or a forge webhook. It emits only existing kinds (review
+  findings, eval verdicts, the admission VSA), all signed by the runner's own
+  key.
+- `tine review runner-identity` prints the runner's published service
+  identity, labelled `review runner`, with the fingerprints it was rotated
+  from. It is never trusted by default: findings count only when the Review
+  lists its key, gates only when the gate policy names it.
+- Model credentials are your own: `.tine/runner.toml` names the environment
+  variables holding them and refuses inline credentials; the report records
+  only whether each was present, plus the push's cost.
+- The runner's sandbox allows egress only to the configured model endpoints;
+  any other lookup or connect in the runner's process is refused, and the
+  sandbox policy digest is recorded in every step's evidence and in the VSA.
+- Findings carry the push time, so hosted and self-hosted runs sign
+  byte-identical findings for a deterministic reviewer set.
+- **Behaviour change**, merge gates: `evals.signers: []` (an explicit empty
+  list) now trusts no signer, where it used to accept any verifying signer.
+  Omitting `signers` still accepts any verifying signer. A policy that wrote
+  `[]` to mean "anyone" must drop the field; removing the last trusted runner
+  key now flips the gate to unmet.
+- Merge gates: `vsa.keys` lists further pinned keys beside `vsa.key`, so a VSA
+  signed by any trusted runner key counts while a key is rotated.
+- The mirror's fetch is held to the size limit while it runs: a watchdog
+  kills `git fetch` and deletes the partial mirror as soon as it passes the
+  limit, so an oversized upstream cannot fill the disk first.
+- Code reads by commit id serve only commits the mirror's refs reach; an
+  object left behind by a force-push is the uniform `404`.
+- Upstream credentials (`https://user:token@host/...`, the supported way to
+  mirror a private https upstream) never reach `link.json`, a label or a
+  response: they are kept in `credential` (mode `0600`) in the tenant's mirror
+  directory and sent only as an `Authorization` header to the pinned host.
+- The runner's egress guard pins the addresses its model endpoints resolved to
+  when it started, and pins private or reserved addresses only for loopback
+  endpoints; a later DNS answer cannot widen the allowlist.
+- Hosted mode refuses to start unless the reviewers sit behind the network
+  sandbox: `OPENTINE_RUNNER_NETWORK=allowlist` must be set and a direct
+  connect to the probe address (`OPENTINE_RUNNER_PROBE`, default
+  `1.1.1.1:443`) must fail.
+- Eval LLM judges get the model credential `runner.toml` names (a `[[model]]`
+  named after the judge's provider), and their calls count in the push's
+  cost (`cost.evals`); `tine eval ci --json` reports the judges' `cost`.
+- `deploy/review-runner/Dockerfile` packages the runner once for hosted and
+  self-hosted use; `docs/REVIEW-RUNNERS.md` documents it with a free local path.
+
+## 0.54.0 — CI speedup (2026-11-18)
+
+0.54 cuts the time CI takes without dropping any check. The Python suite now
+runs in parallel under pytest-xdist, Windows is split into four shards, the
+once-per-run checks run once instead of in every matrix cell, and pull
+requests get a smaller matrix while main keeps the full one. It also adds
+opt-in support for the owner's own ephemeral runners, off by default and never
+used for pull requests. No object kind, wire format, vector family, schema or
+CLI behaviour changed.
+
+### CI
+
+- New `prep` job (Lint, build and inventory): ruff check, ruff format,
+  `check_architecture.py`, `check_copy.py`, build, release inventory, twine and
+  the wheel smoke test run once per run. The test matrix needs it, so a lint
+  error fails the run in minutes. `package-os` keeps the build and release
+  inventory running on Windows and macOS.
+- The test cells run pytest only: a parallel pass
+  (`-n auto --dist loadgroup -m "not serial"`) and a serial pass
+  (`-m serial -p no:xdist`).
+- `scripts/ci_plan.py` picks the matrix. Push to main, a new nightly schedule
+  and `workflow_dispatch` get the full 3 OS x 4 Python matrix; a pull request
+  gets Ubuntu 3.11 and 3.14, Windows 3.12 and macOS 3.13; a pull request that
+  changes only `ts/`, `ide/` and prose gets one Ubuntu cell; one that changes
+  only Markdown under `docs/` or at the root skips the matrix.
+- Every Windows cell is split into four `pytest-split` shards using the
+  committed `tests/test_durations.json`, with the workspace excluded from
+  Defender scanning.
+- New `Python tests` job: one stable check name for branch protection that
+  passes when every needed job passed or the plan skipped the matrix.
+- Home runners: the Linux jobs `prep`, the Ubuntu test cells, `fuzz-otlp` and
+  `peer-compat-034` resolve to the `opentine-home` label only when the
+  repository variable `USE_HOME_RUNNERS` is the string `true` and the run is a
+  push to main or a `workflow_dispatch`. Everything else, including every
+  pull request, runs hosted. The bench gate stays on hosted `ubuntu-24.04`;
+  publish, CodeQL, Scorecard and supply-chain stay hosted.
+
+### Tests
+
+- `pytest-xdist` and `pytest-split` are dev dependencies; the `serial` marker
+  is registered for tests that cannot run beside others.
+- The replay `--verify` leftover-directory tests use a private temp root, so
+  other workers' temp directories do not count against them.
+- The four subreaper tests that kill their supervisor (which starts the
+  machine-wide hidden-process sweep) are marked `serial`.
+- `tests/test_054_ci_runner_policy.py` evaluates every `runs-on` in
+  `.github/workflows` for every pull-request event, both switch settings and
+  every matrix OS, and fails if any job can resolve to a non-hosted label. It
+  also checks that home runners are off unless the switch is set.
+- `tests/test_054_ci_plan.py` pins the matrix plan and the `prep` hoist.
+
+### Docs
+
+- `docs/CI-RUNNERS.md`: the CI layout, the runner selection rule, and the
+  home-runner setup (ARC on k3s, ephemeral just-in-time runners, the runner
+  image, read-through caches, network isolation and repository settings).
+
+## 0.53.0 — Reason parity (2026-11-17)
+
+0.53 makes every refusal explain itself the same way in all three readers:
+across the pinned conformance set the Python reference, `tine-verify.pyz` and
+the TS verifier each name the pinned reason code of every refusal, and the
+`parity` CI job checks it. It also builds the fuzz harness for the 72-hour
+run, re-runs the CDC bake-off with the gear table stored data really uses, and
+records RFC 4998 as deferred to 1.1. No object kind, wire format, vector
+family or schema was added.
+
+### Behaviour changes
+
+- Every refusal the Python reference reader makes across the pinned
+  conformance set now names its reason code, matching the TS verifier. Codes
+  are mapped by operation and message in `opentine/_refusal_codes.py` and
+  attached as `exc.code` at the conformance adapter. Where the reference
+  cannot tell two rules apart, the code is a member of the published alias
+  group.
+- A reader bug (`TypeError`, `KeyError`, `AttributeError`, `IndexError`,
+  `AssertionError`, `RecursionError`, `MemoryError`) is never reported as a
+  named refusal; it stays unnamed so the parity check surfaces it.
+- tine-verify.pyz: every refusal of a pinned conformance case now names its
+  reason code. The 124 refusals that had no code now carry one, and every code
+  matches the pinned code or its alias group.
+- Browser verifier: a refused zlib-wrapped `.tine` file gets the CLI's reason
+  text and code. When a parse or codec refusal has a code, the verify report
+  carries it as `integrity.code`; integrity failures inside a parsed artifact
+  still report text only.
+
+### Added
+
+- `scripts/check_parity.py --reasons[=python,pyz,ts]` checks that every
+  refusal names its pinned reason code and that the codes agree across
+  implementations. The `parity` CI job runs it for all three columns.
+- Fuzzing for the 72-hour run (1.0 criterion 1): `scripts/fuzz.py` fuzzes
+  OTLP spans and logs, `.tine` v4/v5 (plain and TINEZ1), TINEPACK3/4/5 wire
+  packs, storage-v3 local packs with codec-3 dictionaries, and the in-toto run
+  and `replay/v1` DSSE verifiers. Seeds come from the conformance vectors, the
+  `.tine` fixtures and freshly signed envelopes. An input must read or be
+  refused with the reader's documented error. Verifiers that return a result
+  must never raise, and any envelope a verifier accepts must pass an
+  independent signature check.
+- CI: the `fuzz-otlp` job also runs 20,000 inputs per reader target, with its
+  timeout unchanged. The human run is `OPENTINE_FUZZ_HOURS=72 python
+  scripts/fuzz.py`, documented in docs/RELEASING.md.
+- Crash triage: crashes go to `fuzz-crashes/<target>/<sha16>.bin` with a
+  `.txt` holding the traceback, `slow` or `hang`. A watchdog saves an input
+  that runs over 120 s and ends the run with exit 1. `--reproduce` replays one
+  saved input. Fixed inputs are kept in `tests/fuzz_regressions/<target>/`,
+  where the suite replays them and the fuzzer seeds from them.
+- CDC bake-off re-run, published as `docs/bench/0.53-cdc.md`. The 0.40
+  script's FastCDC gear table had 256 identical entries, and its synthetic
+  corpus left out packed run objects; both are fixed. The script now uses the
+  gear table stored data uses, pinned by SHA-256, and all its inputs are
+  pinned. The page is generated from the committed `docs/bench/0.53-cdc.json`,
+  with a test checking that the two match. CPU and latency numbers for the
+  pinned runner come from the new non-gating "CDC bake-off (pinned runner)"
+  job in `bench.yml`. Stored-data chunking is unchanged.
+- The nightly stress job now runs a multi-process gc/lock contention test
+  (8 workers x 200 rounds) on Linux, macOS and Windows, plus the Windows
+  gc/lock regression tests (`test_049_lock_nlink`, `test_pack_race_0_17_1`,
+  `test_winretry_0_13`).
+- The suite is now **1166 conformance vectors**; 509 of the 1166 refuse input, and the adapter contract still has one entry point: 75 ops.
+
+### Security
+
+- The fuzz oracle treats an accepted forged DSSE envelope as a crash: when the
+  pinned in-toto verifier or the `replay/v1` verifier accepts an envelope, the
+  signature over `PAE(payloadType, payload)` is re-checked independently.
+- Refusal codes are never attached to programming errors, so a reader bug
+  cannot pass as a valid refusal.
+- The browser inflate runs the shared header, size-limit and ratio checks
+  before it allocates.
+
+### Compatibility
+
+- No object kind or wire format was added (the 0.48 cutoff holds;
+  `tests/freeze_inventory.py` allow-lists are empty). No vector family and no
+  schema were added; `opentine-cdc-bakeoff/2` is a string inside the bench
+  report, not a CLI output.
+- The narrow freeze ruling (D1) stays in force with no predicate granted. The
+  owner's sign-off on the pyz excluding the repository storage families is
+  recorded in FREEZE.md.
+- RFC 4998 evidence records are deferred to 1.1 (D2). FREEZE.md and every
+  compliance profile carry the caveat: "up to 16 root-bound tokens; not a
+  hash-tree renewal; does not survive a SHA-256 break". It also appears in the
+  notes `tine compliance check` shows for the timestamp and retention
+  requirements.
+- SPEC 0.53.0: 8.2 documents where reason codes attach and `shape.not-utf8`
+  (a JSON body holding a NUL byte, for example UTF-16 or UTF-32).
+- `docs/api/client-versions.json`: the ts/ clients are built for 0.53.0, and
+  the minimum supported browser verifier stays 0.51.0.
+- `_config.READER_VERSION` stays 0.50.0.
+
+### Deferred
+
+- Reason codes are attached only at the conformance adapter; the product CLI
+  and `--json` outputs do not carry `exc.code` yet. The mapping matches
+  message text, so a reworded kernel message unnames a refusal (the parity
+  check catches it for pinned cases).
+- `shape.not-utf8` is not yet in `docs/conformance/REASON_CODES.md` and no
+  vector pins it.
+- Integrity failures found inside a parsed artifact by the TS verifier carry
+  no `integrity.code`; the `opentine-verify-ts/1` report has no published
+  schema.
+- The nightly workflow still fuzzes OTLP only; only OTLP has a
+  coverage-guided mode; the VSA, OMS and sigstore bundle verifiers are not
+  fuzz targets; a hang ends the run.
+- Whether local packs adopt CDC is a later decision (it would be a new stored
+  form). There is no consented real-user corpus.
+- E1 is decided at 0.56 and E2/E3 at the end of 0.55 (D8).
+- **For humans:** the 72 h fuzz run with 0 untriaged crashes; the CDC numbers
+  on the pinned runner (the bench job has not run yet); the 8 x 200 contention
+  load on Windows; engaging and funding the third-party audit firm; 30
+  consecutive green nightly days; three consecutive green main runs of
+  parity, peer-compat, bench and audit-kit; Firefox and WebKit runs of the
+  browser harness; counsel sign-off on the compliance profiles.
+
+### 1.0 criteria status
+
+1. All P0/P1 items closed and a third-party audit done: **not met** (the fuzz
+   harness is ready; the 72 h run and the audit engagement are human steps).
+2. Formats frozen and Python, TS and pyz pass the same vectors: **not met
+   yet** (verdicts and reason codes agree locally; the `parity` CI job has
+   not run green).
+3. The 0.34 peer compatibility job green for every release: **not met yet**.
+4. The pyz air-gap-tested on Linux, macOS and Windows: **met**.
+5. Nightly stress green for 30 days: **not met** (the streak stands at 0).
+6. Compression bench within 5% of 0.40: **not met yet** (needs a green run
+   on the pinned runner).
+7. The deprecation policy published: **met** (`docs/DEPRECATION.md`).
+
+## 0.52.0 — Web contract (2026-11-15)
+
+0.52 puts rule 4 into the API: everything the hosted web app needs is
+specified in `docs/api/openapi-v1.yaml` and served by `tine serve`. That
+covers sessions, passkey login, tenants, scoped tokens, the CI OIDC exchange
+and published fair-use limits. It also clears the security debt before the
+audit reads the code. Nothing here is signed data, and no object kind or wire
+format was added.
+
+### Behaviour changes
+
+- Every tenant route answers a caller who cannot read the tenant with the same
+  uniform `404` that a missing object gets. That covers another tenant's
+  token, a token whose roles grant nothing there, and a namespace-limited
+  scoped token outside its namespaces. Before, some routes answered `403`, which
+  showed that the tenant exists. `403` is kept for a caller who can read the
+  tenant but lacks a narrower permission.
+- With approval gates on, `tine land` refuses an approval that was not issued
+  into this queue, has expired, or reuses a spent nonce. A gated landing
+  with no signing key is refused (`no-key`).
+- `tine tenant import --remote` is all or nothing. Objects are uploaded first,
+  then one staged import makes refs, Reviews and project versions visible
+  together.
+- `tine alert list` no longer creates the webhook signing key.
+- A self-hosted `tine serve` has no quotas unless the operator sets
+  `--limits fair-use` or `--limits FILE`, so an upgrade never starts refusing
+  a running server.
+
+### Added
+
+- Admin API v1 (SPEC 8.27; OpenAPI tag `admin`; capabilities `session` and
+  `tenancy`):
+  - whoami and logout;
+  - passkey (WebAuthn) registration and login: ES256 and Ed25519, user
+    verification required, single-use challenges with a cap, an atomic
+    signature counter, and public keys only on the server;
+  - tenants: create, rename, archive and unarchive, members and roles,
+    invitations, settings, retention (stored only) and holds.
+
+  It carries no signed data and adds no kind or wire format.
+- `tine serve --passkey-rp-id/--passkey-origin` (https, or http on loopback
+  only), `--insecure-dev --dev-login` and `--open-signup`. Sessions reach data
+  routes through tenant membership. Archived tenants are read-only
+  everywhere, and their holds cannot be released. Signup cannot claim a
+  tenant that already holds data or that a configured token names.
+- Scoped API tokens (SPEC 8.28): per tenant, read or write, limited to ref
+  namespaces, expiring and revocable. Only a digest of each token is stored.
+  Use `tine serve token mint|list|revoke [--json]` (`tine-cli-serve-token-1`)
+  or `/v1/tenants/{t}/tokens`. A namespace-limited token reaches no other
+  tenant route, the admin routes included. Namespaces confine refs, not
+  object ids a writer already knows.
+- CI OIDC exchange (`serve --ci-trust FILE`, `POST /v1/auth/oidc-exchange`):
+  GitHub Actions, GitLab and Forgejo ID tokens are checked against keys the
+  operator configured. A matching rule must pin the repository exactly or as
+  `owner/*`. The ID token must carry a `jti`, which can be exchanged once. The
+  CI token lasts at most one hour and never past the ID token's expiry.
+- Quotas: `/v1/limits` publishes the fair-use limits (`fair_use`; every
+  feature and all verification stay free forever, decision D3) and the
+  server's effective defaults. `/v1/tenants/{t}/usage` shows a tenant's use.
+  Over a limit, the tenant's own caller gets `507` (storage) or `429` with
+  `Retry-After` (egress), and nothing is ever deleted.
+- `/v1/capabilities` adds the optional keys `session`, `tenancy`,
+  `scoped_tokens`, `limits`, `oidc_exchange` and `tenant_import`.
+  `/v1/auth-methods` lists how a client may authenticate. OpenAPI,
+  `@opentine/sdk` (a new `TineAdmin` client and admin types) and the
+  api_conformance suite cover every new operation.
+- One error shape on the admin surface, `{"error","code"}`. Published limits
+  and too many outstanding challenges answer `429`.
+- `scripts/check_api_contract.py` lists the `/api/*` routes of a hosted
+  deployment that the OpenAPI document does not cover.
+- `tine merge-queue approve --queue Q [--expires SECONDS]` (default 86400, at
+  most 30 days) issues a signed approval into a queue as a ticket. The ticket
+  holds a random nonce, the approval's digest and an expiry.
+  `tine-cli-merge-queue-1` gains an optional `queue.tickets` array and a
+  `ticket` field on `approve`.
+- New `tine gc --sweep-expired` (`tine-cli-gc-1`) removes orphan chunks from a
+  `tine serve` object store once their retention has ended, unless they
+  carry a legal hold.
+- `@opentine/verify` adds `verifyTimestampToken` and `keylessTokenTime`.
+  They check an RFC 3161 token's CMS signature, ESS signing-certificate
+  binding, EKU, validity and chain to the trusted timestamp authorities, and
+  match Python on a shared 31-case fixture. Tokens with embedded revocation
+  data fail closed. The `keyless.signing-time` op still takes decoded tokens
+  and does not run this check yet.
+- A uniform-404 oracle test covers every route in the route table and fails
+  when a new route has no coverage. A seeded token-scope fuzzer checks that
+  no scoped token reaches outside its tenant, access or namespaces.
+- The suite is now **1166 conformance vectors**; 509 of the 1166 refuse input, and the adapter contract still has one entry point: 75 ops.
+
+### Security
+
+- Passkey login requires user verification. Origins are parsed strictly
+  (https, or http only on loopback). The signature counter is checked and
+  written under one lock, and challenge flooding answers
+  `429 auth.challenge.limit`.
+- A CI trust rule can no longer pin the repository with a bare prefix such as
+  `acme*`, which also admitted `acme-evil/app`. An ID token without a `jti`
+  can no longer be exchanged repeatedly.
+- A namespace-limited scoped token gets no role on the admin surface, so it
+  cannot list a tenant's members, holds, settings or invitations.
+- OTLP alert sinks resolve the collector once and refuse private and
+  loopback addresses unless allowed. They connect to the checked address with
+  SNI and certificate checks for the host. This closes a DNS-rebinding gap,
+  using the same path as webhooks.
+- S3/Object Lock storage fences chunk deletes against concurrent uploads, so
+  a chunk reused by an upload in flight is not lost. Chunked records now list
+  their chunk digests. Empty records from 0.49–0.51 are still honoured
+  through the object's manifest.
+- An interrupted `tenant import --remote` is rolled forward or back from a
+  journal before the next one starts.
+- Spent merge tickets are kept past their expiry, so a spent approval cannot
+  be issued again and replayed. Nonces are spent in the same compare-and-swap
+  that lands the entry.
+- TS DER reader: GeneralizedTime years below 100 are kept as written and year
+  0 is refused, matching Python.
+
+### Compatibility
+
+- No object kind or wire format was added (the 0.48 cutoff holds;
+  `tests/freeze_inventory.py` allow-lists are empty). No vector family and no
+  object-kind schema were added. The new schemas are the CLI output schemas
+  `tine-cli-serve-token-1` and `tine-cli-gc-1`. Every admin, token, limit and
+  import route is an unsigned HTTP shape.
+- Merge-approval nonces and expiry are local queue state, not a signed field
+  (FREEZE.md: the approval schema is a closed claim schema). The signed form
+  is a 1.x item.
+- The narrow freeze ruling (D1) stays in force with no predicate granted. The
+  owner's sign-off on the pyz excluding the repository storage families is
+  recorded in FREEZE.md.
+- SPEC 0.52.0: 8.27 is the admin surface; 8.28 covers scoped tokens, the CI
+  exchange and limits; 8.15 covers the uniform 404 and the tenant import;
+  4.19 covers merge tickets. Part 12 adds `tine-cli-serve-token-1` and
+  `tine-cli-gc-1`.
+- `docs/api/client-versions.json`: the ts/ clients are built for 0.52.0, and
+  the minimum supported browser verifier stays 0.51.0.
+- `_config.READER_VERSION` stays 0.50.0; repositories and transfers are
+  unchanged for 0.34–0.51 clients. Bearer tokens and OIDC bearers keep
+  working everywhere.
+
+### Deferred
+
+- Passkey attestation and AAGUID are not evaluated. There is no endpoint to
+  list or delete passkeys or to revoke other sessions. Provider sign-in is
+  specified but not implemented.
+- The retention policy is stored but not enforced. Admin state is one JSON
+  file, so it works in a single process only.
+- Mirror and runner-minute limits are published but not enforced until 0.54.
+  Storage metering does not count data stored before the upgrade and counts
+  deduplicated objects again.
+- Namespace confinement covers refs, not object ids a writer already knows.
+- No TS verify path calls `keylessTokenTime` yet, and TS keyless does not
+  check revocation.
+- A concurrent reader can briefly see a partial tenant import, and a crash
+  rollback can undo a concurrent Review write. The chunk fence relies on
+  wall-clock time across hosts.
+- `tine gc --sweep-expired` reports any internal error as a missing
+  `TINE_KMS_KEY`.
+- Spent merge tickets are capped at 4096 and not yet pruned.
+- E1 is decided at 0.56 and E2/E3 at the end of 0.55 (D8).
+- **For humans:** the 24 h token fuzz run; the live MinIO race run; the
+  200-seed import fault run; a tineyard staging route dump checked with
+  `scripts/check_api_contract.py`; Firefox and WebKit runs of the browser
+  harness; engaging and funding the third-party audit firm; 30 consecutive
+  green nightly days; three consecutive green main runs of parity,
+  peer-compat, bench and audit-kit; counsel sign-off on the compliance
+  profiles; the 72 h fuzz run.
+
+### 1.0 criteria status
+
+1. All P0/P1 items closed and a third-party audit done: **not met** (the
+   0.52 security debt is closed in code; the audit engagement letter is a
+   human step).
+2. Formats frozen and Python, TS and pyz pass the same vectors: **not met
+   yet** (the `parity` CI job has not run green).
+3. The 0.34 peer compatibility job green for every release: **not met yet**
+   (no green streak recorded).
+4. The pyz air-gap-tested on Linux, macOS and Windows: **met**.
+5. Nightly stress green for 30 days: **not met** (the streak stands at 0).
+6. Compression bench within 5% of 0.40: **not met yet** (needs a green run
+   on the pinned runner).
+7. The deprecation policy published: **met** (`docs/DEPRECATION.md`).
+
+## 0.51.0 — Trust anchor (2026-11-13)
+
+0.51 is the first release of the 0.51–0.60 plan (ROADMAP §12). It moves the
+trust anchor into the browser: the browser verifier reads bundles, codec-3
+packs and owner-signed trust bundles, and the standing 1.0 gates now leave
+evidence for every main commit. 0.60 is a waypoint on the way to 1.0, not a
+release candidate.
+
+### Behaviour changes
+
+- `opentine-verify BUNDLE --pubkey K` and `--hmac-key-file K` check a bundle's
+  redacted-copy record under the key given, as `tine bundle verify
+  --pubkey/--key-file` does. Without a key, an Ed25519 record is checked only
+  under its embedded key and reported as unpinned.
+- `opentine-verify --trust-bundle` with a `verdicts.jsonl` exits 2 instead of
+  silently ignoring the pins.
+- Readers refuse a raw-content zstd dictionary (SPEC 2.8), so the Python and
+  TS readers agree; a dictionary must be the formatted kind `zstd --train`
+  writes.
+- CI: ci.yml and bench runs on main are grouped per commit and never
+  cancelled, so parity, peer-compat-034, audit-kit (on Linux also under
+  `unshare --net`), leave-service and the bench leave a result for every main
+  SHA. Only superseded PR runs are cancelled.
+
+### Added
+
+- The browser verifier (ts/verifier, shipped as
+  `opentine/data/ui/tine-verifier.js`) verifies tine bundles: refs, objects,
+  signature sidecars, tombstones and redacted copies, with the same verdicts
+  and `bundle.*` reason codes as `tine bundle verify`. It reads from a Blob or
+  File with no 32 MiB cap. TINEPACK3 packs are streamed one object at a time;
+  TINEPACK4 and TINEPACK5 packs are read into memory (up to 256 MiB).
+- `opentine-verify` accepts bundle files and prints `--version`.
+- The run viewer accepts bundles, v4/v5 .tine files and single signed records.
+  It shows each check as pass, fail or unchecked with a reason, never reports
+  a check it did not run, and marks the signer identity unchecked when no key
+  is pinned.
+- The browser verifier checks single dropped 0.47–0.50 records: reviews and
+  review bundles, merge/v1 and merge approvals, eval verdicts, prompt
+  versions, memory notes, forge checks, review findings, tombstones, redacted
+  copies and projects. Review gates, forge claims and admission VSAs are shown
+  as unchecked, with the reason.
+- The TS verifier and the browser viewer read codec-3 (zstd dictionary) local
+  pack blocks, with a vendored pure-TS copy of fzstd 0.1.1's block decoder and
+  dictionary support (no new dependency, no wasm). The dictionary must hash to
+  the id its frame names and be at most 1 MiB. `29-localpack` gains three
+  codec-3 cases with an optional `zstd` capability and the reason code
+  `localpack.dictionary`.
+- New `tine trust bundle create|verify` (`--json`: `tine-cli-trust-bundle/1`):
+  an owner-signed C2SP signed note over existing trust documents (a trust
+  policy's portable fields such as `pin`, an `opentine-witness-network/1`
+  registry, log keys, admission policies), cacheable and refused on serial
+  rollback (SPEC 8.26; a profile, not a new kind).
+- The TS verifier gains `openTrustBundle`, `VerifyKeys.pins` (same semantics
+  as `tine verify --pin`) and `opentine-verify --trust-bundle FILE
+  --owner-vkey VKEY`. In TS the witness registry and admission policies are
+  checked by their `schema`/`kind` only; `tine trust bundle verify` runs the
+  full validators.
+- The run viewer can pin signers from a same-origin trust bundle that the host
+  page names with `<meta>` tags, and remembers the highest serial per owner
+  key. With such a bundle, signatures read verified or failed instead of
+  "unpinned". The pin is only as trustworthy as the origin serving the page.
+- New `docs/api/client-versions.json`: the release the ts/ clients were built
+  for, and the oldest browser verifier this release still supports.
+- New ts/browser-tests Playwright harness: the pinned conformance set and the
+  bundle corpus run in Chromium, Firefox and WebKit (each skipped if not
+  installed), compared with Node; a bundle of at least 200 MiB is checked for
+  zero network requests (gated by `OPENTINE_BROWSER_LARGE=1`). New CI job with
+  a 45-minute timeout and read-only permissions.
+- Verifiers: the Python reference, the pyz and the TS verifier (`claimStatus`)
+  each have a `claim_status` helper that returns `unchecked`
+  (`claim.unknown-predicate` or `claim.unnamed`) for any claim with no granted
+  checker. No verify path gives an attestation claim a pass or fail; the
+  status appears in reports with the first granted predicate.
+- Gates: the compression bench (criterion 6) runs on every push to main as
+  well as weekly and on PRs, and uploads `bench-report-<sha>`. The nightly
+  stress summary stores the green streak as `nightly-streak.json`;
+  `docs/bench/nightly-streak.json` holds the same plain data and is refreshed
+  by hand with `--write`. `scripts/stress_streak.py` honours dated, owned flake
+  waivers in `docs/bench/stress-waivers.json` with a proven infrastructure
+  cause, and gains `--waivers` and `--write`.
+- New `scripts/check_release_gates.py`: for one commit it checks parity,
+  peer-compat, audit-kit, leave-service, bench, the nightly streak (with
+  waivers) and `waivers-signed`. It reads only main's own runs, never PR runs,
+  uses the `gh` CLI and skips cleanly without it (`--require` makes the skip
+  exit 3). docs/RELEASING.md gains the standing release gates checklist and
+  the flake-waiver policy.
+- New `scripts/check_copy.py`: an overclaim lint for README.md and docs, run
+  in the CI `test` job.
+- Docs: ROADMAP §12 plans releases 0.51–0.60 and records owner decisions
+  D1–D8. §11 pricing: every feature and all verification are free forever;
+  only metered hosted storage beyond fair use and runner compute at cost may
+  be charged, on the user's own model credentials, with no token resale.
+- The suite is now **1166 conformance vectors**; 509 of the 1166 refuse input, and the adapter contract still has one entry point: 75 ops.
+
+### Security
+
+- The run viewer's build moves to esbuild 0.28.2, fixing GHSA-67mh-4wv8-2f99
+  (a dev-server issue only; the shipped assets were rebuilt and rebuild
+  byte-for-byte). `npm audit` is clean in every ts/ package.
+- The viewer fetches a trust bundle only from its own origin; a bundle that
+  pins nothing or is cross-origin is refused.
+- Trust-bundle parsing matches between Python and TS: the version must be the
+  integer 1, pins are exactly `sha256:` plus 64 lowercase hex, impossible
+  dates and times are refused, and a leading BOM is refused.
+- Flake waivers count toward the nightly streak at release time only when
+  every commit that touched the waiver file carries a good git signature.
+
+### Compatibility
+
+- No object kind or wire format was added (the 0.48 cutoff holds;
+  `tests/freeze_inventory.py` allow-lists are empty). The codec-3 cases sit in
+  the existing `29-localpack` family; the trust bundle is a profile over
+  frozen formats; the only new schema is the CLI output schema
+  `tine-cli-trust-bundle-1`.
+- FREEZE.md adopts the narrow predicate and claim-schema ruling (decision D1,
+  conditions a–e); granted predicates: none. It records the owner's sign-off
+  (2026-11-13) on the pyz excluding the repository storage families, and the
+  RFC 4998 deferral to 1.1 with its caveat (D2).
+- SPEC 0.51.0: §2.8 formatted dictionaries; §8.26 browser trust bundles;
+  Part 12 adds `tine-cli-trust-bundle-1`.
+- `_config.READER_VERSION` stays 0.50.0; repositories and transfers are
+  unchanged for 0.34–0.50 clients.
+
+### Deferred
+
+- Tag-locked npm packages for the verifier and run viewer, and the
+  opentine-web CI check that fails when tineyard pins more than one minor
+  behind.
+- Firefox and WebKit runs of the browser harness (only Chromium was run for
+  this release), and the 200 MiB bundle run in CI.
+- The `unchecked` claim status is not yet wired into verify reports or the
+  `--json` schemas; it comes with the first granted predicate.
+- `check_release_gates.py` checks one SHA; "3 consecutive main-branch runs"
+  is a manual step. `docs/bench/nightly-streak.json` is refreshed by hand.
+- TS does not run the full witness-registry and admission-policy validators;
+  `tine ui` has no flag to serve a trust bundle; review gates, forge claims
+  and VSAs are shown unchecked in the browser.
+- E1 is decided at 0.56 and E2/E3 at the end of 0.55 (D8).
+- **For humans:** engaging and funding the third-party audit firm and
+  scheduling its two finding drops; 30 consecutive green nightly days and
+  approving signed waivers; three consecutive green main runs of parity,
+  peer-compat, bench and audit-kit; counsel sign-off on the compliance
+  profiles; the 72 h fuzz run; tineyard bumping its verifier pin from 0.45.1.
+
+### 1.0 criteria status
+
+1. All P0/P1 items closed and a third-party audit done: **not met** (the
+   audit is scoped; the engagement letter is a human step).
+2. Formats frozen and Python, TS and pyz pass the same vectors: **not met
+   yet** (the storage-family exclusion is signed off and TS decodes codec 3;
+   the `parity` CI job has not run green).
+3. The 0.34 peer compatibility job green for every release: **not met yet**
+   (runs on every main commit now; no green streak recorded).
+4. The pyz air-gap-tested on Linux, macOS and Windows: **met**.
+5. Nightly stress green for 30 days: **not met** (the streak is recorded and
+   auditable; it stands at 0).
+6. Compression bench within 5% of 0.40: **not met yet** (runs on every main
+   commit; needs a green run on the pinned runner).
+7. The deprecation policy published: **met** (`docs/DEPRECATION.md`).
+
+## 0.50.0 — Freeze candidate (2026-11-09)
+
+0.50 exists to meet the 1.0 criteria, not to add features. It is the last
+release of this plan; the 1.0 criteria status below says what is met and what
+still needs people.
+
+### Behaviour changes
+
+- `tine verify` checks CRLs and RFC 5940 OCSP responses embedded in an RFC 3161
+  timestamp token (`SignedData.crls`) after the chain, offline, and fails the
+  token with `timestamp.revoked` or `timestamp.revocation-invalid`. The field is
+  outside the TSA signature, so it can only fail a token, never pass one. A
+  malformed embedded CRL or OCSP response gives `timestamp.revocation-invalid`
+  rather than an exception. Python only: the TS verifier and the pyz do not
+  check embedded revocation data, and there are no shared vectors for it.
+- Readers (Python and the TS verifier) accept `min_reader` up to 0.50.0
+  (`_config.READER_VERSION`); `layout.config.min-reader-newer` names the
+  version. The TS verifier refuses a dictionary-compressed block by name.
+- `tine purge` rewrites every pack that names a dictionary and deletes the old
+  dictionaries, which may hold the purged blob's text. Prune does not; the next
+  gc retrains them.
+- `du` and the gc footprint count dictionary bytes, and prune no longer scans
+  dictionaries for roots.
+
+### Added
+
+- **Python / TS / pyz parity on the full pinned vector set** (1.0 criterion
+  2): the pyz answers every reader and verifier case outside the repository
+  storage families case by case; `scripts/check_parity.py` runs the three
+  implementations on every case and fails on any disagreement, a crash
+  counted as a refusal, a gap, or a TS skip outside the writer profile
+  (TS skips only the 14 writer-profile redaction and `attest.sign` cases);
+  a new CI `parity` job runs it with the TS
+  column required. Families 79-84 add vectors for `tine-verify-report/2`,
+  `tine-custody/1` and its log records, `replay/v1`, the TINEAES6 header,
+  `opentine-line-attribution/1` and `tine-cost-statement/1`.
+  `docs/FREEZE.md` lists the frozen kinds and formats and the review result.
+- Per-kind zstd dictionaries for local v3 packs (P3, opt-in): `tine gc
+  --dictionaries` / `--no-dictionaries`. A dictionary is kept only when it
+  saves more than its own size, is stored as `dicts/<sha256>.zdict` and is
+  checked against that hash on read. Object ids don't change, and transfers
+  (wire packs, bundles, `.tine`) never carry the form. Opting in sets
+  `min_reader` 0.50.0.
+- Bench: the job gates the stored bytes of gc, gc_v3, wire and bundle at no
+  more than 5% over the 0.40.0 tag benched on the same runner (1.0 criterion
+  6, still pending a green CI run). Speed is reported, not gated. The job also
+  runs weekly, adds `gc_v3` and `gc_dicts` rows (measured after wire and
+  bundle) and adds `run_bench.py --library`.
+- Added `tine tenant export` and `tine tenant import` to leave a hosted `tine
+  serve` with your runs, refs, signatures, tombstones, Reviews and project
+  manifests, plus the old log and share metadata, all in formats frozen at
+  0.48. `export` refuses a folder that isn't empty. You can import into
+  another `tine serve` (not all-or-nothing) or into a local repository, where
+  a refused import writes nothing. `--json` writes `tine-cli-tenant-1`.
+- The "leave the hosted service" test runs in CI on Linux, macOS and Windows:
+  it exports a tenant, imports it into a fresh server and checks that `tine
+  verify . --offline` gives byte-identical reports.
+- Nightly stress at nightly scale (concurrent ref writers, kill -9 writers,
+  the 1,000-round prune race, ref retry, the 64-entry merge-queue chaos test
+  on three OSes, the full-size coord scale test, a one-hour OTLP fuzz) with a
+  `nightly-summary.json`; `scripts/stress_streak.py` reports the green streak
+  from the Actions API, counted back from today. An API error body, a
+  malformed run or a bad `--today` exits 2 with a JSON error, never a zero
+  streak.
+- The 0.34 peer compatibility job (`scripts/peer_compat_034.py`, ROADMAP §2):
+  the published 0.34.0 reads a repository, a pack and `--for-legacy` `.tine`
+  files this tree writes (runs, a trace-recorded run, the 0.46 project
+  manifest, a tombstone and its purge, the 0.47 prompt registry and team
+  memory) and fetches main over HTTP from this tree's server holding a
+  project. Pinned and shrink-only: the default v5 `.tine` is unreadable by
+  0.34 by design, and 0.34 skips the `project/`, `prompts/` and `memory/` refs
+  of a repository directory as illegal names (every object still reads).
+  Merge, review, eval-verdict and forge objects are not yet exercised.
+- `docs/DEPRECATION.md` (1.0 criterion 7), `docs/LEAVING.md` and
+  `docs/security/AUDIT-SCOPE.md` (the third-party audit is scoped, not
+  engaged).
+- The suite is now **1163 conformance vectors**; 507 of the 1163 refuse input, and the adapter contract still has one entry point: 75 ops.
+
+### Security
+
+- Embedded revocation data in timestamp tokens is now checked (see above); a
+  revoked or malformed CRL/OCSP response fails the token.
+- `tine purge` no longer leaves the purged blob's text in pack dictionaries,
+  and a later pack rewrite cannot reuse such a dictionary.
+- `tine tenant import --repo` checks every ref before writing any object, so a
+  refused import leaves the repository unchanged; `tine tenant export` refuses
+  a non-empty `--out`, so stale Reviews or manifests cannot be mixed into an
+  export. Every export request is scoped to `/v1/tenants/<tenant>`.
+
+### Compatibility
+
+- No object kind or wire format was added (the 0.48 cutoff holds;
+  `tests/freeze_inventory.py` allow-lists are empty). Codec 3 is a stored
+  form in local v3 packs only, reversible and checked against the oid on
+  read; every older format stays readable.
+- A repository opted in to dictionaries sets `min_reader` 0.50.0, so older
+  readers refuse it at open; `tine gc --no-dictionaries` lowers it again.
+  Fetch, clone and push are unchanged for 0.34–0.49 clients.
+- SPEC 0.50.0: §2.3 codec byte 3; §2.8 pack v3 dictionaries; §5.5 the freeze
+  review; §8.6 embedded CRL/OCSP; §8.24 and §8.25 for the two kinds that had no
+  section; Part 12 adds `tine-cli-tenant-1`.
+
+### Deferred
+
+- **RFC 4998 evidence records and `attest --renew`**, past the freeze: a
+  renewal token needs a new `tine-timestamp-sidecar/1` bound form, which is a
+  new wire format the 0.48 cutoff forbids. Root-bound tokens (up to 16) can
+  still be added over time.
+- Parity on rejection reasons: when an implementation refuses a case without
+  naming a reason code (124 pyz and 150 Python refusals, e.g. `agent.*`,
+  `artifact.malformed-json`, `oid.parse.*`; TS likewise), the pinned reason
+  is not compared. Parity holds on accept/refuse and accepted outputs only.
+- **For humans:** engaging the third-party security audit
+  (`docs/security/AUDIT-SCOPE.md`); 30 consecutive green nightly days; counsel
+  sign-off on the compliance profiles; the 72 h fuzz run; operating the public
+  witness and recruiting independent operators; live MinIO/AWS/Azure cloud
+  tests; the release owner's sign-off on the pyz storage-family exclusion.
+- The TS verifier does not decode codec 3 (no dictionary support in fzstd);
+  there is no codec-3 conformance vector. Prune does not retrain dictionaries.
+  Dictionaries have not been measured on repositories with many small packs;
+  the speed figures in `docs/bench/0.50-dictionaries.md` predate the bench
+  reorder.
+- `tine tenant import --remote` is not all-or-nothing, and its refusal of a
+  ref that already points elsewhere is untested. The transparency log stays
+  with the old server; share tokens are re-created by hand; project manifests
+  import only into a tenant of the same name.
+
+### 1.0 criteria status
+
+1. All P0/P1 items closed and a third-party audit done: **not met** (the
+   audit is scoped, not engaged).
+2. Formats frozen and Python, TS and pyz pass the same vectors: **not met
+   yet** (parity holds locally on every case each answers; the `parity` CI job
+   has not run green, the storage-family exclusion needs sign-off, and
+   reason codes are not compared where an implementation names none).
+3. The 0.34 peer compatibility job green for every release: **not met yet**
+   (the job ships in 0.50 and has not run green in CI).
+4. The pyz air-gap-tested on Linux, macOS and Windows: **met** (the audit-kit
+   CI job, with the network refused and an extra Linux run in a network
+   namespace, passed on all three in the 0.49.0 pull request).
+5. Nightly stress green for 30 days: **not met** (the streak starts with this
+   release).
+6. Compression bench within 5% of 0.40: **not met yet** (the gate ships; it
+   needs a green run on the pinned runner).
+7. The deprecation policy published: **met** (`docs/DEPRECATION.md`).
+
+## 0.49.0 — Audit kit and public proof (2026-11-09)
+
+### Behaviour changes
+
+- `tine verify --offline --witnesses REGISTRY.json` accepts an
+  `opentine-witness-network/1` registry and checks the log's cosignatures
+  against its majority-of-three policy; a split view fails closed.
+- `tine watch --alerts` evaluates the repository's alert rules on every event
+  it reports.
+
+### Added
+
+- **`tine audit-kit build RUN...|BUNDLE --out DIR [--zip] [--allow-unredacted]`**
+  (SPEC 8.4.1): a self-contained, air-gapped audit kit with `tine-verify.pyz`,
+  an offline single-page TS verifier (`verify.html`, runs embedded, no outside
+  loads under its Content-Security-Policy), the evidence folder, a Provenance
+  Run Crate per run, a `replay/v1` attestation (`--attest-key` replays the run
+  and signs the result), the pinned witness set and log keys, a Markdown and
+  HTML report and `SHA256SUMS`. It refuses runs the redaction rules would still
+  change; build from `tine bundle create --redacted-public` instead.
+- **`tine audit-kit verify DIR|ZIP [--pyz] [--pubkey FILE]`** re-checks a kit
+  with the network refused. `--pubkey` checks the run signatures against a key
+  from outside the kit (the `anchor` check); without it the result proves
+  integrity only.
+- An artifact-evaluation package (`ae/`) in every kit: an ACM-badge README
+  (Available, Functional, Reproduced), a standard-library-only
+  `verify_kit.py [PUBKEY]`, `verify.sh`, `verify.ps1` and `reproduce.sh`.
+- **`tine publish zenodo`** deposits the named refs (plus `--attach` files such
+  as a run crate) through the Zenodo REST API, as a draft unless `--publish`;
+  `--sandbox` targets sandbox.zenodo.org. **`tine publish hf`** uploads one
+  run's redacted, signed public copy to a Hugging Face Hub dataset with a
+  dataset card tagged `agent-traces`. `--dry-run` needs no token or network;
+  `--json` writes `tine-cli-publish-1`.
+- `tine serve` can store objects in S3 Object Lock or Azure immutable blobs
+  (`TINE_REMOTE_OBJECT_STORE`), with governance or compliance retention
+  (`TINE_REMOTE_RETENTION_MODE`, `TINE_REMOTE_RETENTION_DAYS`). Deletes inside
+  retention, under an OpenTine hold or under a cloud legal hold are refused,
+  and OpenTine never bypasses governance retention. OpenTine holds can be
+  copied to the cloud as legal holds (the store's `sync_holds` method; no
+  command yet). Tombstones and `--uncompressed-tenant` work as on the
+  filesystem store. `admin purge` defers objects in object storage, and `admin
+  reseal` refuses it. See docs/STORAGE.md.
+- Payloads of 8 MiB or more in the object store are stored as FastCDC chunks
+  with a chunk manifest. This is a stored form and oids are unchanged. Reads
+  fetch only the chunks they need, check each chunk's digest and re-hash the
+  oid. A reused chunk's retention is extended to match the newest object that
+  uses it. Bench: a 1% append to a 32 MiB transcript stores 2.3% new bytes, and
+  a 4 KiB range read fetches one chunk.
+- **`tine alert add|list|remove|test`**: alert rules for `verify.failed`,
+  `policy.denied`, `cost.threshold` and `witness.disagreement`, evaluated on
+  existing `tine-event/1` events and sent as signed `tine-webhook/1` POSTs (the
+  alert in an added `alert` field) and/or OTLP/JSON log records to
+  `ENDPOINT/v1/logs`. Output schema: `tine-cli-alert-1`.
+- `tine import --format jules`: Jules sessions in the documented v1alpha API
+  shapes (prompt, messages, plans, approvals, failures; bash, change-set and
+  media artifacts, with media bytes left out).
+- `tine import --format a2a`: Agent2Agent tasks, messages and
+  status/artifact stream events, bare or JSON-RPC wrapped, de-duplicated by
+  `messageId`.
+- The witness network operator kit: the runbook `docs/witness/OPERATING.md`
+  (hardware, key ceremony, rotation, monitoring, incident response), a
+  container definition in `deploy/witness/` (pinned base image, no secrets),
+  the `opentine-witness-network/1` registry (`docs/witness/NETWORK.md`; a
+  pinned configuration, not a kind), `docs/witness/RECRUITING.md` and **`tine
+  witness doctor`** (`tine-cli-witness-doctor-1`). Tests require 2-of-3
+  cosignatures from three local witness processes.
+- Integration tests run against moto (now in the `dev` extra), and against
+  MinIO (`TINE_TEST_MINIO_ENDPOINT`), AWS (`TINE_TEST_S3_BUCKET`) and Azurite or
+  Azure (`TINE_TEST_AZURE_CONNECTION`, `TINE_TEST_AZURE_CONTAINER`) when those
+  are available. Each skips with its reason otherwise.
+- CI: a new audit-kit job builds a kit and verifies it offline, against an
+  outside key, on Linux, macOS and Windows, with an extra Linux run inside a
+  network namespace (1.0 criterion 4).
+- The suite is now **1112 conformance vectors**; 489 of the 1112 refuse input, and the adapter contract still has one entry point: 68 ops.
+
+### Security
+
+- `tine audit-kit verify` refuses changed or unlisted files, symbolic links
+  and special files in a kit directory, `kit.json` run entries outside
+  `runs/`, and zip entries that are links, repeat a name ignoring case, carry
+  `.` or empty segments, or exceed the size and count caps. Run ids taken from
+  a bundle never become output paths; `ae/reproduce.sh` quotes file names.
+- Publishing runs the pre-push redaction gate over every object before any
+  request (`zenodo` honours a logged `--allow-unredacted REASON`; `hf` has no
+  override). Tokens are read only from `ZENODO_TOKEN` / `HF_TOKEN` (or
+  `--token-env`), never printed or logged, and never sent off the API host.
+  Duplicate deposit names and a bundle with no redacted-copy record are
+  refused.
+- Webhook and OTLP alert targets must not carry credentials or point at
+  private, loopback or reserved addresses unless `--allow-private` (webhooks
+  must also be https); OTLP delivery checks every resolved address. Stored
+  rules are re-checked when read and their number is capped.
+- Importers drop URI queries, fragments and credentials (presigned-URL
+  tokens) from A2A file parts and the Jules session URL, and redact the Jules
+  change-set `source`. Media and file bytes are never imported.
+- A chunk reused by a newer object is re-locked to the newer retention, never
+  shortened, and becomes compliance if either object is.
+- A lock being published by another process (two names for one file until
+  its temp name is removed) no longer trips the repository's hard-link guard;
+  a concurrent `tine gc` again reports "another tine gc is running" instead
+  of "repository path contains a hard-linked file". Only `*.lock` names may
+  have two links; every other repository file still must have one.
+- `tine witness doctor` refuses a non-http(s) `--url`.
+
+### Compatibility
+
+- No object kind or wire format was added (the 0.48 cutoff holds;
+  `tests/freeze_inventory.py` is unchanged). FastCDC chunk manifests are a
+  stored form; alerts reuse `tine-event/1` and `tine-webhook/1`; the witness
+  registry is pinned configuration. Fetch, clone and push are unchanged for
+  0.34–0.48.0 clients.
+- SPEC 0.49.0 adds 8.4.1 and the witness registry in 8.23; Part 12 adds
+  `opentine-witness-network-1`, `tine-cli-audit-kit-build-1`,
+  `tine-cli-audit-kit-verify-1`, `tine-cli-publish-1`, `tine-cli-alert-1` and
+  `tine-cli-witness-doctor-1`.
+- moto joins the `dev` extra.
+
+### Deferred
+
+- **For humans:** operating the project's public witness, recruiting at least
+  two independent operators so three are live with 2-of-3 cosignatures,
+  publishing the production registry and pinning the witness image by digest;
+  claiming the ACM badges.
+- Object Lock: the integration tests have not run against live MinIO, a real
+  AWS bucket with Object Lock, Azurite or Azure (the roadmap acceptance
+  criterion). A delete racing an upload that reuses a chunk can remove it when
+  no retention mode is set; no sweep removes expired leftover chunks;
+  `sync_holds` has no command; purge needs an age from last-modified; chunking
+  runs at about 10–14 MiB/s in pure Python; chunk names reveal sharing to
+  anyone who can list the bucket. The 0.40 `cdc-*` bake-off rows are invalid
+  (the gear table had 256 identical entries) and must be re-run.
+- Audit kit: the new CI job (including the `unshare --net` step) has not yet
+  run on GitHub; the browser page checks a signature only against the run's
+  own key; the replay attestation's signer key comes from the kit; a kit
+  checked by another tine version skips the pyz rebuild comparison.
+- Alerts: an OTLP send can be re-resolved to a private address between the
+  check and the request (webhooks pin the address); the remote's event hub does
+  not evaluate rules; no event exists for a failed `tine verify` or `tine
+  witness`; nothing was sent to a real collector or receiver; `alert list`
+  creates the signing key if missing.
+- Importers: Jules has no documented web export (API shapes only); A2A
+  push-notification configs and agent cards are ignored.
+- Publish: Zenodo and the Hugging Face Hub were never contacted (tests use
+  recorded answers).
+
+## 0.48.0 — Integrate everywhere (2026-11-09)
+
+### Behaviour changes
+
+- `tine verify` refuses `--model` or `--model-pubkey` without
+  `--model-signature`, and a failed model-signature check exits 4.
+- Rekor v2 keyless verification reports a verified signing time from an
+  RFC 3161 token bound to the DSSE signature bytes (SPEC 8.12.1) instead of
+  `unchecked`. Without a token the receipt stays `unchecked` and the signature
+  fails closed.
+- A delegation chain is refused with `delegation.revoked` when any key on it
+  (each issuer and the final delegate) was revoked at or before the verified
+  signing time, or at all when the time is only claimed (SPEC 4.10.1).
+- The MCP server lists one more read-only tool, `code_graph`.
+
+### Added
+
+- **`tine forge publish`** (SPEC 4.24): posts a commit's AI share, verify
+  status, AI-attributed line ranges and a link to an offline-verifiable bundle
+  to GitHub (a check run with line annotations and a PR comment), GitLab (a
+  commit status and MR note), Forgejo/Gitea (a commit status and PR comment)
+  and Entire (local checkpoint refs and a git note, with the `git push`
+  printed). The project is resolved by `forge_repo_id`. `--dry-run` needs
+  neither a token nor the network. See `docs/FORGES.md`.
+- **`opentine.forge-check`**, new kind (SPEC 4.24): the unsigned record a forge
+  shows. An unverified commit is never shown as a success: GitHub shows
+  neutral, GitLab `skipped`, Forgejo `warning`.
+- **`tine review run ID --fleet reviewers.toml [--trust] [--base REV |
+  --diff-file FILE] --ed25519-key-file KEY`**: multi-agent review through a
+  trusted fleet manifest. Each reviewer harness reads the redacted diff; the
+  key that runs the review signs each finding as an
+  **`opentine.review-finding`** (new kind, SPEC 4.25), and the Review gets one
+  new version listing them as open findings, so a critical finding blocks
+  approval. **`tine review findings ID`** lists the stored findings and checks
+  each one against the head version's reviewers.
+- **`tine code-graph [PATH]... [--symbol NAME]`** (`tine-graph/1`): a code map
+  of symbols, imports and import edges, with tree-sitter for Python under the
+  optional `graph` extra and a regex outline otherwise; exposed to MCP as
+  `code_graph`.
+- **IDE extensions:** the VS Code extension in `ide/vscode` adds an AI-blame
+  gutter and "Verify this line's provenance". A JetBrains plugin skeleton is
+  in `ide/jetbrains`. Neither ships in the sdist or the wheel.
+- **`tine compliance list|check RUN --profile fre-902|eu-ai-act|eidas`**
+  (SPEC 12.5): draft profiles, each marked "draft — not legal advice, pending
+  counsel review", that map cited rules and articles (FRE 902(13)/(14),
+  901(b)(9); EU AI Act Art. 12, 19, 26; eIDAS Art. 25, 26, 35, 36, 41, 45i,
+  45k) to evidence facts. No requirement is evidenced unless the offline verify
+  verdict passes; `--strict` exits 4 if any in-scope requirement is missing.
+  Profiles ship in the wheel under `opentine/data/compliance`.
+- **`tine export RUN --format run-crate`**: a Provenance Run Crate (RO-Crate
+  1.1, Workflow Run RO-Crate profiles 0.5) with a built-in structural
+  validator.
+- **OMS model-signature checks** (SPEC 4.26): `tine verify --model-signature
+  BUNDLE [--model PATH] --model-pubkey PEM` verifies an OpenSSF Model Signing
+  v1.0 bundle against a pinned P-256 key and records the result in
+  `assurance.factors`. The factor binds the signature to the files given, not
+  to the run, and never raises the tier.
+- **OTLP:** `/v1/logs` accepts `application/x-protobuf`; `tine import --format
+  otlp-proto-logs`; OTLP/gRPC ingest (`opentine[grpc]`) with `tine serve
+  --otlp --otlp-protocol grpc|both`, `--otlp-grpc-port` and
+  `--otlp-token-file`. Security review: `docs/security/otlp-grpc-review.md`.
+- **Fuzzing:** `scripts/fuzz_otlp.py` (`--iterations`, `--hours`, `--atheris`)
+  and a scaled `fuzz-otlp` CI job (1M inputs, `timeout-minutes: 30`).
+- **Freeze cutoff** (SPEC 5.5): 0.48.0 is the last release that may add an
+  object kind or wire format before 1.0, enforced by
+  `tests/test_048_freeze_cutoff.py` against `tests/freeze_inventory.py`.
+- `tine-verify.pyz` answers forge checks, review findings, OMS bundles, fleet
+  records and keyless signing times, plus the canonical-JSON, envelope, oid,
+  agent, actions, delegation, tlog, eval-verdict and forge-claim families case
+  by case.
+- **Schemas:** `opentine-forge-check-1`, `opentine-review-finding-1`,
+  `opentine-compliance-profile-1`, `tine-cli-forge-1`, `tine-graph-1`,
+  `tine-cli-compliance-check-1` and `tine-cli-compliance-list-1`;
+  `tine-assurance-1`, `tine-cli-verify-1` and `tine-cli-review-1` gain fields.
+  New `docs/FORGES.md`, `docs/compliance/` and `docs/security/`.
+- **CLI:** three new commands (`forge`, `code-graph`, `compliance`), 120 in
+  total.
+- **Conformance:** new families `73-forge-check` (19 cases),
+  `74-review-finding` (21), `75-oms` (22), `76-delegation-revocation` (7),
+  `77-keyless-tsa` (18) and `78-fleet` (10), answered by Python, the TS
+  verifier and the pyz.
+- The suite is now **1112 conformance vectors**; 489 of the 1112 refuse input, and the adapter contract still has one entry point: 68 ops.
+
+### Security
+
+- Forge tokens are read only from environment variables, never echoed, and
+  sent only to an `https` API URL with no credentials, query, fragment or `..`
+  segment; repo slugs cannot climb the API path; redirects are not followed.
+  The GitHub App installation token is limited to `checks: write` (plus
+  `pull_requests: write` with `--pr`) and to the one target repository.
+- `tine review run` refuses a `--base` that looks like an option, reads at
+  most 4 MiB from each member's findings file and skips symlinks; `review
+  findings` fails a finding filed under another Review
+  (`review-finding.wrong-review`). The code map never follows a symlink out of
+  the work tree.
+- The VS Code extension is disabled in untrusted workspaces and
+  `opentine.tinePath` is a machine-scope setting; the JetBrains plugin refuses
+  untrusted projects; both refuse file paths that start with `-`.
+- Compliance: `signature.authenticated` counts only the signature check under
+  a supplied, pinned or HMAC key; every timestamp token must pass;
+  `legal_hold` matches whole digests only; malformed profiles are refused.
+- OMS bundles with more than 16 signatures are refused as `oms.malformed`
+  before any signature check runs.
+- OTLP/gRPC: messages are size-limited before and after decompression; 16
+  concurrent calls, a 10 s handshake timeout and a 30-minute maximum
+  connection age; every `authorization` value must match the token, and the
+  token file must be printable ASCII; TLS and a token are required off
+  loopback.
+- Keyless TSA failures keep their SPEC 8.6 `timestamp.*` codes; Python, the TS
+  verifier and the pyz agree on the RFC 3339 time grammar, microsecond
+  precision and strict hex imprints.
+
+### Compatibility
+
+- No existing byte format changed. The new kinds (`opentine.forge-check`,
+  `opentine.review-finding`) and the OMS check are new objects and inputs;
+  fetch, clone and push are unchanged for 0.34–0.47.0 clients.
+- SPEC 0.48.0 adds 4.10.1, 4.24–4.26, 5.5, 8.12.1 and 12.5. The conformance
+  families are numbered 73–78.
+- This is the last release that adds an object kind or wire format before
+  1.0.
+
+### Deferred
+
+- Counsel sign-off on the compliance profiles is outstanding (every profile
+  says `counsel_review: outstanding`); the eIDAS Art. 3(48) and 3(52) point
+  numbers are not yet re-checked against the consolidated EUR-Lex text.
+- The 72 h fuzz run has not been run: use `scripts/fuzz_otlp.py --hours 72`
+  (`--atheris` where installed). No external security review of OTLP/gRPC
+  was done; there is no connection-count limit or mTLS.
+- Forges: live forges were never contacted (tests use recorded answers);
+  fine-grained GitHub personal tokens cannot create check runs and there is no
+  commit-status fallback; Entire refs and notes are written locally and the
+  push is only printed.
+- Reviews: findings are signed by the key running the review, not by the
+  reviewer harness; a verifier cannot recompute `finding_id` from the record
+  alone. The JetBrains plugin is uncompiled and not built in CI; the VS Code
+  extension's `extension.ts` is untested and no `.vsix` is packaged.
+- OMS: keyless bundles (Fulcio, Rekor) and `shards` serialization are refused
+  as `oms.unsupported`; the factor is not tied to the run's recorded model.
+- Keyless: the TS verifier checks binding rules only, not the token's CMS
+  signature and chain; no end-to-end keyless `verify-attestation` test.
+- Freeze audit: the pyz checks families 31, 35, 42, 47 and 51 only as whole
+  files and never reads repository storage; six pre-cutoff kinds have no
+  vector family yet. These lists may only shrink.
+- Run crates: the upstream `rocrate-validator` is not run.
+
+## 0.47.0 — Merge it, review it (2026-11-09)
+
+### Behaviour changes
+
+- `tine mcp` `recall` also returns team-signed memory notes under `memories`;
+  with no `.tine/memory-team.json`, none are returned.
+- A merge step exported to `.tine` v2 reads back as `model`; v2 has no
+  `merge` kind.
+- `tine eval ci` refuses unknown keys in `.tine/evals.toml` (top level and
+  `[defaults]`) and dataset or output paths outside the repository.
+- Leases taken through `caps.coord` are bound to the caller who claimed them.
+
+### Added
+
+- **Run merge and pick** (SPEC 4.19): `tine merge OURS THEIRS [--ref R]`
+  writes a deterministic merge run with parents `[OURS, THEIRS]` and one
+  `merge` event. Workspace trees merge three ways; conflicting paths and a
+  differing policy manifest are recorded in the merge event, leave the run
+  `paused` and exit 1. `tine pick ONTO EVENT...` copies events onto a run's
+  tip, each marked with `picked_from`.
+- **`opentine.merge` (merge/v1)**, new kind: a signed attestation naming the
+  merged run, its parents, the target, the fencing token and a digest of each
+  gate piece; it can also be checked against the merged run.
+  **`opentine.merge-approval`**, new kind: a signed approve or reject decision
+  on a candidate run for a target.
+- **Merge queue:** `tine merge-queue init|add|claim|heartbeat|land|work|show|approve|verify`
+  on `coord/merge-queue/<id>`, with leases and fencing tokens. A landing
+  commits with one compare-and-swap of the queue record, so a stale holder is
+  refused and an entry never lands twice; a chaos test that kills workers
+  proves it. Gate policy `opentine-merge-gates/1` combines a pinned server
+  VSA, signed eval verdicts and signed approvals.
+- **Reviews** (SPEC 4.20), new kinds: `opentine.review` is a reviewer-signed,
+  hash-chained unit of work across runs and commits in one or more
+  repositories, with findings, monitors (risk, intent drift, coverage) and
+  gates; `opentine.review-gate` is a signed gate decision;
+  `opentine.review-bundle` verifies offline. `tine review
+  create|add|gate|show|export|verify|import|push`. An approval is refused
+  while a monitor fails or a critical finding is open (`review-gate.blocked`),
+  and `--verdict` takes a monitor's score from a signed eval verdict.
+- **`tine serve` `caps.reviews`** (SPEC 8.19): `GET reviews`, `GET|PUT
+  reviews/{id}` (compare-and-swap) and `POST reviews/{id}/decisions`. Uniform
+  404, transparency-logged, never signed by the server. The TS SDK adds
+  `listReviews`, `getReview`, `updateReview`, `decideReviewGate` and
+  `getReviewVerified`.
+- **Prompt registry** (`opentine.prompt`, SPEC 4.21): `tine prompt
+  push|label|get|list|verify|link|sync`. Versions are Ed25519-signed,
+  hash-chained and signed by the same key as the version before. Labels move,
+  and `link` records the version in a run's annotation.
+- **Team memory** (`opentine.memory`, SPEC 4.22): `tine memory
+  add|list|recall|trust|sync`. Notes are signed and shown only when a key in
+  `.tine/memory-team.json` signed them. A note can supersede another, and
+  `add` refuses text the secret detector flags.
+- **MCP tasks** (SPEC 8.20): MCP 2025-11-25 tasks for `tools/call`.
+  Cancelling a task, or letting it expire, stops its tool.
+- **Push-triggered evals:** `tine eval ci` reads `.tine/evals.toml` and gates
+  on each eval's `min_pass_rate`. A registered `judge_prompt` is pinned into
+  every verdict. The gate action gains `evals-config` and `eval-key-file`.
+- **Plugin API** (SPEC 8.21): entry-point plugins in four groups
+  (`opentine.importers`, `opentine.signers`, `opentine.scorers`,
+  `opentine.snapshots`). Nothing loads automatically; a plugin loads only when
+  it matches an entry in `$XDG_CONFIG_HOME/opentine/plugins.json` on kind,
+  name, distribution and exact version, is installed in this interpreter's
+  site-packages and its module resolves to a file its own distribution
+  installed. `OPENTINE_NO_PLUGINS=1` turns loading off. These rules choose
+  which code runs; they are not a sandbox. `tine plugins list|allow|check`,
+  and `tine eval run --scorer plugin:NAME`, whose verdict pins the plugin's
+  name, distribution and version.
+- **`tine experts PATH`** (`tine-experts/1`): ranks agents (by model, from
+  line attribution notes) and humans (by commit author e-mail) by attributed
+  lines, then verified runs.
+- **`@opentine/capture`** (`ts/capture`), no runtime dependencies: turns
+  Vercel AI SDK v4/v5 results and OpenAI Agents SDK `RunResult` objects into
+  `opentine-hook/1` events and delivers them to `tine hook capture` without a
+  shell.
+- **Remote task backend** (`caps.coord`, SPEC 8.22): `tine serve` runs
+  `opentine-coord/1` tasks over HTTP. Leases are compare-and-swap with fencing
+  on the server's clock, and every move is an audited `update_ref`. `tine
+  task ... --remote` uses it; the six `coord` routes are stable in OpenAPI,
+  the route table, the TS SDK and the API conformance suite.
+- **Scale acceptance:** 1,000 tasks × 50 workers with abandoned leases give
+  zero lost or duplicated claims and zero stale `done` calls accepted
+  (`scripts/coord_scale.py`; CI runs 100 × 10).
+- **Witness operations** (SPEC 8.23): `--key` can be given more than once and
+  every key cosigns, current key first, so keys rotate without a gap. `GET
+  /keys`, `GET /health` (503 `degraded` when state cannot be written),
+  `--rate-limit N` per client with 429 and `Retry-After`. Cosigning state
+  survives a restart.
+- **Forge claims** (`opentine.forge-claim`, new kind, SPEC 4.23): the
+  committed `.opentine/project` carries a fingerprint of the project's first
+  manifest version. A match reads "claimed by upstream (as mirrored)" and is
+  never a pass. `tine project claim` writes it; `claim --check` and `claim
+  --missing` check it.
+- **Project forks:** `tine project fork DEST --project-id ID` copies the run
+  repository, never code, and sets `forked_from`; `tine project verify
+  --source PATH` checks `forked_from` against the source's history.
+- `tine-verify.pyz` verifies merge records, review bundles (every gate
+  decision listed as its own check), prompt versions and histories, and
+  memory notes offline.
+- **Schemas:** `opentine-merge-1`, `opentine-merge-approval-1`,
+  `opentine-merge-gates-1`, `opentine-review-1`, `opentine-review-gate-1`,
+  `opentine-review-bundle-1`, `opentine-prompt-1`, `opentine-memory-1`,
+  `opentine-plugin-allow-1`, `opentine-forge-claim-1`, `tine-cli-merge-1`,
+  `tine-cli-pick-1`, `tine-cli-merge-queue-1`, `tine-cli-review-1`,
+  `tine-cli-prompt-1`, `tine-cli-memory-1`, `tine-cli-eval-ci-1`,
+  `tine-cli-plugins-1` and `tine-experts-1`; new `docs/PLUGINS.md`,
+  `docs/PROMPTS_AND_MEMORY.md` and `docs/design/F2-merge.md`.
+- **CLI:** eight new commands (`merge`, `pick`, `merge-queue`, `review`,
+  `prompt`, `memory`, `plugins`, `experts`), 117 in total.
+- **Conformance:** new families `68-merge` (52 cases), `69-memory` (18),
+  `70-review` (40), `71-prompt` (24) and `72-forge-claim` (11), answered by
+  Python, the TS verifier and the pyz.
+- The suite is now **1015 conformance vectors**; 417 of the 1015 refuse input, and the adapter contract still has one entry point: 63 ops.
+
+### Security
+
+- The merge queue never overwrites a target ref moved outside it: `land`
+  refuses with `diverged`, and the target only follows the queue head when the
+  head contains every event of the current target.
+- Merge gates count approvals from distinct listed keys, and one reject from a
+  listed key blocks; eval verdicts are checked against the candidate run and
+  the allowed signers; VSAs need the pinned key.
+- A Review gate decision is tied to the digest, seq and id of one version, so
+  it cannot be reused on another, and only a reviewer of that version can sign
+  it. The server stores Review records as their reviewers signed them,
+  publishes each atomically (temporary file, then a hard link that fails if
+  the name exists) and never signs one. Local Review writes take a per-Review
+  lock, and a repeated decision is stored once.
+- Memory sync accepts a fetched note only from a team key, under the ref named
+  by its own digest; with no team file it accepts none
+  (`memory.untrusted-signer`). Team-file keys must be lowercase hex.
+- `tine prompt verify` reports a history that does not reach version 1 as
+  `prompt.chain-break`.
+- A failed MCP task reports only the exception type, never its text.
+- Plugin loading refuses a module in the current directory or on
+  `PYTHONPATH`, a stdlib target and namespace packages. On POSIX the allow-list
+  file and its directory must be owned by you or root, and none of the
+  allow-list, its directory, the module file or the module's directory may be
+  group- or world-writable (a sticky bit does not exempt a directory). `tine
+  plugins allow` refuses when more than one distribution provides the same
+  name.
+- `caps.coord` binds each fencing token to the caller who claimed it (a
+  `coord/leases/<id>` record written by compare-and-swap), so another writer's
+  `heartbeat` or `done` with a token it read is `409 stale`. A missing task,
+  another tenant and a caller who cannot read all get the same 404; a reader
+  who tries to write gets 403.
+- A lock file is published with its owner stamp already in it (written to a
+  private name, then hard-linked into place), so a writer killed between
+  creating a lock and stamping it can no longer leave an empty lock that wedges
+  a ref, gc or log for good. An empty lock left by an older version is still
+  treated as live.
+- The witness `/health` never shows local paths, and its rate limit keys on
+  the client's socket address, not on `X-Forwarded-For`.
+
+### Compatibility
+
+- No existing byte format changed. The new kinds (`opentine.merge`,
+  `opentine.merge-approval`, `opentine.review`, `opentine.review-gate`,
+  `opentine.prompt`, `opentine.memory`, `opentine.forge-claim`) are new
+  objects; `caps.reviews` and `caps.coord` are negotiated by `caps`, and
+  Reviews are kept outside the ref listing, so fetch, clone and push are
+  unchanged for 0.34–0.46.1 clients.
+- SPEC 0.47.0 adds 4.19–4.23 and 8.19–8.23. The conformance families are
+  numbered 68–72.
+- Leases written through `caps.coord` before the caller binding have no
+  `coord/leases` record; their holders claim again.
+
+### Deferred
+
+- Merges: raising `min_reader` for repositories that hold merges; octopus
+  merges; TS-side gate evaluation; a remote merge-queue backend. Approvals
+  name only the run and the target (no queue id, nonce or expiry), `land` can
+  run without a signing key (a gated landing then records no attestation), a
+  gated entry reached without evidence is rejected for good, `merge-queue
+  work` polls a held lease with no limit, and there is no command to recover a
+  diverged queue.
+- Reviews: no pull from a remote (only `import` of a bundle file); an exported
+  Review does not include its runs' bundles; monitors do not run scorers
+  themselves; no CLI flag links a finding to a subject; `--verdict` does not
+  pin the scorer's key; a reviewer of version N can replace the reviewer list
+  in version N+1 (by design, not yet documented as a trust caveat).
+- Prompts and memory: a prompt's first version is trusted on first use (no
+  team-key pinning for prompts); `tine eval verify` does not re-check the
+  judge prompt link; MCP tasks are held per server and advertised only through
+  the `io.opentine/tasks` extension; sync makes one round trip per ref and
+  never resends a label the remote already has.
+- Plugins: importer, signer and snapshot plugins load only from Python;
+  `tine import`, `tine sign` and `tine rewind` do not use them yet. `tine
+  experts` counts lines from notes that are not validly signed (only
+  `verified_runs` reflects signatures). SCITT emission stays behind
+  `--experimental` and no emitter ships. The capture SDK's fixtures are
+  hand-written.
+- Projects: remote `--source`; a signed fork point; claim files on the pyz
+  command line; `claim --check` without `--branch` assumes the default branch;
+  the witness has no `--json`.
+
+## 0.46.1 — Project formats (2026-11-09)
+
+### Added
+
+- **Project manifests** (`opentine.project`, SPEC 4.16): owner-signed
+  (Ed25519) and hash-chained through `prev`, with a primary and an optional
+  secondary code slot. A public project may not point at a private upstream; a
+  private one names its upstreams only by salted commitments. Clone URLs carry
+  no credentials (no userinfo on `https://`, no password on `ssh://`). Stored
+  under the new `project/manifest` ref.
+- **Mirror-state host statements** (`opentine.mirror-state`, SPEC 4.17):
+  signed with the host service key, refused if a project owner signed it, and
+  never reported as a pass ("host statement, not verified by you"). Ten project
+  reason codes are defined.
+- **Git object check** (SPEC 4.18) in Python, the TS verifier (browser-safe)
+  and `tine-verify.pyz`, for SHA-1 and SHA-256 object formats. Commit and tag
+  headers are read in order, as git reads them.
+- **`tine serve` project caps** (SPEC 8.18):
+  - `caps.project`: `GET project`, `GET project/history`, and `PUT project`, a
+    signed, chained compare-and-swap that starts at seq 0, writes to the
+    transparency log, and answers a uniform 404 even for writes.
+  - `caps.social_export`: count-only stars and watches.
+  - It stores no code and has no mirror capability. The project routes are
+    `stable` in OpenAPI v1 and the TS SDK.
+- **New CLI commands:** `tine project init|link|show|history|verify|push` and
+  `tine remote add --project ID`. `verify --remote` refuses a remote history
+  that forks from the local one.
+- **Schemas:** `opentine-project-1`, `opentine-mirror-state-1` and
+  `tine-cli-project-1`; new `docs/PROJECTS.md`.
+- **Conformance:** new families `65-project` (29 cases) and `66-mirror-state`
+  (26), answered by Python, the TS verifier and the pyz.
+- The suite is now **870 conformance vectors**; 316 of the 870 refuse input, and the adapter contract still has one entry point: 53 ops.
+
+### Security
+
+- `PUT project` refuses a first manifest whose `seq` is not 0, and a manifest
+  naming another tenant, with 400 `project.chain-break` and an audit row.
+- `PUT project` follows the uniform-404 rule: a caller who cannot read the
+  tenant gets the same 404 for another tenant and a nonexistent one; a reader
+  who is not a writer gets 403.
+- A clone URL may not carry a token: `https://` URLs take no userinfo at all
+  and `ssh://` URLs take a user but no password (Python, pyz and TS verifier).
+- The git object check requires `tree` (or `object` for a tag) as the first
+  header line and takes parents only from the `parent` lines straight after it.
+- `tine project verify --remote` exits 4 with `project.chain-break` when the
+  remote history forks from the local one.
+
+### Compatibility
+
+- No existing byte format changed. `opentine.project`, `opentine.mirror-state`
+  and the project routes are negotiated by `caps`; a 0.34–0.46.0 client is
+  unaffected.
+- SPEC 0.46.1 adds 4.16, 4.17, 4.18 and 8.18.
+
+### Deferred
+
+- SHA-1 collision detection (SHA-1DC) is not implemented.
+- `tine project unlink|set-upstream|link-check|mirror-diff` and `tine git
+  attribute --project` are not built; `tine verify` does not emit the ten
+  project reason codes yet.
+- Nothing produces or signs a mirror state; `opentine.mirror-state` refuses an
+  owner-signed statement only when the caller passes the owners, and without a
+  pinned host key reports `host-statement-tofu`.
+- `verify --remote` flags a fork but not a rollback to an earlier version of
+  the same chain; `show` and `history --remote` display what the server sends
+  without checking the chain.
+- Stars and watches have no endpoint that sets them; the forge-claim kind is
+  left for 0.47.
+
+## 0.46.0 — Share it, gate it (2026-11-08)
+
+### Behaviour changes
+
+- `tine serve` answers every not-found or not-allowed read on the hosted-beta
+  routes with the same `404` (`{"error":"not found"}`), so no route reveals
+  whether an oid exists. Anonymous and other-tenant refusals are byte-identical
+  for a real and a nonexistent tenant.
+- `tine serve` refuses to store a tombstoned blob again: a pushed pack that
+  carries one is installed without it.
+- A hook tool name that isn't a string now normalizes to `""`.
+- `tine repo-search --json` gains `remote`, `truncated`, `hybrid` and
+  `embedder`; `GET /v1/capabilities` gains `object_read_http`, `run_closure`,
+  `list`, `search`, `log_http`, `admin`, `share`, `tombstones` and (with a
+  server key or trust policy) `vsa`. Every 0.45 key keeps its meaning.
+
+### Added
+
+- **Hosted-beta caps on `tine serve`** (SPEC 8.14):
+  - `object_read_http` (`GET objects/<oid>`): `private` immutable cache
+    headers, `Vary: Authorization`, ETag and 304.
+  - `run_closure` (`POST runs/<oid>/closure`): one negotiated pack;
+    `lazy_blobs` leaves blobs out and each one is read and authorized on its own.
+  - `list` (`GET list/runs`, `GET list/refs`): cursor-paginated, `limit` 1–500.
+  - `search` now takes `text`, matched against stored run records only.
+  - `log_http` (`GET log/entries`): the tenant's own transparency-log entries.
+  - `admin` (`GET admin/stats`).
+  - `share`: read-only share tokens bound to one run, which expire and can be
+    revoked; the server stores only a SHA-256 of each. Public
+    `/v1/share/<token>` routes (info, closure, objects) return one 404 for an
+    unknown, expired or revoked token and for an oid outside the run.
+- **New CLI commands:** `tine share create|revoke|list` (also `tine
+  share-link`), `tine open RUN`, `tine repo-search --remote`, and `tine remote
+  login` (OAuth 2.0 device-code OIDC; the token is stored owner-only as the
+  remote's `token_file`).
+- **Stable public API v1:** an OpenAPI 3.1 document (`docs/api/openapi-v1.yaml`,
+  SPEC 8.15) generated from the server's route table, covering every hosted-beta,
+  share and tombstone route. Each operation is tagged with the capability that
+  advertises it and its status (`stable`, or `planned` for the `project` cap).
+  A test fails if the document, the route table, the TS SDK and the server
+  disagree.
+- **API conformance suite** (`tests/api_conformance/`) that any implementation
+  runs against a base URL: private tenant routes, refusals independent of the
+  oid and of whether the tenant exists, the uniform 404, 429 with Retry-After,
+  verified packs, share tokens that read only their run and die when revoked,
+  and uniform tombstone 404s. Its client never follows redirects.
+- **`@opentine/sdk`** (`ts/sdk`): a typed TypeScript client that needs only
+  `fetch`, with methods for every v1 route. It never follows redirects, never
+  sends its bearer token on share-token routes, refuses dot-segment path
+  parameters, and parses Retry-After in seconds or as a date.
+  `@opentine/sdk/verified` checks everything it fetches with the TS verifier
+  and runs in browsers. `@opentine/verify` now exports `inspectPack` and
+  `webhookClass`.
+- **Purge with tombstones.** `tine purge OID --reason TEXT
+  (--key-file|--ed25519-key-file)` removes a blob's bytes, keeps its oid and
+  leaves a signed `opentine.tombstone` (SPEC 4.14). `tine fsck` reports
+  `content_unavailable` instead of an error, and `tine purge --list` checks
+  every tombstone. Bundles carry tombstones, and `tine push` / `tine fetch`
+  exchange them with remotes that list `caps.tombstones` (`GET`/`PUT
+  tombstones/<oid>`).
+- **Redacted public copies.** `tine bundle create FILE REF --redacted-public`
+  bundles a re-redacted copy of one run with a signed `opentine.redacted-copy`
+  record (SPEC 4.15); `tine bundle verify --key-file/--pubkey` checks it. A
+  purged blob verifies as `content-unavailable` in Python, the TS verifier and
+  `tine-verify.pyz`.
+- **Gate it in CI.** `tine serve --trust-policy NAME=FILE` (repeatable) admits
+  ref updates only under named `opentine.admission-policy` documents (first
+  covering policy decides; an uncovered ref gets a uniform 403), and `tine
+  serve --vsa-signing-key FILE` signs admission VSAs (DSSE, Ed25519) with the
+  server's own key, recording the policy's URI and file sha256 and
+  `resourceUri` `tine://TENANT/REF` (SPEC 8.17). New GitHub Action
+  `actions/gate` and GitLab component
+  `actions/gitlab/templates/opentine-gate.yml` run `tine verify`, `tine eval
+  verify` and a VSA gate, and edit one PR/MR comment in place. New
+  `actions/preserve-notes` keeps `refs/notes/tine` attribution through squash
+  and rebase merges.
+- **PII detection (`opentine-redaction/3`):** emails, phone numbers, US street
+  addresses and UK postcodes, IBAN, payment cards, and US SSN / UK NINO /
+  Spanish DNI-NIE, each behind a validator; a local-only pluggable classifier
+  layer (`--classifier rules|none|MODULE:ATTR`, `OPENTINE_PII_CLASSIFIER`;
+  default `rules/1` for names and dates of birth). `tine redact check --pii`
+  writes signed redaction reports version 2 (SPEC 4.13.1), checked by Python,
+  the pyz and the TS verifier. Recall and precision are published in
+  docs/PII.md (0.912 / 0.912 on the fixture corpus).
+- **Hybrid search:** `tine repo-search --hybrid [--embedder hash|MODULE:ATTR]`
+  fuses BM25 with a derived local embedding index (`.tine/index/embed.sqlite`,
+  `opentine-embed/1`) by reciprocal rank fusion. Only redacted text is
+  embedded, and the index is rebuilt when the classifier changes. New
+  `opentine[embed]` extra (numpy).
+- **Vendor I/O:** `tine export --format langfuse|phoenix|braintrust|langsmith`
+  (file or stdout only, redacted) and `tine import --format …`. Evaluations
+  travel as `gen_ai.evaluation.result` and as native scores; per-vendor display
+  status is in `docs/VENDOR_IO.md`.
+- **Steer and resume:** steer for Codex (`Stop` → `block`) and Gemini CLI
+  (`AfterAgent` → `deny`) via `tine fleet send`; `tine hook resume --agent
+  codex|gemini|claude-code --session ID --message TEXT [--repo PATH]
+  [--dry-run]`. `opentine-hook/1` is published as `docs/spec/hook-1.md` (SPEC
+  8.16).
+- **Schemas:** `tine-share-1`, `tine-list-page-1`, `tine-cli-share-1`,
+  `tine-cli-open-1`, `opentine-tombstone-1`, `opentine-redacted-copy-1`,
+  `tine-cli-purge-1`, `tine-cli-purge-list-1`, `opentine-admission-policy-1`,
+  `tine-ci-gate-1`, `opentine-redaction-report-2`, `opentine-hook-1` and
+  `tine-cli-hook-resume-1`.
+- **Conformance:** new families `61-vsa` (13 cases), `62-redaction-report-v2`
+  (12), `63-tombstone` (23), `64-redacted-copy` (16) and `67-hook` (35),
+  answered by Python, the TS verifier and the pyz.
+- The suite is now **815 conformance vectors**; 279 of the 815 refuse input, and the adapter contract still has one entry point: 49 ops.
+
+### Security
+
+- Share tokens: failed lookups are rate-limited with 429 and a successful read
+  does not reset the count; every share response sends `Referrer-Policy:
+  no-referrer`; tokens are redacted from access logs; `haves` are honoured only
+  inside the shared run, so a share holder learns nothing about the rest of the
+  tenant.
+- `tine remote login` strips control characters from issuer-supplied text and
+  refuses `http://` issuers without `--allow-insecure`.
+- A remote purge (`PUT tombstones/<oid>` for held content) is admin-only,
+  refused for anything a legal hold reaches, deletes the index row with the
+  bytes, and cannot be undone by a later push.
+- The CI gate fails closed: no checks, a run or eval without a pinned key
+  (`unpinned`), or a VSA for another tenant or ref (`wrong-resource`) all fail.
+  Only the poster's own marker comment is ever edited, so a PR author cannot
+  plant a fake "passed" comment.
+- Vendor import turns malformed files into a clean error; `tine hook resume`
+  resolves the CLI on PATH before recording anything and refuses cmd.exe
+  metacharacters for a Windows `.cmd`/`.bat` shim.
+- A plug-in PII classifier's kinds are limited to `[a-z0-9_-]{1,32}`, and the
+  embedding index is rebuilt when the classifier changes, so stale vectors
+  cannot keep personal data matchable.
+- The server never signs as a user: shares, tombstones and redacted copies are
+  client-signed; admission VSAs carry the server's own key.
+
+### Compatibility
+
+- No existing byte format changed. New object kinds (`opentine.tombstone`,
+  `opentine.redacted-copy`, redaction report version 2, admission VSAs) and
+  every new route are negotiated by `caps`; a 0.34–0.45 client is unaffected.
+- SPEC 0.46.0 adds 4.13.1, 4.14, 4.15 and 8.14–8.17.
+- The TS SDK (`ts/sdk`) is `private: true` and not yet published to npm.
+
+### Deferred
+
+- Project formats and the code mirror (`opentine-project/1`, `caps.project`,
+  `caps.social_export`; ROADMAP §11): not built in this release; they shipped
+  in 0.46.1, where the `project` routes became `stable` in the OpenAPI document.
+- Write-side `log_http`; refresh-token renewal for `remote login`; event and
+  blob text in remote search; indexes for `list/runs`, `admin/stats` and
+  `search text` (they walk the tenant), and `log/entries` re-verifies the log
+  on every request.
+- The share throttle is per process and keyed by `REMOTE_ADDR`; any writer can
+  revoke any share in the tenant; objects fetched through a share stay in that
+  browser's cache after revocation.
+- Writers can pre-record tombstones for content the tenant doesn't hold; local
+  re-fetch doesn't skip tombstoned blobs; `load_run` and the run viewer raise on
+  a purged blob; no `tine serve admin` command for tombstones.
+- The API conformance suite has no CI job against the hosted service, and the
+  OpenAPI document isn't served at `/v1/openapi.json`.
+- CI: "Action used in two external repos" is outside this repository; no
+  endpoint for CI to fetch a VSA; no GitLab preserve-notes; `vsa.policies` is
+  visible to every reader.
+- PII: no redaction on write, the push gate doesn't check PII, address
+  detection is US/UK only, and no real local model adapter ships.
+- Vendor formats are untested against live Langfuse, Phoenix, Braintrust and
+  LangSmith instances, and the Codex/Gemini/Claude resume commands are
+  unconfirmed against the vendors' CLIs.
+
+## 0.45.1 — Parity and plumbing (2026-11-08)
+
+### Behaviour changes
+
+- `tine redact check` exits 4 on findings and 3 on an unknown `--run` (was
+  1). `redact check --json` and `doctor --json` now include `command`.
+- `tine schema validate` refuses documents nested deeper than 512 levels with
+  exit 2.
+
+### Added
+
+- **More agent CLIs.** `tine enable` / `tine disable` now cover GitHub
+  Copilot CLI (`$COPILOT_HOME/hooks/opentine.json`, default
+  `~/.copilot/hooks`; bash and PowerShell commands), Factory Droid
+  (`~/.factory/hooks.json`) and Google Antigravity (an `opentine-capture`
+  hook in `~/.gemini/config/hooks.json`). Each session is recorded as one run
+  through `opentine-hook/1`, and `disable` restores the file, keeping the
+  user's own hooks and settings.
+- `tine hook capture --event NAME` names the event for agent CLIs whose hook
+  payload leaves it out (Antigravity `PreInvocation` / `PostToolUse` /
+  `Stop`). Copilot's `tool_result` is recorded as the tool's output.
+- **`tine import --format pi-session`** for Pi session files
+  (`~/.pi/agent/sessions/*/*.jsonl`, or `$PI_CODING_AGENT_DIR`). It records
+  model, provider, token usage and Pi's own cost, is picked up by `--format
+  auto`, and is found by `--from-default-location`.
+- `tine doctor` adds an `agent-capture` row listing the supported agent CLIs
+  found on this machine and how each is captured (hooks, importer, or both).
+- **Git AI Standard v3.** `tine import REPO[::RANGE] --format git-ai
+  [--sign-key KEY] [--force]` reads `authorship/3.0.0` notes under
+  `refs/notes/ai` into `opentine-line-attribution/1` notes, signed when
+  `--sign-key` is given. OpenTine notes stay canonical: a commit that already
+  has one is skipped unless `--force`. Human attestations are kept and never
+  credited to an agent. Notes with CRLF line endings are accepted.
+  `tine export REV|A..B --format git-ai [--output REPO] [--force]` writes v3
+  notes from OpenTine attribution; importing a note and exporting it again
+  gives back the same Git AI note when parsed, and native ranges get
+  deterministic session and trace keys.
+- The `tine-ai-share/1` schema is published. `tine stats --ai-share --json`
+  names it, and `tine git share-line --json` emits the post-commit AI-share
+  line as an object.
+- **Events.** `tine serve` streams per-tenant `ref.updated`, `run.created`
+  and `log.checkpoint` events (`tine-event/1`) over Server-Sent Events at
+  `GET /v1/tenants/<tenant>/events` (`caps.events_sse`; needs `read_ref`;
+  heartbeats, `Last-Event-ID` resume with an `event: reset` frame after a gap,
+  a 1024-event buffer per tenant and at most four open streams).
+- **`tine watch [REMOTE|REPO]`** tails a remote's event stream, or polls a
+  local repository's op log (`op.logged`); `--json` writes `tine-watch/1`
+  JSON Lines.
+- **Signed webhooks.** Admins register up to 16 targets per tenant
+  (`/v1/tenants/<tenant>/webhooks`). Each delivery is a canonical
+  `tine-webhook/1` body signed with the server's Ed25519 webhook key
+  (`OpenTine-Signature`, key advertised under `caps.webhooks`), retried with
+  backoff and de-duplicated by `OpenTine-Delivery`. SPEC 8.13,
+  `docs/EVENTS.md` (with Python and JavaScript verifiers), and schemas
+  `tine-event-1`, `tine-webhook-1` and `tine-watch-1`.
+- **`tine redact rules [--json]`** exports the redaction ruleset as data
+  (`tine-redaction-rules/1`): one row per scan step in order, vendor token
+  prefixes, and a digest.
+- **`tine redact verify REPORT`** checks signed redaction reports (SPEC
+  4.13): HMAC under `--key-file`, or Ed25519 under `--pubkey` or else the
+  embedded key (reported as `verified-tofu`). `tine-verify.pyz` and the TS
+  verifier check reports too. It exits 4 if any report fails.
+- JSON Schemas for the redaction report, the ruleset, `redact check --json`,
+  `redact verify --json` and `doctor --json`. The Agent Trace export is
+  validated against `agent-trace-0.1`.
+- **`tine ui`** re-checks runs in the browser with the bundled TS verifier
+  (`tine-verifier.js`) and shows the browser's own integrity and signature
+  verdicts. `/api/run/RUN/artifact` serves an artifact's bytes only when the
+  decoded artifact is UTF-8 text and the redaction scan finds nothing;
+  otherwise it returns 403 and the browser column reads `unchecked`.
+- Conformance families `59-webhook.json` (10 cases) and
+  `60-redaction-report.json` (13 cases). `docs/SPEC.md` is version 0.45.1.
+- Fixed: line attribution for files whose names contain a space was reported
+  as stale.
+
+### Security
+
+- `tine redact verify --key-file K` never falls back to the key embedded in
+  the report: an Ed25519 report checked under an HMAC key fails with
+  `redaction-report.wrong-key`, so a report self-signed by an attacker cannot
+  pass as `verified-tofu` (Python, pyz and TS; vector
+  `hmac-key-ed25519-report`).
+- `tine ui` withholds artifacts that are not valid UTF-8, which the redaction
+  scan cannot read.
+- Git AI import refuses file paths that are absolute, contain `..`, a
+  backslash, a drive letter, control characters or empty segments, when a
+  note is parsed and again when one is rendered. Export refuses run, step and
+  `human_lines` keys that could inject attestation lines, and treats a run as
+  a Git AI session only if the whole `s_…::t_…` key matches. Malformed
+  records are refused with "Export failed" instead of a traceback.
+- Webhook targets must be `https://` and resolve only to global addresses;
+  loopback, private, link-local (cloud metadata), CGNAT, multicast, reserved
+  and 6to4/Teredo/NAT64 addresses embedding a private IPv4 are refused at
+  registration and at each delivery, and the delivery connects to the
+  address it checked (`tine serve --webhooks-allow-private` lifts this).
+  Redirects are not followed.
+- An SSE stream releases its slot on close even if never read; a tenant whose
+  event buffer was evicted gets a reset, not a silent gap; `tine watch`
+  escapes server-sent text and refuses malformed events.
+- `tine enable` refuses to overwrite an Antigravity `opentine-capture` hook it
+  did not write, and `tine disable` keeps other Copilot settings in the hooks
+  file.
+
+### Compatibility
+
+- Object ids and existing byte formats are unchanged. The attribution record
+  gains an optional `git_ai` field.
+- Scripts that relied on `tine redact check` exiting 1 should read 3 (unknown
+  run) and 4 (findings).
+- The suite is now **716 conformance vectors**; 242 of the 716 refuse input, and the adapter contract still has one entry point: 43 ops.
+
+### Deferred
+
+- Copilot, Droid and Antigravity event names and payload shapes follow their
+  documentation and are not yet checked against the real CLIs (notably
+  Copilot's PascalCase event names); `PI_CODING_AGENT_DIR` and the `agy`
+  binary name are assumptions. A captured Antigravity run stays `running`
+  (no session-end event).
+- No Pi capture hook (Pi only supports TypeScript extensions); no importers
+  for Copilot, Droid or Antigravity sessions; fleet steering through the
+  Copilot and Droid `Stop` hook is not wired. Branched Pi sessions are
+  imported in file order without `parentId`.
+- Git AI notes are not yet checked against notes written by git-ai itself;
+  `tine export|import --format git-ai --json` use the generic envelope
+  schema; native exports use deterministic trace ids. Git AI notes are
+  unsigned, and `--sign-key` signs what they claim.
+- With no key, a validly self-signed Ed25519 redaction report verifies as
+  `verified-tofu` (exit 0): CI gates should pass `--pubkey` (a
+  `--require-pinned` flag is planned). A signed report that lists findings
+  still verifies.
+- The browser verifier is tested in Node only, does not check HMAC
+  signatures, and refuses xz-compressed artifacts.
+- The schemas are not shipped as a separate package.
+
+## 0.45.0 — See it, score it (2026-11-08)
+
+### Behaviour changes
+
+- `tine push` re-scans every outgoing object with the current redaction
+  ruleset (`opentine-redaction/2`): first offline, then on the exact pack
+  negotiated with the server. It refuses on findings, naming object ids only,
+  never the matched bytes. Objects that cannot be decoded count as findings.
+  `tine bundle push` and the git pre-push run sync are gated the same way, and
+  `tine push --dry-run` warns when the real push would be refused.
+- A failed audit transparency append on `tine serve` is retried three times
+  and then fails the write. 0.44 only printed a warning, so a server could
+  acknowledge a write its public log never showed.
+- `tine schema show NAME --json` wraps the schema in the CLI envelope
+  (`{"command": "schema-show", "name", "definition"}`), and `tine help
+  UNKNOWN --json` prints a JSON error. An unknown schema or a missing file
+  exits 3 (not found).
+- `tine help --json` publishes no machine-specific flag defaults: absolute
+  paths and values taken from the environment become `null`.
+- `tine verify --offline`: the delegation check passes with reason
+  `delegation.verified` (was `ok`, which broke the `tine-verify-report/2`
+  reason grammar).
+- `tine git install-hook` sets `notes.rewriteRef=refs/notes/tine`, so amend
+  and rebase keep attribution notes.
+- `tine git log --json` adds `links`: each commit's strict
+  `Tine-Run`/`Tine-Project` link set, or its grammar error.
+
+### Added
+
+- **`tine ui`**: a read-only local run viewer on 127.0.0.1. It serves only
+  redacted data, refuses requests whose Host is not `127.0.0.1:PORT` or
+  `localhost:PORT`, and answers API errors with a generic 500. The viewer is
+  the shared `ts/run-viewer` bundle, shipped prebuilt in the package.
+- **Evals.** `tine eval run|verify|compare` and `tine dataset
+  add|import|export|show`. Datasets are JSON Lines; local Hugging Face folders
+  of JSON Lines splits import and export offline. Scorers: `exact`, `regex:`,
+  a JSON Schema subset, Python callables and `llm-judge:`, whose prompt and
+  reply are recorded as their own run. Each item gets a signed
+  `tine-eval-verdict/1` (SPEC 4.12), checked by `tine eval verify`,
+  `tine-verify.pyz` and the TypeScript verifier. Every verifier recomputes the
+  eval id from each verdict (`eval.id-mismatch`) and refuses a repeated item
+  (`eval.duplicate-item`). `eval compare --exit-code` exits 1 on a regression.
+- **Blame and attach.** `tine blame --porcelain` prints `git blame
+  --porcelain` byte for byte with `tine-run`/`tine-step`/`tine-model` headers
+  on attributed lines; `--lines --json` emits `tine-blame/1`. `tine why
+  FILE:LINE` prints the causal run slice of the line's writer, and `tine
+  attach RUN COMMIT` writes the run and attribution notes after the fact.
+  `tine git install-hook --ai-share` adds a post-commit hook that prints the
+  commit's agent line share.
+- **Trailers.** The `Tine-Run: <run-oid>[ <project_id>]` (repeatable) and
+  `Tine-Project` (at most once) trailer grammar, with Python and TypeScript
+  parsers that agree on the trailer vectors.
+- **`tine import --format agent-trace`**: one model event per conversation and
+  one `agent_trace.attribution` tool event per file.
+- **Witness HTTP.** `tine witness serve` and `tine witness submit` speak the
+  C2SP tlog-witness protocol (`POST /add-checkpoint`); `submit` answers a 409
+  with a consistency proof from local tiles. `docs/design/log-2.md` records
+  keeping `opentine-log/1`.
+- **Tiled log appends** in O(log n) from the tile right edge. Bytes on disk
+  are unchanged.
+- **JSON Schemas.** Every object kind and `--json` output has a published
+  schema in `docs/schemas/`, including the new `tine-verify-dataset-1`.
+  `tine schema list|show|validate` and `tine help --json` (`tine-help/1`).
+  `docs/SPEC.md` is versioned (0.45.0) with stable section anchors, and Part
+  12 covers the schemas. The test suite checks every `--json` output it drives
+  against them.
+- **`--allow-unredacted REASON`** on `tine push` and `tine bundle push` writes
+  an op-log entry with a `note` before anything is sent. If the entry cannot
+  be written, the push is refused. `tine undo` skips note-only entries, and
+  `tine op log` shows notes.
+- **`tine redact check`** prints one redaction report per run, optionally
+  signed (`opentine.redaction-report.v1:` + JCS of `{body, header}`), with
+  pinned HMAC and Ed25519 test vectors.
+- **`tine doctor [--bundle PATH]`** runs offline checks of the environment,
+  keys, hooks, harnesses and remotes, and writes a redacted support bundle.
+  It finds hooks through git, so linked worktrees and `core.hooksPath` work.
+- The 58-eval-verdict conformance family.
+
+### Security
+
+- `tine ui` refuses foreign Host headers, so a DNS-rebinding page cannot read
+  the run API through 127.0.0.1.
+- The `--allow-unredacted` REASON is redacted before it reaches the op log.
+- Attribution notes are repository data anyone can push: `tine blame
+  --porcelain` type-checks ranges, caps credited lines at 200,000 and reduces
+  run and model values to one header word, so a note cannot forge porcelain
+  headers. `tine why` escapes the path it echoes.
+- Agent Trace import redacts the conversation URL, whose query string can
+  carry a session token.
+- `tine witness submit` accepts only well-formed cosignature lines (502
+  otherwise); `tine witness serve` answers a malformed `Content-Length` with
+  400, and its 500 replies carry no local paths or exception text.
+
+### Compatibility
+
+- Object ids are unchanged, and the tiled log's bytes are unchanged.
+- Reports from `tine verify --offline` that relied on the delegation reason
+  `ok` now read `delegation.verified`.
+- Scripts that read `tine schema show --json` get the schema under
+  `definition`.
+- The suite is now **693 conformance vectors**; 232 of the 693 refuse input, and the adapter contract still has one entry point: 41 ops.
+
+### Deferred
+
+- In-browser verification in `tine ui` reads `unchecked` until the TypeScript
+  verifier bundle ships in the viewer.
+- The redaction ruleset is not exported as data for the web; the redaction
+  report vectors are a Python test fixture, not a conformance family, and
+  there is no `tine redact verify`.
+- No JSON Schemas yet for `redact check --json`, `doctor --json` or the
+  redaction report; the Agent Trace export is not validated against
+  `agent-trace-0.1`. The schemas are not shipped as a separate package.
+- `tine redact check` exits 1 on findings and on a missing `--run`, not 3 or
+  4.
+- `tine schema validate` reports Python's recursion limit on a very deeply
+  nested document as a generic error (exit 1).
+- 0.45.x: the new harnesses, Git AI v3 notes, SSE and webhooks, and the
+  `tine-ai-share/1` schema.
+
+## 0.44.0 — Transparency, search and TS verifier GA (2026-11-07)
+
+### Added
+
+- **Transparency (X33).** `opentine-log/1` is an RFC 9162 Merkle log with
+  C2SP signed-note checkpoints, inclusion and consistency proofs and tlog
+  receipts. `tine serve` publishes its audit chain over it; `tine fetch`
+  refuses a fork or a rollback of the remote log, and `tine push` stores the
+  receipt for each ref it moves.
+- **Witnesses.** `tine witness cosign|vkey` writes and pins C2SP
+  `cosignature/v1` cosignatures; `tine verify --offline --witnesses N-of-M`
+  requires N verifying cosignatures from exactly M pinned witnesses.
+- **`tine bundle create --transparency`** embeds the receipts for every
+  bundled ref. Reading such a bundle needs opentine 0.44 or newer.
+- **Rekor v2 (X34).** Rekor v2 tile-log receipts verify offline, and
+  Sigstore SigningConfig v0.2 is read.
+- **SCITT, experimental.** `tine scitt verify --experimental` checks a
+  CBOR/COSE signed statement and its receipt. Interoperability with
+  scitt-api-emulator is not claimed.
+- **Quotas.** `tine serve` answers `429` with `Retry-After` when a quota is
+  spent, with LRU-bounded per-key buckets (`--quota-rate`, `--quota-burst`,
+  `--quota-max-keys`); the client retries at most three times.
+- **TrustPolicyAdmission** emits a verification summary attestation (VSA)
+  for each admitted push (`--vsa-dir`).
+- **Search index.** A derived SQLite FTS5 index with BM25 ranking at
+  `.tine/index/search.sqlite`: `tine repo-search --rebuild-index` rebuilds
+  it and `--no-index` bypasses it. With the index there is no 10,000-run cap,
+  and queries match words and rank by BM25.
+- **MCP `recall`**: a read-only tool over the search index.
+- **Cost export.** `tine cost --otlp` writes OTLP metrics, and a signed
+  `tine-cost-statement/1` is written with `--statement` and checked with
+  `--verify-statement`.
+- **TypeScript verifier GA.** The TypeScript verifier passes every reader
+  and verifier conformance vector with full reason-code agreement; the four
+  writer-side redaction ops are not answered, since a verifier never rewrites
+  content. It now covers ML-DSA-65 and the Ed25519 + ML-DSA-65 composite,
+  zstd bodies, network and local packs, the legacy canonicalizer, integrity
+  digests and signature schemes, `tine-actions/1` chains, `opentine-agent/1`
+  refs, `opentine-delegation/1` chains (`delegation.verify`) and the tlog
+  proof and quorum ops. New runtime dependencies, all MIT:
+  `@noble/post-quantum` 0.5.4, `@noble/curves` 2.0.1, `@noble/hashes` 2.0.1
+  and `fzstd` 0.1.1. It requires Node 20.19 or newer.
+- The 57-tlog conformance family (SPEC 8.10, 8.11).
+
+### Compatibility
+
+- Clients from 0.34 see `remote returned HTTP 429` and stop; they do not
+  retry.
+- Readers before 0.44 refuse bundles made with `--transparency`.
+- Object ids are unchanged.
+- The suite is now **683 conformance vectors**; 225 of the 683 refuse input,
+  and the adapter contract still has one entry point: 40 ops.
+
+### Deferred
+
+- Rekor v2 in keyless verification fails closed as `unchecked`: there is no
+  TSA binding yet.
+- Rekor v2 key ids for ECDSA keys are best-effort.
+- The Rekor v2 fixture is synthetic.
+- The SCITT leaf rule has not been checked against the emulator.
+- SigningConfig does not yet choose TSA URLs.
+- Server log appends are O(n).
+- A failed log append only warns.
+- There is no network protocol for witnesses.
+- xz is not read by the TypeScript verifier.
+- Quotas do not meter reads.
+- The server-side named trust policy is not wired for the VSA.
+- `tine cost --otlp` writes files only.
+- The search benchmark was measured on a development machine (100k runs:
+  78 ms p95, dense, cold, three terms), not on the pinned runner.
+
+## 0.43.0 — Fleet record, delegation and leases (2026-11-07)
+
+### Added
+
+- **Delegation certificates (X32).** `opentine-delegation/1` certificates
+  chain a member key to a fleet root and verify offline. `tine key delegate`
+  issues one; `tine key delegation show|verify` reads or checks a chain and
+  exits 4 when it does not verify.
+- **Delegation in `tine verify --offline`.** A run whose
+  `OPENTINE_DELEGATION` names a chain gets a required `delegation` check,
+  against a pinned root when one is given and reported as unpinned otherwise.
+- **Fleet record.** `OPENTINE_FLEET_*` is captured into a run's
+  `metadata.fleet`; `tine fleet record` shows, signs, attests (in-toto
+  `fleet/v1` predicate) and verifies it.
+- **Tasks and leases (`opentine-coord/1`).** `tine task add|claim|heartbeat|done|list`
+  moves tasks as compare-and-swap ref updates with fencing tokens, under the
+  newly reserved `coord/` ref namespace.
+- **Steering.** A per-member mailbox, `tine fleet send`, and steer steps
+  injected through the Claude Code Stop hook; `tine fleet resume` and
+  `tine fleet logs` resume unfinished members and read their output.
+- **`tine serve` POST ref-txn**: an all-or-nothing ref transaction,
+  advertised as `caps.ref_txn` and used by push when offered.
+- **Run `parents[]`**: optional, omitted when empty.
+- The F2 merge design doc (`docs/design/F2-merge.md`).
+- The 56-delegation conformance family (SPEC 4.10).
+
+### Compatibility
+
+- Object ids are unchanged: `parents[]` is omitted when empty, so existing
+  runs hash as before.
+- `tine gc` before 0.43 does not follow `parents[]`.
+- Readers before 0.43 ignore delegation; they do not run the check.
+- The suite is now **665 conformance vectors**; 225 of the 665 refuse input,
+  and the adapter contract still has one entry point: 37 ops.
+
+### Deferred
+
+- The acceptance-scale claim test (1,000 tasks × 50 workers).
+- A remote backend for `tine task`.
+- F3 and F4.
+- Steer injection for Codex and Gemini.
+- `parents[]` in `.tine` artifacts and `tine log --graph`.
+- `tine fleet up` issuing delegation certificates automatically.
+- How delegation interacts with the revocation registry.
+
+## 0.42.0 — Protocol capture, importers and attribution (2026-11-07)
+
+### Behaviour changes
+
+- **`.tine` v5 is the default writer** (SPEC Part 10): the v4 document with
+  UTF-8 text blobs spelled as text, carrying the same oids, root and
+  `tine-sig/3` signatures. Reading it needs opentine 0.40 or newer.
+- **`tine --for-legacy ...`** writes v4 for readers from 0.26 to 0.39;
+  `--format 2` / `OPENTINE_FORMAT=2` still selects the deprecated v2.
+- **`tine evidence export` stays on v4.** Runs copied into an evidence bundle
+  are re-spelled as `tine-artifact/4` even when the source run is v5.
+
+### Added
+
+- **OTLP protobuf.** `tine serve --otlp` accepts `application/x-protobuf` on
+  `/v1/traces`, decoded by a bounded stdlib wire reader (malformed, overlong
+  or too-deep input is a 400; fuzzed). `tine import --format otlp-proto`
+  imports a protobuf trace file and is detected for `.binpb`/`.pb` sources.
+- **HAR import.** `tine import --format har` reads the LLM API calls in a HAR
+  1.2 archive (OpenAI, Anthropic, Gemini, Azure OpenAI, DeepSeek, xAI or a
+  gateway's API paths) with the record proxy's own parsers; headers and query
+  strings are never read.
+- **`tine record` dialects.** A `gemini` dialect (`generateContent` and SSE
+  `streamGenerateContent`), an `azure` upstream on the OpenAI wire, and
+  `--upstream NAME=URL` to override where a dialect forwards. Query strings
+  are stripped from recorded paths, so a Gemini `?key=` never reaches the run.
+- **Entire.** `tine import --format entire` reads the per-checkpoint refs
+  (`refs/entire/checkpoints/<shard>/<id>`) first, with the
+  `entire/checkpoints/v1` branch as fallback; `--all` imports every
+  checkpoint session into `--repo`; `tine export --format entire` writes a
+  redacted run back as one checkpoint ref.
+- **Cline and Roo Code.** `--format cline-task` / `roo-task` import VS Code
+  task histories; `auto` detects them and `--from-default-location` lists
+  tasks.
+- **`tine explain`** prints a deterministic run summary and stores it as an
+  `opentine.explain` annotation; `--narrative` adds a labelled summary from a
+  local model named in `OPENTINE_EXPLAIN_MODEL`.
+- **Line attribution.** `tine git attribute COMMIT` stores signed line
+  attribution in `refs/notes/tine`; `tine git attribution` reads, verifies
+  or exports it as an Agent Trace record; `tine stats --ai-share` reports
+  the share of lines notes credit to agents.
+- `tests/fixtures/OWNERS` and provenance for the new importer fixtures.
+
+### Compatibility
+
+- Readers before 0.40 cannot open the v5 `.tine` files 0.42 writes by
+  default; write them with `--for-legacy`. Repositories are unchanged.
+- No new conformance families. The suite is now
+  **658 conformance vectors**; 219 of the 658 refuse input, and the adapter
+  contract still has one entry point: 36 ops.
+
+### Deferred
+
+- OTLP gRPC ingest, pending a security review.
+- OTLP protobuf logs (traces only for now).
+- Windsurf import: it has no documented local session format.
+- `tine git install-hook` does not set `notes.rewriteRef`; only
+  `tine git attribute` does.
+
+## 0.41.0 — Keys, post-quantum and FIPS (2026-11-06)
+
+### Behaviour changes
+
+- **New keys are encrypted by default.** `tine keygen --out PATH` and
+  `tine keygen --agent NAME` write encrypted PKCS#8 (PBES2/AES-256), with the
+  passphrase from `OPENTINE_KEY_PASSPHRASE`, the OS keyring
+  (`OPENTINE_KEY_KEYRING=1`) or a prompt on a terminal. With no passphrase
+  source, keygen refuses (exit 1) unless `--unencrypted` is given. Plaintext-hex
+  keys still load, with a `PlaintextKeyWarning`.
+- **RFC 3161 tokens must carry an ESS signingCertificate attribute.** Exactly
+  one `signingCertificate`/`signingCertificateV2` binding the TSA certificate
+  is required (`timestamp.signing-cert-mismatch`); a non-critical or shared
+  timeStamping EKU (`timestamp.missing-eku`) and critical extensions
+  (`timestamp.critical-extension`) are refused.
+- **A stale TUF root is refused.** Keyless verification exits 6 when the
+  TUF-installed trusted root's stored metadata has expired, unless
+  `--allow-stale-root` (a warning on stderr).
+- **Key lifecycle windows are enforced.** `not_before`, `not_after` and
+  `revoked_at` are checked against the verified signing time; `tine verify
+  --offline` adds a `key-lifecycle` check (`lifecycle.valid`,
+  `lifecycle.expired`, `lifecycle.not-yet-valid`, `lifecycle.revoked`,
+  `lifecycle.unverified-time`, `lifecycle.revoked-unverified-time`).
+
+### Added
+
+- **Signers.** Every Ed25519 key-file flag also takes a signer URI:
+  `file:PATH`, `ssh-agent:FINGERPRINT` (`SSH_AUTH_SOCK`),
+  `pkcs11:token=T;object=O?module-path=LIB` (`OPENTINE_PKCS11_MODULE`,
+  `OPENTINE_PKCS11_PIN`), `kms:aws:ARN` and `kms:gcp:RESOURCE`. Extras
+  `opentine[pkcs11]`, `opentine[kms-aws]`, `opentine[kms-gcp]` and
+  `opentine[keyring]`.
+- **`tine key`** with four subcommands: `tine key encrypt PATH` (rewrite a
+  plaintext-hex key as encrypted PKCS#8), `tine key show SIGNER` (algorithm,
+  key id, public key), `tine key rotate KEY [--out NEW]` / `--agent NAME` /
+  `--proxy` (a new encrypted key; the old key gets `not_after = now` and
+  endorses the new one, `tine-key-rotation/1`) and `tine key revoke KEY
+  [--at TIME]`. Windows live in `$XDG_CONFIG_HOME/opentine/key-lifecycle.json`,
+  a trusted `.tine/agents.toml` and a trust policy's `key_lifecycle` table.
+- **Proxy key in a signer.** `tine proxy keygen --signer URI` and `tine proxy
+  migrate --to URI`; the old pair moves to `proxy-keys/retired/` and stays
+  trusted for T2. `tine key rotate --proxy` retires the old key the same way.
+- **`tine verify --offline --tsa-policy OID`** (repeatable) accepts only tokens
+  issued under those TSA policies.
+- **Post-quantum `tine-sig/3`.** `ml-dsa-65` (FIPS 204) and the composite
+  `ed25519+ml-dsa-65` (SPEC 4.6.1); a hybrid writer puts a classical Ed25519
+  block first. `verify_artifact_v4(..., require_pq=True)` counts only
+  post-quantum blocks. `tine-verify.pyz` verifies ML-DSA-65 with a stdlib
+  verifier checked against NIST ACVP vectors.
+- **Hash-tag reservation.** An oid whose hash-algorithm tag is not `sha256` is
+  refused by name (`oid.parse.unknown-hash-tag`).
+- **`TINEAES6` sealing** (roadmap X28): key id, epoch, XAES-256-GCM and
+  optional Padmé padding. `TINE_KMS_KEY_ID` (with `TINE_KMS_KEY_EPOCH`,
+  `TINE_REMOTE_SEAL_PAD`) selects it; `tine serve --root R --tenant T reseal
+  --to aes6` rewrites a tenant's objects. Older formats keep opening.
+- **FIPS mode.** `tine --fips` or `OPENTINE_FIPS=1` requires the OpenSSL FIPS
+  provider, refuses ChaCha20-Poly1305 and xz-only integrity, and records
+  `crypto: {mode, provider_fips, openssl}` in verify reports. A UBI 9 FIPS CI
+  job runs it.
+- **OS sandbox for the shell tool.** `ShellPolicy(sandbox="auto"|"bwrap"|
+  "landlock"|"sandbox-exec"|"oci"|"none")`, with `sandbox_network` and
+  `sandbox_image`; the default stays `"none"`. A named backend that is missing
+  is an error and the command does not run. `oci` needs a POSIX host (podman or
+  docker); on Windows it reports unavailable.
+
+### Security
+
+- `tine-attest/2` records now name `signer_key` and must be signed by the DSSE
+  envelope's key (X27); older records verify as `record unbound`.
+- RFC 3161 genTime plus or minus accuracy must lie inside the TSA validity, and
+  issuers with KeyUsage must allow `keyCertSign` (X26).
+- Every signer backend's signature is checked against its public key before
+  it is used.
+
+### Compatibility
+
+- Readers before 0.41 skip `ml-dsa-65` and `ed25519+ml-dsa-65` blocks and
+  accept a hybrid run through its classical block; they cannot open
+  `TINEAES6` objects.
+- Conformance family `55-sig-pq.json` (`sig-pq`). The suite is now
+  **658 conformance vectors**; 219 of the 658 refuse input, and the adapter
+  contract still has one entry point: 36 ops.
+
+## 0.40.0 — Blob deltas, run packs and `.tine` v5 (2026-11-06)
+
+### Added
+
+- **Blob deltas (opt-in).** `tine gc --blob-deltas` stores blobs in local v3
+  packs as the bytes that differ from a similar earlier blob (the longest
+  shared prefix and suffix among the previous 16), with chains capped at 64,
+  cycles refused and every rebuilt object re-hashed against its oid. The repo
+  then needs opentine 0.40.0 or newer; `--no-blob-deltas` rewrites the packs
+  and lowers the requirement again. Transfers always send whole objects.
+  Transcript growth stores at 497x on the bench corpus (136x for plain v3).
+- **CDC bake-off** (`scripts/bench/cdc_bakeoff.py`,
+  `docs/bench/0.40-cdc-bakeoff.md`). Middle-out deltas won on transcript
+  growth and CPU; chunked dedup stays in the bench for a re-run on a real,
+  consented corpus. The decision is provisional until then.
+- **One pack per run.** `Repo.put_run` and `Recorder.import_events` write a
+  run's new objects as one local pack (two file syncs and one directory sync
+  per run instead of two per object), published before any ref moves.
+  `put_run` records about 1.5x faster. Opt out with `OPENTINE_RUN_PACK=0` or
+  `"run_pack": false`.
+- **External blob pointers.** A blob can be kept as `{uri, sha256, size}` in
+  `.tine/external/`; its oid is unchanged. Content is fetched only on an
+  explicit resolve, only from prefixes allowed in `config.json`, and checked
+  for size, sha256 and oid before it is stored. Offline verification never
+  fetches.
+- **`.tine` v5** (SPEC Part 10). UTF-8 text blobs are written as text instead
+  of base64; every oid, root and `tine-sig/3` signature is the v4 one. About
+  27% smaller after zstd on synthetic transcripts. `tine --format 5` or
+  `OPENTINE_FORMAT=5` writes it; v4 stays the default until at least 0.42.
+  `tine verify`, `tine-verify.pyz` and the TypeScript verifier read it.
+
+### Compatibility
+
+- Readers before 0.40 refuse `.tine` v5 files and repositories with blob
+  deltas, with the usual "needs a newer opentine" error.
+- Conformance family `54-artifact-v5.json` (`artifact-v5`). The suite is now
+  **645 conformance vectors**; 217 of the 645 refuse input, and the adapter
+  contract still has one entry point: 36 ops.
+
+## 0.39.0 — Assurance tiers and evidence (2026-11-06)
+
+### Behaviour changes
+
+- **`tine gc` prunes by retention again.** The default is `--prune=retention`:
+  unreachable objects are deleted only outside the retention window
+  (`.tine/retention.toml`, 14 days by default), and held or legal-hold objects
+  never. `--prune=never` gives the 0.35-0.38 behaviour; `--prune=now` ignores
+  the window but still keeps held objects.
+- **Verify reports are `tine-verify-report/2`.** `/1` reports stay readable;
+  `tine verify-report check` treats an unsigned or `/1` report as not evidence
+  (exit 4) unless `--allow-unsigned`.
+- **`tine verify` and `tine show` print an assurance line** and add an
+  `assurance` object to their JSON.
+
+### Added
+
+- **Assurance tiers.** T0 imported, T1 hook-captured, T2 witnessed by
+  `tine record` or `tine mcp-proxy` and signed with a separate proxy key
+  (`tine proxy keygen`), T3 T2 plus an RFC 3161 timestamp. The tier is
+  computed at verify time from signatures and timestamps, never from the run's
+  own claim. `tine verify --min-assurance T0..T3` exits 4 below the floor;
+  `--proxy-pubkey` trusts another witness key; `--compare-capture OTHER`
+  reports where a proxy capture and an imported transcript diverge.
+- **Signature-bound timestamps.** A token can cover one signature block
+  (`sig:sha256:`), which gives the run a verified signing time;
+  `tine timestamp data RUN --signature`. Root-bound tokens still verify.
+- **Signed verify reports:** `tine verify --offline --report PATH --sign-key
+  KEY [--timestamp]` and `tine verify-report check|data|attach`.
+- **`replay/v1` attestations:** `tine replay --verify --attest OUT
+  --attest-key KEY` writes an in-toto DSSE envelope.
+- **Chain of custody:** `tine custody record|log|verify` keeps signed,
+  hash-chained custody records on `opentine-log/1`.
+- **Retention policy:** `.tine/retention.toml` (by ref pattern, status and
+  tier; `legal_hold`), and `tine retention show|check`.
+- **`tine evidence report RUN --format html|pdf`.** The HTML is canonical and
+  byte-identical across runs, embeds the evidence as canonical JSON, and is
+  re-redacted; the PDF (`opentine[pdf]`) is a derivative.
+- **`tine-verify.pyz`:** a stdlib-only offline verifier with a pure-Python
+  Ed25519 routine (all Wycheproof and RFC 8032 vectors pass), built
+  reproducibly and attached to each GitHub release with `SHA256SUMS` and build
+  provenance. `tine evidence export --with-verifier` re-encodes zstd runs as
+  xz and adds the pyz.
+- **TypeScript verifier, phase 1** (`ts/verifier/`, private): RFC 8785, object
+  envelopes, `tine-sig/3` and `.tine` v4 integrity, passing every v4
+  conformance vector; run in CI. Not part of the Python package.
+
+## 0.38.0 — Per-turn capture (2026-11-06)
+
+### Added
+
+- **`tine hook capture`** (protocol `opentine-hook/1`): one JSON event on
+  stdin, one JSON response on stdout. It accepts the generic form and Claude
+  Code, Codex and Gemini hook payloads unchanged. Each agent session becomes
+  one run on `heads/capture/<agent>/<session hash>`; every step is written
+  durably before the hook returns, so a killed session keeps every completed
+  step. It always exits 0. Capture records nothing unless the repository's
+  trusted config sets `hooks.capture`.
+- **`tine enable [--agent NAME] [--dry-run]` and `tine disable`** install and
+  remove the capture shims in the Claude Code, Codex and Gemini hook files.
+  `--dry-run` prints the diff; `disable` restores each file byte for byte, or
+  removes only the shims if the file was edited since.
+- **Workspace snapshots.** A tree is a schema-2 `blob` (SPEC §1.5.7), so
+  opentine 0.34 and newer read, fsck and transfer repositories that contain
+  them. With `hooks.snapshot` set, every captured turn stores the working
+  directory as a tree and links it as the step's `outputs.tree`; unchanged
+  directories keep their oid between turns (3.6% of workspace size x turns
+  over a synthetic 100-turn session). Symlinks are recorded, never followed.
+- **`tine rewind TREE` and `tine rewind RUN[@STEP] --tree`** restore a
+  snapshot byte for byte through the no-follow directory writer, refusing
+  control directories, held runs and redacted files.
+- **`tine mcp-proxy`** records an MCP session over stdio
+  (`tine mcp-proxy -- CMD`) or Streamable HTTP
+  (`--http-upstream URL --listen HOST:PORT`). Traffic is relayed before it is
+  recorded and never altered; payloads are redacted before they are hashed or
+  stored; the run is saved incrementally. HTTP mode binds loopback by default
+  and refuses foreign `Host` and `Origin` headers.
+
+### Changed
+
+- **Prompt parts.** A step's top-level `system`, `instructions` and `tools`
+  inputs are stored as their own blobs (`input_parts`, SPEC §1.5.2), so
+  repeated prompts and tool definitions are stored once. Readers put the full
+  input back together. Runs with nothing to split are byte-identical to 0.37;
+  re-saving an old `.tine` run that was never stored in a repository gives its
+  events new ids.
+- **Faster recording:** about 3.5x on `Repo.put_run` and 2.4x through the
+  recorder on the bench session. Redaction results are cached by content hash
+  (no plaintext kept), each redaction pattern is skipped when none of its
+  literal prefixes appear, and linked objects are touched through directory
+  descriptors on POSIX. Redaction output is unchanged; a differential test
+  compares it with 0.37 byte for byte.
+
+## 0.37.0 — Recording-order packs and storage housekeeping (2026-11-06)
+
+### Added
+
+- **TINEPACK5 transfer packs.** Objects in recording order, one zstd frame
+  with long-distance matching (window 2^27, level 9) flushed at 4 MiB block
+  boundaries. On the synthetic bench corpus a TINEPACK5 pack is about 3.5x
+  smaller than TINEPACK4. A remote lists TINEPACK5 first and sends it only to
+  clients that ask for it; 0.34-0.36 peers keep getting TINEPACK4. Bundles
+  stay TINEPACK3 by default; `tine bundle create --pack-format TINEPACK5`
+  writes the slim form (EVENT_SLIM and RUN_DELTA).
+- **Ref-tip fetch negotiation.** A client sends the ref tips it holds (up to
+  4096) instead of every local object id when the server advertises
+  `negotiation: ["haves", "tips"]`; older servers still get haves.
+- **Packed refs (opt-in).** `tine gc --pack-refs` folds loose refs into one
+  `packed-refs` file; such a repository needs opentine 0.37 or newer, and
+  `tine gc --unpack-refs` makes it readable by 0.26-0.36 again. Without the
+  opt-in gc never touches refs.
+- **`tine archive create --archival`** writes xz (codec 4), or zlib where
+  Python has no `lzma`, so Python 3.11+ restores it with the stdlib alone.
+  opentine 0.36 and older cannot read an xz archive.
+- **`--level`** on `tine gc` and `tine repack` (zstd 1-22, zlib 1-9), and
+  `"auto_pack": {"level": N}` in `config.json`.
+- **`tine fsck --budget SECONDS` and `--max-objects N`** stop the object check
+  cleanly; the JSON reports `checked` and `complete`.
+- **Benchmark and stress tooling:** `scripts/bench/` (seeded corpus, size and
+  throughput report), a `bench.yml` workflow on `ubuntu-24.04`, and a nightly
+  stress workflow on Linux, macOS and Windows (killed writers, 16-process ref
+  contention, 1,000-round prune race). Stress tests run only with
+  `OPENTINE_STRESS=1` or `-m stress`.
+
+### Changed
+
+- **Pack indexes are searched in place** (mmap on POSIX, a buffer on Windows)
+  instead of being loaded into a dict at start-up, and `has()` asks the pack
+  index first.
+- **Autopack also triggers on the disk bytes** of cold loose objects (16 MiB
+  default; `auto_pack.bytes` or `OPENTINE_AUTO_PACK_BYTES`).
+- **`gc` reaps staging files** left by killed writers once they are an hour
+  old (`reaped_temp` in `gc --json`).
+- **`opentine[all]` includes zstd** on Python 3.11-3.13.
+- **macOS:** file and directory syncs use `F_FULLFSYNC`.
+- `tine archive` moved to its own CLI module; the command is unchanged.
+
+### Security
+
+- **Decoders cap the zstd window at 2^27** and refuse larger frames before
+  allocating; a fuzz test rejects 200 of 200 oversized-window frames (X17).
+- **Codec v2 frames** are written only to peers that advertise 0.35 or newer
+  and never into `.tine` files (X13).
+
+## 0.36.0 — Agent contract, op log and undo (2026-11-05)
+
+### Behaviour changes
+
+- **Errors go to stderr.** Commands that used their own `_fail` helpers now
+  share one error contract. Under `--json`, stdout carries only JSON, a
+  failure included, as `{"error": {"code", "exit_code", "message"}}`; usage
+  errors under `--json` emit the same object with exit 2. Exit codes 0-6 are
+  named in `docs/CLI.md`, and existing statuses keep their meaning.
+- **Every subcommand accepts `--json`.** Commands without a payload of their
+  own wrap their output as `{command, exit_code, output}`; the v3 plumbing
+  verbs accept it as a no-op. `fleet up` (with or without `--dry-run`) and
+  `replay --dry-run`/`--inspect` now honour it.
+- **`tine serve` refuses static tokens under 32 bytes** unless started with
+  `--allow-weak-tokens`.
+- **`tine stats` counts v3 repositories** instead of the legacy run index.
+
+### Added
+
+- **`tine op log`, `tine op verify` and `tine undo`.** Every ref-moving
+  command appends an entry to `opentine-log/1`, a hash-chained log in the
+  C2SP tlog-tiles layout under `.tine/log/op/` with Ed25519 signed-note
+  checkpoints. `tine undo [OP]` restores an op's refs as a new forward ref
+  transaction and refuses to cross gaps left by writers that do not log
+  (including 0.35 and older) unless `--force`.
+- **`tine push --dry-run`** (alias `--outgoing`) lists the refs, objects and
+  runs a push would send without connecting. `--manifest PATH` writes a
+  canonical push manifest, signed with `--key-file` or `--ed25519-key-file`;
+  URL credentials are stripped from it.
+- **`git config tine.transcriptRemote NAME`** sends run bundles from the
+  pre-push hook to a separate remote from the code.
+- **MCP tools from one registry** (`opentine/_mcp_registry.py`), each
+  annotated read or write. New read tools: `verify_run`, `log`,
+  `fleet_status`, `fanout_status`, `cost`, `agent_show` and `stats`, each
+  returning its command's `--json` payload. `tine fleet status --repo PATH`
+  lists a repository's fan-out records.
+- **OIDC for `tine serve`:** `--oidc-issuer`, `--oidc-audience`,
+  `--oidc-jwks-uri`, `--oidc-tenant-claim` and `--oidc-roles-claim`. Issuer
+  and JWKS URLs must be `https://` and are never taken from a token.
+- **`Repo.update_ref_rebase`** re-reads a contended ref and recomputes its
+  new value, for append-style writers.
+
+### Fixed
+
+- **Concurrent writers to one ref no longer fail on contention.** Ref locks
+  are retried with bounded jittered exponential backoff (10 s) before the
+  contention is reported; a compare-and-swap mismatch is never retried.
+  Contention and CAS mismatches raise distinct `ValueError` subclasses.
+
+### Security
+
+- `tine serve` locks a client out with exponential backoff after repeated
+  401s, and answers 500s with a generic body and a request id, logging the
+  exception server-side only.
+- Supply-chain CI: pip-audit over the locked dependencies, zizmor over the
+  workflows, a CycloneDX SBOM attached to each release and listed in
+  `SHA256SUMS`, CodeQL, OpenSSF Scorecard and Dependabot.
+- The release build job installs only the `release` extra; the test suite
+  runs in a separate gates job. Every existing release gate is kept.
+- Locked `anyio`, `certifi`, `cryptography`, `mcp`, `pyasn1`, `pyjwt` and
+  `urllib3` upgraded past the advisories pip-audit reports.
+
+## 0.35.0 — Security hardening (2026-11-04)
+
+### Behaviour changes
+
+- **`tine gc` no longer deletes unreachable objects** unless `--prune=now` is
+  given (default `--prune=never`). Held objects are always kept.
+- **MCP write tools are opt-in.** `python -m opentine.mcp_server` is read-only
+  unless started with `--allow-writes`, `OPENTINE_MCP_ALLOW_WRITES=1`, or
+  `create_server(read_only=False)`; `--read-only` always wins.
+- **`tine replay --harness` no longer sends a recorded prompt on its own.** It
+  needs `--prompt` to replace it, `--trust-recorded-prompt` to vouch for it, or
+  a signature on the artifact from the trusted key of the agent its identity
+  claims. The prompt and identity are re-read from the verified bytes.
+- **`agents.toml` pins are scoped to the agent they name.** A pinned key now
+  verifies only runs whose identity claims that agent (by harness or `agt_`
+  ref), instead of joining one global pin set.
+- **New redaction rules (ruleset `opentine-redaction/2`).** A newly captured
+  run can get a different oid than 0.34 gave the same input. Runs record the
+  ruleset they were redacted under in `RedactionPolicy`; runs without it
+  (ruleset 1) still load and verify.
+- **`tine rewind` refuses VCS/CI control locations** (`.git/`, `.tine/`,
+  `.github/workflows/` and similar, including a bare `.git` file) unless
+  `--allow-control-dirs` is given.
+- **Legacy seal refusal.** `TINE_REMOTE_REFUSE_LEGACY_SEALS=1` (or the key
+  provider's `refuse_legacy` option) rejects `TINEAES1`/`TINEAES2` ciphertext on
+  read, also for providers without `unseal`.
+
+### Added
+
+- **`tine hold add|list|release <oid|ref>`** records holds in `.tine/holds`.
+  `prune`, `gc --prune=now`, `rewind --apply` and remote deletes and purges
+  keep held objects and everything they reach; the retention hook is offered a
+  delete only after remote holds are checked.
+- **`tine verify --offline --hermetic`** re-runs the offline verifier under
+  `bwrap`/`unshare -rn` (Linux) or `sandbox-exec` (macOS), and exits 6 where no
+  sandbox is available (including Windows).
+- **`tine serve reseal --to aes4 --from aes2`** rewrites tenant-bound
+  `TINEAES1`/`TINEAES2` objects into the slot-bound form, after which legacy
+  seals can be refused.
+
+### Security
+
+- **Storage and prune.** `prune --delete` moves victims into a quarantine,
+  re-checks age and reachability, and restores anything young, re-touched or
+  newly reachable. Linking an existing object re-touches it and refuses a link
+  to an object a concurrent prune already moved.
+- **Remote sealing.** `KMSKeyProvider` now writes `TINEAES5`: a KMS-wrapped
+  data key whose associated data binds purpose, tenant, context, codec, size
+  and the wrapped key, so a ciphertext moved into another object's slot no
+  longer opens. Older formats still open.
+- **Offline guard.** A PEP 578 audit hook refuses every socket event and
+  process launch while `no_network` is active, closing bypasses through
+  `_socket`, `sendto` and child processes.
+- **Timestamps.** A trusted-root TSA anchors only tokens whose `genTime` lies
+  inside its `validFor` window; a retired TSA fails closed with
+  `timestamp.tsa-retired`. Tokens minted before retirement keep verifying.
+- **Shell policy.** Program runners (`xargs`, `env`, `sh`, ...), command-running
+  and in-place options of `find`, `sed`, `tar`, `rsync` and `zip`, path
+  arguments outside the policy root, abbreviated GNU long options, attached
+  `sed -e`/`--expression=` scripts, dashless `tar` clusters and
+  `tar --rmt-command` are refused.
+- **Redaction.** New vendor token shapes (LangSmith, Pinecone, Tailscale,
+  DigitalOcean, Databricks, Linear, Doppler, 1Password, Shopify, Vercel, age,
+  Twilio, Hugging Face org, Sentry, Grafana, New Relic, Entra ID and others),
+  tokens disguised by URL escapes (including `%25` double escapes), zero-width,
+  direction and invisible characters or fullwidth letters, `DD_APP_KEY`-style
+  names, and an entropy fallback for values under key-ish names.
+- **Rewind writes** walk the root with `O_DIRECTORY|O_NOFOLLOW` directory
+  descriptors, so a link swapped in after the plan check is never followed.
+- **Bundles.** A bundle naming both `heads/x` and `x` is refused before
+  anything is installed; `tine-sig/3` sidecars are installed only after the
+  ref update succeeds, and Ed25519 blocks must verify under their embedded key.
+  Unknown keys and oversized `tine-sig/3` blocks in bundle manifests are
+  rejected.
+- **Ingest surfaces.** Loopback OTLP binds refuse foreign `Host` names (a fully
+  qualified `localhost.` is accepted) and any `Origin` header, answer
+  non-object bodies with 400 and unexpected errors with 500, and cap spans/log
+  records per request and attributes per item. The record proxy rejects a
+  negative or malformed `Content-Length`. Codec readers accept ratios up to
+  100000:1 for bodies of at most 64 MiB; writers keep 1000:1.
+- **`tine view`** re-redacts every recorded string at render time and sends a
+  strict hash-based Content-Security-Policy.
+
+### Fixed
+
+- **Ref recovery.** A crash-stale `<ref>..lock` staging file is removed under
+  the held ref lock, so a writer killed after a journal commit no longer blocks
+  later ref updates.
+- **Signature sidecars.** Read-modify-write is serialized so concurrent signers
+  keep every block, and writes that would exceed the read cap are refused.
+- **Stale locks.** Locks are stamped with the boot id and PID-namespace inode
+  and judged dead only when both match; the lock's `(st_dev, st_ino)` is
+  re-checked before it is moved aside. Off Linux, where `/proc` is absent, the
+  host-only rule applies when both fields are unknown.
+
+## 0.34.0 — Model catalog cards (2026-11-03)
+
+### Model catalog cards
+
+Pricing catalog refreshed against each provider's own pricing page on
+2026-11-03 (231 -> 248 cards). Anthropic, DeepSeek and the existing OpenAI,
+Google and xAI cards matched the published prices and are unchanged.
+
+Added (per 1M tokens, input / cached input / output):
+
+- OpenAI: gpt-6.1-terra ($1 / $0.05 / $5, 2x input and 1.5x output over 272K),
+  gpt-5.5-pro and gpt-5.4-pro ($30 / - / $180, same long-context rule),
+  gpt-5.2-pro ($21 / - / $168), gpt-5-pro ($15 / - / $120), gpt-4.1
+  ($2 / $0.50 / $8), gpt-4.1-mini ($0.40 / $0.10 / $1.60), gpt-4o-mini
+  ($0.15 / $0.075 / $0.60), o3 ($2 / $0.50 / $8), o3-pro ($20 / - / $80).
+- Google: gemini-2.5-flash ($0.30 / $0.03 / $2.50; audio $1 / $0.10;
+  deprecated, routes to gemini-3.5-flash-lite from 2026-12-01),
+  gemini-2.5-flash-lite ($0.10 / $0.01 / $0.40; audio $0.30 / $0.03).
+- xAI: grok-4.20-0309-non-reasoning and grok-4.20-multi-agent-0309
+  ($1.25 / $0.20 / $2.50, 2x at 200K and above).
+- Mistral: zai-glm-5-3-flash ($0.15 / $0.03 / $0.50, from 2026-10-22),
+  deepseek-v4-flash-1017 ($0.30 / $0.007 / $1.20).
+
+Prices changed:
+
+- Mistral Large 4 (`mistral-large-4`): $1.36 / $0.14 / $4.18 -> $0.70 / $0.07 /
+  $2.10. Mistral has not published the change date, so the new card starts on
+  2026-11-03 and runs from 2026-10-21 to 2026-11-02 report cost unknown.
+
+New cards whose launch date is not published start on 2026-11-03, so older
+runs on those models stay cost-unknown rather than guessed.
+
+## 0.33.0 — Fork edits everywhere (2026-11-03)
+
+### Added
+
+- **Fork edits everywhere.** `tine fork --set/--edit-file` now works on
+  repository runs (v3 and v4): `tine fork REF --from-step K --ref experiments/x
+  --set ...` and `tine repo-fork ... --from-event EV --set ...` replace the
+  fork-point event with an edited, unexecuted copy and record the change log
+  (paths, old and new SHA-256) as `fork_overrides.edit`, which the run oid binds.
+  `repo-fork --json` reports it under `edit`.
+- **Delete and append.** `--unset PATH` deletes a key or list item;
+  `--set PATH[+]=VALUE` appends to a list. Both are recorded with an `op` and
+  refused cleanly (exit 1, nothing written) on a bad path.
+
+### Changed
+
+- An edited fork's transcript no longer keeps the original step K's entries.
+  Forks without edits are unchanged, including their ids.
+
+### Fixed
+
+- Reading a format v4 `.tine` file now maps transcript `step_id`s back to the
+  restored step ids, so forking such a file keeps its step-scoped transcript
+  turns instead of dropping them.
+
+## 0.32.0 — Stronger rewind (2026-11-03)
+
+### Added
+
+- **Stronger rewind.** Claude Code (transcript imports and live `stream-json`
+  recordings) and Gemini CLI imports now store each file's full content before
+  the run's first edit to it, once per file, as a content-addressed entry in
+  `metadata.file_originals`; the step keeps only a small `file_original` marker
+  (path, `sha256:` digest, and the digest of the result when the harness
+  reports it). The original is redacted on save like everything else.
+- `tine rewind` prefers the stored original replayed through the run's edits,
+  verified against every recorded digest, and reports per file how it was
+  restored: `exact`, `reconstructed` (the previous diff-based path, still used
+  for older runs) or `skipped` with the reason. A stored original that redaction
+  changed no longer matches its digest, so rewind falls back instead of writing
+  redacted text. JSON output gains `mode` and, when the original was unusable,
+  `fallback` on each row.
+- Claude Code transcript imports now keep the arguments of Edit, MultiEdit and
+  Write calls on their tool steps, so `tine rewind` can replay them.
+
+### Changed
+
+- Linearity timing tests compare an input 8x larger against a 24x bound (best of
+  three each), so linear code measures ~8x and a quadratic regression ~64x;
+  busy macOS runners no longer trip the old 4x/8x margin.
+
+## 0.31.0 — Offline timestamp checks (2026-11-03)
+
+### Added
+
+- **Offline timestamp checks.** `tine timestamp attach RUN TOKEN.tsr` stores an
+  RFC 3161 response or token beside the run (`RUN.timestamps.json`), bound to the
+  run's digest; `tine timestamp data RUN` prints the exact bytes its
+  messageImprint must hash, for `openssl ts -query`. Fetching the token from a
+  TSA stays the user's job: opentine opens no connection. `tine verify RUN
+  --offline --tsa-roots FILE.pem` verifies each token under the network guard
+  (imprint, TSA signature over the signed attributes, timestamping EKU, genTime
+  within the certificate's validity, chain to a local root, including the
+  `timestampAuthorities` of `--trusted-root`) and adds a `timestamp` check per
+  token plus an additive `timestamps` section (genTime, TSA, policy OID, hash
+  algorithm) to `tine-verify-report/1`. A missing root is `unavailable-offline`,
+  never a pass; timestamp checks are never required. No new dependency: X.509
+  and signatures use `cryptography`, and a small strict DER walker
+  (`opentine/_der.py`) reads the CMS parts. See SPEC §8.6.
+
+## 0.30.0 — Compatibility fixtures 0.18.1–0.28.0 (2026-11-03)
+
+### Added
+
+- **Compatibility fixtures for every release since 0.18.0.** Golden fixture sets
+  generated by the published wheels of 0.18.1, 0.18.2, 0.19.0, 0.19.1, 0.20.0,
+  0.21.0, 0.22.0, 0.23.0, 0.24.0, 0.25.0, 0.26.0, 0.27.0 and 0.28.0 now gate
+  every build. The 0.26.0+ sets are the first format v4 files and repositories
+  in the backwards-compatibility suite.
+
+## 0.29.0 — Fast saves for long runs (2026-11-02)
+
+### Changed
+
+- **Fast saves for long runs.** Saving a synthetic 6000-step run (format v4) went
+  from 38.8 s to 19.1 s on the reference machine, with byte-identical output.
+  Profiling showed the free-text scrubber dominating: one save scanned the same
+  strings (field names, model names, each step's payload as a value and again as
+  its stored blob) about six times over. `Run.save` now memoizes `redact_blob` on
+  the exact input bytes for the duration of one save (bounded at 64 MiB, dropped
+  when the save ends); the scan is a pure function of its bytes, so a hit returns
+  exactly what a re-scan would. The field walk also stops rebuilding its suffix
+  table and credential-name set on every call. Redaction is not weakened: every
+  string is still scanned by the full step list. `tests/test_fast_save_0_29.py`
+  pins the 0.28.0 output bytes for runs with secrets and a linear-scaling check.
+
+## 0.28.0 — Fork with an edited step (2026-11-02)
+
+### Added
+
+- **Rerun from a step with edits.** `tine fork RUN --from-step K --set PATH=VALUE`
+  and `--edit-file FILE` fork with step K's input, tool arguments or model edited.
+  Steps before K stay as recorded, the original is never modified, and the edit
+  (old/new value digests) is recorded in `metadata.edit` and bound into the fork
+  id. Add `--harness`/`--prompt` to continue from the edited step. See
+  docs/CONCEPTS.md "Fork with an edited step".
+
+## 0.27.0 — Replay fidelity labels (2026-11-02)
+
+### Added
+
+- **Replay fidelity labels.** `tine replay` and `tine replay --verify` label
+  every replayed step `exact`, `recomputed-match`, `unavailable` or `diverged`
+  and print a run-level summary (counts per label, overall = weakest step).
+  `--verify --json` gains an additive `fidelity` object; existing keys are
+  unchanged. See docs/CONCEPTS.md "Replay fidelity labels".
+- **`tine replay --verify --min-fidelity LABEL`** exits 1 when any step is
+  weaker than LABEL. Refused without `--verify`.
+
+## 0.26.0 — Format v4 (2026-11-02)
+
+### Upgrading
+
+- **Format v4 is the default writer.** `Run.save`, `tine import --save`,
+  `tine record`, `tine run`, forks and replays write `tine-artifact/4` files;
+  signed saves use `tine-sig/3`; `tine init` creates an object-format-4
+  repository, and an existing repository is marked object format 4 before the
+  first object 0.26 writes into it.
+- **Repositories and files written by 0.26 need opentine >= 0.26.** Older
+  releases refuse them cleanly at open ("repository config is incompatible",
+  or an unsupported `format_version`) instead of misreading them.
+- **To share with someone on an older release, write format v2:**
+  `tine --format 2 COMMAND ...` for one command, or `OPENTINE_FORMAT=2` (`3`
+  for repositories) for the environment. These writers are deprecated and
+  print one warning per process on stderr.
+- **Older files stay readable forever.** Every v1/v2 file and every v3
+  repository (all golden fixtures back to 0.3.0) reads, verifies and fscks
+  unchanged, and a read never rewrites a byte.
+- **`tine migrate FILE` with no flags now WRITES a file.** Before 0.26 it only
+  printed a preview; it now upgrades to v4 (`--to v4` is the default) and
+  writes `NAME.v4.tine` (or the `-o`/`--save PATH` you name) beside the
+  original, which it never touches. Use `--dry-run` for the old preview-only
+  behaviour; `tine migrate --to 2` is the deprecated legacy migration.
+- **A run v4 cannot hold still saves.** With `OPENTINE_FORMAT` unset, a run
+  whose pricing manifest or transcript names a step it does not hold, or one
+  past the v4 object bound, is saved as format v2 with one stderr warning
+  naming the reason and a `metadata.warnings` entry, instead of failing to
+  save. `OPENTINE_FORMAT=4` keeps refusing. The v4 object bound is now its own
+  `MAX_V4_OBJECTS` = 1,000,000 (it had borrowed the 10,000-object network
+  pack bound, which long agent runs exceed), shared by reader and writer.
+
+### Format v4 is the default (phase 6)
+
+- `OPENTINE_FORMAT` is now the opt-out: unset or `4` writes v4; `2` or `3`
+  selects the deprecated legacy writers (v2 files, object-format-3
+  repositories). `OPENTINE_FORMAT=4` is the strict spelling: it refuses to
+  write a deprecated block even where v4 cannot express it. New global flag
+  `tine --format {2,4}` pins the writer for one command. Autosave **draft**
+  checkpoints stay v2 (v4 has no draft marker); the final write is v4.
+- **Signing and attestations.** `sign_artifact` on a v4 document writes
+  `tine-sig/3`; on a v2 document it writes the deprecated `tine-sig/2` with the
+  warning (refused under `OPENTINE_FORMAT=4`). An Ed25519 attestation on a run
+  is `tine-attest/2`; an HMAC attestation, or one on a non-run target, stays
+  `tine-attest/1`, which `tine-attest/2` cannot express (refused under
+  `OPENTINE_FORMAT=4`). The in-toto export of a (now default) v4 run carries a
+  `tine-attest/2` record on its root.
+- **Recording never crashes over one value.** Explicit writes (`Run.save`,
+  `put_run`, `tine migrate`, `repo migrate-v3`) refuse an integer beyond
+  2**53-1 or a non-finite number, naming the field. Live recorders — the
+  harness wrapper and autosaver, `tine record`, `tine run` with a bundled
+  model, trace/OTLP import and `serve --otlp`, hooks — store such a value as
+  its exact decimal string (never rounded) and add a `metadata.warnings` entry
+  naming the field path (`Run.save(..., lenient=True)` opts a run in). A trace
+  event lists them under `attributes["opentine.warnings"]`; a usage meter past
+  2**53-1 moves to `attributes["usage.<name>"]` instead of failing the span.
+  The repository writers' remaining `json_safe` stringifiers (`put_run`,
+  forks, annotations, blobs, pricing manifests) refuse instead in v4 mode.
+- **Bundles carry signatures.** `tine bundle create` and `bundle push/fetch`
+  carry the `tine-sig/3` sidecar blocks of bundled runs in the bundle
+  manifest's optional `signatures` key, merged into the receiver's sidecars on
+  import; pack formats are unchanged and a bundle without blocks is
+  byte-identical to 0.25's. A run received by bundle or fetch now exports (and
+  re-saves) with its annotation chain even though no annotation ref moved.
+- **Descriptor rewrites are serialized.** `mark_v4` and gc's storage-version
+  changes re-read and rewrite `config.json` under a short `config.lock` file
+  lock, so a concurrent `tine gc` can no longer write the old object format
+  back over a fresh v4 mark.
+- **Forks of repository runs and of v4 files reuse stored envelopes** when
+  written as v4: every unchanged step keeps its event oid, and the fork's root
+  equals what `put_run` stores for the same fork.
+- **Step ids survive a v4 round trip.** The v4 reader restores each step's own
+  id from its event's `legacy_step_id` (when every event carries one), so the
+  ids a transcript, `refs` and pricing manifest name, `tine fork --from-step`
+  and `replay --verify` stay valid after a save; re-saving re-derives
+  byte-identical events. A run recorded straight into a repository keeps its
+  event oids as step ids.
+- **Known stricter-than-v2 cases:** a v4 save refuses a pricing manifest or
+  transcript entry naming a step the run does not hold, and a run past 10 000
+  objects (both written by `--format 2`; a repository holds the large run).
+
+### Format v4
+
+- **One canonical form.** Format v4's canonical JSON is
+  `kernel.canonical_json`, now pinned as RFC 8785 (JCS) by a hand-typed corpus:
+  the RFC 8785 Appendix B / cyberphone IEEE-754 doubles including the
+  shortest-round-trip tie cases, UTF-16 key order past the BMP, JCS escaping,
+  `-0`, and the refusals (integers beyond 2**53-1, lone surrogates). Every
+  vector agrees with JCS. The v2 canonicalizer stays only to verify v2 data and
+  old signatures.
+- **The v4 artifact** (`tine-artifact/4`, SPEC Part 9): one JCS object bundling
+  the run's v3 blob, event and run envelopes under a root that is the run's v3
+  oid, with tags and metadata as an annotation chain outside the root. Every
+  read path (`tine show`, `verify`, `view`, `diff`, `Run.load`) loads it; the
+  reader re-derives every oid and refuses a tampered envelope, a wrong root, a
+  missing link or an unreachable object. TINEZ1 compression applies as for v2.
+- **Written by default since phase 6** (above); nothing is rewritten in place.
+  A v4 write refuses an integer beyond 2**53-1 rather than round or stringify
+  it.
+- **`tine-sig/3`** signs a v4 artifact: `opentine.signature.v3:` + JCS of the
+  root, the annotation head and the header (HMAC for local use, or Ed25519).
+  `tine verify`, `--offline`, listings and `Run.verify_signature` return the
+  same verdicts as for v2; content that no longer matches the signed root is
+  `mismatch`. Under `OPENTINE_FORMAT=4` the old schemes (`tine-sig/1`, `/2`,
+  `tine-attest/1`) are no longer written, and they still verify.
+- **`tine-attest/2`**: Ed25519 attestations on a v4 root
+  (`opentine.attestation.v2:` + JCS). The in-toto export of a v4 run names the
+  root as its subject and carries a `tine-attest/2` record on it.
+- Offline paths understand v4: `verify --offline`, dataset Merkle roots (the
+  leaf digest is the root oid), evidence export, and `tine migrate` (which
+  says the file is already v4).
+
+### Provenance and migration
+
+- **`upgraded_from` moved into the run payload**, so the v4 root and every
+  `tine-sig/3` over it cover it (SPEC 9.9). It records the source format
+  (`tine/1`, `tine/2`, `tine-repo/3`), the sha256 of the source bytes after
+  TINEZ1 unwrap (or the v3 run oid), the source's recorded v2 digest, the
+  source signature verdict at upgrade time, the time and the tool. The field
+  is optional: runs without it hash exactly as before, and older readers and
+  the repository validators accept it. It survives a read-then-write cycle; a
+  fork drops it. The top-level `upgraded_from` of the draft is gone.
+- **`tine migrate --to v4 FILE [-o OUT] [--in-place]`** writes `NAME.v4.tine`
+  beside the original and never touches it. `--in-place` is explicit, keeps
+  `NAME.tine.v2.bak` and warns that signatures, attestations and evidence
+  manifests made over the original are orphaned. The source signature is
+  verified at upgrade time (`--pubkey`/`--pin` honoured) and recorded as a
+  claim. Integers beyond 2**53-1 are refused by name, never rounded.
+  `--repo PATH RUN` upgrades a v3 repository run. `SOURCE_DATE_EPOCH` pins
+  `upgraded_at` for reproducible upgrades. Every new flag is refused where it
+  would be ignored (`--dry-run`, `--save`, without `--to v4`, with `--repo`).
+- **`tine verify --offline` gains a `provenance` check** (after `signature`,
+  never required): `provenance.none`, `provenance.recorded` (the recorded
+  source signature state is shown as a claim, `unavailable-offline`), and with
+  `--source PATH` (a file, or the v3 repository a run came from)
+  `provenance.source-match` / `provenance.source-mismatch`.
+- `docs/conformance/minimal_verifier.py` reads v4: it recomputes every
+  envelope id (SPEC 1.3), checks the root, `tine-sig/3` (Ed25519) and the
+  provenance codes, and its verdicts agree with `tine verify --offline --json`.
+
+### Repositories (format v4)
+
+- **Object format 4 in the descriptor.** Under `OPENTINE_FORMAT=4` the first
+  object written into a repository first rewrites `config.json` with
+  `"objects": 4` and `"min_reader": "0.26.0"` *in place of* `"format": 3`
+  (descriptor before object, the order `tine gc --upgrade` uses). Storage
+  `version` (1/2/3) keeps meaning the storage layout and is untouched;
+  `gc --upgrade/--downgrade` keep the object format. opentine 0.9-0.25 require
+  `format == 3` and so refuse a v4 repository at open ("repository config is
+  incompatible") instead of writing stringified values into it. Every reader
+  now enforces `min_reader` and names the version needed.
+- **`put_run` in v4 mode** refuses integers beyond 2**53-1 and non-finite
+  numbers (as the v4 file writer does) instead of stringifying them, and
+  carries `upgraded_from`. A repository run and the same run written as a v4
+  file name the same root: `Run.save` of a repository-loaded run under
+  `OPENTINE_FORMAT=4` reuses its stored envelopes.
+- **`tine fsck`** accepts v3 and v4 runs side by side and reports a malformed
+  `upgraded_from`.
+- **`tine import FILE.tine --repo PATH`** installs a v4 file's envelopes
+  unchanged (same oids), adopts its annotation chain when it equals or extends
+  the repository's, and keeps its `tine-sig/3` blocks in the sidecar
+  `signatures/v4/<root hex>.json`. `tine migrate --to v4 --repo` now exports the
+  stored envelopes verbatim, so the v4 root *is* the repository oid (no
+  `upgraded_from` is added) and the sidecar's blocks are re-attached: import
+  then export is byte-identical. Bundles and packs carry v4 objects unchanged
+  (they are v3 envelopes); bundles also carry the sidecar blocks (above).
+
+### Compatibility
+
+- Conformance families `09-canon-v4.json` (`canon.v4.*`) and `53-sig-v4.json`
+  (`sig3.*`, `attest2.*`, including provenance and a v4 envelope-id
+  recompute), and three descriptor vectors in `22-layout.json`
+  (`layout.config.objects-v4`, `layout.config.min-reader-newer`,
+  `layout.config.objects-and-format`).
+  The suite is now **636 conformance vectors**;
+  217 of the 636 refuse input, and the adapter contract still has one entry
+  point: 36 ops.
+
+## 0.25.0 — Verify anywhere (2026-11-02)
+
+### Verify anywhere
+
+- **`tine verify RUN --offline [--json] [--report FILE] [--strict]`** chains
+  every check that needs no network -- digest, signature, in-toto attestation
+  (`--attestation`), the Rekor receipt the attestation already carries,
+  certificate chain and SCT against the roots you name, the run's action
+  manifest, and (new) `--action-policy FILE` -- into one versioned
+  `tine-verify-report/1` document. Each check reports `pass`, `fail`,
+  `unavailable-offline` or `not-applicable` with a dotted reason code, detail
+  and the **trust basis** it rests on (`internal consistency only`,
+  `supplied key sha256:…`, `trusted_root.json sha256 …`). The verdict fails on
+  any failed check; `--strict` also fails when a required check could not run.
+  `authorship` is set only when a supplied, pinned or HMAC key verified the
+  signature -- never from internal consistency or a trust-on-first-use key.
+- Network paths are refused, never tried: while the offline chain runs, any
+  socket connect or name lookup raises and is reported as
+  `offline.network-refused`. A check missing its key or root is
+  `unavailable-offline`, not a pass.
+- **`--locate`** localises a broken run without guessing: the first step whose
+  content no longer hashes to its id (index, id, `graph.steps.<id>` and the
+  fields the id covers, plus a byte offset into the canonical *redacted* body),
+  the step meters via a stored action manifest's graph digest, the digest field
+  itself when a key-verified attestation subject still matches the content, the
+  signature region when the digest holds but the signature fails, or the
+  manifest entry when the run is intact. Otherwise `locate.unlocalisable`.
+  Steps carrying a `[REDACTED` marker cannot be rehashed and are skipped.
+- **Claims cross-check**: every stored action-manifest entry must name a
+  recorded tool step that still hashes to its id (binding the claim to the
+  recorded output), match its recomputed action digest, and every tool call
+  must be claimed (`claims.*` reason codes).
+- **`tine verify --offline DIR|REPO`** verifies every run (a directory's
+  `*.tine` files, or a repository's referenced runs plus `fsck`) into one
+  `tine-verify-dataset/1` report with a Merkle root over sorted
+  `(run_id, digest)` leaves (leaf `0x00||canonical_json([id,digest])`, node
+  `0x01||left||right`, odd node carried up).
+- **`tine evidence export RUN... --out DIR [--sign KEY]`** (new verb) writes
+  `MANIFEST.sha256` (sha256sum format), `custody.jsonl` (exporter, time,
+  opentine version, manifest hash; Ed25519-signed with `--sign`),
+  `timeline.jsonl`/`timeline.csv`, `verify-report.json`, `trust/` (keys and
+  policy used) and the run files. Everything but the custody timestamp is
+  deterministic; no hostname or absolute path is written. `--attestation FILE`
+  (one run) and `--trusted-root FILE` feed the attestation checks and are
+  copied into `trust/`; a `--trusted-root` without an attestation it could
+  check is refused.
+- **Independent verifier**: `docs/conformance/minimal_verifier.py` is a
+  standard-library-only script (imports no opentine) that checks a `.tine`
+  digest (format 1 and 2, compressed or not) and Ed25519 signature, an
+  evidence folder's `MANIFEST.sha256` and custody record, and a dataset Merkle
+  root, emitting a small JSON report with the same check names and reason
+  codes. Ed25519 is checked only if `cryptography` is importable; otherwise
+  the check is `unavailable-offline` (`signature.crypto-unavailable`), never a
+  pass. A test holds its verdicts to `tine verify --offline --json`.
+- **SPEC Part 8 — Verifying without opentine** documents the report, dataset
+  and custody schemas, every offline reason code and the Merkle hashing
+  (pinned by `tests/test_format_spec_drift.py`).
+
+### Cite a run
+
+- **`tine export RUN --format citation`** writes a `CITATION.cff`
+  (CFF 1.2.0) and **`--format ro-crate`** an `ro-crate-metadata.json`
+  (RO-Crate 1.1 JSON-LD: metadata descriptor, root dataset, run file,
+  opentine and model entities). Both carry the run id, the verified integrity
+  digest, every recorded model, the run's creation time and the opentine
+  version; the output is byte-identical for the same run and version. A run
+  whose digest does not verify is refused.
+- Without `--offline`, `tine verify` is unchanged; `--strict`, `--report`,
+  `--locate` and `--action-policy` are refused by name.
+
+## 0.24.0 — tine view (2026-11-01)
+
+### View
+
+- **`tine view RUN [-o FILE.html] [--open]`** writes one self-contained static
+  HTML page for a run: run id, prompt, models, status, total tokens and cost,
+  duration, fork lineage (`forked_from`) and integrity digest, then a step
+  timeline (kind, model, tool, duration, tokens) with each step's inputs and
+  outputs pretty-printed in collapsible sections. The page makes no external
+  request (inline CSS, no script), follows the system light/dark preference,
+  HTML-escapes every recorded string, truncates any field over 64 KiB with a
+  marker, and is byte-identical for the same run. The default output is
+  `RUN-ID.html` (first 12 characters of the id).
+
+## 0.23.0 — Runs travel with git push (2026-11-01)
+
+### Runs travel with the code
+
+- **`tine git install-hook --push`** also installs a git `pre-push` hook. On
+  `git push REMOTE` it reads the pushed ranges from stdin (git's pre-push
+  protocol; a new branch walks at most 1000 commits not already on a remote),
+  collects the `Tine-Run:` trailers of those commits and adds the runs to
+  `refs/tine/bundle` on the same remote, keeping the runs the remote bundle
+  already holds. With no trailers it does nothing. A failure warns on stderr
+  and never blocks the code push; `--strict` makes it block. An existing
+  `pre-push` hook is chained (kept as `pre-push.tine-chained`, run first with
+  the same stdin), and a global install keeps any opentine hook over the
+  pass-through shims. Runs from a legacy runs directory are packed through a
+  temporary repository. `tine bundle fetch REMOTE` is the pull side.
+
+## 0.22.0 — Rewind (2026-11-01)
+
+### Rewind
+
+- **`tine rewind RUN[@STEP]`** restores the working-tree files a recorded run
+  changed to how they were right after STEP (an index or step id; without one,
+  before the run). It reuses the write actions `tine blame` reads: a `Write`
+  step's whole `content` is replayed forward, and `Edit`/MultiEdit/str_replace
+  steps are applied forward or undone backward only when the inserted text
+  occurs exactly once. Files the run changed through a shell command or patch,
+  recorded redacted, or created whole without saying what was there before are
+  listed as unrecoverable with the reason, never guessed. It is a dry run by
+  default; `--apply` writes atomically under `--root` (default: the current
+  directory), refuses paths outside the root or through a symbolic link, and
+  writes nothing (exit 1) when a file's current content is neither the run's
+  last recorded state nor the target, unless `--force`. `--json` emits
+  `restore`, `unchanged`, `conflict`, `unrecoverable` and `refused` lists.
+
+## 0.21.0 — Live OTLP receiver (2026-11-01)
+
+### Live OTLP
+
+- **`tine serve --otlp [--otlp-port 4318] [--otlp-idle 30]`** runs a live
+  OTLP/HTTP receiver (stdlib, threaded, `127.0.0.1` by default; a non-loopback
+  `--host` needs `--insecure-dev-any-host`, since it is unauthenticated). It
+  accepts `POST /v1/traces` and `POST /v1/logs` in OTLP/JSON, gzip included,
+  and answers `{}` (or `partialSuccess` for spans without a `traceId`).
+  Spans are grouped by `traceId` and read by the same importer as
+  `tine import --format otel-json`; log records are grouped by session and read
+  by the `otel-logs` importer. A trace is saved as a run when its root span
+  arrives, after `--otlp-idle` quiet seconds, or on Ctrl-C (everything pending
+  is flushed), through the `tine import` write path (source billing
+  distrusted, values redacted) and saved like `tine run`
+  (`.tine_runs/<id>.tine`). Bodies are bounded by `--max-body-mb` before and
+  after decompression (413); non-JSON is a 400; OTLP protobuf is refused with
+  415 and a hint to set `OTEL_EXPORTER_OTLP_PROTOCOL=http/json`.
+
+## 0.20.0 — Record any program (2026-11-01)
+
+### Record
+
+- **`tine record -- CMD [ARGS...]`** records the model calls any program makes,
+  without a harness or SDK hook. It starts a localhost reverse proxy (stdlib,
+  ephemeral port) and runs CMD with `OPENAI_BASE_URL`/`OPENAI_API_BASE`,
+  `ANTHROPIC_BASE_URL`, `DEEPSEEK_BASE_URL` and `XAI_BASE_URL` pointed at it.
+  Each call is forwarded to the upstream those variables named before (or the
+  provider default) and streamed back unchanged, SSE included; it becomes a
+  `model` step with provider, model, request, reply text, duration and token
+  usage normalised by the adapters' own usage readers, so `tine price` can
+  price it. Headers are never captured, so `Authorization`/`x-api-key` cannot
+  reach the run; bodies pass through the usual redaction. An unreachable
+  upstream answers the child with a 502 and records an error step. The run is
+  saved like `tine run` (`.tine_runs/<id>.tine`, or `--save PATH [--force]`)
+  and `tine record` exits with the child's exit code.
+
+## 0.19.1 — 2026-10-31
+
+### Fixes
+
+- **`tine run --parallel` members no longer fail saving the same run
+  (Windows).** Members that record identical content share one
+  content-addressed `.tine_runs/<id>.tine` and the run index, and replace them
+  at the same moment. On Windows the loser of that race got a transient
+  `PermissionError` and the member exited non-zero. The `.tine` and
+  canonical-JSON writers now retry a sharing violation briefly, like the
+  repository's control files; a lasting denial still fails.
+- **A harness duration budget always ends as a budget breach (Windows).** When
+  the budget's timeout fired, the error step recorded the measured elapsed
+  time, which Windows' ~15 ms clock can report as just under the budget; no
+  breach fired and a bare `TimeoutError` escaped instead of a failed run with
+  `budget_state.dimension == "duration"`. A budget timeout now counts as the
+  whole budget spent.
+
+## 0.19.0 — 2026-10-31
+
+### Interop
+
+- **`tine export RUN --format agent-trace`** writes an
+  [Agent Trace](https://agent-trace.dev/) record (RFC 0.1.0): the files a run's
+  tool calls wrote, attributed to contributor `ai` with the recorded
+  `provider/model`, and a link back to the run under `metadata["io.github.0xcircuitbreaker.opentine"]`.
+  Line ranges appear only where they are known (a final whole-file write);
+  edits and patches get file-level attribution, never guessed ranges. Output is
+  validated in tests against the published JSON schema, vendored under
+  `tests/fixtures/agent_trace/`.
+- **`tine import --format entire`** reads [Entire](https://entire.io)'s
+  `entire/checkpoints/v1` branch straight out of git (no checkout): `REPO`
+  imports the newest checkpoint's last session, `REPO::ID[/N]` a chosen one.
+  Claude Code, Codex and Gemini CLI transcripts go through the existing
+  transcript importers; other agents import their prompt. Checkpoint metadata
+  (ids, agent, model, files touched, Entire's token usage) rides on
+  `attributes["entire"]`. Sizes are checked before blobs are read; session paths
+  are matched against the sharded layout, never followed. `auto` recognizes a
+  directory SOURCE. Format read from entireio/cli @ 54b6a5c.
+
+## 0.18.2 — 2026-10-31
+
+### Docs
+
+- **README visuals redone as animated SVG.** The hero terminal and the run
+  tree, previously Pillow GIFs, and the mermaid harness chart are now
+  hand-authored CSS-animated SVGs: sharp at any zoom, about 54 KB together
+  (the GIFs were about 840 KB), and still under `prefers-reduced-motion`. The
+  hero replays real `tine run` / `tine replay --verify` output, and the harness
+  diagram reflects the 25 shipped harnesses. `scripts/render_readme_svgs.py`
+  regenerates them; `--check` fails if the committed assets are stale.
+
+## 0.18.1 — 2026-10-31
+
+### Fixes
+
+- **`tine trust root update` no longer stalls on a broken IPv6 route.** Each
+  repository request waited out the whole 30 s timeout on an unroutable IPv6
+  address before trying IPv4. Addresses are now tried IPv4 first, each with a
+  5 s connect budget, so a refresh takes about a second instead of minutes.
+
+### Compatibility
+
+- Golden compat fixtures for every published release since 0.3.0: 0.8.2,
+  0.8.3, 0.9.0, 0.9.1, 0.9.2, 0.10.0, 0.11.0, 0.12.1, 0.13.1, 0.14.2, 0.17.1
+  and 0.18.0 join the set (27 releases), each generated with its published
+  wheel. The suite is now **580 conformance vectors**;
+  209 of the 580 refuse input, and the adapter contract still has one entry
+  point: 36 ops.
+
+## 0.18.0 — 2026-10-31
+
+### Trust
+
+- **Certificate Transparency for keyless attestations.** `tine verify
+  --attestation ... --ct-key FILE` accepts a Fulcio-certificate signature only
+  when an SCT embedded in the leaf (RFC 6962, extension
+  1.3.6.1.4.1.11129.2.4.2) verifies offline under one of the given CT log keys
+  (matched by log id, the SHA-256 of the key's DER SubjectPublicKeyInfo), over
+  the precertificate TBS and issuer key hash, with a timestamp inside the
+  certificate's validity. `--ct-key` is repeatable and a file may hold several
+  keys; `--require-sct` makes the demand explicit and is a usage error without
+  `--ct-key`. Both are refused without `--attestation` or for a key-signed
+  attestation, and trust policies carry them as `ct_key`/`require_sct`
+  (`tine trust policy set ... --ct-key FILE --require-sct`). Without the flags
+  verification is unchanged.
+- **Sigstore trusted root.** `tine verify --attestation ... --trusted-root FILE`
+  takes the Rekor keys, Fulcio chains and CT log keys for a keyless attestation
+  from one Sigstore `trusted_root.json`, using each only inside its `validFor`
+  window (Rekor and CA by the verified `integratedTime`, CT by the leaf's
+  `notBefore`). A CT log whose `logId` is not its key's hash is refused; a
+  Rekor log whose id is derived otherwise (Rekor v2 tile logs, such as
+  `log2025-1` in the public-good root) is skipped, since no v1 receipt can name
+  it. When the root
+  lists CT logs, an embedded SCT is required. It is a usage error beside
+  `--rekor-key`/`--fulcio-root`/`--ct-key`, refused without `--attestation` and
+  for a key-signed attestation, and trust policies carry it as `trusted_root`.
+- **`tine trust root update [--root FILE] [--repo-url URL]`.** A minimal TUF 1.0
+  client (root chain walk with old- and new-key thresholds, timestamp →
+  snapshot → targets with version/length/hash checks, expiry, persisted rollback
+  protection; ed25519 and ECDSA P-256 keys) that installs `trusted_root.json`
+  into `$XDG_CONFIG_HOME/opentine/sigstore/`. That copy becomes the default for
+  keyless verification that names no key file. No TUF root is embedded: the
+  first run needs `--root FILE`. Nothing is fetched unless you run it. Checked
+  live against `tuf-repo-cdn.sigstore.dev` (root v5 → v16).
+- A weekly, non-required `live-sigstore` workflow repeats that live update from
+  a pinned root, so a format change on Sigstore's side shows up early; CI and
+  the release gate never depend on it.
+
+## 0.17.1 — 2026-10-31
+
+### Fixes
+
+- **gc no longer mistakes a just-released lock for a path escape (Windows).**
+  A lock file another process had just deleted resolves on Windows to
+  `C:\$Extend\$Deleted\...`, which the confinement check read as a path
+  outside the repository. That path is now recognised as the same file on its
+  way out, so gc reports the ordinary "another tine gc" contention instead.
+- **A live recorder no longer reports a stored object missing while gc runs
+  (Windows).** When gc packed a loose object and deleted the loose file, Windows
+  can briefly refuse to inspect that path (the file or its fan-out directory is
+  "delete pending" while another handle is open). The existence check read that
+  error as "absent" and never looked in the packs, so the recorder's next write
+  failed with "missing linked object". An error on the loose path now always
+  falls through to the packs, and an uncertain miss is re-checked a few times
+  (about 0.1 s at most) before an object is called missing; a persistent error
+  still fails closed. Pack reads that hit a pack merged away under them now
+  rescan on any OS error, not only "not found". The 0.16.2 rescan fix covered a
+  different, rarer path and never reached this one.
+- A parallel-executor test retries claiming a slot directory that Windows still
+  holds delete-pending, instead of failing the member.
+
+## 0.17.0 — 2026-10-30
+
+"Simplify, part 2": `log` and `show` are the front door for read-only browsing.
+Nothing was removed or renamed; every pre-0.17 command, subcommand and flag still
+parses and reaches the same handler.
+
+**Migrating:** no action needed. Docs now teach `tine log --search` and
+`tine show RUN --cost`; the old -> new table is in [docs/CLI.md](docs/CLI.md).
+
+### Simplify
+
+- **`tine log` lists and searches.** `tine log --search QUERY` is `tine search
+  QUERY` (with `--json`, `--repo`, `--legacy`), and `tine log --legacy` is
+  `tine ls`; the `ls` filters (`--tag`, `--model`, `--status`, `--cost-min`,
+  `--cost-max`, `--since`, `--until`, `--grep`) work on `log` and imply
+  `--legacy`, with `--limit` and `--json` carried over. A plain `tine log` still
+  reads the v3 repository, unchanged.
+- **`tine show` reports cost.** `tine show RUN --cost` is `tine cost RUN`, and
+  `tine show RUN --price [--at DATE]` is `tine price RUN [--at DATE]`.
+- The folded spelling is rewritten to the old verb before parsing, so both give
+  byte-identical output and exit code. Combinations the old verb cannot honour
+  are usage errors (exit 2) rather than silently dropped: `--cost` with
+  `--price`, `--at` without `--price`, `--search` with `--graph`/`--all`/
+  `--oneline`/`--limit`/`--commit`/`--pr`/a REF or an `ls` filter, and
+  `--legacy`/`--repo` with `--cost`/`--price`.
+- `tine ls`, `tine search`, `tine cost` and `tine price` keep working silently;
+  the compatibility table (tests/cli_compat_table.py) pins the new spellings too.
+- **A default output format.** `tine config set output.format json` (or
+  `OPENTINE_OUTPUT=json`, which wins over the file) makes every command that has
+  `--json` emit JSON without the flag; `tine config get|unset output.format`
+  read and clear it. The setting is user-scoped
+  (`$XDG_CONFIG_HOME/opentine/settings.json`, 0600), never per repository. A new
+  `--text` beside every `--json` forces the human output for one call; an
+  explicit `--json`/`--text` always wins, and both together are an error.
+  Commands without `--json` ignore the setting. An invalid env value or a
+  malformed settings file is a one-line error (exit 1), never a fallback. With
+  no setting, output is byte-identical to 0.16.
+
+### Release
+
+- **Release files are install-tested on Linux, macOS and Windows before
+  publishing.** A new `artifact-smoke` job installs the exact validated wheel
+  and sdist on each OS and runs the CLI smoke test; the GitHub release and the
+  PyPI upload both wait on it. (CI already smoke-tested a wheel it built itself
+  on every OS.)
+
+## 0.16.2 — 2026-10-30
+
+0.16.1 was not published either: its release CI caught a rare Windows race
+fixed here. 0.16.2 is the first release with the 0.16.0 and 0.16.1 changes.
+
+### Fixes
+
+- **A live recorder no longer reports a stored object missing while another
+  process merges packs.** When a gc merge deleted a pack just as another
+  process listed the packs, that process skipped the vanished pack and, after
+  one rescan, could miss the merged pack that replaced it, failing a write
+  with "missing linked object". A miss now rescans until a listing completes
+  (bounded), so the object is found in its new pack. Seen on Windows CI; the
+  same window exists on Linux and macOS.
+
+## 0.16.1 — 2026-10-30
+
+0.16.0 was not published: its release CI failed on the Windows gc race fixed
+here. 0.16.1 is the first release with the 0.16.0 changes below.
+
+### Fixes
+
+- **gc no longer fails on Windows when a reader holds a loose object open.**
+  Removing a packed loose object could hit a sharing violation ("being used
+  by another process") while a concurrent recorder or reader had it open.
+  The removal now retries transient sharing violations, as other repository
+  file operations already do.
+- A timing test for the OTel agent billing walk repeats its comparison before
+  failing, so one stalled sample on a loaded CI runner no longer fails it.
+
+## 0.16.0 — 2026-10-30
+
+"Simplify": a smaller front door to the same CLI. Nothing was removed or renamed;
+every pre-0.16 command, subcommand and flag still parses and reaches the same handler.
+
+**Migrating:** no action needed. Docs now teach the group spellings
+(`tine repo storage gc`, `tine share push`, `tine trust sign`, `tine agent who`, ...);
+the full old -> new table is in [docs/CLI.md](docs/CLI.md).
+
+### Simplify
+
+- **Everyday help.** `tine --help` lists only the everyday commands, grouped by
+  section (Record, Inspect, Branch, Trust, Collaborate, Agents, Repository, Help).
+  `tine help --all` lists every command (Everyday / Advanced) with a one-line
+  summary, and `tine help COMMAND` prints one command's help. `help` is a built-in,
+  so a porcelain `alias.help` no longer shadows it.
+- **Command groups.** Related verbs are also reachable under a noun group:
+  - `tine repo` — init, config, worktree, branch, reset, reflog, archive, pack,
+    serve, `migrate [--to-v3]` (`migrate` / `migrate-v3`),
+    `storage du|gc|repack|prune|compress|fsck|reindex` and
+    `integrate hook|plugin|harnesses|git`;
+  - `tine share` — push, fetch, pull, clone, remote, bundle, archive;
+  - `tine trust` — sign, keygen, attest, evaluate, promote, verify-tag (and `policy`, below);
+  - `tine agent` — now also who, actions, touched, blame and audit, next to the
+    unchanged id, show, trust and keys.
+
+  A group spelling is rewritten to the old verb before parsing, so both take the
+  same flags and give the same output and exit code. The old spellings keep working
+  silently. A built-in group name wins over a porcelain alias of the same name, with
+  a warning on stderr. A pinned compatibility table (tests/cli_compat_table.py)
+  proves every existing verb, subcommand and representative flag still reaches the
+  same handler.
+- **Named trust policies.** `tine trust policy set NAME` stores verify trust roots
+  (`--pubkey`, `--pin`, `--rekor-key`, `--require-receipt`, `--cert-identity`,
+  `--cert-oidc-issuer`, `--fulcio-root`); `list`, `show` (both `--json`), `rm` and
+  `default NAME|--clear` manage them. `tine verify RUN [--attestation F] --policy NAME`
+  applies one; flags on the command line override policy fields (any key flag
+  replaces the policy's key). `trust.default` applies when no key, receipt or
+  keyless flag and no `--policy` is given, and `--no-policy` turns it off. An unknown
+  policy exits 1, and `verify --json` gains `"policy": NAME` only when one was used.
+  Policies are user-scoped only, in `$XDG_CONFIG_HOME/opentine/trust-policies.json`
+  (0600; refused when symlinked, group/world-writable or not owned by the user);
+  paths are stored absolute and rechecked on use, and `--trust-embedded-key` is never
+  a policy field. A repository's `porcelain.json` cannot set or select one:
+  `tine config trust.*` and `policy.*` are refused, and such keys in a cloned file
+  are ignored.
+- **Verify a bundle directly.** `tine verify FILE`, where FILE is a `tine bundle`
+  file (TINEBUNDLE1 magic, no other arguments), runs `tine bundle verify FILE`
+  instead of failing as an unknown run.
+- **Docs.** README, GETTING_STARTED, CAPTURE, REPOSITORY, TROUBLESHOOTING and
+  SECURITY_MODEL teach the group spellings and `tine verify --policy`; README gains
+  an "Everyday commands" block. Every `tine ...` example in README.md and docs/*.md
+  is now checked to parse (tests/test_docs_examples_0_16.py).
+
+### Fixes
+
+- In a v3 repository `tine show REF --json` dropped `--json` when it routed to
+  `repo-show`, printing the human rendering instead of JSON.
+
+## 0.15.0 — 2026-10-29
+
+### Verifiable
+
+- **in-toto provenance for a run.** `tine export RUN --format intoto
+  --ed25519-key-file KEY` (or `--agent NAME`) writes a signed DSSE envelope
+  (`.intoto.jsonl`) carrying an in-toto Statement v1. Its subject is the run's
+  sha256 content address — the digest `tine verify` prints — and its predicate
+  (`https://opentine.dev/attestation/run/v1`) records run id, status, models,
+  providers, step count, fork lineage, token and cost totals, agent ref and the
+  opentine version. It is content-free: no prompt, completion or tool payload
+  is included, and every string is redacted. An unsigned statement is never written.
+- **`tine verify RUN --attestation FILE`** checks such an envelope, fail-closed:
+  the DSSE signature must verify under `--pubkey`, a `--pin`-ned fingerprint or
+  `--trust-embedded-key` (reported as `verified-tofu`), and the run's recomputed
+  digest must equal the statement's subject. `--json` reports the signature
+  verdict, key id and subject check; any failure exits 1.
+- **`did:key` agent identities.** Ed25519 keys are now also spelled as
+  `did:key:z6Mk...`: `tine agent keys` and `tine agent id --agent NAME` show
+  it, and it is the DSSE `keyid`. A `did:key` names a key, not an owner; pin it
+  before trusting it.
+- **Transparency-log receipts.** `tine export ... --format intoto --rekor [URL]`
+  logs the envelope in Rekor (default `https://rekor.sigstore.dev`) and writes a
+  Sigstore bundle v0.3 with the receipt. `tine verify --attestation FILE
+  --rekor-key FILE` checks the receipt offline: SET, RFC 6962 inclusion proof,
+  signed checkpoint, and that the logged entry is this envelope. `--require-receipt`
+  fails closed when there is no receipt, no key or an invalid receipt. `--json`
+  gains `receipt: {status, log_index, integrated_time, reason}`. Bare envelopes and
+  bundles both verify.
+- **Sigstore keyless signing.** `--keyless` gets a short-lived Fulcio certificate
+  for an OIDC identity (`--identity-token`, `SIGSTORE_ID_TOKEN` or the GitHub
+  Actions ambient token) and always logs to Rekor. To verify, pass `--cert-identity`,
+  `--cert-oidc-issuer`, `--fulcio-root FILE` and `--rekor-key FILE`; the result is
+  reported as `verified-keyless`. The token is never printed or written.
+
+### Serverless
+
+- **`tine bundle`: share runs without an opentine server.** `tine bundle create
+  FILE [REFS...|--all]` writes one self-verifying file (the existing transfer
+  pack plus a manifest of refs and a SHA-256 over everything; associations such
+  as annotations and attestations ride along). `tine bundle verify FILE` checks
+  it without importing; `tine bundle unbundle FILE` (alias `import`) imports it
+  into `remotes/<name>/*` (`--as NAME`), fail-closed on any digest mismatch,
+  untrusted ref names refused, all-or-nothing, and never moving an existing ref
+  to a non-descendant without `--force`. Re-importing is a no-op.
+- **Plain git remotes.** `tine bundle push REMOTE [REFS...]` and `tine bundle
+  fetch REMOTE` store the bundle at `refs/tine/bundle` on any git remote
+  (GitHub, Gitea, a bare repository, Radicle's git, a local path). git runs with
+  an argument list, a scrubbed environment, hardened config, only the
+  file/https/ssh protocols and a timeout; fetched data is size-capped and
+  verified before any local ref moves. See docs/REPOSITORY.md.
+
+## 0.14.2 — 2026-10-29
+
+### Fixes
+
+- **The remote server's audit anchor survives Windows sharing violations.**
+  When one process read the `audit-head` anchor while another replaced it,
+  Windows could refuse the replace with "Access is denied", so the audit chain
+  failed to verify. Anchor reads and writes now retry transient sharing
+  violations, as repository files already do.
+
+### Compatibility
+
+- Golden compat fixtures from the published 0.14.1 wheel.
+
+## 0.14.1 — 2026-10-29
+
+### Footprint
+
+No on-disk format change: 0.13.x and 0.14.0 read every repository 0.14.1
+writes.
+
+- **A recording burst no longer piles up loose snapshots.** Each append writes
+  a full run snapshot, and 0.14.0 packed only objects at least 60 s old, so a
+  fast session stayed loose. The recorder now packs the objects its own `Repo`
+  stored, whatever their age, once `auto_pack` of them are loose, and
+  `finalize` folds the session's packs into one. Packing never deletes: the
+  pack is written and read back before a loose copy goes, the new pack keeps
+  every object young for `tine prune`, and other writers' young objects and
+  `put_run` / annotate stay on the cold-only path. 640 events in one burst
+  (zstd, version 2): peak 16.6 MB -> 2.5 MB on disk, 16.7 MB -> 0.6 MB
+  finalized (version 3: 2.4 MB / 0.24 MB; zlib: 6.1 MB / 5.8 MB). Recording
+  is about a third slower while it packs (v2 33 s -> 44 s for 640 events).
+- **`gc --upgrade` is linear in a session's snapshots.** Reading a pack in
+  order rebuilt every run delta from its block's start; it now starts from the
+  snapshot just read (already checked against its id; the depth limit still
+  counts the whole chain), gc reads packed objects in block order, and the
+  pack writer parses each snapshot once. Every object is still rebuilt and
+  hashed on write and on read-back. First `gc --upgrade`: 300 events 15.0 s
+  -> 3.1 s, 640 events 61 s -> 9.6 s.
+- `tests/test_footprint_0_14_1.py` guards a burst budget and counts the
+  `gc --upgrade` delta work.
+
+## 0.14.0 — 2026-10-29
+
+### Security
+
+- **MCP output is re-scrubbed.** `show_run` and the `run://` resource now pass
+  a run back through the writer's redaction before rendering it, as `tine
+  export` does, so a legacy (pre-0.9.1) or hand-written unredacted `.tine` no
+  longer hands its secrets to the client's model.
+- **`tine run --model` failures are display-safe.** URLs in the error text
+  lose their userinfo, query and fragment (`--base-url` / `OLLAMA_HOST`
+  credentials echoed by httpx), and the rest is redacted (provider error
+  bodies that quote part of a key).
+- **An invalid `OLLAMA_HOST` names only its scheme**, never the value, which
+  may carry `user:password@`.
+- **Base64-wrapped credentials are redacted.** A standalone, padded base64
+  run (24-8192 characters, at most 64 per value) that decodes to printable
+  UTF-8 is scanned like plain text and replaced whole on a hit. Binary
+  payloads and ordinary text are kept; URL-safe and unpadded base64 are not
+  unwrapped (a documented limit).
+- **`tine run --parallel` members start with `python -P`**, so an `opentine/`
+  package in the project directory no longer shadows the installed one.
+- **Fan-out member logs are private.** Logs are created 0600 without
+  following symlinks, and `--log-dir` is created 0700: they hold raw member
+  output, keys passed by `--env` included.
+- **Repository refs, reflogs and directories are private.** New refs, ref
+  staging and journal files and reflogs are written 0600, directories inside
+  `.tine` are created 0700, and the `.tine-worktree` marker is 0600.
+- **`tine plugin export` writes 0600 files and 0700 directories**, and its
+  help and the README now say the bundle is machine-local: it embeds the
+  interpreter's and the repository's absolute paths.
+- **Allowlisted adapters must be installed.** An entry point whose
+  distribution was found in the working directory (`python -m` puts it on
+  `sys.path`), or whose provenance is unknown, is skipped and not loaded.
+
+### Footprint
+
+No on-disk format change: 0.13.x reads every repository 0.14 writes.
+
+- **`put_run` no longer re-validates the whole repository on every write.**
+  The put-run preflight, the unheaded-annotation fallback and the pack walk
+  each listed every annotation (and every fan-out directory) through a
+  per-entry confined-path check, so writing N runs cost O(N^2). Object
+  directory listings are now reused while the directory's `lstat`
+  fingerprint (type, inode, mtime, ctime) is unchanged and it was not
+  modified in the last 3 s (git's racy-index rule); any change forces a full,
+  validated rescan, and every object read is still checked on its own path.
+  Rescans validate entries from `scandir` instead of re-resolving each path,
+  and confined-path checks no longer pay Python 3.14's linear
+  `relative_to`. 300 runs (25 steps, shared prompts, forks): 323 s -> 206 s;
+  per-`put_run` at N=300: 1186 ms -> 759 ms (first ten: ~600-800 ms), now
+  flat in repository size.
+
+- **`put_run`, `fork` and run annotations auto-pack.** They share the
+  recorder's post-write hook (same `OPENTINE_AUTO_PACK` / `auto_pack`
+  settings, cold objects only, never a version-1 repository). Below the
+  threshold it costs a counter check (~0.4 us per write after one scan per
+  `Repo`). 300 runs written over time: 25.8 MB on disk loose -> 6.8 MB.
+- **Live recordings no longer grow quadratically while they run.** Appends
+  trigger the same hook, so cold superseded snapshots are packed
+  mid-session: a 640-event session peaked at 16.8 MB on disk, now 2.8 MB
+  (at about one event per second).
+- **One reflog row per recording, not per event.** `Recorder.append` moves
+  the ref without a reflog row; start, `import_events`, `finalize` and every
+  other ref move still log one. A 640-event session's reflog: 640+ rows (152 KiB)
+  -> 2 rows; the superseded snapshots become unreachable and `tine prune` can
+  drop them.
+- **`gc` and `tine du` count all of `.tine`.** gc's `bytes_before/after`
+  now include `refs/`, `logs/`, `fanouts/` and `txn/` (most of a packed
+  repository's disk); `tine du` adds `fanouts` and `txn` rows.
+- **`gc --upgrade` on a repository already at version 3** with only
+  format-3 packs no longer rewrites them into a byte-identical pack
+  (300-event session: 25.4 s -> 0.0 s); loose objects still pack.
+- **`gc` removes finished fan-out state** (`.tine/fanouts/<id>.json` and
+  `<id>/`, every member `ok` or `failed`) once it is 7 days old.
+- **`Repo.open(path)` with an explicit path that does not exist fails**
+  (`KernelError`) instead of opening a repository in an ancestor
+  directory. `Repo.open()` / `"."` still discover upward.
+- A CI size-budget test (`tests/test_footprint_budget_0_14.py`) guards the
+  above.
+
+## 0.13.1 — 2026-10-28
+
+### Fixed
+
+- **Windows: a file mid-replace no longer reads as a path escape.** The
+  repository containment check resolved paths without the sharing-violation
+  retry the rest of 0.13 uses, so a reader that raced another process's
+  `os.replace` could get a transient `PermissionError` and report
+  "repository path escapes its root". `tine prune` then refused to run
+  (failing closed, nothing deleted). Python 3.11 also resolves such a file to
+  its extended-length `\\?\C:\...` spelling, which the check compared against
+  the plain root. The resolve is now retried, the extended prefix is dropped
+  before comparing (`\\?\UNC\` paths still fail closed), and a denial that
+  persists is reported as "repository path cannot be inspected".
+- **A pack being renamed in is no longer hidden from a running process.** If a
+  pack index could not be opened while another process's gc was still
+  renaming it into place, the pack was skipped and that listing cached, so the
+  process treated the pack's objects as missing until the directory changed
+  again (a live recorder then failed with "missing linked object"). Index
+  loads now retry sharing violations on Windows, and a listing with an
+  unreadable index is not cached, so the next lookup rescans. A corrupt index
+  is still skipped and reported by `tine fsck`.
+
+### Compatibility
+
+- Golden compat fixtures for 0.13.0, generated from the published wheel, join
+  the release gate: 0.13.1 reads every artifact and repository 0.13.0 writes.
+
+## 0.13.0 — 2026-10-26
+
+### Footprint I (no format change)
+
+No on-disk format change: 0.12 reads every repository 0.13 writes, and 0.13
+still reads every format back to 0.3.0.
+
+- **Auto-pack.** `Recorder.finalize()` packs cold loose objects once 256 (by
+  default) have piled up. It only runs on repositories already at storage
+  descriptor version 2; a version-1 repository is never upgraded. Loose
+  objects younger than 60 s are never packed. It takes the gc lock without
+  waiting and is skipped if a gc is running. It never fails a recording. Small
+  packs are merged so pack sizes stay a geometric progression. Turn it off
+  with `OPENTINE_AUTO_PACK=0`, or set a threshold with `OPENTINE_AUTO_PACK=N`
+  or `"auto_pack": false | {"objects": N}` in `config.json` (0.12 ignores the
+  key).
+- **gc removes the empty fan-out directories it leaves** (`objects/<kind>/<xx>`),
+  and the empty directories older releases left behind. A writer that races
+  the removal retries.
+- **`tine du`**: footprint by kind, run or ref (`--by`). It shows canonical
+  and stored bytes, loose and packed objects, fan-out directories, refs, logs
+  and indexes. `--json` is supported.
+- **`tine prune`**: a dry run by default; `--delete` removes. Only objects
+  that are unreachable and older than `--older-than` (default 14 days, never
+  under 60 s) are candidates. Roots include:
+  - every ref (including tags) and every reflog row
+  - annotations and attestations
+  - the shallow boundary and `worktrees/`
+  - any other repository file outside the object store
+  - runs named by the git checkout's `Tine-Run` trailers and `refs/notes/tine`
+
+  If a root source can't be read, prune deletes nothing.
+- **Pruning is safe against a live writer.** Re-storing an object that already
+  exists now refreshes it: a loose file's mtime, or a pack's at most hourly.
+  An object a writer is about to reference again is therefore never old
+  enough to prune. The delete takes the gc lock, plans again, checks each age
+  again, and rewrites packs (writing and reading back first) instead of
+  editing them.
+- **Reflog expiry** runs with `tine prune`. It is conservative by default:
+  rows older than 90 days *and* beyond the newest 100 per ref go. The row for
+  the ref's current target always stays, and tag reflogs never expire. Set it
+  with `--reflog-expire DAYS` or `"reflog": {"expire_days": N, "keep": N}`.
+  Each log is rewritten under its ref's own lock, and a ref that is locked is
+  skipped.
+
+### Footprint II: storage version 3 (opt-in)
+
+The one format change in 0.13, and only when asked for: `tine gc --upgrade`.
+Object ids, digests and signatures do not change. opentine 0.12 and older
+refuse a version-3 repository at open (`repository config is incompatible`);
+`tine gc --downgrade` returns it to version 2. 0.13 still reads every format
+back to 0.3.0, and v2 and v3 packs side by side.
+
+- **v3 packs**: blocks of up to 16 MiB, one object kind per block, blobs and
+  events in recording order. A block of several objects is capped at 16 MiB
+  inflated, checked against the index before inflating. Readers keep a small
+  cache of inflated blocks (64 MiB).
+- **Run snapshots as deltas**: a snapshot is stored as the previous snapshot
+  in its block plus the newly appended events (and any changed fields), with
+  a full snapshot at least every 32. Chains are walked iteratively and capped
+  at 64; a delta never starts a block, so a chain cannot loop.
+- **Slim events**: fields holding their empty default are left out in the
+  pack and restored on read.
+- **Binary pack index** with a trailing SHA-256, exact-length and tiling checks
+  before any field is trusted.
+- Every read rebuilds the canonical bytes and checks them (and every delta
+  base) against the object id, failing closed. `fsck` reads every object of
+  every pack and reports a v3 pack in a repository below version 3.
+- On the recorded-session benchmark (20 runs × 30 events, 13.5 MB of
+  canonical objects) `tine gc --upgrade` takes the repository from about
+  89 KB to about 38 KB per run on disk; the packs alone go from 74 KB to
+  23 KB per run (reflogs and the index are most of the rest).
+- Conformance: new `localpack.read` op and `29-localpack.json` vectors
+  (binary index, blocks, stored forms, delta and bomb bounds); the adapter
+  contract grows by one op.
+
+### Branch engine: crash-safe refs, fan-out and worktrees
+
+- **`Repo.update_refs`**: move several refs at once, all or none. Every row is
+  compare-and-swap. Locks are taken in sorted order, then a journal
+  (`txn/<id>.json`, `opentine-ref-txn/1`) is written durably as the commit
+  point, then the refs and their reflog rows. A writer killed before the
+  journal changed nothing; one killed after it is rolled forward by the next
+  ref write anywhere in the repository (`Repo.recover_refs()` does it on
+  demand). Roll-forward is itself compare-and-swap and never clobbers a ref
+  moved since. A malformed or tampered journal (illegal ref, missing object,
+  wrong type, extra fields) is never applied: it is renamed `<id>.rejected`.
+- **Ref deletes take a stamped lock.** `tine branch -d` and the other delete
+  paths wrote an empty `.lock`, which a crash left behind for good; they now
+  record pid/host/time like every other ref lock, so a dead one is broken.
+- **`tine fan-out RUN [--from-step N] --vary model=a,b [--repeat K] -- CMD`**:
+  one fork per member from a single fork point. The run is walked once for all
+  N forks, every `experiments/fanout/<id>/<n>` ref is written in one
+  transaction, and the fan-out is recorded as an annotation on RUN
+  (`opentine.fanout.<id>`, no new object type). CMD runs per member as an argv
+  list (never a shell) with `{model}`, `{run}`, `{ref}`, `{index}` and every
+  `--vary` name substituted in one non-recursive pass. A value that would
+  stand alone as an argument and starts with `-` is refused. Without CMD the
+  forks are only prepared.
+- **`tine run --parallel N`** runs the same `tine run` invocation N times
+  (times every `--vary` combination), each member saving its own run;
+  `--save` and the autosave flags are refused with it.
+- Both take `--jobs` (never exceeded), `--timeout` per member, `--budget USD`,
+  `--env NAME`, `--log-dir`, `--json` (NDJSON status, one object per event,
+  never argv, env or variation values) and `--resume ID`. Members start in a
+  fresh process group (Linux subreaper) or a kill-on-close Job Object
+  (Windows) and are killed with their whole process tree on timeout, budget,
+  stop or Ctrl-C, and after a normal exit too.
+- **Shared budget ledger** (`budget.SharedLedger`): members report their
+  cumulative cost in `$OPENTINE_FANOUT_COST_FILE` (`tine run` writes it);
+  reports are taken under one lock and can never double-count. Once the total
+  reaches `--budget`, running members are killed and nothing else starts. With
+  a budget set, a member that ends without a readable cost closes the budget
+  too (fail closed).
+- **Member environment is an allowlist**: `PATH`, `HOME`, locale, temp and the
+  Windows system variables, plus the `OPENTINE_FANOUT_*`/`OPENTINE_VARY_*`
+  variables. API keys and signing keys reach a member only when named with
+  `--env`.
+- **`--resume ID`** reruns only the members that did not finish (`ok` or
+  `failed`). The state file (`.tine/fanouts/<id>.json`, or
+  `.tine_runs/parallel/` for `run --parallel`) is validated field by field and
+  holds no command: resume takes the command again and refuses one whose
+  digest differs, so a planted state file cannot choose what runs. The spend
+  already recorded counts against the budget.
+- **`tine worktree add PATH REF [--git [COMMIT]]`, `list`, `remove [--force]`,
+  `prune`**: an isolated directory per branch, registered at
+  `.tine/worktrees/<name>.json` (a prune root) and marked with a
+  `.tine-worktree` file. `--git` also makes it a detached `git worktree`.
+  Names are one safe component; a symlinked target, one inside the repository,
+  or a non-empty directory is refused. `remove` deletes a directory only when
+  its own marker names this repository and worktree, so an edited registry
+  cannot point it at another directory; `prune` only drops registrations.
+  `tine fan-out --worktree-dir DIR` gives every member its own worktree.
+- **`tine rebase`/`tine cherry-pick --ref NAME`** refuse to move an existing ref
+  unless `--force` is given (0.12.1 review).
+
+### Agent identity and signed actions
+
+Additive: old runs, repositories and indexes keep working, and 0.12 ignores
+the new metadata key and manifest files.
+
+- **`opentine-agent/1` identities.** A harness run now records
+  `metadata.agent_identity`: harness, model, provider, a digest of the agent's
+  definition files (`CLAUDE.md`, `.claude/agents/*.md`, `AGENTS.md`, ... --
+  hashed, never stored), an optional signing-key fingerprint, a per-run
+  instance nonce, and a claimed parent link for subagents. Its stable ref is
+  `agt_` + 128 bits. A run without one is `legacy:<harness>`, shown as unsigned.
+- **`tine agent id | show | trust | keys`.** `id` computes the ref an agent
+  would record; `show RUN|agt_...` prints identity, trust state and whether a
+  lineage link is verified; `trust` trusts `.tine/agents.toml`.
+- **`tine keygen --agent NAME`** writes an Ed25519 key to
+  `$XDG_CONFIG_HOME/opentine/agent-keys/` (0600), outside every repository.
+- **`.tine/agents.toml`** pins agent key fingerprints. Like `porcelain.json` it
+  is inert in a clone until `tine agent trust`; any edit revokes the trust.
+- **`tine-actions/1` signed action manifests.** `tine actions RUN --sign`
+  (`--agent NAME`, `--ed25519-key-file`, `--key-file`/`--key-env`) writes a
+  hash-chained manifest of the run's actions, bound to the run id and a digest
+  of its step graph, and signed with the existing `sign_block`. `--verify`
+  (`--pubkey`, `--pin`, HMAC key flags) recomputes it from the run.
+- **Every output shows a trust state**: `unsigned`, `verified`, `mismatch` or
+  `unknown-key` -- in `who`, `touched`, `actions`, `audit` and `agent show`.
+- **`tine audit --require-signed`** fails unless every run's manifest
+  verifies; `--pin` adds trusted keys.
+- **`tine who` / `touched`** gain `--agent-ref` (full refs only; prefixes are
+  refused), `--lineage REF` (an iterative walk over claimed parent links) and
+  `--verified-only`; `--by agent_ref` groups by ref.
+- The action index is now `ACTIONS_SCHEMA` 4 (agent refs). It is a cache, so
+  an older index is rebuilt on first use.
+- Security: a manifest moved onto another run is `mismatch`; a key other than
+  the identity's `key_fpr` is `mismatch`; a lineage link counts only when both
+  runs verify and the parent's signed manifest lists the child's spawn step;
+  look-alike names are NFKC-normalised before hashing and flagged when shown;
+  a planted `verified` column or `agent_ref` row in the sqlite index is
+  ignored, because every trust state is recomputed from the run and manifest;
+  agent strings reach the terminal escaped.
+- Conformance: `48-actions.json` and `49-agent.json` vectors, ops `agent.ref`
+  and `actions.chain`, and SPEC §4.8 and §4.9. The suite is now
+  **550 conformance vectors**; 209 of the 550 refuse input, and the adapter
+  contract still has one entry point: 36 ops.
+
+### Harness integrations and fleets (no format change)
+
+Additive run metadata only (`agent_identity`, `opentine.fleet`); older readers
+see ordinary runs and forks.
+
+- **`tine import --fleet`** (Claude Code, needs `--repo`): the session's own
+  events become the root run and each subagent a child run forked at the tool
+  step that spawned it (a nested subagent forks from its parent subagent).
+  Every member records an `opentine-agent/1` identity with `parent`,
+  `parent_run` and `spawn_step`; the root carries the `opentine.fleet`
+  manifest. A subagent with no spawning step (a stop without a start) becomes a
+  standalone child. Agent ids are clamped before naming
+  `heads/fleet/<root>/a-<agent>`. The fleet's cost counts shared steps once and
+  equals the single-run import's cost. Nested subagent links are now followed
+  in plain imports too.
+- **Transcript imports record an agent identity** (Claude Code, Codex, Gemini
+  CLI, Qwen Code, OpenCode, ATIF, Hermes) instead of reading as `legacy:`.
+- **`hermes-trajectory` importer** for Hermes Agent's ShareGPT-style JSONL
+  trajectories (`<tool_call>`/`<tool_response>`/`<think>` blocks; the last
+  record, or `FILE::N`). Detected by `--format auto`. Trajectories carry no
+  token counts, so their model steps stay unpriced. Tool blocks are bounded in
+  count and size and parsed with the stdlib JSON decoder only.
+- **`tine plugin export DIR --repo PATH`** writes a Claude Code plugin:
+  exec-form hooks running `python -I -m opentine.cli` (SessionEnd import,
+  SubagentStart/SubagentStop journal), read-only skills, and a `.mcp.json`
+  starting the MCP server with `--read-only`. It refuses to write inside
+  `~/.claude` or `$CLAUDE_CONFIG_DIR`, refuses symlinks and non-empty
+  directories without `--force`, and warns when the old-style hook would
+  import each session twice.
+- **`tine hook event`** journals subagent hook payloads read from stdin only
+  (clamped ids, `<repo>/journal/subagents.jsonl`, capped at 8 MiB, always exits
+  0). **`tine hook status`** no longer needs `--global` and lists the events
+  each CLI has installed. `--agent hermes` prints a `config.yaml` snippet and
+  never edits YAML.
+- **`python -m opentine.mcp_server --read-only`** registers an allowlist of
+  read tools only; write tools, and any tool added later, are left out.
+- **`AdapterSpec` SDK** (`opentine.adapters`): a harness importer in one file.
+  Third-party adapters are `opentine.adapters` entry points and are never
+  loaded unless allowlisted in `$XDG_CONFIG_HOME/opentine/adapters.json`; one
+  cannot shadow a built-in. The core enforces the source byte cap, the event
+  cap and the result type. `tine import --adapter NAME` and
+  `tine harnesses --check [NAME]`.
+- **ATIF export emits `subagent_trajectories`** instead of flattening: each
+  subagent's steps become an embedded trajectory referenced from the spawning
+  tool step's result, and import back as a typed subagent edge.
+- **`tine fleet up|status|stop|cost`** runs a declared `fleet.toml` (fan-out
+  or supervisor/workers) on the parallel executor. The manifest is refused
+  until `--trust` records the SHA-256 of its exact bytes; any edit revokes
+  trust. Commands are argument lists only, members see only allowlisted
+  environment variables, `cwd` stays inside the manifest's directory, workers
+  get the supervisor's parent link, and `stop` kills every member's process
+  tree. `fleet cost --repo PATH RUN` totals an imported fleet.
+
+### Security
+
+- **Ref transactions stay atomic on Windows.** A reader holding a ref or lock
+  file open made a post-commit rename fail, leaving a paired update half applied
+  and locks behind. Ref, journal, lock and prune reads/writes now retry Windows
+  sharing violations (bounded, then fail closed), and lock release never strands
+  the remaining locks.
+
+- **`tine prune` refuses (deletes nothing) when a stored object it must walk
+  cannot be read** -- corrupt bytes, or a pack whose codec (zstd) is not
+  installed. Only a truly absent object is skipped; before, everything reachable
+  only through an unreadable object could be deleted.
+- **Prune's age floor is now 70 minutes** (was 60 s), above the hourly
+  pack-freshen throttle, so a packed object a live recorder just reused can no
+  longer be pruned from under it.
+- **Ref transaction recovery tolerates a journal that vanishes after listing**
+  (finished by its owner or another recoverer) instead of failing the write
+  with `FileNotFoundError`.
+- **`--lineage --verified-only` follows only edges recomputed from the runs and
+  signed manifests**; an index row only nominates a run, so a forged row can no
+  longer graft an unrelated verified agent onto a lineage. Residual: the
+  parent's manifest lists spawn steps, not which child each spawned, so another
+  trusted-key run naming a real spawn step is still accepted.
+- **`tine fleet status`/`cost` escape member agent names, statuses and costs**,
+  and a member's reported cost is stored only if it is a number.
+
+## 0.12.1 — 2026-10-23 — Patch: crash-safe locks, rev:path containment
+
+Fixes from the round-0 audit of the shipped 0.12 surface. Each fix has a
+regression test in `tests/test_patch_0_12_1.py`. No format
+change: every file and repository written since 0.3.0 still reads, and 0.12.0
+reads everything 0.12.1 writes.
+
+### Fixed
+
+- **A ref lock left by a crashed writer no longer blocks the ref forever.** Ref
+  locks (`refs/**/<ref>.lock`) and `gc.lock` now record pid, host and start
+  time. A lock whose process is provably gone on this host is broken
+  automatically (moved aside and re-checked, so a racing writer's fresh lock is
+  never deleted); a live, foreign-host, empty or unreadable lock is left alone
+  and the error names the lock file and says how to remove it.
+- **gc lock recovery is the same on every platform.** Windows no longer breaks a
+  gc lock by age alone; liveness is checked through the process handle, and a
+  long-running gc on POSIX is no longer taken over after a day.
+- **Git allowlist: `rev:path` is contained the way git resolves it.** Git reads
+  the path of `rev:path` from the repository top, not the working directory,
+  so with a shell root that is a subdirectory of a larger repository
+  `git show HEAD:<file>` (or `HEAD:` for the whole top tree) could read
+  committed content above the root. Such paths are now checked from the
+  repository top; `rev:./path` stays cwd-relative.
+
+### Tests
+
+- Backwards-compat fixtures for 0.12.0 (`tests/fixtures/compat/v0_12_0`),
+  generated by the released 0.12.0, join the cross-version gate.
+
+## 0.12.0 — 2026-10-22 — Git for agent runs: blame, bisect, git integration, porcelain, interop
+
+opentine now works the way git users expect. A commit can name the agent runs
+that produced it, `tine blame` says which run, step, model and tool call wrote a
+line, and `tine bisect` finds the run or step where things went wrong. Remotes,
+branches, tags, the reflog, `pull`, `reset`, aliases and hooks behave like their
+git namesakes, and the plain verbs (`log`, `show`, `diff`, `tag`) act on a
+repository first. Agent sessions can be captured with no setup, ATIF and
+OpenCode sessions import, media endpoints are called and priced directly, and
+transfers and server storage are compressed.
+
+### Upgrade notes
+
+- **Pricing catalogs are signed with a domain-separated scheme**
+  (`ed25519/opentine.pricing-catalog.v2`): the signature covers
+  `opentine.pricing-catalog.v2:` followed by the canonical body, so it cannot be
+  confused with an artifact or attestation signature. Older (v1) signatures still
+  verify for catalogs generated before 2026-11-01 by the existing release key;
+  anything newer must be v2. **opentine 0.11 and older cannot read a v2-signed
+  catalog file**, so a user or workspace catalog signed by 0.12 needs 0.12.
+- **The remote stores new objects compressed, then sealed (TINEAES4)**, with the
+  codec and the uncompressed size bound into the authenticated data. A 0.11
+  server cannot read TINEAES4. Before rolling a server back, run
+  `tine serve --root R --tenant T reseal --to aes3` for each tenant and set
+  `TINE_REMOTE_STORAGE_CODEC=off`. `TINE_REMOTE_STORAGE_CODEC=off|zlib|zstd` and
+  `tine serve --uncompressed-tenant T` turn compression off server-wide or per
+  tenant. TINEAES1–3 objects keep opening.
+- **Transfers negotiate TINEPACK4**, a binary compressed pack. A 0.12 client only
+  offers it to a server that advertises it, and a 0.12 server only answers with it
+  when asked, so 0.11 clients and servers keep exchanging TINEPACK3 in both
+  directions.
+- **The plain verbs act on a repository first.** `tine show`, `diff`, `tag` and
+  `log` read the v3 repository when one is found (`fork` with `--ref`, `search`
+  with `--repo`). An existing file path or a legacy run id still selects the old
+  file behaviour, and `--legacy` forces it; the `repo-*` names keep working.
+- **Aliases, hooks and remote token files only take effect in a repository this
+  machine has trusted.** `tine config --trust` records the exact bytes of
+  `.tine/porcelain.json` outside the repository; any edit not made through `tine`
+  makes them inert again, so a cloned repository cannot run anything. Hooks are
+  also off until `hooks.enabled` is set.
+- **`tine export --output` writes owner-only (0600) files**, also when `--force`
+  replaces an existing file, and refuses a destination that exists and is a
+  directory, FIFO or device.
+- **OIDC discovery fetches through a bounded HTTPS client by default**
+  (`opentine.remote._jwks.https_fetch`): no redirects, no proxy environment, a
+  1 MiB cap and a total deadline. Pass `fetch=` to use your own.
+- **The remote can enforce fast-forward-only `heads/*`**: `tine serve
+  --fast-forward-heads`. It is off by default, because an ordinary `put_run`
+  repoints `heads/main` at an unrelated new run. With it on, a non-fast-forward
+  move is refused unless an admin pushes with `tine push --force`; both outcomes
+  are audited.
+- New verbs (README count 64): `git`, `blame`, `bisect`, `remote`, `pull`,
+  `branch`, `verify-tag`, `reflog`, `reset`, `config`, `rebase`, `cherry-pick`,
+  `hook`, `media` (and the porcelain `log`).
+
+### Added
+
+- **Runs linked to git commits.**
+  - `tine git install-hook [--global]` adds a `prepare-commit-msg` hook that
+    appends a `Tine-Run: <run>` trailer for every recorded run that wrote one of
+    the staged files since the last commit. It never blocks a commit and never
+    replaces a hook you already have: an existing hook is kept as
+    `prepare-commit-msg.tine-chained` and runs first. `--global` uses your global
+    `core.hooksPath`, or opentine's own hooks directory with pass-through shims
+    so each repository's own hooks keep running.
+  - `tine git note COMMIT [RUN...]` records runs, model and cost under
+    `refs/notes/tine`, for example after a rebase rewrote the message.
+  - `tine git log --commit SHA | --pr N` (also `tine log --commit/--pr`) lists the
+    runs behind a commit or a GitHub pull request (`--pr` uses `gh`).
+- **`tine blame PATH[:LINE] [--git]`** names the run, step, model, agent and tool
+  call that wrote a file or a line, by matching the line against each recorded
+  write (Write content, Edit/MultiEdit text, `apply_patch` hunks). `--git` starts
+  from `git blame`: commit, then its trailers and notes, then the step.
+- **`tine bisect`** finds the first bad run along a fork lineage, in an explicit
+  run list (`--runs`, e.g. one task across models), or the first bad step of one
+  run (`--steps RUN`). `bisect run --eval CMD` uses an evaluator's exit code like
+  `git bisect run`; `bisect run --score NAME>=X` uses recorded evaluation scores.
+  In a repository each verdict is recorded on the run as an annotation.
+- **Git-style porcelain.**
+  - `tine remote add/ls/rm/rename` (a remote stores a path to a token file, never
+    the token, and refuses URLs with credentials, a query or a fragment); `fetch`
+    and `push` accept remote names and `--all`; `tine pull` fetches and only
+    fast-forwards.
+  - `tine branch`, `tine tag NAME [RUN] [-s|-d|-f]` (signed tags) and
+    `tine verify-tag`, `tine reflog`, `tine reset REF RUN [--expect]`. Every
+    change is compare-and-swap, and a deleted branch or tag can be brought back
+    with `reflog` and `reset`.
+  - `tine config get/set/--list/--unset/--trust` and `alias.*` (an alias never
+    shadows a built-in verb).
+  - `tine log --graph --all --oneline` draws the fork tree with model, status,
+    steps and cost.
+  - Client hooks `pre-record`, `post-run`, `pre-push`, `post-fetch`: opt-in,
+    trust-gated, regular files only, a scrubbed environment (no API keys) and a
+    timeout; a failing `pre-*` hook aborts.
+  - `.tineignore` drops paths from the captured diff, or replaces their content
+    (`redact:`).
+  - `tine rebase RUN --onto-model M [--from-step N]` prepares a fork of a run on
+    another model, and `tine cherry-pick RUN:STEP --onto RUN2` copies one step
+    onto another run; both write `experiments/...` refs and leave the sources
+    untouched.
+- **Zero-config capture: `tine hook install --global --repo PATH`** adds a
+  session-end hook to Claude Code (`settings.json`), Codex (`hooks.json`) and
+  Gemini CLI (`settings.json`) that imports every finished session. `--agent`
+  narrows it, `--dry-run` previews, `tine hook uninstall --global` removes only
+  opentine's entry, and `tine hook status --global` reports. Other hooks are never
+  edited, the original file is backed up to `<file>.tine-backup`, and invalid or
+  symlinked config files are refused untouched.
+- **ATIF import and export.** `tine import` reads Harbor's Agent Trajectory
+  Interchange Format (v1.0–v1.8, auto-detected), including embedded subagent
+  trajectories, and `tine export --format atif` writes an ATIF-v1.8 trajectory.
+  Usage converts both ways without loss; the file's `cost_usd` is kept as an
+  attribute and never used as the price.
+- **OpenCode import.** `tine import ~/.local/share/opencode/opencode.db[::<id>]`
+  (or `tine import latest --from-default-location --format opencode-session`)
+  imports an OpenCode session and its child sessions. The database is opened
+  read-only, only the session, message and part tables are read, an unrecognised
+  schema is refused by name, and rows, sessions, depth and bytes are bounded.
+- **Media endpoints.** `tine media image|speech|transcribe` and
+  `opentine.models.media` call OpenAI image generation (gpt-image), text-to-speech
+  and transcription, and xAI Grok Imagine images. Each call is a model step that
+  `tine price` re-prices exactly; outputs are stored as size and SHA-256, never
+  inline. The usual transport rules apply: no redirects, a 64 MiB body cap,
+  identity encoding, keys only over TLS or loopback, and a custom `--base-url`
+  needs `--api-key-env`.
+- **xAI media cards** (231 cards): grok-imagine-image ($0.02), -2.0 ($0.04),
+  -quality ($0.05) per image; grok-imagine-video-1.5-lite ($0.020/s), -1.5
+  ($0.080/s), grok-imagine-video ($0.050/s); grok-voice-3.0 ($0.08/min).
+- **TINEPACK4 and TINEAES4** (see Upgrade notes). A v4 pack is about 8–12%
+  smaller than v3 on text runs, and zstd is used when both ends have it.
+- **Conformance:** a TINEPACK4 reader vector joins the suite, which now ships
+  **524 conformance vectors**; 195 of the 524 refuse input, and the adapter
+  contract still has one entry point: 33 ops.
+
+### Changed
+
+- Imported Claude Code subagent transcripts, OpenCode child sessions and ATIF
+  subagent trajectories are linked through a typed `subagent` step under the tool
+  call that delegated them, so the delegation survives import, storage and export.
+- Gemini image and video prompt tokens are recorded separately (`input_image`,
+  `input_video`). A Google card that prices them like text and states no rate of
+  its own folds them back into `input`, so existing cards, overlays and recorded
+  runs price exactly as before.
+
+### Security
+
+- **Commit trailers carry only well-formed run ids.** A run id containing a
+  newline can no longer add a forged trailer (such as `Signed-off-by`) to a
+  commit message; ids must fully match the run-id grammar.
+- **`.tineignore` applies from any subdirectory.** Capture loads the rules from
+  the git worktree root (where git reports paths from), and drops the patches if
+  the root cannot be determined.
+
+- **Hooks never import code from the project directory.** The installed
+  `prepare-commit-msg` hook and the `tine hook` agent commands run Python in
+  isolated mode (`-I`), so a cloned repository shipping its own `opentine/`
+  package is not executed on commit or session end.
+- **A harmless config write never trusts a cloned `porcelain.json`.**
+  `tine remote add`/`rm`/`rename` and `tine config set`/`--unset` keep trust
+  only if the file was already trusted; planted `hooks.*`, `alias.*` and
+  token-file entries stay inert until `tine config --trust`.
+- **Trust covers the hook programs too.** The recorded digest hashes
+  `porcelain.json` and every file under `.tine/hooks/`; a hook edited, added or
+  removed after trust (a project update, a re-clone) revokes it until reviewed.
+- **A cloned project's remote never receives your token.** A named remote
+  resolves only from a trusted `porcelain.json`, so `tine pull`, `tine fetch
+  origin` and `tine push origin` in an untrusted project refuse instead of
+  sending `TINE_REMOTE_TOKEN` or `--token` to a URL the project chose; a literal
+  URL still works.
+- **The commit hook credits only runs you pointed it at.** It reads the runs
+  directory or repository recorded by `tine git install-hook` (`git config
+  tine.runsDir` / `tine.repo`, or `--runs-dir`/`--repo`), never a cloned work
+  tree's own `.tine/` or `.tine_runs/`, and ignores writes stamped in the
+  future. Installed globally, it still runs each repository's own
+  `prepare-commit-msg`, and every client hook gets a pass-through shim.
+- Pricing catalog signatures are domain-separated (see Upgrade notes). Key
+  rotation stays a documented procedure; the release key is unchanged.
+- Every git call the link commands make uses the shell tool's hardening: the
+  binary bound with `shutil.which`, no fsmonitor, hooks, pager, external diff or
+  transports, and an environment without `GIT_*`, pager or editor variables.
+  Revisions that could be read as options are refused, and anything read back
+  from git (trailers, notes) is used only if it matches the run-id grammar.
+- The installed commit hook only reads the (redacted) action index and swallows
+  every failure, so it can never block or alter a commit beyond adding trailers.
+- Repository hooks, aliases and remote token files are trust-gated per machine
+  and per byte of configuration, so cloning a repository never runs its hooks.
+- `tine hook install` never edits another tool's hooks and refuses symlinked or
+  invalid config files; ATIF subagent references to other files or URLs are never
+  followed; the OpenCode database is opened read-only and its credential tables
+  are never read.
+- The TINEPACK4 reader checks the checksum, the header size, the object count and
+  the total declared size before inflating, and inflates with exactly that size
+  as the limit. TINEAES4 caps the declared size before decrypting.
+- Exports of run content no longer inherit a world-readable mode, and OIDC
+  discovery no longer depends on the caller supplying a bounded fetch.
+- `tine bisect run --score` now applies search's evaluation trust rules: a
+  signed evaluation outranks unsigned ones, unsigned scores outside ±1e6 count
+  for nothing, and the new `--signed-only` ignores unsigned evaluations. Before,
+  any MCP client could write an unsigned evaluation that decided the bisect.
+- `.tineignore` now matches paths git C-quotes in diff headers (non-ASCII,
+  quotes, backslashes); captures run git with `core.quotePath=false`, quoted
+  headers are unquoted, both sides of a rename are checked, and a header that
+  cannot be parsed drops its section instead of capturing it.
+- `tine blame --git` and the git-link hook never run a repository's own
+  `filter.*.clean` or `diff.*.textconv` programs: blame reads the committed
+  `HEAD` with `--no-textconv`, and git-link calls set `core.attributesFile`
+  to the null device.
+- The first `tine config`/`tine remote` write no longer trusts `.tine/hooks/`
+  files a clone shipped without a porcelain file; it leaves them untrusted and
+  points to `tine config --trust`.
+- A TINEPACK4 header whose `shallow` field is not a list of strings is refused
+  as an invalid pack rather than raising `TypeError`.
+- Transcription usage without an input-token breakdown bills its input tokens
+  as audio instead of dropping them; non-finite or negative durations are
+  treated as unreported.
+
+### Still open
+
+- `tine rebase` prepares the fork on the new model; it does not re-execute the
+  steps (resume it yourself). `post-run`/`pre-record` hooks fire from rebase and
+  cherry-pick, not yet from the recorder.
+- `tine pull` only fast-forwards; there is no merge of diverged run histories.
+- OS sandbox backends for the python tool (Landlock, bubblewrap) are deferred:
+  the 0.12 prototypes left host IPC (UNIX sockets) reachable, so they were not
+  shipped. The python tool remains resource containment, not an OS sandbox.
+- Windows on-disk path cases (junctions, UNC, 8.3 names) are covered by
+  normaliser tests, not yet by a Windows-only CI slice.
+- Veo and Imagen have no published prices and no adapter; xAI text-to-speech and
+  speech-to-text, xAI video/voice adapters and the OpenAI realtime adapter are not
+  built.
+- ATIF export flattens subagents into one trajectory instead of emitting
+  `subagent_trajectories`. Qwen Code and other CLIs get no global hook (no
+  documented session-end hook).
+- Blame matches a line by its text, so identical lines are attributed to the
+  newest write, and shell-made writes are blamed at file level only.
+
+## 0.11.0 — 2026-10-20 — Agent actions, multimodal pricing, storage compression
+
+You can now ask which agents did what. `tine who` finds every agent, model or
+session that ran a command, touched a path, called a host or used an MCP tool,
+and `tine audit --policy` turns those questions into a CI gate. Image, video,
+voice and omni-modal models are priced by their own units: per image, per
+second, per minute, per character. `.tine` files and repositories are stored
+compressed by default, and `tine gc` packs a repository about 18× smaller on
+disk. The shell tool's git guard, the one area the 0.10 audit did not cover,
+is rebuilt as an allowlist.
+
+### Upgrade notes
+
+- **Files written by 0.11 need 0.11 to read.**
+  - A compressed `.tine` starts with `TINEZ1`, and a compressed or packed
+    repository has a version-2 descriptor. Releases before 0.11 refuse both;
+    for repositories the refusal is clean.
+  - To share with an older release, write plain files: `tine --no-compress …`
+    or `OPENTINE_COMPRESS=0`. `tine compress --decompress` converts existing
+    `.tine` files.
+  - Existing version-1 repositories are never written compressed until
+    `tine gc` upgrades them.
+- **Compressed `.tine` files are binary.** `cat` and `jq` show compressed
+  bytes; use `tine show`, `tine export` or `tine compress --decompress`.
+- **Codecs.** `OPENTINE_COMPRESS=zlib|zstd` picks one. On Python 3.11–3.13,
+  install `opentine[zstd]` (`backports.zstd`) to read zstd data; without it,
+  writes use zlib.
+- **Network transfer is unchanged.** Push, fetch, clone and transfer packs carry
+  canonical bytes, so compressed and plain repositories exchange objects
+  freely.
+- **The bundled catalog is `opentine-pricing/3`.**
+  - 0.10 and earlier refuse a /3 catalog (`unsupported pricing catalog
+    schema`). Installing a 0.11 catalog on 0.10 therefore fails closed rather
+    than reading a per-image price as a per-million price.
+  - A /1 or /2 catalog that carries `units` or `same_rate_as` is refused.
+  - Recorded Gemini image/audio/video output and OpenAI audio/image tokens now
+    land in media dimensions, so a workspace pricing overlay for those models
+    needs the media rates or the price comes out `partial`.
+- **git in the shell tool is opt-in beyond read-mostly work.**
+  - `ShellPolicy` gains `git_network` and `git_write_out`, both off by default.
+  - `fetch`, `pull`, `push` and `ls-remote` need `git_network`.
+  - `init`, `clone`, `archive` and `format-patch` need `git_write_out`; `clone`
+    needs both.
+  - Abbreviated git options, `-p`/`--paginate`, `diff --output`, `--no-index`,
+    and subcommands outside the list below are refused.
+  - `git-*` helpers and `scalar` can no longer be allowlisted directly.
+  - Bare allowlist entries are resolved with `shutil.which` when the command
+    runs.
+- **New index files.**
+  - The run index (`index.json`) moves to version 2 and rebuilds once, on the
+    first `ls` or `search`.
+  - The new action index lives in `.tine_runs/actions.sqlite` and
+    `.tine/indexes/actions.sqlite`. Both are caches and safe to delete.
+
+### Added
+
+- **`tine who`: which agents did an action.**
+  - Filter by tool, command text (`--cmd`), program (`--program rm`), path,
+    host, MCP server/tool (`--mcp github/create_*`), verb, agent, model,
+    provider, session, run and time (`--since 7d`).
+  - Verbs are `exec`, `file.read`, `file.write`, `file.delete`, `net`, `mcp`,
+    `git` and `spawn_subagent`.
+  - Group results with `--by agent,model` (or provider, session, subagent, run,
+    tool, program), or list them with `--list`. `--json` is available.
+  - It covers the legacy runs directory by default, or a v3 repository's refs
+    with `--repo PATH`.
+  - Commands are parsed through `sudo`, `env`, `bash -c`, and `&&`, `;` and `|`
+    chains.
+- **More action commands.**
+  - `tine actions RUN` lists one run's tool calls in order.
+  - `tine touched --path X` shows which agents wrote or deleted a path.
+  - `tine audit --policy FILE` checks recorded actions against deny/warn rules
+    (TOML or JSON). It exits 1 on a deny rule, or on any rule with `--strict`,
+    so CI can gate on what agents did. It also exits 1 when a run could not be
+    read or hit the per-run action cap, unless `--allow-partial` is given.
+- **MCP `find_actions`.** The same query for a model client, with bounded
+  arguments and the usual result sanitizing.
+- **The action index.** A rebuildable SQLite cache (stdlib `sqlite3`). Updates
+  are incremental, and an incremental sync gives the same result as a fresh
+  build.
+- **Image, video, voice and omni models are priced.**
+  - Usage has per-modality token dimensions: `input_image`, `input_audio`,
+    `input_video`, `output_image`, `output_audio`, `output_video`.
+  - It also has per-unit dimensions: `images[:variant]`,
+    `video_seconds[:variant]`, `audio_input_seconds`, `audio_output_seconds`,
+    `audio_minutes`, `tts_characters`, `realtime_minutes` and `requests`.
+  - A rate card can price a dimension per unit (`units`), and can declare that a
+    dimension bills like another (`same_rate_as`).
+  - A used dimension with no rate makes the price `partial` with a warning, so
+    media is never billed at the text rate.
+  - `opentine.billing._media.media_usage()` builds usage for a media call.
+- **Adapters and OTel capture media usage.**
+  - Gemini output is split by modality.
+  - OpenAI audio and image tokens are split from text.
+  - OTel `gen_ai.usage.<image|audio|video>.<input|output>_tokens` import into
+    the media dimensions and export from them.
+    The modality counters are read as a breakdown of the inclusive input and
+    output totals, like the cache counters: they never bill more than the span
+    reported. Counters larger than what is left after cache (cached media, or
+    several modalities against a small total) are clamped, with an import warning.
+- **Pricing catalog: 190 → 224 signed cards (`opentine-pricing/3`, verified
+  2026-10-20).**
+  - Mistral Large 4's launch sale is over. Runs from 2026-10-20 price at the
+    list rate: $1.36 input, $0.14 cached, $4.18 output.
+  - New text models: MiniMax M3.1 Flash, and Gemini Omni Flash with its
+    preview. Omni video output is priced at $17.50/M.
+  - New Gemini media models: Nano Banana 2.1, 3.1 Flash Image and Flash-Lite
+    Image; 3.8 Flash TTS and Flash-Lite TTS; 3.8 Live; Lyria 3.5.
+  - New OpenAI media models: the gpt-realtime and gpt-audio families,
+    gpt-4o-mini-tts, tts-1 and tts-1-hd (per character), the gpt-image family,
+    and whisper-1 and gpt-transcribe (per minute).
+  - DeepSeek's `deepseek-flash` records model version V4.1-Flash-1017.
+- **Compressed storage, on by default.**
+  - New `.tine` files and new repositories are stored compressed: zstd on
+    Python 3.14 or with `opentine[zstd]`, zlib otherwise. On real Claude Code
+    sessions a `.tine` is about 21% of its plain size.
+  - Object ids, run digests and signatures are computed over the uncompressed
+    canonical bytes, so a compressed copy and a plain copy are the same
+    artifact and every existing signature still verifies.
+- **`tine gc` and `tine repack`.**
+  - They move loose objects into compressed packs (`.tine/packs/*.tpk` +
+    `.tidx`). On four real sessions, a store went from 5.3 MB on disk to
+    300 KB.
+  - A pack is written and read back before anything loose is deleted.
+  - `repack` merges all packs into one.
+- **`tine archive create FILE` / `tine archive restore FILE DEST`.** A whole
+  repository as one compressed file. Restore verifies every object id and goes
+  into a new repository only. Refs (including `remotes/*/annotations`), shallow
+  boundaries and the unadopted-annotation record travel with the archive, so a
+  restored repository labels runs exactly as the original did.
+- **`tine compress PATH...` / `--decompress`.** Rewrites existing `.tine` files
+  without reserializing them, so the digest and signature are untouched.
+- **`tine export --compress gzip|zstd`.** Writes a `.gz` or `.zst` document that
+  other tools open directly.
+
+### Fixed
+
+- **`tine search` finds tool arguments.**
+  - The index used to take only a step's `text`, `name` and `result`, so a run
+    that ran `rm -rf /tmp/build` could not be found by that command.
+  - A run past the 8,000-character index text is marked `truncated` and
+    searched in full from its file.
+  - New `harness:` and `provider:` predicates.
+- **`tine gc` / `tine repack` take a repository lock.**
+  - Two packers can't race.
+  - A lock left by a crashed gc is taken over once its process is gone (POSIX)
+    or after a day; `OPENTINE_GC_BREAK_LOCK=1` forces it.
+  - An interrupted gc loses nothing and can be re-run.
+  - gc no longer removes emptied object directories, which raced concurrent
+    writers.
+- **Shell-side writes count as writes.**
+  - Recognised forms: redirects (`>`, `>>`, `&>`), `tee`, `cp`/`mv`/`install`/
+    `ln` destinations (including `-t DIR`), `sed -i`, `dd of=`, `truncate`,
+    `touch`, and `chmod`/`chown`/`chgrp` targets.
+  - `tine touched` and `writes=true` policy rules now see them.
+  - The action index rebuilds once.
+- **`tine who --program X --by program`** groups under the program that
+  matched, not the command's first program.
+
+### Security — git in the shell tool
+
+- **`rev:path` stays inside the shell root.** A `rev:path` token is also
+  contained as a filesystem path, and its path part must stay inside the root:
+  `git diff` silently switches to `--no-index` for a path outside the work tree,
+  so `ab:c/../../../x` could print a host file. Drive-letter, backslash and
+  absolute forms are refused.
+- **git in the shell tool is an allowlist, not a denylist.**
+  - git accepts any unambiguous abbreviation of a long option, so an
+    abbreviation of `--upload-pack` got past the old option denylist.
+  - Its subcommand set is open-ended: `maintenance`, `credential-store`, and
+    any `git-*` program.
+  - The shell tool now runs only these read-mostly subcommands: status, log,
+    show, diff, shortlog, describe, add, rm, mv, commit, branch, checkout,
+    switch, restore, rev-parse, ls-files, ls-tree, cat-file, grep, blame,
+    stash, tag, merge, reset, reflog, version.
+  - Each subcommand accepts only its own listed long options and short letters,
+    and an abbreviation is never accepted.
+  - Each option is classed as taking a required value, an attached-only
+    optional value (`--pretty[=fmt]`, `-U5`, `-uno`), or none, per subcommand,
+    so the token after a flag is always checked. A test asks the installed git
+    whether every option the guard reads a value for really takes one.
+  - Merge strategies are limited to git's own.
+- **Network and write-out git need an explicit opt-in.** Remotes must be
+  https/ssh URLs or remote names. Local paths, `file://` and `transport::`
+  helpers are refused, including as clone sources.
+- **Every path git is told to use stays inside the shell root.**
+  - Covered: `-C` (including through `..` or a symlink), path-valued options,
+    init and clone directories, and every positional of a local subcommand
+    (`rm`, `mv`, `checkout`, `restore`, `add`, `reset`, `stash`, `diff`, …).
+  - Pathspec magic (`:(top)`, `:/`, any leading `:`) is refused.
+  - `rev:path` is accepted only by the read-only `show`, `diff`, `log`, `grep`
+    and `blame`.
+  - Paths resolve from the directory git actually runs in, so a symlink below
+    the working directory cannot lead outside the root.
+- **git runs with a clean environment and hardened configuration.**
+  - `GIT_*`, `PAGER`, `EDITOR`, `VISUAL` and `LESS*` are dropped.
+  - Five variables are pinned: `GIT_CONFIG_NOSYSTEM=1`,
+    `GIT_TERMINAL_PROMPT=0`, `GIT_PAGER=cat`, `GIT_EDITOR=true` and
+    `GIT_PROTOCOL_FROM_USER=0`.
+  - Hooks, the pager, external diff and every transport are disabled; https
+    and ssh are re-enabled only with the network opt-in.
+  - This applies to the shell tool and to `code_manifest`.
+- **git helpers are refused, and allowlist entries resolve to absolute
+  programs,** so PATH order cannot swap the program that runs.
+- **`.git` aliases.** The fs tool also refuses `.git.`, `GIT~1`, NTFS stream
+  names and HFS+-ignorable spellings.
+
+### Security — storage and indexes
+
+- **An action index is trusted only if this machine wrote it.** Its stamp is
+  keyed with a per-user secret (`$XDG_CONFIG_HOME/opentine/actions-index.key`),
+  so an `actions.sqlite` shipped with a clone or archive is rebuilt from the runs
+  instead of steering `who`, `touched` or `find_actions`. A symlinked, junctioned
+  or non-regular index (or runs directory) is refused, SQLite opens it with
+  `nofollow`, and a file that is not opentine's own index is replaced, never
+  emptied in place.
+- **A process survives another process's repack.** A packed read whose pack
+  disappeared refreshes the pack list and retries once.
+- **Cached audio no longer moves text into the audio bucket.** OpenAI's input
+  `audio_tokens`/`image_tokens` include cached media; only the uncached share
+  (after `cached_tokens_details`) is split out of fresh text, so text no longer
+  bills at the audio rate.
+- **Every compressed read is bounded before it allocates.**
+  - The declared length must fit the reader's limit and a 1000:1 ratio, and the
+    data must inflate to exactly that length.
+  - Trailing data, multiple frames, nested compression and unknown codecs are
+    refused.
+  - Packed objects are checked against their id on every read and by fsck.
+- **A crafted pack index or archive can't force repeated inflation.**
+  - Reads, fsck and `tine archive restore` could be made to re-inflate a large
+    block for every object.
+  - Each block's entries must now tile it exactly.
+  - A block of several objects stays within 1 MiB.
+  - A block must inflate to exactly the size its entries describe.
+  - fsck and gc read packs block by block.
+- **Per-unit media dimensions are priced only in their stated unit.**
+  - Covered: images, video and audio seconds, minutes, TTS characters,
+    requests, and their `:variant` forms.
+  - A card that gives no unit makes the price `partial` with a missing-rate
+    warning, instead of a "complete" price per million units.
+  - Such cards are refused at load, and /1 or /2 catalogs carrying per-unit rate
+    names are refused.
+- **Hosts behind userinfo stay visible.** A URL with a password no longer loses
+  its host in the action index once redacted, so `host=` rules and
+  `tine who --host` match it.
+- **The action index holds only redacted content.** It is built through the
+  same redaction a saved run gets, and every query filter is a bound SQL
+  parameter.
+- **Redacted coverage is reported, not hidden.** A `--cmd` query says how many
+  actions it could not match because their text was redacted.
+- **`tine audit` re-derives every verdict.** It builds the action index in
+  memory from the runs on each call, so an index file that arrived with a
+  cloned tree or archive cannot hide an action from it. A run that could not be
+  read, or that hit the per-run action cap, fails the audit unless
+  `--allow-partial` is given. So does a command whose text redaction cut short
+  (`export TOKEN=x; rm -rf /` is stored as `export TOKEN=[REDACTED]`): the
+  audit reports it as unchecked coverage instead of a pass. Program names are
+  also read from the command before redaction -- only bare executable names
+  that redaction leaves untouched, never an argument -- so `rm` still reaches
+  a `program="rm"` rule.
+- **Only written paths count as written.** A shell command records the files
+  it reads and the files it writes separately: `cat /a > /b` and `cp /a /b`
+  list `/a` as read and `/b` as written, so `tine touched` and `writes=true`
+  rules no longer report a file an agent only read. `sed -i`'s script is not
+  taken for a file.
+- **Whole-tree git forms stay inside the root.** When the shell root is a
+  subdirectory of a larger repository, `reset --hard` (or any `reset`/`checkout`
+  without a `--` pathspec), `commit -a`, `add -A`/`-u` without a pathspec,
+  `stash` (except `list`/`show`), `merge`, `pull` and `switch` are refused:
+  they act on files outside the root. `--pathspec-from-file` is no longer
+  accepted by `add`, `reset` or `commit`, because the pathspecs inside the file
+  were never checked.
+- **Per-unit media never aliases a per-million rate.** `same_rate_as` compares
+  units by dimension family (`images:hd` is per image through `images`), so a
+  card cannot join a per-image variant to a per-million token rate.
+- **Deleting a bare filename is recorded on that path.** `rm notes.txt`,
+  `unlink`, `rmdir` and `shred` operands now appear in `tine touched` and
+  `writes=true` rules, not only paths with a slash.
+
+### Still open
+
+- **Remote transfer.** Network packs (TINEPACK4) and compress-then-seal on the
+  remote server are planned for 0.12. Network transfer is uncompressed today.
+- **Gemini image and video input** are not split from `input`, so Gemini Live
+  image and video input prices at the text rate.
+- **Media endpoints.** opentine cannot call the OpenAI Images, TTS and
+  Transcription endpoints or Gemini Veo, Lyria and Live itself. Such calls are
+  priced when recorded through the library, a harness or an import.
+- **Not carded:** Veo, Imagen, gpt-4o-transcribe, xAI media and ElevenLabs.
+- **OpenAI media cards start 2026-10-20,** because OpenAI publishes no launch
+  dates.
+- **Archives.** `tine archive` covers a whole repository.
+- **Action records.**
+  - Writers outside the list (`python -c`, `perl -i`, editors) aren't
+    recognised.
+- **git `rev:path`.** In read-only commands, `rev:path` names committed content
+  anywhere in the repository, which can lie outside a shell root that is a
+  subdirectory.
+- **Inflate budget.** Inflate work is bounded by block structure (at most 1 MiB
+  per small-object read), not by a total byte budget per operation.
+- **Stale gc locks on Windows** are detected by age only.
+- **Not yet built:** saved queries, `tine diff --actions`, signed action
+  manifests and action stats.
+- **Still open from 0.10.0.**
+
+## 0.10.0 — 2026-10-15 — Universal harnesses & round-3 security
+
+Every major agent CLI is now a harness whose runs record the real model, token
+usage, tools and cost, and the session logs those CLIs keep for themselves
+import directly — so `tine price` works on Gemini CLI, Qwen Code, Codex, Pi,
+OpenCode, Goose and a dozen others, not only Claude Code. Local servers gain
+`--base-url`/`--api-key-env` and eleven new presets, hosted vendors fifteen,
+and the signed catalog grows from 122 to 190 cards. This release also fixes
+every finding of a third security audit of 0.9.2 (25 confirmed issues across
+the remote, the repository, signing, redaction, the tool sandbox and the CLI),
+the Anthropic SDK 1.x crash, and `tine price` reporting $0 for most runs. Each
+fix has a regression test in `tests/test_security_0_10_*.py` that fails on
+0.9.2. No format change: every file and repository written since 0.3.0 still
+reads and prices.
+
+### Upgrade notes
+
+*Pricing and models*
+
+- **`tine price` totals rise for runs recorded before 0.10.** It now also prices
+  the `done`, `think` and `error` steps the capture billed (a `tine run --model`
+  run's only step is a `done` step), and applies the recorded service tier
+  (fast, priority, flex, US-geo). Totals captured at run time are unchanged.
+- **Default models changed:** `groq` and `openrouter` default to
+  `openai/gpt-oss-120b`, `together` to `meta-models/Muse-Glimmer-30B` (the old
+  defaults were removed or made Enterprise-only upstream).
+- A signed `.tine/pricing.json` older than the bundled or installed catalog is
+  ignored (stderr notice); re-sign or remove it. `tine pricing install` refuses a
+  different catalog signed at the same `generated_at` as the installed one.
+- `gemini-3.5-flash` calls after 2026-10-07 re-price `unknown` (Google retired
+  the model and routes its calls to 3.6 Flash at half the price); May–July 2026
+  calls now price.
+- A later GPT generation (`gpt-7`) behind any OpenAI-compatible endpoint is
+  treated as a reasoning model and sent no `temperature`.
+- `--base-url` with a hosted preset (Groq, DeepSeek, …) needs `--api-key-env`:
+  the vendor's own key never follows the URL to another host.
+  `Anthropic(base_url=<non-Anthropic host>)` and `--model anthropic --base-url`
+  read `ANTHROPIC_COMPAT_API_KEY` (or an explicit key), never
+  `ANTHROPIC_API_KEY` / `ANTHROPIC_AUTH_TOKEN`. `ANTHROPIC_BASE_URL` set in the
+  environment keeps the SDK's own behaviour — the operator's pairing of
+  endpoint and key (Bedrock/Vertex/Foundry-style gateways).
+- The SDKs' environment headers (`ANTHROPIC_CUSTOM_HEADERS`,
+  `OPENAI_CUSTOM_HEADERS`, `OPENAI_ORG_ID`, `OPENAI_PROJECT_ID`) are no longer
+  sent to an explicit `--base-url`, a compatible server, a hosted-vendor preset
+  or a local preset. Where they are still sent (the first-party API or the
+  operator's `*_BASE_URL` gateway) their values count as credentials for the
+  cleartext rule: a plain-`http://` non-loopback gateway needs
+  `OPENTINE_ALLOW_INSECURE_ENDPOINTS=1`.
+- `tine price` books a call `unmetered` only when its provider is a local
+  server, its model has no `:cloud` / `-cloud` tag and the capture recorded no
+  other verdict; runs captured as unmetered (0.9.x included) re-price the same.
+  Imported traces and session logs are never booked `unmetered` from a provider
+  label: a model call imported without `--price` now carries an explicit
+  `unknown` billing record, and every billing block a source file carries is
+  dropped whatever its status says (missing, empty and odd statuses included), so an imported local run (a Codex session on Ollama, say) prices
+  `unknown`, and a cloud-tagged model through a local daemon or a loopback
+  Anthropic-compatible endpoint prices `unknown`. A model call with no billing
+  re-prices `unmetered` only inside a run the harness wrapper captured; anywhere
+  else (a library `Recorder.import_events` import, a run imported by 0.9.x) it
+  prices `unknown`, as 0.9.2 did. `Recorder.import_events` now drops a source's
+  billing and cost by default; pass `trusted_billing=True` for events you priced
+  yourself.
+- An imported trace no longer sets its own cost: the source's `cost` figure moves
+  to the `opentine.source_reported_cost` attribute (shown, never summed), so
+  `tine show`, `tine cost`, MCP and `tine export` report the catalog's price or
+  nothing — never what the file claimed. `tine import --price` prices from the
+  catalog; a model it cannot price keeps no cost.
+- On Linux, bounded tool commands (shell, python, `code_manifest`'s git) run
+  under a supervisor process; a timed-out command reports exit status 137
+  rather than -9.
+- `tine run --harness --autosave` without `--autosave-interval` or
+  `--autosave-seconds` now checkpoints at most every 2 seconds and only after
+  the run has grown by a quarter (it saved after every output line). An
+  explicit throttle is honoured as before.
+- An imported run's cost always comes from the catalog (`--price` or
+  `tine price`), never from billing the source file carries.
+- A pricing catalog whose `signature` holds any field other than `algorithm`,
+  `key_id` and `value`, or a field that is not a string of at most 256
+  characters, is refused.
+- A malformed `cost`/`price`/`duration` in an agent CLI's JSON event is ignored
+  with a `meter_warning` on the step instead of failing the run.
+
+*Harnesses and import*
+
+- **Default harness commands now ask each CLI for its JSON mode:**
+  `codex exec --json --skip-git-repo-check`, `gemini --output-format stream-json -p`,
+  `opencode run --format json`, `kimi --print --output-format stream-json -p`,
+  `openclaw agent exec --json`, `hermes chat --oneshot --format stream-json -q`,
+  `grok --no-auto-update --output-format streaming-json -p` (was `grok exec`,
+  which does not exist), `agent --print --output-format stream-json` for
+  `cursor` (was `cursor-agent run`), and `pi --mode json`. Pass
+  `--harness-command` to keep an old invocation.
+- **Structured stdout is decided by the last output-format option.** A harness
+  command whose only JSON hint was a bare `json` word or a non-format `--x=json`
+  option now records text; name the output-format option explicitly.
+  `claude-code` follows the same rule, so a plain `claude -p` command records
+  text.
+- `pi` no longer needs `--harness-command`, and free-text "cost: $N" lines are
+  now booked only for an operator-written `generic` command.
+- Harness results carry `"stderr"` when the CLI wrote any; stderr is never
+  parsed as events.
+- `tine import`'s `--format` is optional (default `auto`); passing it behaves as
+  before. OTel-imported events whose provider used a registry spelling now
+  record the catalog id (`google`, not `gcp.gemini`).
+- `tine` has 41 subcommands (`harnesses` is new).
+
+*Repository and remote*
+
+- `fetch` no longer moves a local `annotations/*` ref for a run you already
+  held: the remote's head is kept under `remotes/<name>/annotations/`; adopt it
+  with `tine fetch --adopt-annotations`.
+- A remote URL with `user:pass@`, a query or a fragment is refused in every form
+  (including one with the tenant embedded in its path); pass the token with
+  `--token-file` or `TINE_REMOTE_TOKEN`. A remote tenant, from the flag or the
+  URL, must match `[a-z0-9][a-z0-9._-]*` (the server already required this).
+- `put_run`, `migrate-v3` and `fork` raise `ValueError` for a value nested
+  deeper than 512 levels (it was silently truncated at 100 with a marker).
+- `tine clone` refuses a target that already holds refs or objects.
+- `tine serve purge --grace-seconds N` with N below 60 needs `--force` (or
+  `--dry-run`).
+
+*Signing and MCP*
+
+- Ed25519 signature blocks without an embedded `public_key`, and any block with
+  a `null` field, verify as `error` (OpenTine never wrote either).
+- `--ed25519-key-file` refuses `*.pub` files and copies of the adjacent `.pub`.
+- `repo-verify --claim approved=true` no longer selects a claim of `1`.
+- MCP `attest_run` refuses evaluation scores outside ±1e6, `fork_run_v3` /
+  `resume_run_v3` refuse a prompt or policy over 1 MiB, and the `mcp` extra now
+  allows MCP SDK 2.x (`mcp>=1.28.1,<3`).
+
+### Added
+
+- **Every major agent CLI is a harness, and most runs are now priceable.**
+  `tine run --harness NAME` drives 25 agent CLIs: `claude-code`, `codex`,
+  `gemini`, `qwen-code`, `cursor`, `opencode`, `pi`, `hermes`, `openclaw`,
+  `kimi-code`, `grok`, `goose`, `amp`, `droid`, `copilot`, `auggie`, `cline`,
+  `qoder`, `continue`, `openhands`, `vibe`, `aider`, `crush`, `kiro`, and
+  `generic` for anything else (new: `qwen-code`, `goose`, `amp`, `droid`,
+  `copilot`, `auggie`, `cline`, `qoder`, `continue`, `openhands`, `vibe`,
+  `aider`, `crush`, `kiro`). Each catalogued CLI runs in its documented
+  headless JSON mode, and an event *dialect* built from that CLI's own source or
+  reference docs reads it into `model` steps (model, provider, token usage in
+  OpenTine's exclusive buckets), `tool` steps paired with their results, errors,
+  and the CLI's own dollar figure where it reports one. `tine price` re-prices
+  Claude Code, Codex, Gemini CLI, Qwen Code, Pi, Hermes, OpenClaw, OpenCode,
+  Goose, Amp, Copilot and Cline runs from the signed catalog. Token conventions
+  are per CLI and converted explicitly: Gemini CLI and Qwen Code count cached
+  tokens inside `input_tokens` and keep thinking outside `output_tokens`; Goose
+  and Copilot count cache inside input; Pi keeps reasoning inside output.
+  Copilot's `cost` is a premium-request multiplier, recorded as
+  `premium_multiplier` and never booked.
+- **`tine harnesses`** lists every harness, the command it runs, whether the CLI
+  is on `PATH`, and what a recorded run holds (model / usage / cost / tools:
+  `yes`, `no`, `flag` = model only when `--model` is passed, `unverified` = JSON
+  mode documented but its schema not). `--installed`, `--json`.
+- **Codex runs record their model and exact usage.** The `codex` harness reads
+  Codex's documented `exec --json` event stream: a tool step per command,
+  patch, MCP call (`server.tool`), web search and collab call, and one model
+  step per turn. Codex reports the thread's *running* total on every
+  `turn.completed` and counts cached input and reasoning inside its totals, so
+  each turn records its own difference in exclusive buckets. The model comes
+  from `-m` / `--model` / `-c model=…` or `~/.codex/config.toml` (profiles
+  included), a `model rerouted` notice updates it, and `--oss` /
+  `--local-provider` record the local provider.
+- **Claude Code harness runs carry a W3C `TRACEPARENT`**, so Claude Code's own
+  OTel trace (when its telemetry is on) shares the run's trace id, recorded as
+  `run.metadata["otel_trace_id"]`; an operator-supplied one is kept.
+- **Agent CLI session logs import directly.** `tine import` reads the session
+  logs Claude Code (`~/.claude/projects/*/*.jsonl`), Codex
+  (`~/.codex/sessions/**/rollout-*.jsonl`), Gemini CLI
+  (`~/.gemini/tmp/*/chats/session-*.jsonl`, and the legacy `.json`) and Qwen
+  Code (`~/.qwen/projects/*/chats/*.jsonl`) keep for themselves
+  (`--format claude-code-transcript | codex-session | gemini-session |
+  qwen-session`). Each API call becomes a model step with its model, provider
+  and exact usage, each tool call a tool step, each prompt a human step.
+  `tine import --from-default-location` lists the newest sessions across all
+  four CLIs, and `tine import latest --from-default-location --save run.tine`
+  (or a session-id prefix) imports one. A transcript-imported run records
+  `metadata.capture = {"method": "transcript-import", "source_format": …,
+  "agent_writable": true}`: the agent wrote that log and could have edited it.
+  Claude Code subagent transcripts (`<session>/subagents/agent-*.jsonl`) are
+  imported with their session (with `--format auto` and
+  `tine import latest --from-default-location` too), each hung under the tool
+  step that spawned it
+  (bounded: each file on disk is read once, so hard links or a second path to
+  it are skipped, and the session's byte budget is charged before a file is
+  parsed, whether it then imports or not; any left out are counted in
+  `opentine.import_warnings`), and the
+  listing shows how many each session has. Fast-mode and US-only calls in
+  Claude Code transcripts and OTel logs keep their `fast` / `fast_us` / `us`
+  tier, so they price at the carded modifier.
+  A Claude Code response that a mid-stream tool result splits across lines is
+  still one model step with its usage counted once, a session id that is not
+  short and id-shaped is stored as `session-<sha256 prefix>`, and reused span
+  ids and Gemini `$patch` merges cost linear work.
+- **`--format auto`** (the new default) recognizes OTLP spans or logs, OpenTine
+  JSONL, OTel span lists and the session logs above by shape.
+- **OTLP logs import (`--format otel-logs`).** Claude Code `api_request` /
+  `user_prompt` / `tool_result` / `tool_decision` / `api_error`, Codex
+  `codex.sse_event` / `user_prompt` / `tool_result` / `tool_decision`, Gemini CLI
+  `gemini_cli.api_response` / `user_prompt` / `tool_call` / `api_error` and
+  `gen_ai.client.inference.operation.details` each become a priced event,
+  chained per session in time order; Gemini's semconv details event is used only
+  when no `api_response` reports the same call. `otel-json` also accepts the
+  collector file exporter's one document per line.
+- **Claude Code traces import priced.** Its spans carry bare `input_tokens` /
+  `output_tokens` / `cache_read_tokens` / `cache_creation_tokens` and set no
+  `gen_ai.usage.*`; each `claude_code.llm_request` is now a priced model step,
+  `claude_code.interaction` a human step, `claude_code.tool` a tool step and
+  `tool.blocked_on_user` an approval.
+- **Provider spellings are mapped onto catalog ids at import:** `gcp.gemini` /
+  `gcp.vertex_ai` / `gcp.gen_ai` → `google`, `x_ai` → `xai`, `mistral_ai` →
+  `mistral`, `aws.bedrock` → `bedrock`, `azure.ai.openai` / `azure.ai.inference`
+  → `foundry`, LangChain's `google_genai` / `mistralai` / `azure_openai` / …
+  likewise. The original attribute stays on the span.
+- **`tine run --model … --base-url URL --api-key-env NAME`** points any adapter
+  at a server on another port or machine, or one that needs a key, without
+  Python. Every local preset also reads `<PRESET>_BASE_URL` /
+  `<PRESET>_API_KEY` (for example `LLAMACPP_BASE_URL=http://127.0.0.1:9931/v1`
+  for llama.cpp's newer default port, `JAN_API_KEY`, `TABBYAPI_API_KEY`). A real
+  key from the environment is still held to the cleartext rule.
+- **Local runtimes:** `docker-model-runner` (12434, `/engines/v1`), `lemonade`
+  (13305, `/api/v1`), `mistralrs`, `tabbyapi` (5000), `xinference` (9997),
+  `lmdeploy` (23333), `llamafile` (8080), `dynamo` (8000), `aphrodite` (2242),
+  `foundry-local` and `ovms` (`/v3`) — the last two have no conventional port
+  and need `--base-url`. TGI is marked deprecated (archived upstream).
+- **Hosted vendors:** `meta` (Muse; no temperature), `minimax`
+  (`reasoning_split`), `deepinfra` (priced from its reported
+  `usage.estimated_cost`), `fireworks` (the US host bills the 1.5x `us` tier),
+  `cerebras`, `sambanova`, `stepfun`, `xiaomi`, `upstage`, `inception`,
+  `nvidia`, `huggingface`, `vercel`, `cohere`, and `bedrock` (Bedrock's
+  OpenAI-compatible endpoint with `AWS_BEARER_TOKEN_BEDROCK`; a `global.` model
+  id prices at list, a geographic `us.` / `eu.` / … id at the 1.1x `regional`
+  tier, which a reported `default` / `standard` tier never erases and a real
+  tier composes with, e.g. `batch_regional`). Vendors without a card record
+  `unknown`, never a guessed price.
+- **Compatible endpoints:** `Anthropic(base_url=…, provider=…, unmetered=…,
+  cache_inclusive=…)` targets the Anthropic-compatible `/v1/messages` that
+  Ollama, LM Studio, llama.cpp, vLLM and gateways serve, under their own
+  provider, and never receives the first-party `ANTHROPIC_API_KEY` /
+  `ANTHROPIC_AUTH_TOKEN` (only an explicit key or `ANTHROPIC_COMPAT_API_KEY`);
+  `tine run --model anthropic --base-url` records such a run as
+  `local-anthropic-compatible` (loopback, unmetered) or `anthropic-compatible`.
+  `OpenAI(base_url=…, provider=…, responses=True)` targets a
+  compatible `/v1/responses`. OpenAI's data-residency hosts
+  (`eu.api.openai.com`, …) stay native OpenAI and bill the carded `regional`
+  uplift on Responses and Chat Completions alike; a Priority or Flex call there
+  bills `priority_regional` / `flex_regional`, priced only where carded and
+  otherwise `unknown`, never the global rate.
+- **Pricing catalog refreshed (122 → 190 signed cards, verified 2026-10-15).**
+  New: Gemini 4 Argon (introductory $2 / $10 through 2026-11-30 and the
+  already-published $4 / $20 from 2026-12-01), Gemini 3.1 Flash-Lite, Mistral
+  Large 4 (launch sale), Mistral-hosted GLM 5.3, GPT-Rosalind Research, the
+  older OpenAI families still served for Codex and imported traces (gpt-5.5
+  with its 2.5x Fast multiplier, gpt-5.4 / mini / nano, gpt-5.3-codex,
+  gpt-5.2, gpt-5.1, gpt-5-mini with 1.8x Fast, gpt-5-nano), Groq gpt-oss-120b /
+  20b / safeguard-20b, Together MiniMax-M3 / Muse Glimmer 30B / gpt-oss-120b /
+  Qwen3.7-Plus; new first-party vendors Meta (Muse Wonder 1.0, Muse Spark
+  1.1–1.3 and the Contributor-mode variants), MiniMax (M3, M2.7,
+  M2.7-highspeed), StepFun, Xiaomi MiMo v2.6 and Fireworks; and cloud
+  namespaces `bedrock` (Claude 5.x and GPT-6 Astra: global at first-party list,
+  regional 1.1x), `vertex` (Claude 5.x) and `foundry` (Claude at Anthropic's
+  rates with the US Data Zone 1.1x; Azure OpenAI GPT-6 with Data Zone US 1.1x
+  and EU 1.2x). OpenAI's 10% regional-processing uplift is carded as a
+  `regional` tier on models released on or after 2026-03-05. Every GPT-6,
+  GPT-6.1 Sol, Claude Opus / Sonnet / Haiku 5.5 and Fable 5 / 5.1 card was
+  re-verified against the vendor's page; unannounced successors
+  (`claude-fable-5-5`, `gpt-6.2-*`, `gpt-7`) get fail-safe wire rules and stay
+  visibly unpriced until a card exists.
+- **MCP SDK 2.x.** The `mcp` extra allows `mcp>=1.28.1,<3`; the server runs on
+  SDK 2's `MCPServer` or 1.x's `FastMCP`, and under 2.x a tool's (sanitized)
+  error message reaches the client.
+- `StdoutTrust.json_options` / `json_values`: a harness names the option and
+  values that switch its CLI to JSON output.
+
+### Security — repository and remote
+
+- **Fetched associations made every local push and pack quadratic.** The pack
+  walk listed every annotation and attestation file once per run in the
+  history, so objects arriving with ordinary fetches cost runs × objects on
+  each later push. The association target indexes are now listed once per walk.
+- **A writer could still make someone else's run unfetchable.** 0.9.2 promised
+  associations could no longer make a pack fail, but only the object *count*
+  was budgeted. An attestation whose `evidence_ids` named large blobs broke the
+  pack-body or semantic-source limit, and one naming ten thousand tiny ones
+  overflowed the traversal queue (raised before the walk's own budget check) —
+  `fetch`, `clone` and `negotiate` of the victim's run then failed for every
+  reader, promoted runs included. The association phase now budgets objects,
+  encoded pack-body bytes, the source budget and the shallow-boundary list a
+  depth-limited pack carries (at depth 0 one attestation citing ten thousand
+  events added ten thousand boundaries), treats any failure of an association
+  subset as "does not fit", rolls back what it charged, and reports the run as
+  `associations_omitted`. A pack also leaves out what the receiver already
+  holds (and, on a typed fetch, what the type filter drops), so links into
+  those objects could still overflow the shallow list after the budget was
+  checked: a fetch, typed fetch or push whose pack cannot be built with
+  associations is now rebuilt from the object graph alone, its runs reported
+  as omitted (`Opentine-Associations-Omitted`). A graph that does not fit by
+  itself still fails as before.
+- **One fetch can no longer re-read the same oversized evidence once per run.**
+  A rolled-back association set used to leave the next run a fresh budget, so a
+  writer attaching one body-sized evidence set to thousands of runs made a
+  single fetch, negotiate or push read it thousands of times while holding one
+  of the server's pack slots. Everything the association phase reads is now
+  charged, before it is read, to a total of twice the pack body budget that is
+  never rolled back; once it is spent, the remaining runs keep their graph and
+  their associations are reported omitted.
+- **An annotation planted ahead of its run was adopted when the run arrived.**
+  A pack could carry an annotation for a run it did not include (the run as a
+  shallow boundary); nothing was recorded, and when the real run arrived later
+  without an annotation ref the fallback adopted the planted tags. An
+  annotation is now the pack's own only when its run arrives in the same pack
+  and was not already held; every other one is recorded as unadopted. A
+  remote's advertised `annotations/<digest>` ref is likewise adopted only for a
+  run that fetch delivered, and never when any annotation in its chain was
+  recorded as foreign at install.
+- **A co-writer on a shared remote could still relabel a run you held.** Pushing
+  an annotation *and* its `annotations/<digest>` ref made the next `fetch` adopt
+  it (an absent local ref counted as a fast-forward). `fetch` now adopts
+  advertised annotation refs only for runs it delivered; for runs held before
+  the fetch the remote's head is kept as `remotes/<name>/annotations/<digest>`,
+  and `tine fetch --adopt-annotations` adopts them deliberately.
+- **Advertised annotation refs could make a fetch quadratic.** A remote could
+  point thousands of `annotations/*` refs at one long annotation chain, and the
+  client re-walked the whole chain for every ref after the transfer (hours of
+  object reads for a ~1 MB pack). A ref whose annotation names a different run is
+  now skipped before any walk, and chain reads and verdicts are memoized per
+  fetch, so adoption costs one read per object.
+- **Remote errors printed credentials.** An HTTP error from a remote verb
+  carried the full URL, userinfo and query-string tokens included. Errors now
+  name only the status and path, a remote URL carrying credentials, a query or
+  a fragment is refused — checked on the URL as given, before an embedded
+  tenant (`…/v1/tenants/acme`) is split off, so a token cannot ride into every
+  request path as part of the tenant — the tenant must match the server's
+  tenant grammar, and the client no longer appends `/v1/...` after a query
+  string.
+- **A non-string `azp` crashed authentication** (a 500 with no audit row); it is
+  now an `OIDCError` (401, audited).
+- **One IPv6 client could hold every worker slot.** The per-peer share was per
+  address, and an IPv6 host routinely has a whole /64; peers are now grouped by
+  /64 (IPv4-mapped addresses as their IPv4 address).
+- **`--token-file` warns** when the file is readable by group or others, as key
+  files already do.
+- **Annotations from a remote can no longer break a repository.** The record of
+  annotations no ref vouches for could grow past what its own reader accepted,
+  after which every fetch, `load_run` of an untagged run and `put_run` failed.
+  It is now kept within its limit (entries the fallback can no longer read are
+  pruned); a foreign annotation that still does not fit is not installed, with
+  a warning; and a damaged record makes the fallback adopt nothing instead of
+  failing. `tine fsck` still reports a damaged record.
+- **Unheaded-annotation lookups read only the run's own annotations.**
+  `load_run`, `put_run`, pack walks and unadopted pruning decoded every
+  annotation and attestation in the repository — minutes at 100,000, and a hard
+  failure past that which a remote could reach over a few fetches. A cache in
+  `.tine/indexes/` maps each annotation and attestation to its target; past the
+  scan bounds the fallback adopts nothing rather than failing.
+- **Two unheaded annotations can no longer brick a run.** A writer on a shared
+  remote could push two independent unheaded annotations for someone else's
+  untagged run; every fresh fetch then failed `load_run` and tagging with
+  "ambiguous unheaded legacy annotations". The fallback now adopts nothing (with
+  a warning), and tagging starts a fresh, ref-backed head.
+- **A remote can no longer un-adopt an annotation you already have.** An
+  unheaded annotation the fallback had adopted (after an import, a clone with no
+  annotation ref, or from an older repository) was recorded as foreign when a
+  remote sent it again, and the run lost its tags and metadata for good. Only
+  annotations new in a pack are judged now.
+
+### Security — signing, keys, pricing trust and redaction
+
+- **Private keys are redacted whole, in every common armor.** A PEM block is
+  replaced from its `BEGIN` marker to its `END` before any other pattern runs, so
+  no value pattern can eat the marker and leave the body behind
+  (`MYSQL_PWD=x\n-----BEGIN …`, in text or inside a JSON string). A truncated
+  block keeps no body behind OpenPGP armor headers (`Version:`, `Hash:`,
+  `Charset:`) or numbered, quoted or indented body lines, while a diagnostic
+  such as `error: …` after a lone marker is kept, and the line after a truncated
+  block keeps its line start so its own credential is still redacted. A
+  base64-wrapped key (`base64` / `openssl base64` output at 64 or 76 columns, on
+  real lines or as `\n` / `\r\n` escapes inside a JSON string) is removed
+  whole, including after a credential name (`SSH_PRIVATE_KEY=LS0t…`,
+  `client-key-data: LS0t…`); a block whose marker will not decode is redacted,
+  and a wrapped certificate is left alone. PuTTY `.ppk` files (header through
+  `Private-MAC`, whatever decorates each line — the Read tool's `N→` numbers,
+  `cat -n`, a diff's `+`, a `> ` quote, an indent, and a quote inside the
+  `Comment:` line of a file with real line breaks) and RFC 4716
+  `---- BEGIN SSH2 … PRIVATE KEY ----` blocks carry no PEM marker and were saved
+  whole by 0.9.2; both now become `[REDACTED PRIVATE KEY]`.
+- **About twenty more credential formats are redacted**, in both writers and on
+  export: xAI (`xai-`), Groq (`gsk_`), Replicate (`r8_`), Perplexity (`pplx-`),
+  Google OAuth access tokens (`ya29.`) and client secrets (`GOCSPX-`), Slack app
+  and refresh tokens (`xapp-`, `xoxe`), Stripe webhook secrets (`whsec_`), every
+  GitLab token prefix (`glrt-`, `gldt-`, `glptt-`, …); an `Authorization`,
+  `Cookie` or `Set-Cookie` header in the middle of a log line or a repr'd
+  request; a docker `"auth"` blob; URL passwords containing `/`; `<password>` in
+  XML; and `key=`, `auth=` and `code=` query parameters.
+- **More credential names, in every spelling.** `*_PWD` / `*_PW` names,
+  `REDISCLI_AUTH`, `AZURE_STORAGE_KEY`, `*_storage_key` and `client-key-data`
+  are redacted as field names, in command text (`export LDAP_BIND_PW=…`),
+  quoted or bare with the quotes kept (`MYSQL_PWD='…'`, `mysql_pwd: "…"`) and as
+  flags (`--db-pwd=…`, `--db-pwd …`), whatever the value looks like
+  (`MYSQL_PWD=2024/Summer!`); only a dotted host glued to a port
+  (`example.pw:8443/api`) is left alone. A quoted field is secret by exactly the
+  names the record walk uses, so `"MYSQL_PWD": "…"` in text or nested JSON is
+  redacted as the same dict would be (a digit-only value under a plural
+  `*tokens` name is a usage count and is kept), whatever the length of the name,
+  and `"a": "password": "v"` redacts `v`. JSON-escaped fields in other text
+  (`curl -d "{\"password\":\"…\"}"`, `echo`, logged payloads) are redacted too.
+  A second assignment on the same line is redacted on its own
+  (`-e AZURE_STORAGE_KEY=x -e DB_PASSWORD="y"`): an unquoted value stops only
+  before the next credential-name head, so base64 padding
+  (`credentials: Basic dXNl…=`) or a `user:pass` word stays inside the value.
+- **CLI and `.netrc` credentials.** `curl -u user:PW`, `mysql -pPW`,
+  `redis-cli -a PW` and `docker login -p PW` are redacted, quoted or bare (quotes
+  kept), also right after a literal `\n` or `\t` escape in a repr or logged
+  command; `mysql -P3307` is a port. A credential flag's value
+  (`--password`, `--token`, `--api-key`, `--client-secret`, `--access-token`,
+  …) is redacted space-separated or with `=` (`--token=x`, Go-style `-token=x`),
+  quoted or bare, in text and in JSON at any nesting depth, and a long token is
+  removed whole rather than cut at 512 bytes; bare `token=`/`pass=` counters
+  are kept. `.netrc` passwords are redacted whole, unquoted through `,` `;` `]`
+  `}` or quoted to their own closing quote; on a `password` line of its own a
+  quoted value must end the line, so prose such as
+  `Password "must be 8 chars" is the rule` is kept.
+- **Redacting a JSON document never makes it invalid, and never keeps what the
+  scan removes.** The byte scan stays authoritative — it still redacts
+  credentials split across strings (`{"name": "X-Api-Key", "value": …}`,
+  `["Cookie", …]`) — and its output is kept whenever it keeps the document's
+  structure. Where it would not (an escaped quote eaten, two member names made
+  alike), the blob is rebuilt from its original bytes: any string, number or
+  literal a scan step would remove anything from is replaced whole (by its own
+  decoded-text redaction only when no removed word survives in that, else by
+  `"[REDACTED]"`), every other byte (numbers, escapes, lone surrogates, layout)
+  is kept, and names that redact alike stay distinct. Strings that hold escapes
+  are also redacted as decoded text at every nesting level, so a multi-line
+  `.netrc`, a `jq -Rs` / `json.dumps`'d log or MCP text held inside a JSON
+  string is seen; a clean blob stays byte-identical. JSON with a byte-order mark,
+  `NaN`/`Infinity`, or JSON Lines whose first record is a scalar take the same
+  path. Vendor tokens, URL userinfo and query secrets are redacted before the
+  bounded form values, a form value longer than its bound is removed whole, and
+  a bounded value never ends inside a multi-byte character.
+- **Redaction stays linear in its input.** Survivor checks look for every
+  removed word in one pass, repeated capped forms extend only to the next match,
+  colliding names are renamed in linear time, a run of byte-order marks is
+  ordinary text, and nested JSON grows linearly with depth. `PWD=/home/...`,
+  ports and usage counters are left alone.
+- **An old signed release catalog in a project re-priced runs.** Every release
+  catalog OpenTine has shipped still verifies under the release key, and the
+  rollback check covered only the user's installed catalog: a cloned project's
+  `.tine/pricing.json` holding the 2026-07-20 release catalog outranked both the
+  bundled and the installed one, with no notice, and priced seven models at old
+  rates (DeepSeek V4 Pro output 56% under). A signed workspace catalog older
+  than the newest signed catalog already in use is now skipped with a notice,
+  and two different catalogs signed at the same `generated_at` cannot replace
+  each other, at load or at install.
+- **One signature still verified under several attestation ids.** A header field
+  stored as an explicit `null` rebuilt the same signed header, and an Ed25519
+  block with its `public_key` dropped verified when the key came from
+  `--pubkey`: 4 (HMAC) and 12 (Ed25519) distinct verified oids from one
+  signature. Both spellings are now `error`; no writer ever produced either.
+- **A public key was accepted as an Ed25519 signing key.**
+  `tine sign` / `tine attest --ed25519-key-file key.pub` used the 64-hex public
+  key as a seed, so anyone holding the `.pub` could derive the signing key — and
+  a pin on its fingerprint passed. A `*.pub` file, a PEM or OpenSSH public key,
+  or a file identical to the `.pub` beside it is now refused as signing
+  material, as it already was as an HMAC key.
+- **`tine verify` read the artifact twice.** The verdict and the fingerprint
+  checked against `--pin` came from two reads, so a file swapped in between
+  paired one file's verdict with another's key. `migrate-v3 --pin` likewise
+  checked the pin and then re-verified with "whatever key is embedded"; it now
+  hands the import the key that passed the pin.
+- **Search counted junk as signed, and unsigned scores without bound.** Any dict
+  under `signature` ranked an evaluation as signed; only a well-formed block
+  counts now. MCP `attest_run` wrote `{"kind": "evaluation"}` claims without the
+  ±1e6 bound `evaluate_run` enforces (a 1.7e308 score ranked first); both tools
+  refuse it now, and search ignores an unsigned score outside ±1e6 whatever
+  wrote it.
+- **`tine repo-verify --claim` compared with Python equality**, so
+  `{"approved": true}` selected a signed `{"approved": 1}`. JSON types now
+  compare strictly (an integral float still equals its integer, as canonical
+  JSON stores it).
+- **`tine export` sent secrets an older `.tine` kept under field names.** A file
+  written before 0.9.1 holds `github_token`, `connection_string` or `pwd` values
+  its writer did not know to redact; export scrubbed free text only, so the
+  `gen_ai.prompt` kvlist — where each name and value are separate strings —
+  carried them to the file or collector. Export now applies the writer's full
+  redaction (field names and the run's own `extra_secret_keys`) before it builds
+  spans, no longer prints a collector's query string (`?token=…`), and drops
+  reserved `opentine.*` attributes that rode in from a foreign trace and would
+  have changed the run's kind, cost or billing on the next import.
+- **`migrate-v3` ignored the run's `RedactionPolicy.extra_secret_keys`.** It now
+  redacts exactly as `put_run` does, so both produce the same object ids.
+- **`RedactionPolicy(extra_secret_keys=("output",))` broke every save.** The walk
+  matches a name one `s` longer, so the singular of a reserved field blanked it;
+  such names are now refused like the reserved names themselves. A policy
+  recorded in an older run that names one keeps its other secret fields: only
+  the unusable entry is dropped, with a warning.
+- **A catalog's signature block can no longer carry unsigned content into every
+  run.** The `signature` object sits outside the signed bytes and was copied
+  into each billed step's provenance, so a validly signed catalog padded there
+  (a cloned `.tine/pricing.json`, or a mirror for `tine pricing update`) grew
+  every model call's record. A signature with any field other than
+  `algorithm`, `key_id` and `value`, or a field that is not a short string, is
+  now refused, and provenance copies only those three fields.
+- **A catalog file that is not a regular file is never read.** A cloned
+  repository could symlink `.tine/pricing.json` to `/dev/stdin`, `/dev/tty` or a
+  FIFO, and every pricing load in that directory blocked. Catalog files are now
+  opened non-blocking and refused unless they are regular files; a skipped
+  workspace overlay is reported like an untrusted one.
+
+### Security — CLI, MCP, export and import
+
+- **A Unicode-digit token count no longer aborts a session import.** Counts
+  are read from ASCII digits only; any other record value is skipped.
+- **`tine migrate` printed an artifact's digest raw**, so a crafted legacy file
+  could write a terminal escape (a title change, a screen clear) in the default
+  preview. It is escaped like all run text now.
+- **Rich emoji shortcodes still expanded** in run trees and step labels
+  (`tine show`, `replay --inspect`, `diff`): `:white_check_mark:` in run text
+  rendered as a check mark. They stay literal everywhere now.
+- **Hidden and control characters no longer reach MCP clients.**
+  `search_runs`, `inspect_object`, `context_slice`, `semantic_diff` and the
+  legacy `fork_run` returned bidi, zero-width and Unicode tag characters from
+  run content verbatim — text a client's model reads and a human reviewing the
+  transcript cannot see. The server now sanitizes every tool and resource
+  result as it returns it, dropping every format character and
+  Default_Ignorable_Code_Point (variation selectors U+FE00–FE0F and
+  U+E0100–E01EF, fillers such as U+3164, the soft hyphen) plus C0 controls
+  other than newline and tab, ESC, DEL and C1 controls, from every string and
+  key in text and structured content; terminal output strips the same set.
+  `list_runs` leaves out a run file whose name hides such characters (counted
+  as `hidden-name`), since a cleaned name would not resolve.
+- **MCP forks are bounded.** `fork_run_v3` refuses a prompt or policy over 1 MiB
+  or a model name over 256 characters, and the legacy `fork_run` stops once the
+  runs directory holds 1 GiB.
+- **A message array serialized into one OTel attribute bypassed the import
+  bounds.** `tine import` scans a document's structure before parsing it, but
+  not text inside a string, so `"[{},{},…]"` held in `gen_ai.input.messages`
+  reached `json.loads` unbudgeted (about 24x its size in memory; a 60 MB file
+  peaked at 1.6 GB). Such a string is now decoded only within the JSONL line
+  bound and the structural-token budget; otherwise it stays in the attributes
+  as text and the span carries an import warning.
+- **One span with an invalid `opentine.trace.kind` failed the whole import.** It
+  is now read by its operation name and the span records a warning.
+- **Session-log import cannot multiply one oversized value across events.**
+  Per-record ids Claude Code stamps on each tool result (`requestId`,
+  `promptId`, `agentId`), span ids and the session id are kept only when short
+  and id-shaped (otherwise a digest); tool names repeated on results are
+  clipped to 256 characters; a Codex call's arguments are recorded with its
+  first output only; a Gemini tool result attaches to one call even when ids
+  repeat; a timestamp string longer than 64 characters is not parsed. Gemini
+  session `$patch` merging and span-id numbering are linear.
+- **OTLP span import checks a span's message turns against its classic prompt
+  in one bounded pass.** Each turn used to be searched for separately in the
+  `gen_ai.prompt` / `gen_ai.completion` text, so one crafted 2.9 MB span cost
+  about 155 s of CPU; the turns are now found together in linear time (0.6 s),
+  with the search index capped at 64K characters — past that the turns count
+  as not covered and the conversation is kept in the attributes with a warning,
+  never dropped.
+- **`tine import --format otel-logs` refuses an oversized file while reading
+  it.** The event cap is enforced as records are mapped, before any session
+  chain is built (a 65 MB file of one-record sessions took 2.7 GB and 64 s
+  before the refusal); at most 400,000 raw log records are read. A record
+  whose `timeUnixNano` is out of range or not a number (a 400-digit integer
+  aborted the whole import with `OverflowError`) falls back to
+  `event.timestamp` with an import warning, and a record that still raises an
+  arithmetic or shape error is skipped and counted.
+- **One record with an unexpected field type no longer fails a whole import.**
+  A session-log or OTLP-logs record whose `content`, `usage`, `toolCalls`,
+  `parts` or `logRecords` has the wrong type is skipped like an unparsable
+  line, and the run's first event counts the skipped records
+  (`opentine.import_warnings`).
+- **Codex OTel imports no longer guess the provider from the model id.** A `:`
+  in the model (OpenAI fine-tunes are `ft:…:org::id`) recorded the call as a
+  free local Ollama call; the provider is now what the event states,
+  `ollama-cloud` for a cloud tag, else `openai`.
+- **Claude Code session import bills each API response once.** A subagent
+  transcript that repeats the response which spawned it (or a sibling's), or a
+  repeated request id, is not recorded a second time; on a real session this
+  had overcounted output by about 31%. Subagent transcripts are also read by
+  `--format auto` and `tine import latest --from-default-location`.
+- **Importing a long OTel span chain is linear.** The pass that decides which
+  agent spans to bill climbed every span's full ancestor chain; a 2.5 MB chain
+  of 16k spans took about a minute of CPU. Each ancestor is now climbed once.
+
+### Security — tool sandbox and model adapters
+
+- **`--base-url` on a hosted preset priced at the default endpoint's rates.**
+  The adapter was built for its default host and the URL swapped in afterwards,
+  so host-derived billing stayed stale: a Fireworks `us.` host was billed at the
+  list rate instead of its 1.5x `us` tier, and a GLM China (`bigmodel.cn`)
+  endpoint was booked complete at the international USD card. The preset is now
+  constructed against the given URL, and a `bigmodel.cn` endpoint always records
+  `glm-cn`.
+- **A `GEMINI_API_KEY` could be sent in cleartext.** The Google adapter checked
+  only `GOOGLE_API_KEY` before refusing an `http://` non-loopback
+  `GOOGLE_GEMINI_BASE_URL`, while google-genai fell back to `GEMINI_API_KEY` on
+  its own and sent it. The key is now resolved the way the SDK resolves it,
+  checked, and passed explicitly. The Anthropic adapter likewise checks
+  `ANTHROPIC_AUTH_TOKEN` and passes both credentials explicitly — so a user with
+  only `ANTHROPIC_AUTH_TOKEN` can use the adapter at all.
+- **One model response could run any number of tool calls past the budget.**
+  `max_steps` / `max_duration` / `max_cost` / `max_usage` were checked before
+  and after a model call and after the whole tool batch, and the model chooses
+  how many calls a response holds (200 calls ran against `max_steps=3`). The
+  budget is now checked before every call; once spent, the remaining calls are
+  answered "not executed: run budget exhausted" without running, so the batch
+  stays complete for a resume.
+- **The tool environment scrub covers far more credentials.** `inherit_env=True`
+  handed tools `*PASSPHRASE*` (`BORG_PASSPHRASE`, `GPG_PASSPHRASE`), `*_PW`,
+  Bitwarden's `BW_SESSION`, 1Password's `OP_SESSION_<account>` and
+  `*MNEMONIC*` / `*SEED_PHRASE*` — unlock tokens that usually exist only in the
+  environment — and any `*HEADERS*` variable (`OPENAI_CUSTOM_HEADERS`,
+  `ANTHROPIC_CUSTOM_HEADERS`, `OTEL_EXPORTER_OTLP_*HEADERS`), which carry
+  gateway credentials. Those are scrubbed now, and so is any variable, whatever
+  its name, whose value is a credential header (`Authorization:`,
+  `X-Api-Key=`, `Cookie:`, `Bearer …` / `Basic …`), a connection string
+  (ASP.NET `ConnectionStrings__*`, `*CONNECTIONSTRING*`, or a `password=`,
+  `pwd=`, `token=` or `api_key=` pair as in ADO.NET, ODBC and JDBC URLs) or a
+  signed URL (Azure SAS `sig=`, S3 `X-Amz-Signature` / `X-Amz-Credential`, GCS
+  `X-Goog-Signature` / `X-Goog-Credential`).
+- **Web tool: a server-chosen charset could stall the event loop.**
+  `charset=punycode` (quadratic to decode; 512 KB took about 10 s, a test fetch
+  ran 53 s past its 5 s timeout) and other non-text codecs (`idna`, `utf-7`,
+  `unicode_escape`, `rot13`) were decoded outside the request timeout. Only text
+  encodings are honoured now; anything else is read as UTF-8.
+- **Web tool: multicast and reserved IPv6 passed the private-address block**
+  (`224.0.0.1`, `ff02::1`, `ff0e::1`, the SIIT form `::ffff:0:a9fe:a9fe` of the
+  metadata address). Refused now, as SECURITY_MODEL always said.
+- **Tool descendants that left the process group survived (Linux).** A python-
+  or shell-tool snippet whose child called `setsid()` kept running after the
+  timeout kill (and after a normal exit). On Linux every bounded tool command
+  now runs under a child-subreaper supervisor that kills everything left
+  beneath it, whatever group or session it moved to, and OpenTine sweeps
+  every process still carrying the run's `OPENTINE_TOOL_SCOPE` marker after
+  each command, whatever the supervisor reports. This cleans up runaway and
+  leftover processes; it cannot contain an adversarial process running as the
+  same user, which can read OpenTine's own `/proc` entries, kill the supervisor
+  and drop the marker.
+  Real isolation needs a container or cgroups: this is resource containment,
+  not an OS sandbox. macOS and the BSDs have no subreaper; there the group
+  kill remains the boundary.
+- **A custom `--base-url` never receives first-party credentials.** An explicit
+  non-Anthropic base URL gets only an explicit key or
+  `ANTHROPIC_COMPAT_API_KEY` (a placeholder otherwise), and the SDK is handed
+  both auth headers explicitly so it cannot read `ANTHROPIC_API_KEY` /
+  `ANTHROPIC_AUTH_TOKEN` from the environment either (verified on anthropic
+  0.87 and 1.13). A hosted preset's `--base-url` needs `--api-key-env`, so a
+  vendor key such as `GROQ_API_KEY` is never sent to another host.
+- **Nor the SDKs' environment headers.** Anthropic's and OpenAI's SDKs add
+  `ANTHROPIC_CUSTOM_HEADERS` / `OPENAI_CUSTOM_HEADERS` (often a gateway
+  credential) and `OPENAI_ORG_ID` / `OPENAI_PROJECT_ID` to every request on
+  their own. A client built for an explicit `--base-url`, a compatible server, a
+  hosted-vendor preset or a local preset now cancels every one of them; they
+  still reach Anthropic's or OpenAI's own API and the operator's
+  `ANTHROPIC_BASE_URL` / `OPENAI_BASE_URL` gateway, and there they obey the
+  cleartext rule a key does.
+- **A cloud-tagged model is never captured as free.** Every adapter applies one
+  rule at capture: a `:cloud` / `-cloud` model served through a local daemon —
+  a loopback `--model anthropic --base-url`, an OpenAI-compatible endpoint or a
+  local preset — is recorded with a warning and priced `unknown`, not
+  `unmetered` $0, so `tine cost` and `--max-cost` see it.
+- **A provider name alone no longer books a call as free.** `tine price`
+  re-prices a recorded call as `unmetered` only when its provider is a local
+  server, its model carries no `:cloud` / `-cloud` tag (Ollama proxies those to
+  a per-token API) and the record carries positive evidence: the capture's own
+  `unmetered` verdict, or no billing inside a run the harness wrapper captured.
+  An imported trace or session log — through `tine import` or the library's
+  `Recorder.import_events` — is never booked `unmetered` from its provider
+  label, and keeps no cost from its source file.
+- **Inline-reasoning splitting is bounded on a compatible server's stream.** It
+  searches only new text, holds at most 64 KiB waiting for Harmony's final
+  channel (the rest is then the answer, as for a whole message), and caps
+  leading whitespace — linear in the stream however it is chunked.
+- **Inline reasoning is kept beside structured reasoning.** A non-streamed
+  chat response that carried both `reasoning_content` and a different inline
+  `<think>` block recorded only the first; both are now kept (the same text in
+  both places is kept once).
+
+### Security — harnesses
+
+- **A plain-text Claude Code run could forge its own record.** `claude -p`
+  prints the model's answer, yet the claude-code harness parsed every
+  JSON-shaped line as a Claude Code event, so an answer could book $250, six
+  million tokens and a `deploy_prod` tool call (and trip a cost budget). Like
+  every other harness, claude-code now decides from the command line: only the
+  *last* output-format option asking for JSON makes stdout events, and a bare
+  `json` word or `--something=json` argument no longer counts. Every catalogued
+  dialect is tested in text mode against a forged JSON line, and
+  `codex exec --json -o last.txt` stays in JSON mode (Codex's `-o` names a
+  file).
+- **stderr is no longer parsed as the CLI's events.** It was merged into stdout,
+  so a JSON line written by anything the CLI let reach stderr (an MCP server, a
+  hook) was trusted in structured mode. stderr now has its own pipe and is
+  recorded as text (`"stream": "stderr"`), never as events or cost.
+- **A private key the agent printed no longer survives in harness runs.** Each
+  output line was redacted on its own, but the key scrubber needs the `BEGIN`
+  marker and the body in one string, so every body line was stored verbatim
+  (0.9.2 too). Harness output is now masked across lines and events:
+  - PEM blocks from `BEGIN` to `END`, base64-wrapped keys (`base64 id_rsa`, a
+    line that decodes to a `BEGIN … PRIVATE KEY` marker and the base64 lines
+    after it), PuTTY `.ppk` files (through `Private-MAC`) and RFC 4716 SSH2
+    blocks;
+  - in text lines and stderr, with per-line decoration stripped first (line
+    numbers from `cat -n`/`nl`/`grep -n`, `> ` quotes, bullets, indents, diff
+    `+`/`-`, `cat -A`'s `$`, comment leaders, terminal colour codes, table
+    borders);
+  - inside JSON events, where a key's whole span becomes
+    `[REDACTED PRIVATE KEY]` in string values and object keys and the event is
+    re-serialized, so the event is never truncated and its usage, cost and tool
+    calls survive; pretty-printed `--json` envelopes (openclaw, droid, auggie)
+    are masked member by member and still parse;
+  - across streamed delta events (gemini, hermes, qwen-code, claude
+    `--include-partial-messages`): a block follows the delta's string path into
+    the next deltas of the same message and content block, only while they are
+    still key-shaped and for at most 64 KiB, and a PEM marker split between
+    deltas is joined through a short carry.
+
+  Masking reaches only key material and stops at the first prose, so later
+  commands, tool results and messages are never touched; it is linear in the
+  input; the masked form is never less redacted than the record's scrubber
+  would leave the raw text, and the joined output kept for the done step and
+  the error tail retains each raw `BEGIN`/`END` marker so that scrubber still
+  removes the whole block on save. A failing run's 4000-character tail is
+  redacted before it is cut.
+- **Malformed or hostile CLI output no longer ends or loses a run.** An odd
+  `type`, a non-list `tool_calls`, a non-numeric, negative, non-finite
+  (`NaN`/`Infinity`, read as `null`) or huge cost, duration or token count
+  (meters above 1e15, counts above 2^53) is ignored with a `meter_warning`, and
+  any other parse error records the line as text (`parse_error`). An event
+  nested past 256 levels is recorded as compact JSON text with a
+  `truncated_depth` marker, and an unpaired surrogate escape (Node CLIs slicing
+  mid-emoji, an MCP result) as its six-character escape text with
+  `surrogates_escaped: true`, so the run always saves; a step the record still
+  refuses is kept as text and never kills the agent.
+- **Harness output stays bounded.** The output cap charges the longer of the
+  raw marker line kept for the scrubber and its masked form, and `--autosave`
+  without a throttle checkpoints at most every 2 seconds and only after the run
+  has grown by a quarter, so checkpoint work stays linear in output an
+  untrusted CLI controls.
+
+### Fixed
+
+- **Anthropic SDK 1.x broke every pre-4.6 Claude model.** Anthropic's Python SDK
+  1.0 (2026-08-20) removed `temperature` / `top_p` / `top_k` from
+  `messages.create`, and `anthropic>=0.87` resolves to 1.13 on a fresh install,
+  so `claude-haiku-4-5`, `claude-sonnet-4-5`, `claude-opus-4-5` and older raised
+  `TypeError` before any request. On SDK ≥ 1 the temperature now travels in
+  `extra_body` (the API still accepts it for those models); verified against
+  anthropic 1.13.0. The adapter still works on the 0.x SDK.
+- **`tine price` priced most runs at $0.** It priced only steps of kind
+  `model`, but the runtime records a call by what it answered: the final answer
+  is a `done` step, text beside tool calls a `think` step, a refusal an `error`
+  step. A `tine run --model … --prompt` run (one `done` step) re-priced at
+  `$0.0000, priced=0`, and every agent run lost its final call. A call-shaped
+  step the capture itself billed is priced now; a harness's closing step (no
+  usage) still is not, so nothing is counted twice.
+- **Local runs re-priced as `unknown`.** A call captured from Ollama, LM Studio,
+  vLLM or any local preset is recorded `unmetered`; `tine price` re-billed it
+  against the catalog and reported an unknown model. Post-hoc pricing now
+  treats the same set of local providers as unmetered (one registry, tested
+  against the preset list).
+- **`tine price` ignored the recorded service tier**, so a Claude fast-mode call
+  (2x), a Priority or Flex call, or a US-geo call re-priced at the standard
+  rate. The tier recorded at capture is used now, and both the native Anthropic
+  adapter and the claude-code harness record `usage.speed == "fast"` and
+  `inference_geo: "us"` as the `fast` / `fast_us` / `us` tier (nothing read
+  them before).
+- **Claude Code's estimate is no longer booked as cost when it is not a list
+  price.** Its `total_cost_usd` is booked only when every model's `costBasis`
+  is `list`; otherwise it is kept as `reported_estimate_usd`.
+- **Claude Code against a local or third-party `ANTHROPIC_BASE_URL` was recorded
+  as `anthropic`.** A loopback base URL records `local-anthropic-compatible`
+  (unmetered); another non-Anthropic host records `anthropic-compatible`
+  (priced unknown). Bedrock/Vertex/Foundry flags still win.
+- **Dead default models.** OpenRouter's default `nousresearch/hermes-4-70b` was
+  removed from OpenRouter, Groq's `llama-3.3-70b-versatile` is Enterprise-only,
+  and Together removes `Llama-3.3-70B-Instruct-Turbo` on 2026-10-22.
+- **LangChain runs were billed up to ~4.7x.** LangChain's normalized
+  `usage_metadata` reports *inclusive* totals, and OpenAI's raw `token_usage`
+  nests `cached_tokens` / `reasoning_tokens` inside its totals. The callback
+  handler stored those totals as exclusive buckets and added the breakdowns on
+  top, so a 10k-fresh + 90k-cached Anthropic call recorded
+  `input: 100000, cache_read: 90000` ($0.458 instead of $0.098) and
+  `tine export` sent `gen_ai.usage.input_tokens = 190000`. Breakdowns are now
+  subtracted, langchain-anthropic's `ephemeral_{5m,1h}_input_tokens` split is
+  honoured (also when it sits nested under `cache_creation` in the raw usage
+  `llm_output` carries, so a 1-hour write is not priced as a 5-minute one), and
+  the handler records the serving provider from `ls_provider`, so
+  a LangChain run prices instead of reading `unknown`. Runs recorded before keep
+  their stored usage.
+- **gemini-3.5-flash billed at its retired rate after being rerouted.** Google
+  deprecated it on 2026-10-08 and routes calls to gemini-3.6-flash (half the
+  price); the card was open-ended, so a response that still names 3.5 billed 2x.
+  The card now closes on 2026-10-07 and starts at GA (2026-05-19) instead of
+  2026-07-15, so May–July runs price too.
+- **Together cards past their models' lives.** Llama-3.3-70B-Instruct-Turbo and
+  DeepSeek-V4-Flash-0731 end 2026-10-21; GLM-5.1 is now 2026-04-08 to 2026-06-08
+  at $1.40 / $4.40 and 2026-06-09 to 2026-07-09 with the $0.26 cached rate;
+  GLM-5.3 starts 2026-08-28 and GLM-5.3-Flash 2026-08-26. OpenRouter's
+  `hermes-4-70b` card closes, Groq `qwen/qwen3.8-27b` is backdated to
+  2026-09-05, and `qwen-max` gets its implicit-cache rate ($0.32).
+- **`OLLAMA_HOST` in the forms Ollama documents failed** (`0.0.0.0`,
+  `127.0.0.1:11434`, `gpu-box`): "Request URL is missing an 'http://' or
+  'https://' protocol". It is read the way Ollama's own client reads it.
+- **Ollama Cloud calls were recorded as free.** `:cloud` / `-cloud` tags proxied
+  through the local daemon, or `https://ollama.com` itself, are recorded under
+  `ollama-cloud`, never `unmetered`; `OLLAMA_API_KEY` is sent only to
+  ollama.com. Ollama's `prompt_eval_cached_count` is recorded as cache reads.
+- **Reasoning left inline was recorded as the answer.** `<think>…</think>`,
+  `[THINK]…[/THINK]` and raw Harmony channels at the start of a message — what
+  TGI, llama-cpp-python, llama.cpp `--reasoning-format none`, MLX-LM and others
+  return — are split into reasoning, identically for a whole message and a
+  stream; a server that sends both (llama.cpp `deepseek-legacy`) is no longer
+  recorded twice.
+- **Streams from cumulative-usage servers emitted a usage event per chunk**
+  (vLLM `--enable-force-include-usage`, `continuous_usage_stats`); a Chat
+  Completions stream now emits one usage event, the last. LocalAI and KoboldCpp
+  streams request usage. Mistral's applied tier is read from
+  `usage.service_tier`, Inception's top-level `cached_input_tokens` count as
+  cache reads, and Gemini's `ON_DEMAND_OFFPEAK` traffic type maps to an
+  `offpeak` tier (priced only where carded).
+- **Harness fixes.** `grok` ran `grok exec`, which does not exist; `cursor` ran
+  `cursor-agent run`, which current Cursor CLIs do not accept; `--harness-arg`
+  landed between a prompt flag and its value for harnesses whose prompt is
+  passed with `-p` / `-q` / `--message`, so `--harness-arg --model
+  --harness-arg X` became the prompt. All three are fixed.
+- **`put_run` and `migrate-v3` silently truncated deep JSON.** A step value
+  nested more than 100 levels was stored as `"[MAX_DEPTH]"` with fsck green,
+  while the v2 file held it intact. The repository writers now keep it (up to
+  the format's 512-level limit) and refuse a deeper or circular value; only the
+  trace and live recorders still truncate.
+- **An interrupted shallow fetch left unreadable objects.** The shallow-boundary
+  file was written after the objects, so Ctrl-C or a full disk during the pack
+  copy left runs whose cut links were neither present nor recorded — and a retry
+  sent nothing, so it never healed. The boundaries are now recorded before any
+  object is written.
+- **A full unadopted-annotation record refused every later pack** carrying a
+  foreign annotation; it now first forgets entries the fallback can no longer
+  read.
+- **`tine clone` into an existing repository** silently re-pointed its
+  `heads/main`; it now refuses (use `fetch`).
+- **fsck** reports a ref file whose name is not a legal ref (dot-files such as
+  `.DS_Store` are still ignored) and a corrupt `unadopted` record.
+- **`tine serve purge --grace-seconds` below 60 needs `--force`**: with no grace,
+  a purge can delete orphaned objects a push in progress is about to reference.
+
+### Still open
+
+- **Not part of this audit round:** the shell tool's executable allowlist and
+  the git option/subcommand guard (`tools/_git_guard.py`) were not re-audited.
+- **Harnesses:** Kilo Code and iFlow CLI are not catalogued (no documented
+  headless invocation could be confirmed; use `generic`). Grok Build and Qoder
+  JSON schemas are undocumented and read as Claude-compatible events
+  (`unverified`); `droid`, `auggie` and `continue` record only their final
+  result; `aider`, `crush` and `kiro` are text only. Dialect fixtures are built
+  from each CLI's documented schema, not live account captures. Model
+  ids are recorded as each CLI spells them (Copilot's `claude-haiku-4.5`,
+  Cursor's display name), so those price `unknown`. A generic ACP client
+  harness would cover several CLIs at once.
+- **Import:** OpenCode session import (its SQLite schema is still changing).
+  Claude Code's `cost_usd` in OTel logs is kept as an attribute, not booked.
+- **Models and pricing:** Kimi's 1-hour cache-write header and LiteLLM's
+  `x-litellm-response-cost` header; sending reasoning back to Ollama; token
+  refresh for Bedrock short-term keys, Vertex OAuth and Entra; Vertex and
+  Foundry adapters; `baseten`, `novita` and `nebius` presets; per-call fees for
+  server-side tools (web search, grounding); region-scoped Qwen identity;
+  compute/energy rates for non-Ollama presets. Mistral Large 4's list price is
+  not carded (the sale's end date is unconfirmed), nor DeepInfra, Cerebras,
+  Upstage, Inception or Nebius (pages not verifiable from raw text), Vertex
+  Gemini, or Bedrock models other than Claude and GPT-6 Astra. Claude Fable 5.5
+  has no published price and no card.
+- **Unchanged from 0.9.2:** the pricing catalog's signature has no
+  domain-separation prefix (added at the next release-key rotation); a bare
+  64-hex public key under a name other than `*.pub` cannot be told from an HMAC
+  secret; a custom `KMSKeyProvider` gets slot-bound encryption only by
+  implementing `seal`/`unseal`; `heads/*` has no fast-forward rule on the
+  remote; an HMAC key file is read byte-exact (a CRLF-written key is a different
+  key — deliberate, so existing signatures keep verifying); an unsigned `.tine`
+  or run record can claim anything about itself (harness markers, billing,
+  costs) — verify signatures (`--require-signature`) where that matters.
+- **Process containment:** on Linux the supervisor cleans up runaway and
+  leftover tool processes but cannot contain an adversarial process running as
+  the same user; real isolation needs a container or cgroups. On macOS and the
+  BSDs a tool descendant that calls `setsid()` can outlive the tool.
+- **Redaction residuals:** redaction is pattern-based and best-effort. On the
+  rare JSON rebuild path a whole string can be replaced where the scan would
+  have cut part of it; JSON holding nested JSON strings full of secrets costs
+  about 7–14x the 0.9.2 scan (flat JSON at most about 4x; always linear); a blob
+  over 32 MiB, or one that is not a JSON document or JSON Lines, keeps the byte
+  scan's output, which can still break JSON in rare shapes; the survivor checks
+  ignore removed text with no word of four or more letters or digits (the
+  scan's own removal still stands); a single-quoted `.netrc`/`*_PWD` value
+  containing `"` is cut at that quote, and a raw-quoted one with no closing
+  quote on its line is not redacted by those patterns; an unquoted multi-word
+  value stops before a following credential-name head (`pw: a api_key=c`
+  redacts `a` and `c` separately but keeps the name `api_key`); a bare `token`
+  name is not a credential name (it is too often a counter).
+- **Harness masking residuals:** a body line with a decoration the masker does
+  not strip can reach its own per-line step, and a PuTTY header or SSH2 marker
+  split across two streamed deltas is not re-joined (PEM markers are); in both
+  cases the done step keeps the raw text for the record scrubber. Streamed
+  chat responses keep only structured reasoning when one delta carries both it
+  and inline `<think>` text.
+- **Local endpoints:** a loopback `ANTHROPIC_BASE_URL` (or `--base-url`) is
+  recorded as a local, unmetered endpoint; a local proxy in front of a paid API
+  should not be labelled that way.
+- Conformance vectors for `config.json`, reflog rotation and `unadopted`.
+
+## 0.9.2 — 2026-10-09 — Hardening
+
+The follow-ups 0.9.1 left open, `tine --version`, and every hardening item the
+0.9.0 audit listed beyond its confirmed findings — the remote server, signing
+and keys, pricing trust, the CLI/MCP/export surface, and the tool sandbox. Each
+fix has a regression test in `tests/test_security_0_9_2*.py` that fails on
+0.9.1. No format change: every file and repository written since 0.3.0 still
+reads, and 0.9.1 reads the files and repositories 0.9.2 writes. The one
+exception is the remote server's encrypted object store: objects a 0.9.2 server
+stores (`TINEAES3`) cannot be read by a server downgraded to 0.9.1.
+
+### Upgrade notes
+
+*Remote server*
+
+- **`promotions/*` and moving an existing `tags/*` ref need the `admin` role.**
+  `tine serve --writer-promotes` / `RoleAuthorizationPolicy(writer_promotes=True)`
+  restores writer promotion. A custom `AuthorizationPolicy` is now also asked
+  about the actions `promote` and `retag`.
+- New object files are `TINEAES3`; a server downgraded to 0.9.1 cannot read
+  objects written by 0.9.2 (0.9.2 reads everything older).
+- **`tine serve --insecure-dev` binds loopback only**; add
+  `--insecure-dev-any-host` to serve plaintext on another interface.
+- **OIDC tenant claims must be valid tenant names** (`[a-z0-9][a-z0-9._-]*`);
+  other identities are refused at authentication.
+- **OIDC: a token whose `typ` is not `JWT` / `at+jwt` is refused**, and
+  discovered JWKS keys expire after `max_key_age` (default 3600 s) without a
+  successful refetch — keep the issuer's `jwks_uri` reachable from the server.
+- **Busy servers answer `503`** (worker slots full, a peer over its share, or no
+  walk/install slot within 30 s); clients should retry.
+- **`GET /audit/verify` no longer returns `head`.**
+- **`POST /search` answers with at most 1,000 objects and a `truncated` flag**
+  instead of `400`.
+- **`tine fetch` / `tine push` JSON gains `associations_omitted`**, and a tenant
+  holds up to 4,096 refs (was 1,000) within an 896 KiB listing.
+- **`tine serve` takes an optional maintenance `ACTION`**; without one it serves
+  exactly as before.
+- New `tine serve` flags: `--header-timeout` (10), `--max-connections-per-peer`
+  (half of `--max-connections`), `--insecure-dev-any-host`, `--writer-promotes`.
+
+*Signing, keys and pricing*
+
+- **An unsigned `./.tine/pricing.json` no longer prices anything** unless
+  `OPENTINE_TRUST_WORKSPACE_PRICING=1` (or `true`/`yes`/`on`) is set.
+- **`tine keygen` needs `--out PATH`** (or `--stdout` to print the private key).
+- **`tine pricing update` refuses a catalog older than the bundled or installed
+  one**, and an older signed user catalog is ignored.
+- **`--key-file` refuses a `*.pub` file or a PEM/OpenSSH public key.**
+- `tine verify --json` adds `signature_present`, `signature_checked` and
+  `signature.key_fingerprint`; `repo-verify` rows add `key_fingerprint`.
+- A small-order Ed25519 key is `error` (it verified forgeries before).
+
+*Model providers and tools*
+
+- **An API key is no longer sent over `http://` to a non-loopback host.** Use
+  `https://`, or opt in with `allow_insecure=True` (OpenAI-compatible adapters)
+  or `OPENTINE_ALLOW_INSECURE_ENDPOINTS=1` (all adapters) on a network you
+  trust. Local presets with their default placeholder key are unaffected.
+- **A redirect from the Anthropic or Google endpoint is an error.** Point
+  `ANTHROPIC_BASE_URL` / `GOOGLE_GEMINI_BASE_URL` at the final URL.
+- **The python tool ignores `PYTHON*` variables and user site-packages** (`-I`),
+  even with `inherit_env=True`: install what snippets import into the
+  interpreter's environment.
+- **On Windows, a `.cmd`/`.bat` harness or shell-tool program is refused an
+  argument holding `" % ! ^ & | < >` or a line break.** Point
+  `--harness-command` at the real executable (`node path\to\cli.js`).
+- **`RedactionPolicy(redact_secrets=False)` and a policy naming a format field
+  raise `ValueError`;** `extra_secret_keys` is now enforced on every save of a
+  run that records it.
+
+*CLI, MCP and export*
+
+- **Exported OTLP span ids changed shape** for natively recorded runs: `traceId`
+  is now 32 hex and `spanId` 16 hex, derived from the run and step ids, which
+  ride along as `opentine.run_id` / `opentine.step_id` attributes. Dashboards or
+  queries keyed on the old raw ids should key on those attributes. Imported
+  spans keep their ids.
+- **`tine export` scrubs credential-shaped text** from the document it writes or
+  pushes.
+- **MCP:** `fork_run_v3`/`resume_run_v3` refuse an existing ref (pick a new
+  `experiments/` name); `list_runs`/`fork_run` paths are relative to the runs
+  directory; `attest_run` claims are capped at 64 KiB.
+- **Remote URLs** other than `http://`/`https://` are refused even with
+  `--allow-insecure`.
+
+*Runs and repositories*
+
+- **`repo.load_run(...).metadata` no longer repeats `system_prompt`,
+  `user_prompt` and `model_info`** for runs stored from 0.9.2 on; read
+  `run.system_prompt`, `run.user_prompt` and `run.model_info`. `.tine` files
+  are unchanged.
+- **`config.json` with a duplicated key or a boolean for a number is refused.**
+
+### Added
+
+- **`tine --version`** (`-V`) prints the installed version.
+- **`tine keygen --hmac`**, **`--pin FINGERPRINT`** on `verify`/`repo-verify`/`migrate-v3`, key flags on `migrate-v3`, **`--token-file`** on `fetch`/`push`/`clone`, and **`tine serve`** maintenance actions and connection limits (all below).
+
+### Security — remote server
+
+- **The OIDC verifier accepted any JWT type the issuer signs.** A DPoP proof,
+  logout token or security-event token from the same issuer, with the right
+  audience, passed as a bearer credential. A token whose header `typ` is present
+  must now be `JWT` or `at+jwt` (`application/` prefix and case ignored).
+- **Issuer key rotation needed a restart, and a revoked key never expired.**
+  `JWTVerifier.from_discovery` fetched the JWKS once at startup: a key the
+  issuer rotated in was refused until a restart, and one it rotated out — say
+  because it leaked — kept verifying for as long as the server ran. A
+  discovered JWKS is now refetched when a token names an unknown `kid` (at most
+  once a minute, so made-up `kid`s cannot turn the server into a request
+  amplifier against the issuer) and once it is an hour old. A failed refetch
+  keeps the current keys until that hour is up; after it every token is refused
+  rather than checked against keys the issuer may have revoked. A static JWKS
+  passed to `JWTVerifier` directly is the operator's pin and never expires.
+  `refresh_interval`, `max_key_age` and `clock` are configurable.
+- **Attestations could still make a history unfetchable.** 0.9.1 capped a run at
+  1,000 annotations and attestations, but a fetch carries every run's
+  associations under one 10,000-object budget, so ten runs at the cap — or one
+  run with 9,000 events and a thousand attestations — still failed every fetch,
+  clone and push that included them. A pack now walks the object graph first and
+  adds each run's associations only while they fit; a run whose associations do
+  not all fit keeps its annotations (its metadata) when those fit. Associations
+  can no longer make a pack fail. The server reports the runs left short in the
+  fetch audit record and an `Opentine-Associations-Omitted` response header, and
+  `tine fetch` / `push` print them as `associations_omitted` (0 from older
+  servers, which never send the header).
+- **Two concurrent installs could overshoot the association cap by a pack.**
+  The budget check and the writes it admits are now serialized for packs that
+  carry annotations or attestations (packs without them never wait).
+- **A tenant stopped accepting pushes after about a thousand annotated runs.**
+  Each pushed run adds an `annotations/` ref and a tenant was capped at 1,000
+  refs, so the thousand-and-first push moved `heads/main` and then failed at its
+  annotation ref. The bound is now what keeps `GET /refs` readable by every
+  client: up to 4,096 refs and 896 KiB of names and ids, under the 1 MiB
+  control response clients accept (a run's annotation ref is about 160 bytes).
+- **Operators can delete refs and objects.** There was no way to remove a ref
+  or object from the remote short of editing SQLite. `tine serve ACTION` now
+  runs offline maintenance on the server's storage — `refs`, `delete-ref NAME
+  [--expect OID]` (compare-and-swap), `associations OID`, `delete-objects OID…
+  [--from FILE|-] [--dry-run]` (only objects no ref reaches except as
+  associations, e.g. an attestation flood) and `purge [--grace-seconds N]
+  [--dry-run]` (objects no ref reaches, keeping anything written within the
+  grace window, default an hour). It opens `--root` with `TINE_KMS_KEY` as the
+  server does and adds no HTTP endpoint, so no token reaches it over the
+  network. It is safe beside a running server — a pack install re-checks what
+  it wrote or links to under the lock each purge batch takes, so a run pushed
+  again mid-purge is never left with objects missing — and every action, dry
+  runs included, is recorded in the tenant's audit chain.
+- **A handful of idle connections could take the whole server.** Every
+  connection held one of 16 worker slots for up to a minute, a request that
+  trickled a byte every few seconds never hit the per-read timeout, and when the
+  slots were full the accept loop itself blocked. A connection must now finish
+  its TLS handshake, request line and headers within `--header-timeout`
+  (10 s), one peer address holds at most `--max-connections-per-peer` slots
+  (half of `--max-connections` by default), and a connection that finds no free
+  slot is answered `503` (closed, over TLS) at once instead of queueing behind
+  the accept loop. Negotiation, which walks up to a pack's worth of objects like
+  a fetch, is now behind a bounded slot too, and a fetch, negotiate or install
+  that waits more than 30 s for one is answered `503`.
+- **Refusals were not audited.** A bad or missing token got `401` with no
+  record; an OIDC identity whose tenant claim was not a valid tenant name
+  (`"Acme Corp"`) got `400` because its denial could not even be written; and
+  failures after authorization — an invalid pack or ref, an admission refusal —
+  left nothing. An OIDC tenant claim must now be a valid tenant name (refused at
+  authentication otherwise); a denial is written under the identity's tenant or,
+  failing that, the one it asked for; authenticated failures are audited like
+  successes; and unauthenticated refusals are counted and written at most once a
+  minute per tenant named in the URL (under `_server` when it names none), so
+  anonymous traffic cannot flood the log. No token, header or body is recorded.
+- **Any writer could move a promotion or a tag.** `promotions/*` — what a
+  release pipeline deploys from — and existing `tags/*` refs could be re-pointed
+  by any writer. A promotion now needs the `admin` role (`promote`), and moving
+  or replacing an existing tag does too (`retag`); creating a tag is still a
+  writer's. `tine serve --writer-promotes` (or
+  `RoleAuthorizationPolicy(writer_promotes=True)`) restores the old behaviour.
+  Both refusals are audited.
+- **`--insecure-dev` served plaintext bearer tokens on any interface.** It now
+  binds a loopback `--host` only, unless `--insecure-dev-any-host` is also given.
+- **A resumable upload belonged to whoever knew its id.** Any writer in the
+  tenant who learned an upload id — the server's request log printed it — could
+  append to it, read its progress, or complete it and have the install
+  attributed to them. An upload now records the identity that declared it and
+  refuses (`403`, audited) every other one, and request logs no longer print
+  upload ids or query strings.
+- **Audit verification leaked other tenants' activity and cost a full scan.**
+  `GET /audit/verify` returned the server-wide chain head, which changes on every
+  request any tenant makes, and walked every audit row on each call. It now
+  returns only the status and warnings; the reference store walks the whole
+  chain at most once every five minutes and, on every call, authenticates the
+  rows appended since the last verified point up to the authenticated anchor.
+- **Ciphertexts were bound to their tenant only.** An object file and an upload
+  frame — or two objects, or frames of two uploads — encrypted for one tenant
+  were interchangeable under the key (integrity still held, by content hash and
+  pack checksum). New writes are `TINEAES3`, which authenticates purpose, tenant
+  and slot (the oid; the upload id and offset), so a ciphertext opens only where
+  it was written. `TINEAES1`/`TINEAES2` files and in-flight uploads still read; a
+  KMS adapter opts in by implementing `seal`/`unseal`.
+- **Search could be disabled by any writer.** `POST /search` returned `400` once
+  a tenant held more than 1,000 objects of the requested type. It now returns
+  the newest 1,000 (a total order, so pages are stable) with `"truncated": true`.
+- **Purge stopped at 100,000 objects**, the request-path listing bound — the
+  tenants most in need of one. Operator maintenance now streams the tenant's
+  objects with no count bound.
+- **The association cap could be overshot by two server processes.** The lock
+  serializing installs that add annotations or attestations was per process; it
+  now also takes a file lock beside the SQLite database, so processes (or WSGI
+  workers) sharing a store serialize too.
+- **Common access tokens were refused.** `azp` had to equal the audience, which
+  rejects the ordinary access token an IdP issues to a client for this API
+  (`aud` = the API, `azp` = the client). `JWTVerifier(..., authorized_parties=(
+  "client-id",))` (also through `OIDCIdentityProvider.from_jwks`/`from_discovery`)
+  lists accepted clients; with several audiences `azp` is still required.
+
+### Security — signing, keys and pricing
+
+- **A small-order Ed25519 key verified anything.** OpenSSL loads any 32 bytes as
+  a public key and verifies without a cofactor check, so a block whose embedded
+  key was the identity point — with the signature `R` = identity, `S` = 0 —
+  verified as `verified-tofu` over *every* message. The eight small-order keys,
+  in any spelling OpenSSL accepts (non-canonical `y ≥ p`, or `x = 0` with the
+  sign bit set), are now refused as `error` wherever a key is trusted: the
+  embedded key under `--trust-embedded-key`, `--pubkey`, and the library's
+  `public_key=`. No generated key has small order, so nothing honest changes.
+- **Trust-on-first-use named no key.** `tine verify` and `tine repo-verify`
+  printed the same output for an artifact re-signed by someone else under the
+  victim's `signer`/`key_id` labels. Every Ed25519 verdict now names its key by
+  fingerprint (`sha256:` + the SHA-256 of the raw key; JSON
+  `signature.key_fingerprint` / each row's `key_fingerprint`), and
+  `--pin FINGERPRINT` (repeatable; on `verify`, `repo-verify` and `migrate-v3`)
+  makes a trust-on-first-use check pass only for a pinned key — reported
+  `verified` — and fail as `mismatch` for any other. A pin must be the full
+  digest; a 16-hex prefix is 64 bits, which a key grinder can match.
+- **A public key could be used as an HMAC secret.** Passing an Ed25519 public
+  key to `--key-file` — an easy slip next to `--pubkey` — made the public key the
+  shared secret, so anyone could mint HMAC blocks that verified. A file named
+  `*.pub`, or holding a PEM or OpenSSH public key, is now refused as HMAC key
+  material on every verb that reads one.
+- **The workspace pricing overlay is opt-in.** `./.tine/pricing.json` comes from
+  whatever directory the process runs in (a cloned project can ship one), and it
+  outranks the user overlay and the bundled catalog; unsigned, it could price any
+  model at $0 and so disarm every `max_cost` budget computed from the catalog —
+  live model billing included. 0.9.1 announced it; it is now **ignored** unless
+  validly signed by a trusted key or the operator sets
+  `OPENTINE_TRUST_WORKSPACE_PRICING=1` (only `1`/`true`/`yes`/`on` count — `0`
+  no longer silences anything). The CLI says on stderr which overlay it ignored.
+- **A signed catalog could roll prices back.** `tine pricing update` installed
+  any validly signed catalog, and the user slot outranks the bundled one, so an
+  older signed catalog — installed by mistake, or replayed by anyone able to
+  write the file — masked newer bundled cards even across upgrades. A signed
+  catalog older (`generated_at`) than the bundled snapshot or than the catalog
+  it would replace is now refused at install, and a signed user catalog older
+  than the bundled one is skipped at load with a stderr note.
+- **`tine migrate-v3` never checked signatures.** It took no key flags, so a
+  signed source always imported as `no-key`, although `--allow-unverified`
+  promised a signature check. It now takes `--key-env`/`--key-file`/`--pubkey`/
+  `--trust-embedded-key`/`--pin`, and with one of them a source whose signature
+  does not verify is refused (unless `--allow-unverified`).
+- **`tine keygen` printed private keys.** Without `--out` it wrote the seed to
+  stdout, where CI logs keep it. A private key now goes to `--out` (mode 0600)
+  unless `--stdout` asks for it. A private or HMAC key file readable by group or
+  others is announced on stderr, the way ssh does (POSIX).
+- **Nothing made a good HMAC key.** The 16-byte floor is length-only —
+  `passwordpassword` signed — and every signed object is an offline oracle for
+  guessing the key. `tine keygen --hmac --out FILE` writes 32 random bytes as
+  hex, and a key that looks guessable (under about 128 bits by a simple
+  alphabet × length estimate) is announced on stderr.
+- **`tine verify` without a key said "OK" about a signed artifact.** It checked
+  the digest only and said nothing about the signature beside it. It now says
+  *signature present but NOT checked* and how to check it; `--json` gains
+  `signature_present` and `signature_checked`.
+
+### Security — CLI, MCP and export
+
+- **`tine export` scrubbed nothing on the way out, and its push had no bounds.**
+  A `.tine` written before 0.9.1 still holds the prose secrets its writer kept
+  (a `ghp_…` token, a PEM key, a URL password), and export sent them to the
+  collector verbatim. The document is now scrubbed with the same free-text pass
+  the repository applies. The push itself re-implemented its HTTP read without
+  the repository client's controls: it advertised gzip/deflate/zstd and read a
+  rejecting collector's reply decompressed (a 60 KB zstd reply drove the CLI to
+  2.1 GB), and its 30 s timeout applied per read, so a collector trickling a
+  byte every few seconds held it forever. The push now asks for `identity`,
+  reads the reply raw (an encoded reply is not read at all), and runs under a
+  120 s wall deadline. A malformed `--endpoint` (`http://[::1]:4318evil/`) is a
+  refusal instead of a traceback, and `/v1/traces` joins the endpoint's path
+  instead of landing after its query string or fragment.
+- **Exported span ids now have the OTLP shape.** `traceId` was the run id and
+  `spanId` the 64-hex step digest; OTLP requires 16- and 8-byte ids (32 and 16
+  hex), and a spec-strict collector rejects the whole batch otherwise. Export now
+  derives conforming ids deterministically (a domain-separated SHA-256 prefix),
+  so every span of a run lands in one trace and parent and link references
+  still meet, and carries the originals in `opentine.run_id`, `opentine.step_id`,
+  `opentine.parent_step_id` and `opentine.causal_step_ids`. Ids that already
+  have the OTLP shape — anything an import brought in — are kept as they are,
+  and the importer reads the originals back and drops those attributes, so
+  export → import still returns every id the run had.
+- **MCP tools are bounded.** `fork_run` refuses a source run over 32 MiB and
+  refuses once the runs directory holds 5,000 runs (each call wrote a new
+  artifact the size of its source). `fork_run_v3` and `resume_run_v3` only
+  *create* `experiments/*` refs: they used to compare-and-swap against the value
+  they had just read, i.e. overwrite an operator's experiment. `attest_run` and
+  `evaluate_run` cap a claim at 64 KiB of JSON and a signer at 256 characters.
+  `list_runs` and `fork_run` report paths relative to the runs directory instead
+  of absolute host paths.
+- **`tine replay --harness` says what it is about to send.** Without `--prompt`,
+  a harness replay hands a live agent CLI the `user_prompt` recorded in the
+  artifact — text whoever wrote the file chose — and `--verify` sends it twice.
+  It still does (that is what a replay is), but first prints the source, the
+  length and a sanitized 200-character preview on stderr.
+- **`--token` warns.** A bearer token on the command line is visible to `ps`,
+  `/proc` and shell history; `tine fetch`/`push`/`clone` now say so on stderr and
+  point to `TINE_REMOTE_TOKEN` or the new `--token-file PATH` (one token, at most
+  8 KiB, and refused alongside `--token`).
+- **Remote URLs must be http or https.** The loopback exemption accepted any
+  scheme on `127.0.0.1` (`ftp://`, `file:` …); only the two the transport speaks
+  pass now.
+- **Terminal output hardening.** A diff value is clipped *before* it is escaped
+  (clipping escaped markup could strand the backslash that escapes a `[`, so
+  artifact text swallowed the closing style tag); a manifest's budget values
+  (`Budget` accepts numeric strings padded with NEL and other separators) are
+  sanitized; Rich emoji shortcodes are off, so `:warning:` in run text stays
+  literal; and step-ref errors quote the artifact's ids (`'\x1b[2J…'`) instead of
+  interpolating them raw.
+- **`tine resume` says when it strips a signature.** It rewrites the artifact in
+  place, and a plain save drops any signature; it now says so, as `tine tag`
+  does.
+
+### Security — tool sandbox and providers
+
+- **The Anthropic and Google adapters no longer follow redirects.** httpx
+  strips only `Authorization` when a redirect changes origin, so both SDKs
+  carried `x-api-key` / `x-goog-api-key` to wherever a redirect pointed — a
+  gateway named by `ANTHROPIC_BASE_URL` or `GOOGLE_GEMINI_BASE_URL`, or anything
+  able to answer with a 307. A redirect is now an error, as it already was for
+  OpenAI-compatible endpoints. The Google client also stays on httpx when
+  aiohttp is installed, where the setting would not apply.
+- **The fs tool opens the path it checked.** It resolved a path inside the root
+  and then opened it by name, so a directory swapped for a symlink in between —
+  by any other process writing in the workspace — sent the read or write
+  outside the root, or into `.git`. On POSIX the path is now reached from the
+  root one component at a time without following a symlink; on Windows the
+  opened file must still be the one the path names, and a write truncates only
+  after that check. A FIFO swapped in for a file fails instead of hanging the
+  agent, and a file that grows past `max_file_bytes` after the size check is
+  refused.
+- **The python tool runs in isolated mode.** With `inherit_env=True` the host's
+  `PYTHONPATH`, `PYTHONINSPECT`, `PYTHONWARNINGS` and user site-packages shaped
+  every snippet. Snippets now run with `-I -X utf8`, which also makes their
+  output UTF-8 on Windows.
+- **Windows directory listings go through a handle.** `ls` listed a directory
+  by path after checking it, and any Windows user can create a junction, so a
+  junction swapped in between was listed. The directory is now opened once,
+  its handle's final path must be the checked path, and its entries are read
+  from that handle.
+- **`RedactionPolicy` was recorded and read by nothing.** `extra_secret_keys`
+  named fields the host considered secret, yet they reached `.tine` files and
+  repositories verbatim, and `redact_secrets=False` disabled nothing. A run now
+  carries the policy it ran under (`Agent(policies=PolicySet(...))` records
+  `PolicySet.to_dict()` in `run.policies`), and every writer of that run —
+  `Run.save`, autosave and `Repo.put_run` — redacts the named fields as it does
+  `api_key` (camel/kebab/plural forms included, and `name: value` strings). A
+  policy naming a field the run format itself uses (`steps`, `parent_ids`, …)
+  is refused, and `redact_secrets=False` is refused rather than silently
+  ignored. The policy's own list of names is no longer redacted out of the
+  saved file (its key matched `*_secret_keys`), so it survives a reload.
+- **Batch-file argument injection on Windows (BatBadBut, CVE-2024-24576
+  class).** Windows runs a `.bat`/`.cmd` program through `cmd.exe`, which
+  re-parses the command line; Python quotes for the C runtime, so a harness
+  task or a shell-tool argument holding `"` and `&` could run a command of its
+  own. npm installs most agent CLIs as `.cmd` shims. When the program is a
+  batch file, an argument holding `" % ! ^ & | < >` or a line break is now
+  refused before anything starts (harness launches and every `run_bounded`
+  command: shell tool, python tool, git capture). Launch the real executable
+  (`node <entry>.js`, an `.exe`) to pass such text.
+- **API keys no longer cross the network in cleartext.** Every
+  OpenAI-compatible adapter (local presets, hosted providers' `*_BASE_URL`
+  overrides, `OpenAI(base_url=…)`) and the Anthropic/Google adapters'
+  `ANTHROPIC_BASE_URL` / `GOOGLE_GEMINI_BASE_URL` accepted `http://` for any
+  host, sending the key in the clear. A key now goes over plain HTTP only to a
+  loopback address (`localhost`, `127.0.0.0/8`, `::1`); elsewhere use
+  `https://`, or opt in with `allow_insecure=True` or
+  `OPENTINE_ALLOW_INSECURE_ENDPOINTS=1`. A local server's own placeholder key
+  (`vllm`, `lm-studio`, …) is no secret and is unaffected.
+- **Flag values in a recorded command.** `--password=…` was redacted, but a
+  recorded command is a list, and `["cli", "--password", "hunter2"]` left the
+  value as an element of its own. The element after a credential flag
+  (`--password`, `--token`, `--api-key`, `--client-secret`, `--auth`, `--pass`,
+  …) is now redacted; token counters (`--max-tokens 4096`) and `-p` (the prompt
+  flag of most agent CLIs) are kept.
+
+### Security — repository
+
+- **The reflog had no bound.** `logs/<ref>` grew by a row per ref update
+  forever (`experiments/*` churn over MCP, CI loops). Each ref's log is now
+  capped at 1 MiB: when an append would pass it, the log is atomically
+  rewritten keeping its newest half. An oversized log from an earlier version
+  is cut on its next append. The reflog stays history, not authority.
+- **One repository descriptor, one reading.** `config.json` given a key twice
+  (which value wins is parser-specific) or `true` for `1` (which Python's `==`
+  accepted) is refused, and it must be strict UTF-8 (a BOM is tolerated).
+  Unknown keys and any formatting stay accepted, as SPEC §2.2 and its
+  conformance vectors require.
+
+### Fixed
+
+- **Run annotations no longer copy the prompts.** `put_run` stored the run's
+  whole `metadata` in its annotation, and a run made by the runtime or loaded
+  from a `.tine` file carries `system_prompt`, `user_prompt` and `model_info`
+  there — fields the run already stores itself. A 40 KiB system prompt made a
+  44 KiB annotation, pushed with every run and counted against the remote's
+  1 MiB-per-annotation listing budget; it is now about 200 bytes. Annotations
+  written earlier are unchanged and still read.
+
+### Still open
+
+- The pricing catalog's signature has no domain-separation prefix (no other
+  signed message can collide today); one is added with the next release-key
+  rotation, since it needs the bundled catalog re-signed.
+- A public key saved as bare 64-hex under a name other than `*.pub` cannot be
+  told from a 64-hex HMAC secret, so it is not refused as HMAC key material.
+- A custom `KMSKeyProvider` gets slot-bound encryption only by implementing
+  `seal`/`unseal`; `heads/*` has no fast-forward rule on the remote.
+
+## 0.9.1 — 2026-10-09 — Security
+
+A security and hardening release from a five-slice audit of 0.9.0 (kernel and
+packs, repository and signing, the remote server, the tool sandbox and
+harnesses, and the CLI/MCP/import surface). Every finding below was reproduced
+with a proof of concept before it was fixed, and each has a regression test in
+`tests/test_security_0_9_1*.py` that fails on 0.9.0. No format change: every
+file and repository written since 0.3.0 still reads, and nothing new is written
+that 0.9.0 cannot read.
+
+### Upgrade notes
+
+Some fixes change behaviour a workflow may rely on:
+
+- **Text-mode agent CLIs record their stdout as text.** For structured capture,
+  ask the CLI for JSON on its command line — `codex`: `--harness-arg --json`;
+  `cursor`: `--harness-arg --output-format --harness-arg json`.
+- **A `.tine` repository in a parent directory owned by another user is
+  refused** (POSIX). Pass `--repo` or set `OPENTINE_SAFE_DIRECTORIES`.
+- **The shell tool refuses some git invocations** (`git config`, `-c`,
+  `submodule`, `rebase -x`, …), and the fs tool refuses writes inside `.git`.
+- **`PythonPolicy(isolation_backend=…)` other than `subprocess` is refused** by
+  the built-in python tool instead of running unisolated.
+- **A rate card's `currency` must be an ISO code** (`USD`), and an unsigned
+  workspace `.tine/pricing.json` is announced on stderr.
+- **`repo-search` ranks signed evaluations first** and reports `score_signed`.
+- **`verify_attestation`/`verify_artifact` take exactly one key**, and a
+  signature block must be in the exact form OpenTine writes.
+
+### Security — remote server
+
+- **A ref listing can no longer be bricked by one annotation.** `GET /refs`
+  decoded every annotation under a 1 MiB / 8 MiB budget that no write enforced,
+  so one run with a large prompt — or about 185 ordinary annotated runs — made
+  the listing return 400 for good, and with it every fetch, clone and push in
+  the tenant. The listing now binds each annotation ref by the run the index
+  recorded when the annotation was installed and verified, and `update_ref`
+  runs the same listing check before committing, so no write can leave a tenant
+  unlistable.
+- **Uploads can no longer make someone else's run unfetchable.** Any writer
+  could upload ~10,000 attestations naming an existing run, without touching a
+  ref, and that run could never be fetched, negotiated or cloned again. A pack
+  that would give any object more than 1,000 annotations and attestations is now
+  refused at install, before anything is written.
+- **A slow upload no longer stalls every tenant.** The direct pack upload read
+  its request body while holding the server-wide install slots every fetch also
+  needs, so two trickling connections from any writer blocked fetch, clone and
+  push for all tenants. The body is now read before a slot is taken.
+
+### Security — CLI, MCP and import
+
+- **An untrusted `.tine` can no longer write terminal escape sequences.** A
+  loader error quoting artifact content (a step-usage key) reached Python's
+  traceback printer raw, so eleven verbs — `show`, `cost`, `price`, `diff`,
+  `fork`, `replay`, `resume`, `tag`, … — could put an OSC 52 clipboard write, a
+  title change or a screen clear on the operator's terminal, and MCP `show_run`
+  errors carried the same bytes. Loader messages now quote such names; every
+  `tine` invocation turns an uncaught exception into one sanitized
+  `tine: <message>` line with exit 1 (`OPENTINE_DEBUG=1` restores the
+  traceback); MCP tool errors are sanitized the same way.
+- **Terminal and MCP text drop invisible characters.** Zero-width, word-joiner,
+  BOM, line/paragraph-separator and Unicode tag characters are removed along
+  with C0/C1 controls and bidi overrides; MCP text output previously escaped
+  only line breaks.
+- **Workspace pricing overlays.** A rate card's `currency` reached `tine
+  pricing show` raw; it must now be a three-letter ISO 4217 code, so an overlay
+  with free text (or `usd`) there is refused. The unsigned `./.tine/pricing.json`,
+  which outranks the user overlay, is announced on stderr whenever the CLI loads
+  it (`OPENTINE_TRUST_WORKSPACE_PRICING=1` silences this).
+- **`tine import` is bounded before parsing.** Whole documents and each JSONL
+  line pass the `.tine` structural-token budget before `json.loads` — a 256 MiB
+  `[{},{},…]` file needed ~6.6 GB of memory before — and the 256 MiB cap is
+  enforced by reading, so pipes, FIFOs, devices and JSONL on stdin are bounded.
+- **`tine export --output` never writes through a symlink.** A dangling link at
+  the destination is refused like an existing file, `--force` replaces the link
+  instead of following it, and endpoint URLs are printed without their
+  `user:password@`.
+- **Search ranks by signed evaluations.** An unsigned evaluation, which any MCP
+  client can write, decided a run's rank through `max`; one injected score of
+  1.7e308 put a run first. A signed evaluation now decides a run's score
+  whenever one exists, and runs scored by signed evaluations rank above runs
+  scored only by unsigned ones. Results carry `score_signed`; `--signed-only`
+  (CLI), `signed_only=` (library) and `search_runs(signed_only=…)` (MCP) ignore
+  unsigned evaluations; MCP `evaluate_run` refuses non-finite or |score| > 1e6.
+  Signed is not verified — use `tine repo-verify` with a trusted key.
+- **Redaction of imported traces.** Beyond the shapes below, a field named
+  `pass`, `pwd`, `auth`, `connection_string`, `dsn`, `webhook_url` or
+  `private_key_id` (and `*_dsn`, `*_webhook_url`, `*_connection_string`), a
+  `--password X` argument, and Slack or Discord webhook URLs are now redacted.
+  A boolean `pass`, an auth *mode* such as `oauth2`, and `session_id` (a
+  structural identifier) are kept.
+
+### Security — tool sandbox and harnesses
+
+- **A model could run commands on the host through git.** The fs tool could
+  write `.git/config` (`core.fsmonitor`, a `filter.*.clean` driver) and the shell
+  tool's allowlist checked only `argv[0]`, so with `git` allowlisted a model
+  could pass `-c alias.x=!cmd` — and the next git invocation, its own or
+  `code_manifest` capturing the workspace after the run, executed the command.
+  The fs tool now refuses any write inside a `.git` directory (any case, or a
+  `.git` file) or through a hard-linked file; the shell tool refuses git options
+  and subcommands that run a command, inject configuration or point git at
+  another repository (`-c`, `--config-env`, `--git-dir`, `config`, `submodule`,
+  `--upload-pack`, `rebase -x`, `grep -O`, `clone -c`/`--template`, …), with
+  global options checked against an allowlist; and every git OpenTine starts runs
+  with fsmonitor off and `safe.bareRepository=explicit`, so a bare repository
+  assembled from ordinary file writes is never discovered. An allowlisted
+  interpreter or test runner remains arbitrary code execution by design; this is
+  now stated in SECURITY_MODEL.
+- **The SSRF guard let NAT64 addresses reach the metadata service.**
+  `64:ff9b::a9fe:a9fe` (NAT64 for 169.254.169.254), IPv4-compatible `::/96` and
+  site-local `fec0::/10` passed the private-host check because Python calls
+  them global. An IPv6 address that embeds an IPv4 address is now public only if
+  the embedded address is.
+- **The subprocess environment scrub missed common credential names.**
+  `DATABASE_URL`, `MYSQL_PWD`, `PGPASS`, `GH_PAT`, `SENTRY_DSN`,
+  `*_WEBHOOK_URL`, `*_CONNECTION_STRING` and `*_PRIVATE` reached tool
+  subprocesses — and through their output, the model. Inherited variables are
+  now scrubbed by more names and **by value**: a vendor token shape, a URL with
+  a password (including `redis://:pw@`), or a private key is dropped whatever the
+  variable is called.
+- **`PythonPolicy.isolation_backend` failed open.** The built-in python tool
+  never read it, so a policy asking for `external` or `gvisor` isolation ran the
+  snippet as the host user with network. Any backend other than `subprocess` is
+  now refused.
+- **Agent prose could forge steps and charges.** Text-mode harnesses (`gemini`,
+  `grok`, `hermes`, `opencode`, `codex`, `cursor`) read any JSON-shaped stdout
+  line as a structured event and any "cost: $250" as a charge, so a model's
+  answer could record a `deploy_prod` tool call, an error, or money — and trip a
+  cost budget. A JSON line is now an event only when the command asks the CLI
+  for JSON output (`--json`, `--output-format stream-json`, …; `claude-code`,
+  `kimi-code` and `openclaw` do), and free-text cost is booked only for an
+  operator-written `generic`/`pi` command. For structured `codex` capture, pass
+  `--harness-arg --json`.
+
+### Security — repository, signing and redaction
+
+- **A repository planted in a parent directory was adopted.** `Repo.open` and
+  every verb's default `--repo .` walked to the nearest ancestor `.tine` with no
+  ownership check, so one planted in `/tmp` or a shared project root would have
+  your key sign the planter's runs and `migrate-v3` copy your runs into their
+  store (git's CVE-2022-24765 class). On POSIX a repository found in a *parent*
+  directory that another user owns is now refused; the directory you name, or
+  the current one, is trusted as before, and `OPENTINE_SAFE_DIRECTORIES` lists
+  others (`*` for all). A bare repository (`tine init --bare DIR`) now opens at
+  its own path.
+- **A pack could relabel a run you already had.** An annotation with no ref is
+  still read — clones rely on it — but one delivered by a pack for a run the
+  repository already held was adopted too, so anyone handing over a pack or
+  writing to a shared remote could tag an untagged local run `approved` with a
+  "reviewed by" note, and `fsck` stayed green. Those annotations are now recorded
+  in `.tine/unadopted` at install and never adopted by object presence; `fetch`
+  fast-forwards every annotation ref the remote advertises (not only the tip's),
+  so real updates to older runs arrive through the remote's refs.
+- **`tine repo-verify` could not express a release gate.** It required every
+  attestation on the run to verify and never looked at what was signed: a
+  verified *rejection* passed exactly as an approval, and any writer could block
+  a release with one unsigned note. `--signer NAME` (repeatable) and `--claim
+  JSON` now select the attestations a gate is about; it passes when at least one
+  selected attestation verifies, and others neither pass nor block it. Every
+  JSON row carries its `claim` and `selected`. Unscoped behaviour is unchanged.
+- **One signature verified under several attestation ids.** A signature block
+  with re-cased hex, an extra key, or another embedded public key still
+  verified. Blocks are now accepted only in the exact form `tine attest` writes,
+  with an embedded Ed25519 key that must be the key that verified.
+- **The block chose which of the caller's keys was trusted.**
+  `verify_attestation` (and artifact `verify`) accepted `hmac_key`,
+  `public_key` and `trust_embedded` together and let the block's `alg` pick one.
+  Exactly one is now required (`error` otherwise). The CLI already refused two
+  key flags.
+- **A UTF-16 JSON body evaded the structural budget.** The kernel's token scan
+  reads UTF-8, and a UTF-16 body whose code units looked like quotes
+  desynchronised it (U+0122 is `22 01`), letting an over-budget document reach
+  `json.loads`. A NUL-bearing body — every UTF-16/32 document — is now refused
+  before scanning.
+- **The v2 writer saved secrets in prose.** `Run.save` redacted credential
+  *field names* only, so a PEM private key, a `Bearer` token in a curl line, an
+  inline `sk-proj-…`, a URL password or a `ghp_…` token in free text reached the
+  `.tine` file. It now applies the same free-text scrub the v3 store does.
+- **Credential shapes leaked through both scrubbers.** 13 of 16 common shapes
+  survived: GitHub fine-grained PATs, Google API keys, Stripe, GitLab, Hugging
+  Face, npm, PyPI, SendGrid and Vault tokens, JWTs, AWS STS keys, URL userinfo
+  passwords, signed-URL signatures and token query parameters, PGP private-key
+  blocks, and names such as `github_token`, `slack_bot_token`,
+  `subscription_key`, `x_amz_security_token`. They are now redacted; token
+  *counters* (`input_tokens: 120`, `max_tokens`, a list of token ids) are not.
+
+### Fixed
+
+- **A signed score of `1.0` verified as `mismatch`.** `tine-attest/1` signed
+  the in-memory payload, but the v3 store writes an integral float as an integer,
+  so every genuine signature over `--score x=1` (or any `-0.0`) failed. The
+  signature now covers the payload as stored. A `--key-id` that redaction would
+  rewrite (`api_key=prod`) is refused at signing instead of producing an
+  attestation that can never verify.
+
+## 0.9.0 — 2026-10-09
+
+### Added
+
+- **Signed v3 attestations (`tine-attest/1`).** An attestation's `signer` was a
+  self-asserted label — anyone who could write to a repository could write
+  `signer: security-team`. `tine attest` / `tine evaluate` now take `tine sign`'s
+  key flags (`--key-env` / `--key-file` / `--ed25519-key-file`, `--key-id`) and
+  bind that label to a key with HMAC-SHA256 or Ed25519, over a canonical signed
+  view covering the `target_id`, `claim`, `signer`, `evidence_ids` and the
+  signature header. `Repo.attest(..., key=...)` and
+  `opentine.attest_signing.sign_attestation` are the API halves.
+- **`tine repo-verify`.** Checks one `attestation:sha256:…` oid, or every
+  attestation targeting a run ref/oid, and reports `tine verify`'s own verdicts
+  (`verified`, `verified-tofu`, `unsigned`, `no-key`, `mismatch`, `error`). Same
+  key flags, same fail-closed rule: any key, `--trust-embedded-key`, or
+  `--require-signature` arms the check and exits non-zero unless everything
+  verified. `Repo.verify_attestation` is the API half. MCP has no equivalent —
+  signing and key material stay operator-only.
+- **`docs/SPEC.md` — the format, published as a specification.** The v3 wire
+  format was previously code-only: envelope framing, oid derivation, the
+  `TINEPACK3` pack layout, the ref/reflog byte formats and `config.json` existed
+  nowhere an outside implementer could build against, and v2 canonicalization
+  was not reproducible from docs. All of it is now normative and citable —
+  written for someone implementing a reader, writer or verifier in another
+  language — including both canonical JSON forms rule by rule, the complete
+  rejection table of every bound that can refuse an object, all three signature
+  schemes with their domain prefixes and signed views, and executable test
+  vectors for oid derivation, the v2 integrity digest and a `tine-attest/1`
+  signature. Two documented **⚠ Hazards** an implementer would otherwise get
+  wrong: v2 orders object keys by code point while v3 orders them by UTF-16
+  code unit (they disagree on non-BMP keys, and unifying them would invalidate
+  every stored digest and signature), and `tine-attest/1` signs a *v3* object
+  using the *v2* canonicalizer.
+- **`docs/conformance/` — the specification, as runnable evidence.** A prose
+  spec lets nobody *prove* an implementation correct: before this, `SPEC.md`
+  carried four inline worked vectors and an implementer's only recourse was to
+  read Python. The format now ships **523 conformance vectors** across 25 families,
+  language-neutral (SHA-256, HMAC-SHA256, base64 and a JSON parser; zlib inflate
+  and Ed25519 flagged skippable), with a stdlib-only runner
+  (`docs/conformance/run_conformance.py`, which imports no opentine) that speaks
+  line-delimited JSON to an ~80-line adapter. `scripts/conformance_adapter.py`
+  is the worked example. `MANIFEST.json` is the single machine-parsed entry
+  point: 33 ops with their input/output shapes, per-file digests, alias groups,
+  and which row of §1.6 each vector covers.
+- **Negative vectors are the point.** 195 of the 523 refuse input, because
+  "reject" is normative here — an implementation that silently repairs a
+  document changes a digest claiming fidelity to recorded model output.
+  `99-repair.json` goes further: each of its fourteen cases carries the exact
+  answer a *repairing* reader returns, so producing it is scored `REPAIRED`
+  rather than as a plain failure. Scoring has three columns and the second is
+  the load-bearing one — `pairs` (both halves of every twinned case), on which a
+  blanket rejecter scores near zero. `04-divergence.json` makes §0.4's
+  canonicalization hazard checkable: each half of a pair carries the *other*
+  canonicalizer's bytes as `forbidden`, and `sig.attest.hazard.nonbmp-1e20`
+  exists because §4.5's own worked vector is all-ASCII, so both canonicalizers
+  coincide on it and a JCS-using implementer passes §4.5 and fails only there.
+- **`scripts/gen_conformance_vectors.py`, and why the vectors can be trusted.**
+  Every expected byte string, oid, digest and verdict is generated from the
+  reference implementation, never transcribed; each case's *disposition* is
+  declared by hand in `tests/conformance/cases_*.py` and the generator **exits
+  without writing** when observation disagrees with the declaration. Making
+  opentine accept what it used to reject therefore costs one hand-edited line
+  that reads exactly that. Regeneration is byte-identical, and the suite is
+  gated four ways: through the low-level functions, through the public
+  `Repo`/`Run` API, through the neutral runner and reference adapter, and by 28
+  drift gates (no suite file is git-ignored, every §1.6 row is vectored or has
+  written prose saying why it cannot be, every reason code is used and
+  registered with its bound's *live* value, every twin resolves and flips, every
+  `spec_note` has a mandatory resolution).
+- **`docs/conformance/compat/index.json`.** The eight golden fixture sets are
+  exposed as spec artifacts rather than duplicated: the index points at
+  `tests/fixtures/compat/` by path and SHA-256 and copies zero bytes, because
+  those bytes ARE the evidence for §5.1's read guarantee and a second copy could
+  drift from them. Reflog rows are deliberately excluded — they embed a
+  wall-clock timestamp and are the one non-reproducible part of a fixture.
+- **`tests/test_format_spec_drift.py`.** The spec is pinned to the code it
+  specifies: object types, the oid and ref-name regexes, every bound in the
+  rejection table, the three domain prefixes, the frozen `tine-sig/1` metadata
+  allowlist, the verdict vocabulary (read out of `_signing_verify`'s AST rather
+  than restated), and the crypto test vectors, which are recomputed rather than
+  quoted. Change a constant without updating the spec and the suite fails.
+
+- **`docs/SPEC.md` prose amendments found by building the vectors.** §0.2 rule
+  10 said nesting is rejected "at or beyond 512 levels"; the encoder accepts 512
+  nested containers and rejects 513, and the rule now says so. §0.1 said both
+  formats reject a lone surrogate "at write and at read" without naming where —
+  `_canon._canonical_bytes` alone accepts one and emits the escape, so the
+  section now names `parse_artifact_json`, `assert_loadable` and
+  `guarded_redaction` as the enforcement points. §2.7 described the shallow file
+  as "Sorted" with "the last line terminated"; the reader enforces neither, so
+  both are now stated as **writer** properties. Every such finding is recorded
+  in `docs/conformance/SPEC_NOTES.md` with a mandatory resolution.
+
+### Compatibility
+
+- Signing is **opt-in and additive**. An attestation written without a key is
+  byte-identical to what 0.3.0–0.8.1 wrote (`"signature": null`), keeps its
+  object id, loads out of every released repository, `fsck`s clean, and verifies
+  as `unsigned` — never as `verified`.
+
+## 0.8.3 — 2026-10-09
+
+A hardening release: one security fix, and the capture and model-rule debts the
+0.8.2 assessment found.
+
+### Security
+
+- **Windows process containment no longer has an escape window.** `run_bounded`
+  (the shell and python tools) and every process harness started the child
+  *running* and attached the kill-on-close Job Object afterwards, so a
+  grandchild spawned in that gap was born outside the job and survived the
+  kill — a tool command's descendants could outlive containment. The child now
+  starts suspended (`CREATE_SUSPENDED`), joins the job, and only then resumes.
+  It is resumed even when no job can be attached (the taskkill fallback
+  remains), and a child that cannot be resumed is terminated rather than left
+  half-started.
+
+### Fixed
+
+- **Claude Code harness runs are priceable.** The `claude-code` harness ran
+  plain `claude -p` and guessed steps from text, recording the CLI's name
+  instead of a model and no usage at all, so `tine price` could not price a
+  harness run. It now reads `--output-format stream-json`: a `model` step per
+  API call with model, provider and exact input-side usage, a `tool` step per
+  call with its result, per-model output totals from the final `result` event
+  (an assistant event's `output_tokens` is a message-start placeholder — 16
+  and 4 against a true 120 in the live capture this was built from), and
+  Claude Code's own cost on the closing step. On that capture the catalog
+  re-prices the run to exactly the $0.100061 Claude Code reported. The provider
+  comes from the environment Claude Code actually receives (Bedrock, Vertex and
+  Foundry keep theirs), and the closing per-model totals always use the provider
+  Claude Code itself reports — flagging a mismatch when Claude Code was switched
+  to another provider through its own settings. The launch and task steps of a harness that reports real model
+  calls are no longer recorded as phantom `model` steps.
+- **A new model no longer breaks on day one.** Sampling rules lived in
+  per-adapter name lists, and each new family missed one (0.8.2 fixed
+  `claude-opus-5` and `gpt-6-*` being sent a `temperature` their APIs reject).
+  They now live in one table with fail-safe defaults: an unlisted `claude-*`
+  model, or an unlisted model on OpenAI's native API, is sent no sampling
+  parameters — omitting one never fails a request, sending one a model rejects
+  fails every request. Every listed model keeps its exact behaviour (pinned for
+  all 56 catalogued Anthropic and OpenAI names); models behind a custom
+  `base_url` are only treated as reasoning models when their name says so.
+
+### Tests
+
+- The Windows duration-budget test used a 10 ms budget against a ~15.6 ms timer
+  tick, so a loaded runner could spend it before the tool step started.
+
+## 0.8.2 — 2026-10-08
+
+New models, and the adapter rules they broke. Every price was confirmed against
+the vendor's own pricing page on 2026-10-08; nothing is converted, derived or
+guessed, and anything a vendor does not publish stays `unknown`.
+
+### Fixed
+
+- **Native Claude Opus 5 calls were rejected.** Anthropic returns HTTP 400 for
+  any non-default `temperature`, `top_p` or `top_k` on Fable 5/5.1, Mythos
+  5/5.1, Opus 4.7/4.8/5/5.5, Sonnet 5/5.5 and Haiku 5.5, and the adapter sent
+  `temperature` to `claude-opus-5` because no restriction rule matched it. The
+  rule now covers the whole documented list, including the new Opus 5.5 and
+  Haiku 5.5; Haiku 5.5 is also recognized as a thinking model (Haiku 4.5 is not).
+- **Native GPT-6 calls sent `temperature`.** The Responses path omitted it only
+  for `gpt-5*` and the o-series, and "GPT-6 Astra does not support custom
+  temperature or top_p values". `gpt-6*` is now treated as the reasoning family
+  it is, on the Responses path and on the Chat Completions path a custom
+  `base_url` selects.
+- **Early-refusal billing follows Anthropic's published rule.** A refusal that
+  arrives before any output was non-billable only for exactly `claude-fable-5`.
+  Since 2026-09-24 the rule is model-independent: such a refusal is billed when
+  `stop_details.category` is `bio`, `frontier_llm` or `reasoning_extraction`,
+  and free in any other category or with a null category. The category is now
+  recorded in the step's billing calculation; a malformed category is not
+  treated as evidence of a free refusal.
+- **A missing OpenAI cache-write count is caught for every model that bills
+  one.** The check was keyed on a `gpt-5.6` name prefix, so a `gpt-6-astra`
+  usage block that omitted its cache-write count was priced as `complete` with
+  zero writes. It is now keyed on the card: the count is required exactly when
+  the resolved card prices cache writes.
+- **Grok long-context pricing starts at 200,000 tokens, not after it.** xAI
+  bills "requests whose prompt reaches the listed token threshold" at the higher
+  rate; every xAI card fired only above 200,000, under-billing a prompt of
+  exactly 200,000 tokens. The rule is now `at-least-200k`.
+- **Imported OpenTelemetry traces bill cached tokens at the cache rate.** The
+  current GenAI conventions report `gen_ai.usage.input_tokens` *including* its
+  `cache_read.input_tokens` / `cache_creation.input_tokens` (now
+  `cache_write.input_tokens`) sub-counts, and `output_tokens` including
+  `reasoning.output_tokens`. The importer read none of those keys and treated
+  the inclusive total as fresh input, so a 100k-token call with 90k cached
+  priced at $0.525 instead of $0.12 on Claude Opus 5. The sub-counts are now
+  read and subtracted; the older exclusive spellings (`cache_read_input_tokens`
+  and friends, which every OpenTine export through 0.8.1 wrote) keep their
+  reading, so existing documents import exactly as before. A total smaller than
+  its own sub-counts is kept as reported and flagged on the span.
+- **Imported agent spans no longer double-bill their model calls.** An
+  `invoke_agent` span reports the aggregate usage of the calls beneath it, and
+  was imported as a `model` step, so an agent with two $0.075 calls cost $0.30.
+  Agent operations (`invoke_agent`, `create_agent`, `invoke_workflow`) now import
+  as `subagent` steps that record their usage without being billed, unless no
+  span beneath them reports usage of its own (a remote agent), in which case
+  the agent span is the only record of that spend and is billed. `tine cost`
+  token totals skip the roll-up for the same reason.
+- **A v3 step kind the legacy enum lacks survives a `.tine` save.** `subagent`,
+  `human`, `policy` and `approval` steps loaded as `model` and were written that
+  way, so `tine price` on a saved run would have billed a roll-up a second time.
+  The real kind is now carried as an additive `v3_kind` field (absent for every
+  other step, so existing artifacts re-serialize byte for byte) and is what
+  pricing reads.
+- **DeepSeek peak pricing excludes Chinese public holidays.** "Peak hours are
+  01:00 - 04:00 and 06:00 - 10:00 UTC, Monday through Friday, excluding Chinese
+  public holidays." The 2026 weekday holidays (09-25 and 10-01 through 10-07)
+  are carved out as flat off-peak cards; every peak hour falls on the same
+  Beijing calendar day, so the split is exact.
+
+### Added
+
+- **Catalog refresh, 85 -> 122 cards.** Anthropic: `claude-opus-5-5` (cache
+  read $0.20, fast mode 2x), `claude-sonnet-5-5` (cache read cut from $0.20 to
+  $0.10 on 2026-10-07, carded as two date-scoped cards), `claude-haiku-5-5`
+  (5x on every dimension for prompts over 100,000 tokens, counting cache reads
+  and writes), `claude-mythos-5-1`, `claude-mythos-5`, and the previously
+  uncarded `claude-sonnet-4-6`. OpenAI: `gpt-6.1-sol` (the whole GPT-6.1 series;
+  cached input 5% of input, Ultrafast 6x), `gpt-6-sol` and `gpt-6-luna`.
+  Google: `gemini-3.8-flash` (introductory price through 2026-12-31). xAI:
+  `grok-4.7`. DeepSeek: `deepseek-flash` (V4.1-Flash, from 04:00 UTC on
+  2026-09-10), which also prices the retired `deepseek-v4-flash` and
+  `deepseek-v4-flash-vision-exp` names ("billed at the Flash price"). Qwen:
+  `qwen3.8-2.4t-a95b`, `qwen3.8-max-0902` (alias `qwen3.8-max-2026-09-02`) and
+  `qwen3.8-omni-flash`. GLM: `glm-5.3`, `glm-5.3-flash` (with its 50% launch
+  promotion through 2026-09-09) and `glm-5.3-flashx`. Together: DeepSeek
+  V4.1-Flash, V4-Pro-0813 and V4-Flash-0731, GLM-5.3 and 5.3-Flash, Kimi-K3,
+  and the 2026-09-22 Qwen3.7-Max price cut. Groq: `qwen/qwen3.8-27b`.
+- **Kimi K3 cache writes.** Kimi now bills cache writes separately (5-minute
+  TTL $3.00, 1-hour $6.00) and reports them as
+  `prompt_tokens_details.cache_write_tokens`; the card had no rate for them, so
+  every K3 call that wrote cache priced as `partial`.
+- **Corrections to existing cards.** Opus 4.8 gains its published fast-mode
+  modifier; GPT-6 Astra gains Ultrafast (6x) and `priority`, which OpenAI
+  renamed to Fast mode and serves as Fast; Grok 4.6 gains its 2x priority
+  modifier; `gemini-3.1-pro-preview-customtools` aliases Gemini 3.1 Pro.
+- **`deepseek-flash` is recognized as a thinking model**, and DeepSeek and Kimi
+  join the providers that request streamed usage; both document
+  `stream_options.include_usage`. The provider-level default set is exactly
+  `deepseek`, `glm`, `glm-cn`, `kimi`, `openai`, `openai-compatible`, `qwen`,
+  and `xai`; membership still requires positive evidence that the endpoint
+  accepts the field.
+
+### Changed
+
+- **OpenTelemetry export speaks the current GenAI conventions.** Spans carry
+  `input_tokens` / `output_tokens` totals that include the
+  `cache_read.input_tokens`, `cache_creation.input_tokens` and
+  `reasoning.output_tokens` sub-counts written beside them, so Langfuse, Phoenix
+  and any other reader see every token a step consumed (the exclusive totals
+  exported through 0.8.1 under-reported a cached call's input), and
+  `gen_ai.provider.name` beside `gen_ai.system`. What no convention spells -- the
+  1-hour cache-write TTL, a dimension like `input_audio` -- rides exactly in an
+  `opentine.usage` attribute, written only when the standard counters cannot
+  carry the usage back. Re-importing an export reproduces its usage exactly, and
+  a span imported from elsewhere still re-exports with the attributes it came
+  with. OpenTine 0.8.1 and earlier read these newer exports' inclusive totals as
+  fresh input.
+- **Adapter defaults move to each vendor's current model**: `OpenAI()` ->
+  `gpt-6.1-sol`, `Anthropic()` -> `claude-sonnet-5-5`, `Google()` ->
+  `gemini-3.8-flash`, `Grok()` -> `grok-4.7`, `GLM()` -> `glm-5.3`, `Qwen()` ->
+  `qwen3.8-max`, `DeepSeek()` -> `deepseek-flash`. Passing a model name
+  explicitly is unaffected.
+
+### Removed
+
+- **Aliases and modifiers a vendor no longer publishes.** `grok-latest` no
+  longer aliases `grok-4.3` (no xAI page maps it there any more, and a run
+  recorded under it now reports `unknown` instead of grok-4.3's rates).
+  `gpt-5.6-cyber` loses its batch, flex, fast and priority modifiers: OpenAI
+  publishes no tier price for it, so a tiered call stays visibly `unknown`.
+  Cards for retired models are closed: `deepseek-v4-flash` and its vision
+  variant (2026-09-09), `kimi-k2.5` (2026-08-31), and the Together listings
+  removed from serverless.
+
+### Held
+
+- **Not carded, deliberately.** `mistral-large-4` (a launch sale with no
+  published end date, and conflicting cache prices), Together's Kimi-K3
+  promotion (undocumented start, conflicting cached rate; that window prices
+  `unknown`), `glm-cn` (bigmodel.cn publishes CNY only), the historical
+  Together Qwen3.7-Max rate, and `gpt-rosalind-research` (trusted access, no
+  published long-context or tier rules).
+
+## 0.8.1 — 2026-09-04
+
+### Added
+
+- **Catalog refresh (source-confirmed), 79 -> 85 cards.** `claude-fable-5-1`
+  (input $10, cache read **$0.25**, 5m write $12.50, 1h write $20, output $50;
+  batch 0.5x, US inference 1.1x, no fast mode), `gpt-6-astra` (input $10, cached
+  input $1, cache writes $12.50, output $50; >272K input reprices the whole
+  request at 2x input/cache and 1.5x output; batch/flex 0.5x, fast 2x),
+  `qwen3.8-27b` and `qwen3.8-flash` on the Model Studio international endpoint
+  (both with implicit and explicit cache tiers), and two `deepseek-v4-flash-vision-exp`
+  cards carrying the V4-Flash rates and the platform peak/off-peak schedule
+  across the 2026-08-23 weekend-rule change. `qwen3.8-max` re-verified unchanged.
+- **`glm-cn` misses say why they are unpriced.** A billing miss on the GLM China
+  endpoint now warns that the public catalog cards only the international z.ai
+  provider and points at a local overlay. Status stays `unknown` and no amount is
+  invented, so completeness gates behave exactly as before.
+
+### Held
+
+- **`qwen3.8-flash-next` is not carded and not aliased.** Its QwenCloud model page
+  returns HTTP 404 and the model is open-weight only; the hosted, priced model is
+  the distinct `qwen3.8-flash`. Runs against it report cost `unknown` until a
+  local overlay supplies a price.
+
+## 0.8.0 — 2026-08-22
+
+The Model-Agnostic Core. OpenTine records `(provider, model, usage)` as opaque
+data, and cost is now a **post-hoc function of that record** — a signed catalog
+turns it into dollars, after the fact, for any run, native or imported. The model
+layer is an optional capture convenience; the OpenTelemetry importer is the
+universal, model-agnostic on-ramp that needs no adapter and no rate card. Stored
+data stays readable: every artifact and repository written by 0.3.0 through 0.7.2
+still loads.
+
+### Added
+
+- **`provider` is a recorded field.** Every step records its provider alongside
+  model and usage; imported OTel runs read it from `gen_ai.system` /
+  `gen_ai.provider.name`, so a run's identity survives independent of how it was
+  captured. It is opaque recorded content — verify, fork, diff, and replay never
+  branch on it — and additive: pre-0.8.0 artifacts load with an empty provider and
+  re-serialize byte-identically.
+- **`tine price` — cost after the fact.** Recompute a run's cost from the catalog
+  (optionally as of a past date with `--at`), distinct from `tine cost`, which
+  sums the cost recorded at capture. It prices imported and uncosted runs that
+  `tine cost` shows as `$0`, carrying the catalog's status through verbatim — an
+  uncarded step, a step with no provider, and a step that recorded no usage each
+  report `unknown`, never a fabricated `$0`. `tine import --price` bakes catalog
+  prices into an OTel import before anything is written.
+- **Time-of-day pricing (`opentine-pricing/2`).** Rate cards can carry a
+  peak/off-peak schedule (UTC hour windows + a weekday/weekend scope); DeepSeek V4
+  is priced correctly again after it moved to peak/off-peak billing. Additive —
+  every other card prices identically, and `/1` catalogs and overlays still load.
+- **Local model servers are one command away.** vLLM, LM Studio, SGLang, TGI,
+  LiteLLM, MLX-LM, NVIDIA NIM, TensorRT-LLM, KoboldCpp, Jan, LocalAI, Unsloth, and
+  llama.cpp are now `tine run --model <name>`-nameable (16 → 30 providers), each
+  at its conventional localhost URL, recorded unmetered like Ollama.
+
+### Changed
+
+- `provider` is surfaced in `--json` step views and `tine diff`. The README and
+  concepts docs state the model-agnostic core outright and document `models/` as
+  the optional capture convenience beside OTel as the universal on-ramp.
+
+## 0.7.2 — 2026-08-17
+
+The catalog &amp; trace patch. Source-confirmed pricing refresh, and the last OTel
+round-trip data-loss path closed.
+
+### Fixed
+
+- **OTel round-trip preserves cost and billing.** A natively-priced run exported
+  to OpenTelemetry and re-imported reported `$0.00` — the importer dropped the
+  typed cost/billing the exporter had written (a writer/reader asymmetry). Both
+  now round-trip exactly, the amount as its exact decimal string; a foreign span
+  without them imports unpriced (never a fabricated amount), and unusable values
+  stay visible in attributes. Guarded by the round-trip parity gate.
+
+### Changed
+
+- **Pricing catalog refreshed (61 → 75 cards), every rate confirmed from the
+  vendor's official page.** Added `claude-opus-5` (the current flagship, before
+  now uncarded), `claude-haiku-4.5`, `qwen3.8-max`, `gemini-3.7`/`3.6-flash`
+  (promo-scoped), `gemini-3.5-flash-lite`, `ministral-3b`/`8b`, `codestral`,
+  `gpt-5.6-cyber`, and `grok-build-0.1`. Repriced (date-scoped) the three
+  `gpt-5.6-*` models. Removed the future-dated `claude-sonnet-5` card after
+  Anthropic cancelled the scheduled September 1 increase — `$2/$10` is now
+  permanent. Closed the DeepSeek V4 cards, which moved to a time-of-day peak/
+  off-peak schedule the `opentine-pricing/1` schema cannot represent; those runs
+  report `unknown` until a future release adds the dimension. No guessed prices;
+  `qwen3.8-27b` and `glm-5.3` are held for lack of a published per-token price.
+
+## 0.7.1 — 2026-08-17
+
+The Hardening Release. A codebase health audit — every finding verified against
+the working tree — surfaced two credential leaks, two false-attestation paths,
+and three silent data-loss paths: the exact failure classes a provenance tool
+cannot ship. All are fixed, and a new round-trip parity gate guards the recurring
+writer/reader-asymmetry shape they shared. Stored data stays readable: every
+artifact and repository written by 0.3.0 through 0.7.0 still loads, and every
+genuine `tine-sig/1` signature still verifies byte-identically.
+
+### Fixed
+
+- **Redaction no longer leaks a quoted credential.** A quoted secret
+  (`api_key: "…"`, `password = '…'`) walked out from under the `[REDACTED]`
+  marker into the content-addressed store, remotes, and MCP responses. Quoted
+  values are now redacted inside their quotes (a JSON body stays parseable), and
+  the scan stays linear.
+- **`inspect` / MCP no longer serves the unredacted legacy blob.** The one body
+  stored `redact=False` — the v2 migration blob, which may still hold
+  credentials — was rendered verbatim to any model that named its object id,
+  directly or aliased under another `*_blob` key. Every served body is scrubbed
+  now; `Repo.raw`, which no MCP tool exposes, still yields byte-exact bytes for
+  deliberate review.
+- **A re-saved migrated run drops its stale legacy attestation.** `_put_run`
+  carried the five v2-migration fields forward from a run's stored payload, so a
+  loaded-then-modified run kept claiming `legacy_verification.signature` over
+  bytes it no longer matched. Both writers now share one field list and drop it
+  unless the save re-attaches the legacy bytes.
+- **Signatures now cover metadata tags (`tine-sig/2`).** Under `tine-sig/1` a
+  signed artifact's `metadata.tags` (and any metadata key outside the allowlist)
+  could be rewritten and the signature still verified. New signatures are written
+  at `tine-sig/2`, which signs every metadata key except `integrity`.
+  `tine-sig/1` is verified unchanged, so every 0.3.0–0.7.0 signature keeps
+  verifying. Narrowing the integrity digest's metadata exclusion is deferred to a
+  future format-version bump (the digest is a consistency check, not an
+  authenticity claim — authenticity now comes from the signature).
+- **`tine export` refuses rather than truncating deep content.** Export reused
+  the import-path depth coercion, silently replacing content past a depth bound
+  with `[MAX_DEPTH]`/`[CIRCULAR]` and exiting 0. It now serializes faithfully up
+  to the format's legal depth and exits non-zero — writing no file — beyond it.
+  The lenient truncation stays on the untrusted-import path only.
+- **OTel import keeps the structured conversation.** A span carrying both classic
+  `gen_ai.prompt`/`completion` scalars and 1.36 structured `*.messages` dropped
+  the conversation (system prompt and full turn list) when the scalar won. The
+  modern content is now preserved and an import warning is recorded when the two
+  shapes disagree; this package's own export stays a round-trip fixed point.
+- **`causal_ids` survive a `.tine` round trip.** A v3 repository run exported to
+  `.tine` and reloaded dropped its causal edges, silently shrinking every later
+  fork slice. `causal_ids` now round-trips (additive — emitted only when
+  present, so pre-existing artifacts are byte-identical and older files load with
+  none).
+- **The shell tool stops leaking credentials to a subprocess.** With
+  `inherit_env`, the shell tool handed the whole environment — API keys included
+  — to the subprocess and its output back into model context. It now scrubs
+  `KEY|SECRET|TOKEN|PASSWORD|CREDENTIAL|AUTH` names from the same shared helper
+  the python tool has always used.
+- **`tine run --save` no longer silently overwrites.** `tine run` gains
+  `--force` and refuses an existing `--save` destination without it, like every
+  other artifact-writing verb. The run-id-keyed default location stays unguarded.
+
+### Added
+
+- **Round-trip parity gate.** A permanent release test asserting full-fidelity
+  `repo → .tine → repo` and `export → import` round trips on a run exercising
+  every step kind, a fork, distinct causal edges, usage/billing, and
+  tags/metadata — the standing catcher for the writer/reader-asymmetry bug class.
+
+## 0.7.0 — 2026-08-16
+
+The Interop & Adoption Release. OpenTine stops being a silo: a recorded run now
+ships to any OpenTelemetry backend in one command, a first capture no longer
+requires writing Python, and the v3 repository — the headline of 0.6.0 — finally
+has a runnable on-ramp and real getting-started docs. Stored data stays readable:
+every artifact and repository written by 0.3.0 through 0.6.0 still loads.
+
+### Added
+
+- **`tine export` — ship a run to the OpenTelemetry ecosystem.** `tine export
+  <run>` renders a recorded run as an OTLP/JSON GenAI document to stdout or
+  `--output PATH`, or POSTs it to an OTLP/HTTP collector (`--endpoint`, or
+  `$OTEL_EXPORTER_OTLP_ENDPOINT` under `--format otlp`). It reuses the exact
+  exporter the `otel-json` importer inverts, so a run exported and re-imported is
+  the run that was exported. A cleartext push is refused unless the endpoint is a
+  loopback IP or `--allow-insecure`; a connection failure or non-2xx exits 1,
+  never a silent drop.
+- **Complete, modern OTel export.** The exporter now emits semconv 1.36 structured
+  `gen_ai.input/output.messages` beside the 1.27 attributes (so Arize Phoenix and
+  Langfuse render rich content), every usage dimension (cache, reasoning, total —
+  not just input/output), a scope `schemaUrl`, and per-event span kinds. The
+  event-level round-trip still holds exactly, and usage now survives it verbatim.
+- **No-code first run: `tine run --model <provider>[:model] --prompt`.** Capture a
+  run against any bundled adapter without writing a Python script — sixteen
+  providers (the native four plus the hosted-compatible set, read off the adapters
+  so a new one is nameable for free). `provider:model` splits on the first colon;
+  no provider SDK is imported until one is named.
+- **One `--json` contract.** `tine pricing` gains `--json` on `list`, `check`, and
+  `update` (all four subverbs scriptable through one writer); `tine export`, the
+  run receipt, and every JSON path share a single serializer, so a collector and a
+  file cannot receive different bytes. The five v3 plumbing verbs (`fsck`,
+  `object`, `migrate-v3`, `fetch`, `push`) stay bare-JSON by design, now documented
+  as such, and the README's subcommand count is pinned to the router by a meta-test.
+- **Adoption docs and runnable v3 examples.** `docs/GETTING_STARTED.md`,
+  `docs/CAPTURE.md`, `docs/CONCEPTS.md`, `docs/API.md`, and `CONTRIBUTING.md`, plus
+  `examples/v3_repository.py` and `examples/otel_interop.py` — executed in-process
+  by a smoke test so they cannot rot. Every documented command is parse-verified
+  against the real CLI.
+- **New-model pricing.** A verified rate card for xAI `grok-4.6` (with its
+  ≥200k-prompt 2× tier), and `Grok` now defaults to it. Kimi K3 re-verified
+  unchanged. GLM 5.3 is intentionally left unpriced — it is announced but its
+  per-token API is not yet published — so it runs and reports `unknown` cost until
+  a real rate exists.
+
+## 0.6.0 — 2026-08-01
+
+The Surface Release. The v3 provenance engines that shipped only as MCP tools —
+semantic diff, search, attestation, evaluation, promotion, fork and resume — are
+now human CLI verbs, so an operator at a terminal, and CI, can drive what only an
+agent could before. Deterministic replay becomes a checkable gate and cross-run
+statistics land. Stored data stays readable: every artifact and repository
+written by 0.3.0, 0.4.0, and 0.5.0 still loads, gated by golden fixtures for all
+three.
+
+### Added
+
+- **The v3 repository engines are now CLI verbs.** `repo-show`, `repo-log --json`,
+  and `context` read a run, its object log, and a minimal causal slice;
+  `repo-diff` (with `--exit-code`) and `repo-search` expose the semantic-diff and
+  search engines; `attest`, `evaluate`, and `promote` append an attestation, an
+  evaluation, or a promotion; `repo-fork` and `repo-resume` branch and continue a
+  v3 run. Each mirrors the MCP tool it shares an engine with, and a parity
+  meta-test keeps the two in lockstep — pinning the deliberate divergences
+  (`promote` is an unconditional operator verb on the CLI though MCP gates it
+  behind `allow_promotion`; the CLI is not confined to `experiments/*`, whose
+  threat model is model-controlled input rather than an operator). The read verbs
+  are read-only; the mutating verbs append objects exactly as the MCP path does,
+  preserve the expect-absent CAS on a promotion (moving one needs
+  `--expected-old`; there is no `--force`), and never emit a `--json` object on a
+  failed write. Every verb has a stable `--json` object through one writer, and
+  attacker-controlled recorded content is terminal-escaped on the human path.
+- **`tine diff` gains `--json` and `--exit-code`.** The legacy diff verb becomes
+  scriptable, with git-diff exit semantics (0 identical / 1 differs / never 2)
+  and a drift object literally the same shape `replay --verify` reports. The
+  default invocation is byte-identical.
+- **`tine stats`.** Cross-run aggregation over the local `.tine_runs` index — run
+  and step counts, cost total/mean/max, distinct models, tag and format-version
+  histograms — grouped (`--group-by model|status|tag|day|format-version`) and
+  filtered exactly like `tine ls`. Token and duration figures are *absent* unless
+  `--deep` loads each run; "not collected" is never a silent zero that would sum
+  with real costs.
+- **Top-level re-exports and more `--json`.** Thirteen diff/query/signing names
+  (`RunDiff`, `Graph`, `Query`, `parse_query`, `sign_artifact`, `verify_artifact`,
+  …) are now importable straight from `opentine`, and `tine import` and `tine tag`
+  gain `--json`.
+- **`tine replay <run> --verify`.** Deterministic replay was an asserted
+  property; it is now a check with an exit status, so CI can gate on it. The
+  check is deliberately not an in-memory one — `Run.fork` deep-copies, so
+  diffing a fork against its source always passes and proves nothing. Instead
+  the replay is saved to a *temporary* path and loaded back, the replay is
+  derived a second time from the source file, and the two must agree on the
+  64-hex run id, on the retained slice, on the canonical digest of the
+  round-tripped artifact (`Run.verify_integrity`), and on every structural
+  field. Exit status is binary: **0** reproduced, **1** drift or a source that
+  will not load (argparse keeps 2). `--ignore-cost-drift` downgrades an
+  accounting-only difference — the cost/usage/billing bucket `tine diff`
+  already reports separately — to a pass; structural drift always fails.
+  `--json` emits one documented object (`command: "replay-verify"`) through the
+  same single writer as the other `--json` commands. A source that does not
+  load produces no verdict, so it is a human message and never JSON.
+- **`--verify` with `--harness`** re-executes the run **twice** over one
+  context and compares the two saved artifacts: the real nondeterminism gate
+  for an external agent. Cache-mode verification, which spawns nothing, is the
+  default CI gate.
+
+### Fixed
+
+- **`tine replay --inspect` / `--dry-run` previewed the wrong steps.**
+  Inspection listed the *descendant* closure of `--from-step` while a replay
+  retains the *ancestor* closure, so on any branched run the preview was the
+  complement of what the replay reuses; on a linear run the two agreed by
+  accident. Preview, verification verdict, and `Run.fork` now read one helper
+  (`retained_closure`), and inspection prints the matching `would reuse N
+  recorded steps` count.
+- **`tine fork` / `replay --harness` recorded the wrong causal context.** The
+  same descendant-vs-ancestor slip, in a second place: `_run_context` fed a
+  fork/rerun the *descendant* closure of the fork point (the discarded future)
+  instead of the *ancestor* closure it keeps, so a forked run's recorded context
+  cited steps its own graph does not contain — a silent provenance defect. It now
+  shares the one `retained_closure` helper `fork` and `replay --verify` use, and
+  `replay --verify --harness` gained the slice check that catches a regression.
+
+### Changed
+
+- `tine replay --verify` writes nothing under `.tine_runs/` unless `--save`
+  names a destination — the always-write paths of a plain replay are
+  conditional under `--verify`. With `--save` the verified bytes are copied out
+  and the existing refusal to overwrite without `--force` still applies. The
+  temporary workspace is removed on every path, failures included.
+- `--json` and `--ignore-cost-drift` are refused, not ignored, when the chosen
+  replay mode cannot honour them (`--json` without `--verify`, either of them
+  with `--inspect`/`--dry-run`), matching the refusal rule the other commands
+  already follow.
+
+### Known divergence
+
+- A cached replay from the CLI carries the *source's* status, while
+  `Agent.replay(mode="cache")` (`HistoryMixin.replay`) marks its result
+  `completed`. `--verify` checks the CLI's artifact and therefore pins the CLI
+  behaviour. This is documented, not changed, in 0.6.0; reconciling the two is
+  a 0.7.0 change.
+
+### Compatibility
+
+- No format change. `--verify` runs over the committed v0.3.0 / v0.4.0 / v0.5.0
+  golden artifacts in cache mode as part of the backwards-compatibility gate.
+
+## 0.5.0 — 2026-07-31
+
+The Ecosystem Release. OpenTine is now a *source* of OpenTelemetry GenAI
+provenance as well as a sink, its interop is usable from the shell and in CI, and
+it can record a LangChain/LangGraph run as it happens instead of only after the
+fact. Stored data stays readable: every artifact and repository written by 0.3.0
+and 0.4.0 still loads, now proven by a golden-fixture gate covering both.
+
+### Added
+
+- **OpenTelemetry GenAI export.** `opentine.to_otel_genai` /
+  `to_otel_genai_document` render any run — a v2 `Run`, a loaded `.tine` file, a
+  v3 repository run, or `TraceEvent`s — as GenAI spans in the exact shape the
+  importer consumes, and as a complete OTLP/JSON document, so a verified run can
+  be shipped to whatever observability backend runs beside it. Import and export
+  are inverses; both spell their `gen_ai.*` keys through one module so the two
+  halves cannot drift.
+- **`tine import` and `--json`.** `tine import` brings the existing importers to
+  the shell — OTel GenAI (spans / OTLP-JSON), OpenTine JSONL, and LangChain /
+  LlamaIndex / AutoGen / CrewAI / OpenAI-Agents logs — writing a portable `.tine`
+  artifact (`--save`) and/or a v3 repository ref (`--repo`). `--json` on `show`,
+  `verify`, `ls`, `search`, and `cost` emits one stable, documented
+  machine-readable object; the rich human rendering stays the default.
+- **Modern OpenTelemetry content on import.** The OTel importer now reads content
+  from the shapes current instrumentations emit — span events / log records
+  (`gen_ai.*.message`, `gen_ai.choice`), structured `gen_ai.input`/`output.messages`
+  (including the JSON-string form real SDKs serialize into an attribute), and the
+  flattened OpenLLMetry and OpenInference conventions — so those runs no longer
+  import with empty inputs and outputs. The classic `gen_ai.prompt`/`completion`
+  path is unchanged and still wins.
+- **Live LangChain / LangGraph capture.**
+  `opentine.integrations.langchain.OpenTineCallbackHandler` records a run as it
+  happens through langchain-core's callback protocol, which LangChain and
+  LangGraph both drive, materializing the same `TraceEvent` / `Recorder` path the
+  importers use. Optional (`opentine[langchain]`) and import-safe: `import
+  opentine` never pulls in langchain. CrewAI is deliberately deferred rather than
+  guessed at; its logs still import post hoc.
+- **`py.typed`.** OpenTine ships the PEP 561 marker, so type checkers see the
+  public API's annotations.
+
+### Compatibility
+
+- Backwards compatibility of stored data is now gated for both prior releases:
+  the cross-version suite loads golden `.tine` artifacts and a v3 repository
+  generated by the published 0.3.0 **and** 0.4.0 and asserts the current build
+  still reads and verifies them. A reusable, deterministic generator produces
+  each release's golden set from its published wheel.
+- Everything above is additive. Nothing changes what OpenTine writes; export and
+  the importers are read-only over provenance and introduce no new artifact or
+  repository format version. The `langchain` dependency is an optional extra only.
+
+## 0.4.0 — 2026-07-31
+
+Fork-act identity for portable `*.tine` files, so divergent forks no longer
+collide. Stored data stays readable: every artifact written by 0.3.0 still
+loads under 0.4.0, and its fork IDs are unchanged.
+
+### Changed — BREAKING (v2 fork identity)
+
+A v2 fork ID now identifies the *fork act*, not just its `(parent, fork point)`
+coordinate. `Run.fork` derives the ID from the source lineage, the retained
+slice, the branch, the caller's declared intent, and a recorded 128-bit random
+nonce, and records that basis in `metadata.fork` so any fork can prove its own
+ID with `verify_fork_id`. Because `metadata` sits outside the integrity digest
+— which does cover the top-level `run_id` — the ID itself, not the stored
+record, is the commitment to the basis.
+
+- Forking the same run at the same point twice now yields two **distinct** runs.
+  Previously both derived one ID and one filename: through the CLI the second
+  fork was refused, through MCP it raised `FileExistsError`, and through the
+  plain library `Run.save` the second write **silently destroyed the first**.
+  Runs lost that way before 0.4.0 cannot be recovered.
+- `branch=` and the MCP fork `reason` now affect identity. Previously neither
+  did — `branch` never entered the ID, and `reason` was attached only after the
+  ID was formed.
+- `Agent.replay`, `Agent.resume`, and rerun no longer splice the parent run ID
+  into the new ID (the former `<parent id>-replay` / `-resume` / `-rerun`
+  names), which concatenated untrusted artifact text into a run ID.
+- Cached replay stays deterministic: it reuses recorded steps and produces
+  nothing new, so it forks with `nonce=""` — replaying twice yields one ID and
+  the existing overwrite refusal still applies. `Run.fork(..., nonce="")` opts
+  any fork into the same reproducibility.
+- v3 repository IDs are unchanged and remain content-addressed hashes; identical
+  v3 forks still dedupe.
+
+This is breaking for fork ID **values** only, and only for callers that hardcode
+a fork's ID or filename. It does not affect data readability: there is no
+`format_version` bump, 0.3.0 artifacts load unchanged and keep their IDs, and
+`verify_fork_id` returns `None` (never `False`) for any pre-0.4.0 fork, so the
+new check never accuses old provenance of tampering.
+
+Migration: use the returned `Run.id`, the MCP `new_run_id`, or `--save` rather
+than recomputing a fork's filename. `Run.fork(new_run_id=...)` still reproduces
+any legacy ID exactly.
+
+### Fixed
+
+- The MCP `fork_run` tool could not fork the same point twice — a dead end in
+  the headline feature, because it always writes the default `<id>.tine` path
+  and the second fork's colliding ID raised `FileExistsError`. It now succeeds,
+  without adding any force escape and without weakening the overwrite refusal on
+  explicitly named destinations.
+- `metadata.fork`, the fork-identity record, is now covered by artifact
+  signatures, so tampering with a fork's recorded basis breaks its signature.
+  `metadata.fork_reason` is deliberately left unsigned: 0.3.0 emits it but did
+  not sign it, so signing it now would flip a genuine 0.3.0 signature to a
+  false mismatch.
+- A v3 repository committed to version control or archived — which drops its
+  empty directories (`packs/`, `indexes/`, `logs/`, the empty `refs/*`
+  namespaces) — now opens intact. `Repo.open` recreates the layout, best-effort
+  so read-only media still opens for reading, and `fsck` treats a missing
+  `packs/` as empty rather than reporting a healthy repository as corrupt.
+
+### Compatibility
+
+Backwards compatibility of stored data is now a tested release gate. A
+cross-version suite loads golden `*.tine` artifacts and a v3 repository
+generated by each supported prior release — starting with the published
+0.3.0 — and asserts the current build still loads, reads, and verifies every
+one. From 0.3.0 on, a newer opentine is committed to reading what an older one
+wrote; each release adds its own golden fixtures so the guarantee is proven,
+not assumed.
+
+## 0.3.0 — 2026-07-30
+
+Git-shaped repository foundation for agent runs. Portable `*.tine` files remain
+v2; repository objects use the new verified v3 format.
+
+### Added
+
+- Dependency-free trusted semantic kernel (≤250 physical lines) with RFC 8785
+  canonical JSON, raw blobs, typed SHA-256 IDs, immutable envelopes, typed
+  parent/causal links, verification, and a minimal repository protocol.
+- `.tine/` object storage, refs/reflogs, CAS ref updates, semantic log/diff,
+  fork, causal context slices, deep `fsck`, deterministic packs, shallow
+  boundaries, missing-object negotiation, fetch/push, and clone.
+- `blob`, `event`, `run`, `attestation`, and separately versioned `annotation`
+  objects. Redaction occurs before canonicalization and hashing.
+- V2 migration that retains the exact legacy bytes and original verification
+  result, recomputes v3 identities, stores a deterministic ID map, and scopes
+  the legacy signature to the legacy blob only.
+- Normalized native/JSONL/OpenTelemetry/framework trace importers and a live
+  `Recorder` workflow for record, resume, fork, evaluate, approve, and promote.
+- Python and MCP search, inspect, minimal context, semantic diff, fork/resume,
+  evaluation, attestation, and promotion operations.
+- Minimal self-hosted HTTP remote with discovery, filtered/shallow fetch,
+  bounded pack download, resumable pack upload, tenant-scoped RBAC, static-token/OIDC seams,
+  encrypted filesystem objects, SQLite metadata, hash-chained audit records, and
+  pluggable storage/index/identity/authz/key/audit/retention/admission policies.
+- CLI commands: `init`, `fsck`, `repo-log`, `object`, `pack`, `migrate-v3`,
+  `fetch`, `push`, `clone`, and `serve`.
+
+### Added (provider and harness coverage)
+
+- GLM (both the international and China endpoints) now requests usage
+  accounting on streams. It previously sent no `stream_options.include_usage`,
+  so a streamed call returned no token counts and priced as `unknown` —
+  reporting $0.00 for real spend. The provider-level default set is exactly
+  `glm`, `glm-cn`, `openai`, `openai-compatible`, `qwen`, and `xai`;
+  membership requires positive evidence that the endpoint accepts the field,
+  because Mistral rejects it with HTTP 422 and a wrong entry breaks streaming
+  outright. Groq, Kimi, DeepSeek and OpenRouter opt in at the adapter level.
+  Together, Mistral, Ministral and Hermes do not send the field: their
+  streamed calls still price as `unknown` unless the provider reports usage
+  anyway or the deployment passes `include_usage=True`.
+- `tine pricing update` installs to the path the loader actually reads. It
+  hard-coded `~/.config` while `load_catalogs` honours `XDG_CONFIG_HOME`, so
+  under a non-default config home the update reported success and changed no
+  prices.
+- Harness presets are table-driven (`opentine/harnesses/_presets.py`), so
+  supporting another terminal agent costs one row rather than a subclass. Adds
+  `grok` (xAI Grok Build, `grok exec`) and `gemini` (Gemini CLI, `gemini -p`).
+- `docs/pricing-overlay-claude-5.json` prices `claude-opus-5`,
+  `claude-mythos-5`, and `claude-haiku-4-5` ahead of the next signed catalog
+  release; see PRICING.md.
+
+### Fixed (first release audit)
+
+- An OIDC token carrying no roles claim now grants no roles instead of silently
+  defaulting to `reader`. A misconfigured issuer, or one that stops emitting the
+  claim, previously conferred read access to every run in the tenant. Operators
+  who relied on the old behaviour can pass `default_roles=("reader",)`.
+- The remote's SQLite metadata database and its WAL/shm siblings are created
+  `0600`. sqlite3 applied the process umask — typically world-readable — while
+  every other file the server writes was already hardened.
+- `tine keygen --out` refuses to overwrite an existing key file without
+  `--force`, and `tine sign --save` refuses to overwrite its destination
+  without `--overwrite` (`sign` keeps `--force` for "sign despite a failed
+  integrity check"). Clobbering a private key destroys the only copy of a
+  signing identity and makes every artifact it signed unverifiable.
+- `tine ls`, `tine search`, and `tine reindex` report an over-cap runs directory
+  as an error naming the limit and the directory, rather than an interpreter
+  traceback.
+- An effective-date string honours its UTC offset. Truncating to the first ten
+  characters dropped it, so a timestamp already into the next day in UTC resolved
+  to the previous day's rate card.
+- Free-text cost scraping requires a currency marker, so an agent writing
+  "cost: 500" about an approach it was weighing no longer books $500 to the run.
+- Credential redaction no longer leaks on two common shapes. A v2 assignment
+  whose value contains a colon (`api_key=sk-proj:abc`) was split on the colon,
+  which buried the credential name in the label and stored the secret in
+  cleartext; the separator is now chosen by position. In v3 blobs, a credential
+  preceded by a dash — a `git diff` removal line for a `.env` file, or a captured
+  `--api-key=…` argv — was never matched. Name matching stays linear.
+- A run long enough to save is again long enough to load. The reader enforced a
+  fixed structural-token cap that the writer did not, so runs of roughly 20k
+  steps were persisted and then permanently unreadable. The bound now scales with
+  artifact size, keeping the container-amplification guard intact.
+- Updating a ref no longer stages through a filename that is another ref's guard
+  lock (`x` staged as `x.new.lock`, which is ref `x.new`'s lock). The old name
+  made a sibling update fail, then deleted the lock a live writer still held,
+  defeating the compare-and-swap.
+- `tine migrate-v3` reports its fail-closed refusal on a tampered artifact as an
+  error instead of an unhandled traceback.
+- `inspect(resolve_blobs=True)` no longer auto-resolves `legacy_blob`, the one
+  deliberately unredacted blob, which the MCP `inspect_object` tool returned to a
+  model by default. It remains reachable by its own object id.
+- MCP `fork_run_v3`/`resume_run_v3` may only write `experiments/*`. Their ref
+  update is an unconditional overwrite, so mainline, promotion, tag and
+  remote-tracking refs are no longer reachable from untrusted run content.
+- Harness-reported `duration_ms` is converted to seconds rather than stored
+  verbatim, which inflated durations 1000x and could trip a duration budget.
+- `tine tag` warns when re-saving removes a signature; `SECURITY_MODEL.md` no
+  longer implies the signature survives an ordinary edit.
+- The OpenRouter adapter requests usage accounting; because it is priced from
+  provider-reported cost with no rate-card fallback, streamed calls previously
+  always reported `unknown` and $0.00.
+- Adapter billing tests derive the expected charge from the effective rate card
+  instead of freezing a promotional rate that expired on 2026-07-23.
+
+### Fixed (post-audit hardening)
+
+- Billing arithmetic now runs in a fixed Decimal context, independent of caller
+  precision, rounding, or traps. Compatibility totals accumulate exact pinned
+  subtotals, terminal model calls cannot escape budget enforcement, and tool
+  latency contributes to wall-duration budgets.
+- Provider accounting now handles xAI's exclusive reasoning tokens, cumulative
+  stream usage, exact charged-cost ticks, and observed Priority tier; OpenRouter
+  reported account/upstream costs; Groq final stream usage; Anthropic thinking
+  tokens; OpenAI cache writes and observed Priority tier; canonical model aliases;
+  and top-level/nullable cache counters without silently claiming completeness.
+- The first public catalog trust anchor is the retained `r3` key; unpublished
+  pre-release `r1`/`r2` keys with no durable custody were retired. The snapshot
+  ends stale DeepSeek alias pricing when V4 launched and prices Mistral reasoning
+  at its documented output rate.
+- Deep graphs use iterative ancestry and fixed-size structural diff keys. CLI
+  rendering strips terminal control sequences, cached replay cannot derive paths
+  from artifact IDs, filesystem tools reject special files, trace payload types
+  fail before storage, and DuckDuckGo HTML parsing is linear and bounded.
+
+- Canonical JSON now rejects integers beyond the exactly representable range
+  (±(2**53−1)) instead of silently coercing them to a float, which could collide
+  two distinct values onto one object id and corrupt stored values.
+- Pack transfer and decompression are bounded (maximum 256 MiB), reject trailing
+  compressed data, and stream client downloads under the same cap, so a zlib bomb
+  from an untrusted remote or authenticated writer cannot grow memory without
+  bound. The reference server limits individual requests to 16 MiB, caps resumed
+  packs separately, bounds worker concurrency, and applies inactivity plus absolute
+  request timeouts.
+- Repository JSON CLI commands (`fsck`, `object`, `migrate-v3`, `fetch`, `push`)
+  emit plain JSON; the shared console no longer forces ANSI color, so piped or
+  redirected output is machine-readable and honors `NO_COLOR`.
+- Local CAS ref updates take an exclusive lock, making the compare-and-swap
+  atomic (no lost updates) and directory writes are fsynced for durability.
+- V2 migration is fail-closed: a source that fails integrity (or a requested
+  signature) is refused unless `--allow-unverified` / `strict=False` is passed.
+- Object envelope headers are bound to exactly `{encoding, schema, type}`, and
+  `Run.save` to a repository target rejects `.tine` signing/draft options rather
+  than silently ignoring them.
+- Audit rows use a serialized HMAC chain and authenticated external head;
+  startup and `verify_audit_chain` detect modification, reordering, and
+  truncation. Legacy rows require explicit trust-on-migration and remain marked
+  unverified. Repository read operations are audited; verification itself is read-only.
+- OIDC ships a real `JWTVerifier` with RS256/ES256 algorithm/key binding, JWKS,
+  issuer/audience/authorized-party/time validation, critical-header rejection,
+  and bounded discovery documents.
+- Credential redaction catches vendor-prefixed and header-style key names
+  (`OPENAI_API_KEY`, `x-api-key`, …) while preserving numeric usage counters.
+- The OTel importer parses extracted spans or complete OTLP/JSON exports
+  (camelCase/snake_case keys and typed `AnyValue` attributes); JSONL/framework
+  importers accept ISO-8601 timestamps and
+  list-shaped messages without crashing or corrupting data.
+- Billing: tiered context multipliers apply only the highest matching tier
+  (no compounding); OpenAI-compatible top-level cache tokens
+  (`prompt_cache_hit_tokens`) are billed at the cache rate, not as fresh input.
+- All client control-plane JSON is streamed under a 1 MiB raw-byte cap and
+  non-identity content encodings are rejected, with a wall-clock deadline that
+  includes response headers. Resumable upload offsets must advance, loops are
+  bounded, upload IDs are validated, staging uses encrypted tenant-bound frames
+  plus private POSIX modes, per-upload locks are released, and stale partial
+  uploads are reaped. Agent web fetches pin validated DNS answers, ignore implicit
+  proxies, and enforce whole-response time and body limits.
+- Raw and structured redaction covers Basic/Cookie credentials in header lines,
+  arrays, pairs, and HAR-style `{name, value}` records. Large trace integers are
+  string-preserved, malformed JSONL records are skipped per line, and imported
+  parents/causal links are ordered before recording.
+- Trace bulk import now writes one final run snapshot in linear graph work and
+  preflights a 3,000-event run ceiling before writing blobs. Repository search
+  and object inspection verify data under explicit object, source-byte, and
+  rendered-output caps so deduplicated references cannot amplify memory use.
+- Kernel errors now wrap oversized integer literals; v2 migration parses the
+  verified bytes only; OIDC rejects unsupported critical headers; pack manifests
+  require an integer version; repository descriptors are bounded and versioned.
+- The signed catalog was reverified and rotated to a retained release key. It
+  adds Kimi K3, Gemini 3.5 Flash, and GLM-5.2, maps current DeepSeek compatibility aliases
+  to V4 Flash, distinguishes Gemini audio/cache dimensions and exact service
+  rates, applies xAI's >200K Grok 4.5/4.3 prices, removes an unsafe `qwen-plus`
+  cross-model alias, corrects Together's Llama 3.3 effective date, removes its
+  deprecated Llama 3.1 cross-model alias, uses Mistral's canonical API IDs,
+  splits GPT-4o's historical price transitions, and applies Anthropic's reported
+  US inference geography multiplier. Qwen3.7-Max records its limited promotion,
+  automatic-cache rate, and explicit cache creation/hit rates separately. Kimi
+  K3 is the current default with its reasoning continuation and official
+  $3/$0.30/$15 rates; Kimi Batch and Groq service tiers use exact rates, invalid provider aliases are
+  removed, and tier-scoped Groq shutdown dates are recorded without suppressing
+  enterprise committed-spend billing.
+- Live traces retain cost and latency, causal forks retain causal ancestors, and
+  semantic diff includes artifacts and evaluation scores.
+- Production KMS adapters can provide external audit-key derivation and the
+  reference app fails closed when neither that nor an explicit key exists.
+  Audit rows commit before their authenticated anchor, one-step interrupted
+  anchors heal safely, arbitrary recovery requires an exact dedicated re-anchor
+  value, legacy migrations report `legacy-unverified`, and verification is
+  read-only. Existing local audit-key sidecars are tightened to mode 0600.
+- Scalar service-tier modifiers reject negative and non-finite values. Partial
+  uploads survive transient short reads while terminal checksum/size failures
+  are removed, pending-upload limits run before admission accounting, and push
+  rejects malformed completion metadata. Credential assignment redaction is
+  linear on delimiter-heavy input, truncated private-key captures cannot trigger
+  quadratic scans, and benign credential-label prose is preserved while
+  authentication header labels always fail closed.
+- Search-provider responses are streamed under a fixed body cap with compressed
+  payloads and redirects refused. Release metadata checks invoke Twine through
+  the interpreter consistently in CI and tag-publish workflows.
+- Enabled shell and Python tools drain child pipes continuously while retaining
+  only a bounded prefix, clean up descendant processes after every execution,
+  and use Windows Job Objects when available.
+- Audit append authenticates the current chain tail before a one-step checkpoint
+  heal. A cross-process file lock spans the SQLite commit and external anchor
+  update. Verification uses stable optimistic snapshots and retries under that
+  lock only across concurrent writes, preventing forged-row laundering and
+  commit/checkpoint races without starving writers.
+- Timed-out shell and Python tools terminate the spawned process tree, retain
+  bounded partial diagnostics, and reserve output space for stderr. Run-moving
+  refs (`heads`, `experiments`, `promotions`) and attestation targets are
+  type-checked as runs; `fsck`, local operations, and the remote enforce the same
+  rule while tags may still identify any immutable object.
+- Repository CLI object-read failures now produce concise stderr messages rather
+  than tracebacks, search rejects non-string queries explicitly, header redaction
+  has no prose-shaped bypass, and a truncated PEM capture preserves later text
+  only after a clear paragraph boundary.
+- Stable audit verification uses an optimistic database/anchor snapshot and
+  takes the exclusive cross-process lock only when a concurrent append requires
+  a consistent retry, preventing hot admin verification from starving writers.
+- Source distributions use an explicit allowlist, and CI/publish gates require
+  both source and wheel archives to match their tracked-file inventories exactly,
+  preventing globally ignored local agent/editor state from entering a release.
+- Release automation now tracks and enforces the hashed dependency lock, pins
+  the build backend, uv, and GitHub Actions by immutable versions/commits, builds
+  the wheel from the validated sdist, and reuses that one artifact pair for an
+  attested GitHub release and OIDC PyPI Trusted Publishing. The identity-token
+  permission is held only by the attestation and publish jobs, never by the job
+  that builds and tests, and only the publish job declares the protected `pypi`
+  environment that PyPI's trusted-publisher binding requires.
+- External process harnesses now fail closed under configurable time, output,
+  line-size, and parsed-event ceilings and clean up their owned process group or
+  Job Object on every exit path. Git code capture streams under a 16 MiB ceiling;
+  untracked paths mark the worktree dirty and make capture incompleteness explicit.
+- Dependency floors exclude vulnerable cryptography wheels (`>=48.0.1`),
+  Anthropic SDK releases (`>=0.87`), and MCP SDK releases. The OpenAI-compatible
+  extra starts at `openai>=1.75.0`, the first SDK release that supports both the
+  Responses API and its service-tier field. The MCP extra stays
+  on the supported v1 line (`>=1.28.1,<2`) until OpenTine adopts its breaking v2 API.
+  The development floor also excludes pytest's vulnerable tmpdir handling
+  (`pytest>=9.0.3`).
+- Authenticated repository clients ignore implicit environment proxies so a
+  loopback development bearer token cannot be forwarded through `HTTP_PROXY`.
+  Web-result text extraction is linear on malformed markup, and structured
+  redaction recognizes camel/acronym/plural/scoped credential names plus bare
+  token header pairs while retaining numeric token counters.
+- Qwen streams explicitly request final usage and retain explicit-cache billing
+  tiers. Trace import accounting counts repeated/empty containers incrementally,
+  rejects expansion-prone non-JSON values, and charges skipped oversized JSONL
+  records. Harnesses observe direct-parent exit independently of inherited pipe
+  handles and close an escaped descendant's retained pipe after a short drain.
+- Custom `OpenAI` base URLs now default to the provider identity
+  `openai-compatible`, so a proxy or compatible service cannot silently inherit
+  an OpenAI rate card merely by reusing an OpenAI model name. Explicit provider
+  and rate overrides remain authoritative.
+- Shallow-boundary state is validated, cached, and capped across the repository;
+  bounded object enumeration and negotiation no longer sort or parse an
+  unbounded local tree. Pack creation and installation enforce the same global
+  object and shallow-link ceilings before writing.
+- Trace parent and causal resolution is qualified by `(trace_id, span_id)`.
+  Duplicate spans and dependency cycles are rejected before recording, while
+  unresolved partial-trace boundaries are retained explicitly instead of being
+  silently rewritten. Ollama response/NDJSON parsing and OTLP `AnyValue`
+  traversal now have body, line, depth, and cycle limits.
+- OpenAI now defaults to GPT-5.6, Kimi accepts the official Moonshot credential
+  names, and DeepSeek-compatible streams request final usage. Together's
+  `reasoning` field and Mistral's list-shaped thinking/text blocks are retained,
+  bounded, and replayed without duplicating private reasoning representations.
+- `OpenAICompatible` accepts an exact hosted-gateway base with unknown billing
+  by default; `LocalOpenAICompatible` accepts exact or conventional `/v1`
+  local endpoints with unmetered billing by default. Named LM Studio, vLLM,
+  Unsloth, llama.cpp/llama-cpp-python, LocalAI, Jan, SGLang, TGI, MLX-LM,
+  NVIDIA NIM, TensorRT-LLM, and KoboldCpp presets remain compatible. Explicit
+  local auth, tool suppression, final stream usage, and provider-specific
+  request bodies are configurable without forwarding ambient OpenAI keys,
+  proxies, or redirects.
+- Provider SDK retries are disabled so one recorded invocation represents one
+  attempted provider request, and short-lived SDK clients close deterministically
+  after complete and streamed responses. Missing provider tool-call IDs are
+  normalized once and stored consistently in steps, transcripts, and tool results.
+- The README now uses the official website mark, documents generic local runtime
+  endpoints and their trust boundary, and no longer ships obsolete unreferenced
+  animation assets in the source distribution.
+- Compatibility imports no longer treat event-shaped legacy step IDs as trusted
+  v3 identities; only provenance recovered from a verified v3 wrapper can reuse
+  an event map. Repository association/evaluation/annotation scans, semantic
+  source reads, and reflog-ordered ref updates now have explicit hard bounds and
+  stable write guards.
+- Remote ref discovery bounds annotation decoding, filesystem object reads reject
+  linked or oversized leaves before decryption, resumable-upload reaping cannot
+  race an active transfer, and push clients bind completion receipts to the exact
+  pack ID and object count submitted. The signed catalog also corrects Grok 4.5
+  cached input to the official $0.30/MTok rate.
+
+### Fixed (second release audit)
+
+Security fixes:
+
+- Credential redaction covers quoted JSON field names. The v2 string path
+  compared labels with their quotes attached, so `"api_key": "sk-…"` inside
+  captured tool output was stored in cleartext. Quotes are stripped before
+  matching; a quoted `"token"` value is treated as a credential (matching the
+  mapping path) while numeric counters such as `input_tokens` still survive.
+- An unterminated private-key marker no longer leaks the key bytes that follow
+  it. Redaction required the entire remainder to be PEM data, so one trailing
+  byte — the closing quote of a JSON string — made it emit the key verbatim
+  directly after `[REDACTED PRIVATE KEY]`, output that reads as redacted. The
+  scanner now consumes the base64 key material itself while keeping trailing
+  prose, and a prefix rewrite removes a scan quadratic in indentation depth.
+- Overwriting `tine sign --save`'s destination is its own flag, `--overwrite`.
+  It shared `--force`, which also means "sign despite a failed integrity
+  check", so replacing a file silently waived tamper detection. Neither flag
+  implies the other.
+- The remote's metadata database is created with private permissions before
+  sqlite3 opens it. It was created under the process umask and tightened
+  afterwards — a window in which a local process could open the file and keep
+  a descriptor the later chmod does not revoke.
+- MCP promotion is opt-in (`register_repository_tools(allow_promotion=False)`).
+  A promotion ref is a release gate and run content read over MCP is
+  untrusted, so text recorded inside a run could ask the model to promote an
+  attacker-chosen run.
+- The MCP experiments-only ref guard decides on the canonical ref name, so the
+  guard and the filesystem layer can never disagree, and the legitimate
+  fully-qualified `refs/experiments/…` form is accepted.
+- `tine keygen` refuses `--out` and `--pub` naming the same file, which wrote
+  the public key over the just-written seed and exited 0 with the private key
+  destroyed.
+
+Reliability fixes:
+
+- Five false corruption reports on healthy repositories are gone: a ref inode
+  observed during a concurrent update or mid-rename no longer trips the
+  hard-link guard (only a link count above one is refused); a stray file such
+  as `.DS_Store` in the refs directory no longer blanks the whole listing and
+  masks every real error behind it; cache-eviction drift past ten thousand
+  events no longer reports resolvable events as missing; and a few hundred
+  annotations on one run no longer kill `fsck`, pack, and push with
+  `RecursionError`.
+- Search filters candidates to run objects, so one tag pointing at a large
+  blob no longer permanently breaks search for the whole repository, and a run
+  load memoises blob decoding, so events sharing a blob no longer decode
+  hundreds of MiB from an 800 KiB repository.
+- Search results are deterministic — equally ranked runs tiebreak on run id
+  and candidates iterate in sorted order — and packed objects install in
+  dependency order, so an interrupted install can no longer leave objects
+  whose link targets were never written.
+- A step subtotal such as `Decimal("1e999999999")` is rejected when recorded
+  instead of crashing `ls`, `search`, `show`, and `cost` for every
+  neighbouring run at aggregation time, and a harness duration arriving as a
+  string (`"duration_ms": "1500"`) is coerced instead of keeping the
+  thousandfold inflation the conversion exists to remove.
+- Redacting a credential mention inside a JSON string no longer runs past the
+  closing quote and breaks parsing for every downstream reader; an unvalidated
+  `*_blob` field no longer makes `inspect` fail permanently for its object;
+  and event metrics are validated at write exactly as strictly as at read, so
+  a run can no longer be hashed into the store and then refused on every later
+  read.
+- Saving refuses an artifact this build could never load: the reader's
+  integer-width and nesting-depth bounds now apply at write, leaving the run
+  in memory instead of persisting it unreadably. HTML text extraction budgets
+  collapsed text rather than raw markup, so a page's article is no longer
+  silently replaced by its navigation links.
+- Streamed usage accounting requires positive evidence that a provider
+  supports `stream_options.include_usage`; Mistral rejects the field with HTTP
+  422, so the blanket opt-in broke its streaming outright. GLM keeps the
+  opt-in; Mistral, Ministral, Together, and Hermes opt in per deployment with
+  `include_usage=True`.
+- The per-user pricing overlay path honours an empty `XDG_CONFIG_HOME` instead
+  of silently becoming CWD-relative, and PRICING.md's overlay recipe now
+  produces a `catalog_id` the loader accepts (a `sha256:`-prefixed digest).
+- The file-editing tool reads and writes with line endings preserved, so
+  editing one line no longer rewrites every line ending in the file;
+  `tine pricing show` escapes rate-card content instead of losing
+  context-threshold surcharge lines to markup parsing; and an over-limit run
+  index names the limit that actually fired (artifact count, source bytes, or
+  serialized size) instead of always blaming the count cap.
+
+### Fixed (third release audit)
+
+- Depth-limited (shallow) clones no longer crash every graph read API at the
+  fetch boundary: `repo-log`, semantic diff, and context slices stop at the
+  boundary the way `git log` does, diff summaries aggregate only the events
+  actually present, and loading a run whose events lie beyond the boundary is
+  refused with an error that says to deepen the fetch.
+- Two more writer/reader asymmetries that bricked runs while `fsck` stayed
+  green: annotation writes reject the metadata/tags shapes the reader refuses
+  (and a poisoned annotation head can be superseded through the API instead of
+  blocking repair), and v3 compatibility blobs are written under the same
+  structural guard the reader enforces, so a run that saves is a run that
+  loads.
+- One stray file under `objects/` no longer takes down `fsck`, object
+  enumeration, search, pack, and fetch — the policy the refs directory already
+  had — and object enumeration is sorted, so identical repositories enumerate,
+  and therefore diff and pack, identically everywhere instead of in
+  per-filesystem readdir order.
+- The remote server also installs pack objects in dependency order, so an
+  interrupted server-side install cannot leave durable objects whose link
+  targets were never written.
+- `tine tag` on a repository run applies the tag instead of crashing on the
+  signature check meant for artifact files; `tine ls --since`/`--until` with
+  an invalid date prints an error instead of a traceback; and the save-time
+  loadability check bounds integer literals with the reader's own parser, so a
+  long digit run inside a JSON string no longer makes a valid run unsavable
+  (which aborted live runs through autosave).
+- `run.fork()` tolerates non-dict transcript items and a malformed
+  `manifest.pricing.catalogs` shape — both of which `load` already accepted —
+  instead of raising `AttributeError`; the same paths are reached through
+  cached replay and MCP `fork_run`.
+- OpenAI usage parsing reads each cache and reasoning detail from whichever
+  details spelling carries it — the same either-object rule the missing-usage
+  probe applies — instead of only the first truthy details object.
+- `TraceEvent` validation runs the event store's own metric gate on the stored
+  form of timestamps, durations, costs, and usage, so an event that constructs
+  can always be appended instead of crashing recorder appends and trace
+  imports from inside the store.
+- The filesystem `read()` tool returns raw line endings to match `edit()`, so
+  a multi-line `old` string copied from read output matches CRLF files instead
+  of always failing.
+- Importing a legacy run keeps the extra parents of a merge step as causal
+  edges instead of silently dropping all but one parent edge.
+
+### Fixed (fourth release audit)
+
+- Python 3.11, the declared support floor, ran a different build. Recursive
+  walks over caller data cost two interpreter frames per nesting level before
+  3.12 inlined comprehensions, so input that raised a clean error on 3.12+
+  escaped as `RecursionError` on 3.11. Every such walk — canonical conversion,
+  redaction, harness serialization, and pricing-catalog freezing — now uses
+  statement loops and an explicit depth bound, so the same input is refused at
+  the same depth with the same error on every supported interpreter.
+- Canonical encoding is no longer interpreter-dependent, which was a data
+  portability break: the encoder bounded nesting by catching `RecursionError`,
+  so it accepted depth 496 on 3.12 but only 330 on 3.11 while the validator
+  accepted 511 — and an object written on 3.12 could be unreadable on 3.11,
+  because reading re-encodes to verify canonical form. Writer and reader now
+  share one depth limit.
+- Two more cases where a run saved and then never loaded: compatibility blobs
+  are re-parsed with the same bounds the kernel uses, so a large float no
+  longer becomes an unreadable integer literal, and the blob budget scales the
+  way the artifact reader's does, so `migrate-v3` accepts healthy archives it
+  had begun refusing. Saving refuses artifacts above the reader's size bound
+  rather than writing one nothing can open.
+- Text that the canonical form cannot encode — an unpaired surrogate, which
+  any JavaScript producer emits for a truncated emoji — is refused when the
+  artifact is written, with the offending field named, instead of surfacing as
+  a raw codec error deep inside a repository write.
+- Redaction of a private key embedded in JSON, and of a truncated
+  passphrase-encrypted key, no longer leaks key bytes, and the private-key
+  scan is linear rather than quadratic in the number of unterminated markers.
+- Malformed values in `manifest.pricing` no longer crash `fork`, cached
+  replay, `resume`, or `tine migrate-v3` with a raw traceback; nor does a
+  `null` model entry, which the validator has always permitted, crash the
+  loader and with it every command that reads a run.
+- `agent.resume()` and `agent.replay()` no longer raise raw `AttributeError`
+  or `TypeError` on runs the validator accepts and this build writes:
+  malformed resume history, transcript entries, and tool-call records are
+  handled explicitly, and cache-replaying a run with no recorded steps says so
+  instead of raising `IndexError`.
+- Flags are honored or refused, never silently ignored: `tine run --save`
+  writes where it was told, and `tine sign --overwrite` without `--save` and
+  `tine migrate --dry-run` with `--save`/`--in-place` are rejected instead of
+  exiting successfully having done nothing.
+- The test suite shipped in the source distribution passes without a git
+  checkout or a `git` binary, and the release inventory check explains a
+  line-ending mismatch instead of reporting every file as changed.
+
+### Architecture and compatibility
+
+- Every production Python module is capped at 250 physical lines; CI also caps
+  the complete trusted kernel and rejects dependency-layer violations.
+- `Run.save/load` can wrap repositories while legacy file behavior stays v2.
+- The enterprise claim applies to the repository and extension seams. The
+  bundled bounded WSGI server targets development and small self-hosted use,
+  not turnkey HA, hosted SaaS, or billing/payment services.
+
+## 0.2.1 — Unpublished; folded into 0.3.0
+
+The provider-neutral billing work was developed under version 0.2.1, but no
+`v0.2.1` tag or PyPI distribution was published. The first public release to
+contain these changes, including the subsequent audit hardening, is 0.3.0.
+
+Provider-neutral usage and cost accounting without changing `.tine` v2.
+
+### Added
+
+- Public `Usage`, `BillingResult`, `RateCard`, and `PricingCatalog` records with
+  Decimal arithmetic, effective dates, cache/reasoning dimensions, context
+  thresholds, service modifiers, currencies, and explicit complete/partial/
+  unknown/unmetered states.
+- Signed bundled pricing snapshot plus explicit `tine pricing list`, `show`,
+  `check`, and `update`; local discount/infrastructure overlays remain separate
+  from the signed upstream snapshot. No inference-time network lookup.
+- Provider-scoped cards for OpenAI, Anthropic, Kimi, DeepSeek, Gemini,
+  Grok/xAI, GLM/Z.AI, Qwen, Groq, Together, Mistral/Ministral, and Hermes. An
+  unknown exact price is visible and never inherits another provider's rate.
+- Digest-covered catalog signature/hash provenance, rate-card selection, and
+  calculation inputs; the existing `cost` field is the known subtotal.
+- Strict cost-completeness budgets through `Budget(strict_cost=True)`.
+
+### Changed
+
+- Native OpenAI models use Responses API semantics; compatible services retain
+  a separate Chat Completions transport.
+- Anthropic retains cache buckets and distinguishes early non-billable from
+  midstream billable refusals. Kimi uses its current endpoint/default and
+  preserves reasoning continuation. Google and Ollama retain usage/timing.
+- Every invocation is recorded even for tool-only output, refusal, or a raised
+  error carrying billable partial output.
+- Credential redaction is typed/path-aware so numeric usage counters survive.
+
+## 0.2.0 — 2026-06-29
+
+Format `.tine` v2 plus six coordinated features. Reading v1 stays fully
+supported; the public Python API only grows.
+
+### Added
+
+- **Format migration** — `FORMAT_VERSION` 2 with a pure migration registry.
+  `Run.load` auto-migrates v1 in memory (never rewriting the file); re-saving
+  upgrades to v2. New `tine migrate` (dry-run by default; verifies the source
+  first). Also best-effort imports the legacy **0.1.0 linear format** (recomputes
+  step ids). New `golden_v2.tine` / `golden_signed_v2.tine` / `golden_v0_linear.tine`
+  fixtures.
+- **Run tags + search** — `Run.tags` (+ `add_tag`/`remove_tag`/`has_tag`),
+  persisted at `metadata.tags` outside the digest so re-tagging never changes a
+  digest/signature. New `tine tag` / `tine search` (query DSL) / `tine reindex`
+  and tag/model/status/cost/date/text filters on `tine ls`, backed by a
+  rebuildable `.tine_runs/index.json` sidecar.
+- **Cost + budget** — per-step `usage` tokens, `Run.total_tokens`,
+  `Run.cost_breakdown()`, and `Run.set_budget(...)` enforced in the agent loop
+  (`stop`/`raise`). New `tine cost`. (Serialized keys avoid "token" to dodge
+  redaction; budgets live in `manifest.budget`, inside the digest.)
+- **Streaming autosave** — atomic, crash-safe draft checkpoints with AND-throttle
+  for long runs; native `Agent` and harnesses both flush a clean final artifact.
+  Drafts carry a top-level `draft` flag inside the digest. `tine run --autosave`.
+- **Signing (`tine-sig/1`)** — HMAC-SHA256 (stdlib) and optional Ed25519
+  (`opentine[crypto]`). `Run.save(sign_key=...)`, `Run.verify_signature(...)`,
+  `tine sign` / `tine keygen` / fail-closed `tine verify --key-*`/`--pubkey`.
+  The signature commits to content (not the stored digest) and excludes mutable
+  metadata so tags/budget/autosave edits don't break it.
+- **Field-level diff** — `Run.diff` now populates `changed` via lineage-position
+  alignment with `StepChange`/`FieldDelta`; `tine diff` renders per-field
+  before/after, including cost/usage drift between same-id steps.
+
+### Changed
+
+- `FORMAT_VERSION` 1 → 2. `RunDiff.changed` is now `list[StepChange]`.
+  `IntegrityResult` gains a `draft` field. Saves are now atomic.
+
+### Compatibility
+
+- 0.2 reads and migrates v1. **0.1.x cannot read v2**, and re-saving a v1 file
+  upgrades it to v2 (one-way). HMAC signing needs no extra; Ed25519 needs
+  `pip install "opentine[crypto]"`.
+
+## 0.1.1 — 2026-06-25
+
+- Ollama adapter now detects tool-calling capability via `/api/show` (cached) so
+  `Ollama(...).supports_tools` is accurate. Agents with tools on a model that
+  does not support them (e.g. `gemma3`, `codellama`, `phi4`, `deepseek-r1`) now
+  run without tools and record a note in `run.metadata["warnings"]` instead of
+  failing with an opaque Ollama `400`.
+- OpenAI adapter token pricing is now configurable
+  (`input_cost_per_mtok` / `output_cost_per_mtok`). Local OpenAI-compatible
+  wrappers (`LMStudio`, `VLLM`, `Unsloth`, `LlamaCpp`, `LocalAI`, `Jan`) report
+  `$0` cost by default instead of inheriting gpt-4o pricing.
+- Removed the unused `msgspec` runtime dependency.
+- Added a `mcp` optional extra (`pip install opentine[mcp]`) for the MCP server.
+- Fixed the broken README logo (now a committed `docs/assets/opentine-logo.svg`).
+- CI now runs `twine check` and uploads the built wheel/sdist as a downloadable
+  artifact on every run; tagged releases carry `SHA256SUMS` plus a verifiable
+  build-provenance attestation (`gh attestation verify`).
+
+## 0.1.0
+
+Initial public beta for the current 0.1.x surface.
+
+- Added explicit `.tine` integrity verification through `Run.verify_integrity(...)` and `tine verify`.
+- Added golden v1 `.tine` fixture coverage for load, save, fork, and diff behavior.
+- Added security regression coverage for redaction, digest failure, path escape, symlink escape, private-network blocking, shell/Python denial, environment isolation, and output caps.
+- Added a CI-sized graph performance smoke test for save, load, fork, and diff.
+- Added wheel smoke testing for installed-package import, `tine --help`, and `tine verify`.
+- Replaced PyPI publishing automation with a GitHub release artifact workflow that builds sdist/wheel, checks metadata, generates `SHA256SUMS`, and attaches artifacts to tagged GitHub releases.
+- Documented the security model, current `.tine` v1 format policy, troubleshooting notes, and support policy.
+
+Known scope:
+
+- Package metadata remains `Development Status :: 4 - Beta`.
+- `.tine` compatibility is current v1 only; migrations are future work.
+- Artifact checksums are provided, but HMAC/signing and PyPI trusted publishing are not part of this pass.
