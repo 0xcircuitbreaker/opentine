@@ -57,7 +57,7 @@ def add_budget_parser(subparsers: argparse._SubParsersAction) -> None:
         row.add_argument("subject", metavar="SUBJECT", help="loop:NAME or agent:NAME")
         rows.append(row)
     rows[-1].add_argument("--agent", choices=("claude-code", "codex", "gemini", "generic"),
-                          default="generic", help="Hook dialect")  # fmt: skip
+                          default=None, help="Hook dialect (default: generic)")  # fmt: skip
     for row in rows:
         needed = row in (apply, record, sign, rows[-1])
         row.add_argument(

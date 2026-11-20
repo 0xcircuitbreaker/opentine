@@ -103,11 +103,28 @@ CATEGORIES = ("egress", *PATTERNS)
 
 
 def _leaves(value: Any) -> list[str]:
-    if isinstance(value, dict):
-        return [s for k in sorted(value, key=str) for s in [str(k), *_leaves(value[k])]]
-    if isinstance(value, list | tuple):
-        return [s for v in value for s in _leaves(v)]
-    return [value if isinstance(value, str) else json.dumps(value, default=str)]
+    """Every key and leaf string, depth first (iterative: no recursion on caller data)."""
+    out: list[str] = []
+    stack = [value]
+    while stack:
+        item = stack.pop()
+        if isinstance(item, dict):
+            for k in reversed(sorted(item, key=str)):
+                stack.extend((item[k], _Key(str(k))))
+        elif isinstance(item, list | tuple):
+            stack.extend(reversed(item))
+        elif isinstance(item, _Key):
+            out.append(item.text)
+        else:
+            out.append(item if isinstance(item, str) else json.dumps(item, default=str))
+    return out
+
+
+class _Key:
+    __slots__ = ("text",)
+
+    def __init__(self, text: str) -> None:
+        self.text = text
 
 
 def text_of(tool: str, value: Any) -> str:
