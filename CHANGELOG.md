@@ -15,6 +15,16 @@
   `request_id`, message `uuid`s and `persistedOutputPath` are removed. Counted
   under `telemetry` in the `redaction` report; the copy stays valid JSON and
   verifies. The ruleset name is unchanged. See docs/PII.md.
+- The `telemetry` rule now strips harness telemetry on its own, closing gaps a
+  dataset review had to scrub separately: records of OpenTine's own
+  claude-code adapter blobs, keyed by `event` rather than `type` (including
+  the `init` payload, reduced like `system`/`init`); the same inside
+  `gen_ai.prompt` OTel attributes, whose `{"key", "value"}` id attributes are
+  removed too; `inference_geo` in every `usage` block; message `uuid`s in
+  transcript records carrying `sessionId`; and session UUIDs inside
+  `.claude/projects/<p>/<uuid>/` paths, which become `<SESSION>`. Patterns
+  are per harness in `opentine/_redact_harnesses.py`; tool `input` and
+  `parameters` are untouched; everything counts under `telemetry`.
 
 ## 0.70.0 — Redaction of paths and emails (2026-11-20)
 

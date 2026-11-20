@@ -105,6 +105,10 @@ def scrub_text(text: str, *, login: str | None) -> tuple[str, Counter[str]]:
         text, removed = _redact_telemetry.scrub(text)
         if removed:
             counts["telemetry"] += removed
+    if ".claude" in text:  # a session id inside a harness path
+        text, removed = _redact_telemetry.scrub_session_paths(text)
+        if removed:
+            counts["telemetry"] += removed
     if "/" in text or "\\" in text or "~" in text or "%" in text:
         text = PATH.sub(path, text)
     if "@" in text or "\uff20" in text or "%40" in text or "\\u0040" in text:

@@ -5,17 +5,24 @@ the harness says about the operator's account and machine: rate limits, the
 skills and plugins installed, capability flags, socket paths, serving region,
 session and request ids. None of it is the run; all of it names the operator.
 The ``telemetry`` kind of ``opentine-redaction/2+publish/1`` removes it from a
-redacted public copy, harness by harness (:data:`HARNESSES`):
+redacted public copy, harness by harness (:data:`HARNESSES`, documented in
+:mod:`opentine._redact_harnesses`):
 
-* a record is the harness's when its ``type`` is listed under ``types`` and it
-  carries a ``session_id``, or its ``type`` is listed under ``drop``;
-* records whose ``type`` is listed under ``drop`` are removed entirely;
+* a record is the harness's when its kind (``type``, or ``event`` in OpenTine's
+  own adapter blobs) is listed under ``types`` and it carries a session id, or
+  its kind is listed under ``drop``;
+* records whose kind is listed under ``drop`` are removed entirely;
 * records matching a ``reduce`` entry keep only the allowlisted keys, and keys
   under ``placeholders`` become a fixed placeholder;
 * keys listed under ``strip`` are removed at any depth of any record, except
   inside ``opaque`` keys (a tool's own arguments);
 * a string value holding an escaped stream (a tool result) is scrubbed too, and
-  a JSON array of records is scrubbed record by record.
+  a JSON array of records is scrubbed record by record;
+* in a JSON blob holding a capture (a step's ``stdout``, an OTel span with a
+  ``gen_ai.prompt`` attribute) every string is scrubbed, and OTel
+  ``{"key", "value"}`` attributes named by a ``strip`` key are removed;
+* a session id inside a path the harness writes (``.claude/projects/<p>/<uuid>/``)
+  becomes ``<SESSION>`` (:func:`scrub_session_paths`).
 
 Text is handled as JSON lines (one record per line; lines that are not a JSON
 object are kept byte for byte) or as one JSON document. A line is rewritten only
@@ -29,54 +36,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-#: Per-harness patterns. Add a harness by adding an entry; nothing else changes.
-HARNESSES: dict[str, dict[str, Any]] = {
-    "claude-code-stream-json": {
-        "marker": '"session_id"',
-        # A record is this harness's when its type is one of these and it carries
-        # a session id (or is a type always dropped): other JSON is left untouched.
-        "types": frozenset({"system", "assistant", "user", "result", "stream_event"}),
-        "drop": frozenset({"rate_limit_event"}),
-        "reduce": {
-            ("system", "init"): frozenset(
-                {"type", "subtype", "model", "tools", "cwd", "permissionMode"}
-            ),
-        },
-        "placeholders": {"cwd": "<CWD>"},
-        "strip": frozenset(
-            {
-                "session_id",
-                "sessionId",
-                "request_id",
-                "requestId",
-                "uuid",
-                "parent_tool_use_uuid",
-                "persistedOutputPath",
-            }
-        ),
-        # A tool's own arguments are the agent's data, never telemetry.
-        "opaque": frozenset({"input"}),
-    },
-    "gemini-cli-stream-json": {
-        "marker": '"session_id"',
-        "types": frozenset({"init", "message", "tool_use", "tool_result", "result"}),
-        "drop": frozenset(),
-        "reduce": {("init", None): frozenset({"type", "model"})},
-        "placeholders": {},
-        "strip": frozenset({"session_id"}),
-        "opaque": frozenset({"parameters"}),
-    },
-    "codex-exec-json": {
-        "marker": '"thread_id"',
-        "id_key": "thread_id",
-        "types": frozenset({"thread.started"}),
-        "drop": frozenset(),
-        "reduce": {},
-        "placeholders": {},
-        "strip": frozenset({"thread_id"}),
-        "opaque": frozenset(),
-    },
-}
+from opentine._redact_harnesses import HARNESSES, kind_of, owns
 
 
 def _clean(record: Any, spec: dict[str, Any], removed: list[int]) -> Any:
@@ -93,7 +53,9 @@ def _clean(record: Any, spec: dict[str, Any], removed: list[int]) -> Any:
         return clean
     if not isinstance(record, dict):
         return record
-    keep = spec["reduce"].get((record.get("type"), record.get("subtype")))
+    kind = kind_of(record, spec)
+    reduce = spec["reduce"]
+    keep = reduce.get((kind, record.get("subtype")), reduce.get((kind, None)))
     out: dict[str, Any] = {}
     for key, value in record.items():
         if key in spec["strip"] or (keep is not None and key not in keep):
@@ -120,11 +82,10 @@ def _record(record: Any, removed: list[int]) -> tuple[bool, Any]:
     for spec in HARNESSES.values():
         if not isinstance(record, dict):
             continue
-        kind = record.get("type")
-        if kind in spec["drop"]:
+        if kind_of(record, spec) in spec["drop"]:
             removed[0] += 1
             return False, None
-        if kind in spec["types"] and spec.get("id_key", "session_id") in record:
+        if owns(record, spec):
             record = _clean(record, spec, removed)
     return True, record
 
@@ -136,7 +97,8 @@ def _dump(value: Any) -> str:
 def scrub(text: str) -> tuple[str, int]:
     """*text* without harness telemetry, and how many items were removed."""
     if not any(
-        spec["marker"] in text or any(f'"{kind}"' in text for kind in spec["drop"])
+        any(marker in text for marker in spec["markers"])
+        or any(f'"{kind}"' in text for kind in spec["drop"])
         for spec in HARNESSES.values()
     ):
         return text, 0
@@ -172,6 +134,17 @@ def scrub(text: str) -> tuple[str, int]:
     return ("".join(out), total) if total else (text, 0)
 
 
+_DROP = object()
+
+
+def _otel_attribute(value: dict[str, Any]) -> bool:
+    return (
+        value.keys() == {"key", "value"}
+        and isinstance(value["key"], str)
+        and any(value["key"] in spec["strip"] for spec in HARNESSES.values())
+    )
+
+
 def _strings(value: Any, removed: list[int]) -> Any:
     if isinstance(value, str):
         clean, found = scrub(value)
@@ -180,10 +153,15 @@ def _strings(value: Any, removed: list[int]) -> Any:
     if isinstance(value, list):
         items = []
         for item in value:  # a loop: one frame per nesting level
-            items.append(_strings(item, removed))
+            clean = _strings(item, removed)
+            if clean is not _DROP:
+                items.append(clean)
         return items
     if isinstance(value, dict):
         out = {}
+        if _otel_attribute(value):  # an OTel ``{"key": ..., "value": ...}`` id attribute
+            removed[0] += 1
+            return _DROP
         for key, item in value.items():
             out[key] = _strings(item, removed)
         return out
@@ -193,7 +171,11 @@ def _strings(value: Any, removed: list[int]) -> Any:
 def scrub_nested(text: str) -> tuple[str, int]:
     """A JSON document whose string values hold a captured stream (a step's
     ``stdout`` blob): each such string scrubbed, re-encoded compact with sorted keys."""
-    if '\\"session_id\\"' not in text and '\\"rate_limit_event\\"' not in text:
+    if not any(
+        '\\"' + marker.strip('"') + '\\"' in text
+        for spec in HARNESSES.values()
+        for marker in (*spec["markers"], *(f'"{kind}"' for kind in spec["drop"]))
+    ):
         return text, 0
     try:
         value = json.loads(text)
@@ -201,9 +183,22 @@ def scrub_nested(text: str) -> tuple[str, int]:
         return text, 0
     removed = [0]
     clean = _strings(value, removed)
+    if clean is _DROP:
+        clean = {}
     if not removed[0]:
         return text, 0
     return json.dumps(clean, ensure_ascii=False, separators=(",", ":"), sort_keys=True), removed[0]
 
 
-__all__ = ["HARNESSES", "scrub", "scrub_nested"]
+def scrub_session_paths(text: str) -> tuple[str, int]:
+    """*text* with each harness's session id inside a path (``SESSION_PATHS``) replaced."""
+    total = 0
+    for spec in HARNESSES.values():
+        pattern = spec.get("session_path")
+        if pattern is not None and spec["path_hint"] in text:
+            text, found = pattern.subn(r"\1<SESSION>", text)
+            total += found
+    return text, total
+
+
+__all__ = ["HARNESSES", "scrub", "scrub_nested", "scrub_session_paths"]
