@@ -35,7 +35,7 @@ import hashlib
 import re
 from typing import Any
 
-from opentine.kernel import canonical_json
+from opentine.kernel import OID_RE, canonical_json
 
 FORMAT = "opentine-history-snapshot/1"
 DOMAIN = b"opentine.history-snapshot.v1:"
@@ -86,6 +86,8 @@ def normalize(snapshot: Any) -> dict[str, Any]:
         isinstance(h, list) and len(h) == 2 and all(isinstance(x, str) for x in h) for h in holds
     ):
         raise ValueError("holds is a list of [target, oid] pairs")
+    if not all(0 < len(t) <= 1024 and OID_RE.fullmatch(o) for t, o in holds):
+        raise ValueError("holds name a 1..1024 character target and a run oid")
     pairs = sorted({(t, o) for t, o in holds})
     if len(pairs) != len(holds):
         raise ValueError("holds are unique")

@@ -2,8 +2,8 @@
 
 ## Unreleased — Security and integrity audit
 
-- Authentication, share-token, admin and signup throttles now key clients the
-  same way the connection limiter does: IPv4 address or IPv6 /64 (IPv4-mapped
-  addresses fold to IPv4). A host rotating source addresses inside its /64 can
-  no longer reset its lockout every five guesses or flood out another client's
-  lockout record.
+- `tine merge-history` refuses a snapshot whose holds name anything but a
+  run oid and a 1..1024 character target. Before, `apply` could write such a
+  row into `.tine/holds`, after which every hold read failed (holds-merge-poison).
+
+## 0.67.0 — Merging run histories (2026-11-20)
