@@ -2,6 +2,8 @@
 
 ## 0.69.0 — Containment evidence and budgets (2026-11-20)
 
+- Code mirror: when a fetch passes the size limit or times out, the kill now reaches every process git started (its own process group, or `taskkill /T` on Windows). Before, `index-pack` survived and kept writing after the mirror was deleted. Deleting a partial mirror also retries briefly while Windows closes the killed processes' files.
+
 - `tine budget sign-policy|apply|record|status|ledger|check|gate`: budget
   policies per loop or agent (`opentine-budget-policy/1`: tokens, GPU-hours,
   wall clock, egress bytes, money), signed and applied to a per-subject
