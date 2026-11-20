@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-transcript-flag-1.schema.json",
+  "title": "opentine.transcript-flag/1 claim",
+  "description": "A behaviour flag on transcripts, signed by a pinned scorer or curator key and held. A claim convention on an existing attestation, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "label",
+    "evidence",
+    "cluster",
+    "labeller",
+    "backend",
+    "note",
+    "labelled_at"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.transcript-flag/1"
+    },
+    "label": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^run:sha256:[0-9a-f]{64}$"
+      },
+      "minItems": 1
+    },
+    "cluster": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^tc-[0-9a-f]{16}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "labeller": {
+      "type": "string"
+    },
+    "backend": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "digest",
+            "weights_digest"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "weights_digest": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "note": {
+      "type": "string"
+    },
+    "labelled_at": {
+      "type": "string"
+    }
+  }
+}

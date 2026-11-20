@@ -497,6 +497,82 @@
               }
             }
           }
+        },
+        "embedding": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "backend",
+            "threshold",
+            "compared",
+            "near"
+          ],
+          "properties": {
+            "backend": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "name",
+                "dim",
+                "digest",
+                "weights_digest"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "dim": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "digest": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "weights_digest": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            },
+            "threshold": {
+              "type": "number"
+            },
+            "compared": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "near": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "found_in",
+                  "cosine"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "found_in": {
+                    "type": "string"
+                  },
+                  "cosine": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
         }
       }
     }

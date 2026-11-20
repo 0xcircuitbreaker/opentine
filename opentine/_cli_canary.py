@@ -48,6 +48,14 @@ def add_canary_verbs(verbs: Any) -> None:
     cont.add_argument("dataset", metavar="HOLDOUT.jsonl")
     cont.add_argument("--against", action="append", default=[], metavar="CORPUS.jsonl")
     cont.add_argument("--threshold", type=float, default=0.8, help="5-gram Jaccard (default 0.8)")
+    cont.add_argument(
+        "--embedding-threshold",
+        type=float,
+        metavar="COSINE",
+        help="Also report embedding near-duplicates at or above this cosine",
+    )
+    cont.add_argument("--embedding-backend", metavar="MODULE:ATTR",
+                      help="A pinned local model with a weights_digest")  # fmt: skip
     for verb in (add, listing, check, sign, cont):
         verb.add_argument("--repo", default=".", metavar="PATH", help="Repository root")
         verb.add_argument("--json", action="store_true", help="Print a JSON object")
@@ -84,8 +92,17 @@ def _row(args: argparse.Namespace) -> dict[str, Any]:
         from opentine.repo import Repo
 
         repo = Repo.open(root)
-    return cont.check(read_jsonl(Path(args.dataset)), cont.corpus_rows(args.against),
-                      threshold=args.threshold, repo=repo)  # fmt: skip
+    holdout, corpus = read_jsonl(Path(args.dataset)), cont.corpus_rows(args.against)
+    found = cont.check(holdout, corpus, threshold=args.threshold, repo=repo)
+    if getattr(args, "embedding_threshold", None) is not None:  # 0.74
+        from opentine._contamination_embed import check as embedding
+        from opentine._transcript_embed import load_model
+
+        model = load_model(getattr(args, "embedding_backend", None))
+        found["embedding"] = embedding(holdout, corpus, threshold=args.embedding_threshold,
+                                       model=model)  # fmt: skip
+        found["ok"] = found["ok"] and not found["embedding"]["near"]
+    return found
 
 
 def _sign(args: argparse.Namespace) -> dict[str, Any]:
@@ -134,6 +151,10 @@ def _say(verb: str, row: dict[str, Any]) -> list[str]:
         f"{head} {row['counts']}",
         *(f"  exact {e['id']} {e['oid']} in {', '.join(e['found_in'])}" for e in row["exact"]),
         *(f"  near {n['id']} ~ {n['found_in']} jaccard={n['jaccard']}" for n in row["near"]),
+        *(
+            f"  embedding {n['id']} ~ {n['found_in']} cosine={n['cosine']}"
+            for n in (row.get("embedding") or {}).get("near", [])
+        ),
     ]
 
 

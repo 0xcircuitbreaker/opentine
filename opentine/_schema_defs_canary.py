@@ -11,6 +11,7 @@ from typing import Any
 
 from opentine._canary_check import CODES
 from opentine._schema_defs import BOOL, INT, NUM, STR, closed, doc, opt
+from opentine._schema_defs_transcripts import EMBEDDING
 
 _HEX = {"type": "string", "pattern": "^[0-9a-f]{64}$"}
 _HEAD = {"schema": {"const": "tine-cli-canary/1"}}
@@ -65,7 +66,8 @@ _CONT = closed(["command", "schema", "ok", "method", "counts", "exact", "near", 
         "id": STR, "oid": STR, "found_in": _LIST_OF})},
     "near": {"type": "array", "items": closed(
         ["id", "found_in", "jaccard", "minhash_estimate"], {
-            "id": STR, "found_in": STR, "jaccard": NUM, "minhash_estimate": NUM})}})  # fmt: skip
+            "id": STR, "found_in": STR, "jaccard": NUM, "minhash_estimate": NUM})},
+    "embedding": EMBEDDING})  # fmt: skip
 
 SCHEMAS: dict[str, dict[str, Any]] = {
     "tine-cli-canary-1": doc("tine-cli-canary-1",
