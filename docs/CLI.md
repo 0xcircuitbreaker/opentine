@@ -2149,6 +2149,17 @@ conflict toward the side that weakens a hold. `--json` prints
 lineage folder over `--max-files` (200000) or `--max-bytes` (1 GiB) before
 reading it. See docs/LINEAGE.md.
 
+## Capability trends (0.72)
+
+| Command | What it does |
+| --- | --- |
+| `tine trends [--loop LOOP] [--alpha A] [--seed N] [--resamples N] [--task-lengths FILE] [--promotion-policy TOML] [--fail-on-regression] [--export FILE] [--max-files N] [--max-bytes N] [--dir DIR] --repo PATH` | Per-variant and per-generation metrics over the lineage graph from signed records only: mean score and pass rate with 0.57 bootstrap intervals, cost per success (signed budget-ledger spend), the 50%-success time horizon with a studentized bootstrap interval, and a paired comparison with each parent (a significant drop is a regression). Flags `lineage.score-tainted`, `lineage.memory-quarantined` and the variant's own `lineage.*` findings; `--fail-on-regression` exits 1 on a regression |
+| `tine trends --sign-lengths FILE --key KEY [--suite NAME] [--at TIME] [--task-lengths FILE] --repo PATH` | Signs an `{item: minutes}` map as `opentine.trends.task-lengths/1` (default `REPO/.tine/trends/task-lengths.json`); the horizon uses it only when the signer holds the pinned `dataset` role and is not an optimizer key |
+
+`--json` prints `tine-cli-trends/1`; `--export` writes `opentine-trends/1`, which
+`opentine/data/trends/recompute.mjs` recomputes byte for byte in a browser or
+Node. See docs/TRENDS.md.
+
 ## Protected surfaces (0.60)
 
 | Command | What it does |

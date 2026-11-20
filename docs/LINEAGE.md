@@ -181,6 +181,12 @@ from a run that modified a protected surface cannot justify a lineage step.
 The taint is read from `REPO/.tine/integrity/taints/`; the lineage folder and
 the TS `checkLineage` fixture are unchanged.
 
+## Trends
+
+`tine trends` (0.72) reads the same folder and reports per-generation metrics,
+regressions against parents and tainted or quarantined inputs, with an export a
+browser recomputes byte for byte. See docs/TRENDS.md.
+
 ## Not yet
 
 The Tineyard view of the graph comes later. Record signers are proven, not
