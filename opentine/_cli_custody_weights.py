@@ -139,14 +139,14 @@ def _tool_input(raw: bytes) -> Any:
 def gate(args: argparse.Namespace, stream: IO[bytes] | None = None,
          out: IO[bytes] | None = None) -> int:  # fmt: skip
     """Decide one tool call; always one JSON object on stdout and exit status 0."""
-    from opentine import _weight_custody_check as check
+    from opentine import _weight_custody_gate as gate_mod
     from opentine.repo import Repo
 
     try:
         raw = (stream or sys.stdin.buffer).read(MAX_PAYLOAD + 1)
         if len(raw) > MAX_PAYLOAD:
             raise ValueError("the payload is larger than 8 MiB")
-        decision = check.decide(Repo.open(args.repo), _tool_input(raw))
+        decision = gate_mod.decide(Repo.open(args.repo), _tool_input(raw))
     except Exception as exc:  # noqa: BLE001 - fail closed: anything unreadable denies
         decision = {"decision": "block", "reason": f"custody gate: {exc}", "artifacts": []}
     if args.agent == "generic":

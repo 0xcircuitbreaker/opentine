@@ -15,10 +15,8 @@ digest is ``fail:custody-unapproved-load``. A signer the pinned trust bundle doe
 not give the needed role is ``advisory:custody.signer-unpinned``, which blocks
 only with ``--strict``. These are command-level codes, not ``tine verify`` codes.
 
-:func:`decide` is the hook gate (``tine custody gate``): a tool call naming a
-location or digest of a ``model-organism`` artifact is denied unless a valid
-approval covers the artifact's current digest. It fails closed: an unreadable
-payload or custody record denies.
+Once roles are pinned, an event whose signer lacks the role (an optimizer key)
+explains nothing (:func:`counts`). The hook gate is :mod:`opentine._weight_custody_gate`.
 """
 
 from __future__ import annotations
@@ -34,6 +32,7 @@ GAP, BROKEN, UNAPPROVED = (
     ("fail:custody-unapproved-load"),
 )
 UNPINNED = "advisory:custody.signer-unpinned"
+_NO_BUNDLE = "role is unpinned (no owner-signed trust bundle)"
 
 
 def _problems(row: dict[str, Any], artifact: str, seq: int, prev: str | None) -> list[str]:
@@ -68,7 +67,18 @@ def _finding(code: str, oid: str | None, message: str) -> dict[str, Any]:
     return {"code": code, "record": oid, "message": message}
 
 
-def _walk(rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+def counts(row: dict[str, Any]) -> bool:
+    """A valid event counts unless a pinned bundle exists and denies its signer the role.
+
+    Without any pinned bundle every signer is ``unverified`` (advisory); once roles
+    are pinned, an event by a key without the role (an optimizer key, say) explains
+    nothing: it cannot account for a copy, move a location or destroy one.
+    """
+    state = row["verification"]
+    return not row["problems"] and (state == "verified" or state.endswith(_NO_BUNDLE))
+
+
+def walk(rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     findings: list[dict[str, Any]] = []
     where: dict[str, str] = {}  # location -> digest held there
     digests: set[str] = set()
@@ -120,8 +130,7 @@ def check(repo: Any, artifact: str, observed: list[tuple[str, str]] | None = Non
             findings.append(_finding(BROKEN, row["oid"], problem))
         if not row["problems"] and row["verification"] != "verified":
             findings.append(_finding(UNPINNED, row["oid"], row["verification"]))
-    valid = [r for r in rows if not r["problems"]]
-    walked, state = _walk(valid)
+    walked, state = walk([r for r in rows if counts(r)])
     findings += walked
     for loc, dig in observed or []:
         if state["where"].get(loc) != dig:
@@ -138,37 +147,4 @@ def check(repo: Any, artifact: str, observed: list[tuple[str, str]] | None = Non
             "findings": findings}  # fmt: skip
 
 
-def _strings(value: Any, out: list[str]) -> list[str]:
-    if isinstance(value, str):
-        out.append(value)
-    elif isinstance(value, dict):
-        for item in value.values():
-            _strings(item, out)
-    elif isinstance(value, list):
-        for item in value:
-            _strings(item, out)
-    return out
-
-
-def decide(repo: Any, tool_input: Any) -> dict[str, Any]:
-    """``{"decision": "allow|block", "reason", "artifacts"}`` for one tool call."""
-    text = "\n".join(_strings(tool_input, []))
-    hits = []
-    for name in wc.artifacts(repo):
-        rows = [r for r in chain(repo, name) if not r["problems"]]
-        _found, state = _walk(rows)
-        if not state["tagged"]:
-            continue
-        marks = [*state["where"], *state["digests"]]
-        if any(m and m in text for m in marks):
-            current = set(state["where"].values())
-            if not current or not current <= state["approved"]:
-                hits.append(name)
-    if hits:
-        reason = ("loading a model-organism artifact needs an approval signed by a pinned "
-                  f"policy key: {', '.join(hits)}")  # fmt: skip
-        return {"decision": "block", "reason": reason, "artifacts": hits}
-    return {"decision": "allow", "reason": "", "artifacts": []}
-
-
-__all__ = ["BROKEN", "GAP", "UNAPPROVED", "UNPINNED", "chain", "check", "decide"]
+__all__ = ["BROKEN", "GAP", "UNAPPROVED", "UNPINNED", "chain", "check", "counts", "walk"]

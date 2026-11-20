@@ -51,7 +51,10 @@ Roles come only from the owner-pinned trust bundle (docs/SECURITY_MODEL.md,
 `_key_roles_pin`). Ordinary events need a `runner` key; `approved` events need a
 `policy` key. An optimizer key never counts. An event whose signer has no pinned
 role is reported as `advisory:custody.signer-unpinned`; an unpinned approval
-never counts as an approval.
+never counts as an approval. Once roles are pinned, such an event also explains
+nothing: a copy, move or destroy event signed by an optimizer key does not
+account for a copy, so the gap it tries to cover is still reported. Without any
+pinned trust bundle, events are only advisory.
 
 ## Checking
 
@@ -77,7 +80,16 @@ stdin (Claude Code / Codex, or `{"protocol": "opentine-custody-gate/1", "tool":
 {"name", "input"}}` with `--agent generic`) and denies the call when any string
 in its input names a known location or digest of a tagged artifact whose
 current digests are not all approved. It always prints one JSON object and
-exits 0. It fails closed: an unreadable payload or repository denies. The
+exits 0. It fails closed: an unreadable payload or repository denies, and so
+does a tagged artifact whose held chain is broken or missing.
+
+The gate does not trust the hold rows alone. It scans every signed
+`opentine.weight-custody/1` attestation in the object store, so a tagged
+`created` event keeps its artifact tagged after its hold row is dropped. The tag
+follows the digest: the same bytes recorded under another artifact name are
+tagged too. Destroy events never remove a location from what the gate matches.
+Matching is by substring of the tool input (keys and values); a load through a
+path no event names (a symlink, an alias, re-encoded bytes) is not seen. The
 `loaded` events form the access log.
 
 ## JSON
