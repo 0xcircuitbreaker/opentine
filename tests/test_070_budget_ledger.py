@@ -1,4 +1,4 @@
-"""0.70 (release 0.69.0): budget policies, the signed spend ledger and the next-action gate."""
+"""0.69: budget policies, the signed spend ledger and the next-action gate."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""0.70 review: a loop pre-empting the owner's policy, and a gate whose policy is gone."""
+"""0.69 budget review: a loop pre-empting the owner's policy, and a gate whose policy is gone."""
 
 from __future__ import annotations
 

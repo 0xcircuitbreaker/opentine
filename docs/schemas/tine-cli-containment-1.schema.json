@@ -1,0 +1,235 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-containment-1.schema.json",
+  "title": "tine containment ... --json",
+  "description": "Sandbox policy evidence. `check` fails with `sandbox-policy-mismatch` (a command-level code) when the recorded policy digest differs from the declared one; `scan` findings are advisory.",
+  "anyOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "run",
+        "record",
+        "policy_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-containment/1"
+        },
+        "command": {
+          "const": "containment record"
+        },
+        "run": {
+          "type": "string"
+        },
+        "record": {
+          "type": "string",
+          "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+        },
+        "policy_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "strict",
+        "run",
+        "declared",
+        "policies",
+        "findings"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-containment/1"
+        },
+        "command": {
+          "const": "containment check"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "strict": {
+          "type": "boolean"
+        },
+        "run": {
+          "type": "string"
+        },
+        "declared": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "policies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "record",
+              "signer",
+              "verification",
+              "policy_digest"
+            ],
+            "properties": {
+              "record": {
+                "type": "string",
+                "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+              },
+              "signer": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "verification": {
+                "type": "string",
+                "pattern": "^(verified|unverified: .+)$"
+              },
+              "policy_digest": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "record",
+              "message"
+            ],
+            "properties": {
+              "code": {
+                "enum": [
+                  "fail:sandbox-policy-mismatch",
+                  "advisory:containment.runner-unpinned"
+                ]
+              },
+              "record": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "strict",
+        "run",
+        "findings",
+        "recorded"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-containment/1"
+        },
+        "command": {
+          "const": "containment scan"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "strict": {
+          "type": "boolean"
+        },
+        "run": {
+          "type": "string"
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "category",
+              "step",
+              "detail",
+              "evidence_digest"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "pattern": "^advisory:containment\\.[a-z-]+$"
+              },
+              "category": {
+                "enum": [
+                  "egress",
+                  "credential-access",
+                  "self-replication",
+                  "unmonitored-process",
+                  "persistence",
+                  "limit-edit"
+                ]
+              },
+              "step": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "detail": {
+                "type": "string"
+              },
+              "evidence_digest": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
+            }
+          }
+        },
+        "recorded": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -2067,7 +2067,7 @@ Records count only when signed by a pinned `scorer` or `eval` key. Catch rates
 are statistical evidence, not proof of intent. `--json` prints
 `tine-cli-sabotage/1`; see docs/SABOTAGE.md.
 
-## Budgets (0.70)
+## Budgets (0.69)
 
 | Command | What it does |
 | --- | --- |
@@ -2082,6 +2082,18 @@ are statistical evidence, not proof of intent. `--json` prints
 
 `--json` prints `tine-cli-budget/1`; ledger entries follow the claim
 convention `opentine.budget-ledger/1`. See docs/BUDGETS.md.
+
+## Containment evidence (0.69)
+
+| Command | What it does |
+| --- | --- |
+| `tine containment record RUN --policy FILE --key KEY` | Signs and holds the run's canonicalised sandbox policy and its digest (`opentine.sandbox-policy/1`) |
+| `tine containment check RUN [--policy FILE \| --digest DIGEST] [--strict]` | Compares the recorded policy digest with the declared one; exits 1 on `sandbox-policy-mismatch`; `advisory:containment.runner-unpinned` blocks only with `--strict` |
+| `tine containment scan RUN [--key KEY] [--strict]` | Advisory detectors (egress, credential access, self-replication, unmonitored processes, persistence, limit edits) over the run's tool steps; `--key` signs and holds each new finding |
+
+All commands take `--repo PATH`; `--json` prints `tine-cli-containment/1`.
+Findings and failing policy records are listed in the oversight queue as
+`containment:` items; see docs/CONTAINMENT.md.
 
 ## Merging run histories (0.69)
 

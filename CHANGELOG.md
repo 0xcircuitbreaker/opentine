@@ -19,8 +19,39 @@
   key, and a rolled-back serial. Each is a `fail:` finding recorded as a held
   flag and listed in the oversight queue as `budget:ANNOTATION` (new route
   source `budget`).
-- New optional key role `runner` (signs ledger entries), guarded against
-  optimizer keys like the other guarded roles.
+- A budget policy signed by a pinned `policy` key is compared only with the
+  highest serial a pinned policy key put in force, so a fresh key cannot lock
+  out the owner's policy with a huge serial. With no policy in force, the gate
+  denies. A run recorded twice counts once (the largest value per unit), so the
+  ledger still equals the `tine cost` export.
+- `tine containment record RUN --policy FILE --key KEY` signs a run's sandbox
+  policy (network allowlist, mounts, privileges, container image digest,
+  seccomp profile digest) as an `opentine.sandbox-policy/1` claim on an
+  attestation. The policy is canonicalised before it is digested, so equal
+  sandboxes give equal digests. The record is held and never released.
+- `tine containment check RUN [--policy FILE | --digest DIGEST]` compares the
+  recorded digest with the declared one and exits 1 with the command-level
+  code `sandbox-policy-mismatch` (not a `tine verify` code). Two differing
+  records on one run are a mismatch too, and the allowlist the detectors use
+  is their intersection, so a later, wider record cannot widen it.
+- `tine containment scan RUN [--key KEY]`: advisory detectors (D12) over
+  recorded tool steps for egress outside the recorded allowlist, credential
+  access, self-replication, unmonitored processes, persistence and edits to
+  the sandbox or limits. Each input string is read unquoted. With a key,
+  findings are signed (`opentine.containment-finding/1`) and held. The
+  monitor gate runs the same detectors on every action and records findings
+  without changing its decision.
+- The oversight queue lists held containment findings, and the policy records
+  of a run whose check fails, as `containment:ATTESTATION` items (new route
+  source `containment`).
+- `tine query` indexes `sandbox_policies`, `containment_findings` and
+  `budget_ledger`; `--verify` needs a pinned `runner` (or, for budget
+  ledgers, `policy`) signer without `optimizer`.
+- New optional key role `runner` (signs ledger entries and sandbox policies),
+  guarded against optimizer keys like the other guarded roles.
+- New schemas: `tine-cli-containment-1`, `opentine-sandbox-policy-1`,
+  `opentine-containment-finding-1` (claim conventions, not object kinds); see
+  docs/CONTAINMENT.md.
 
 ## 0.68.0 — Security and integrity hardening (2026-11-20)
 

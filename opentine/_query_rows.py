@@ -17,6 +17,7 @@ import json
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
+from opentine._query_containment import COLUMNS as _CONTAINMENT_COLUMNS
 from opentine._query_experiments import COLUMNS as _EXPERIMENT_COLUMNS
 from opentine._query_merges import COLUMNS as _MERGE_COLUMNS
 from opentine._query_research import COLUMNS as _RESEARCH_COLUMNS
@@ -39,6 +40,7 @@ COLUMNS: dict[str, tuple[str, ...]] = {
 COLUMNS.update(_EXPERIMENT_COLUMNS)  # 0.67: experiment manifests and reproduce reports
 COLUMNS.update(_RESEARCH_COLUMNS)  # 0.68: sabotage task records and elicitation links
 COLUMNS.update(_MERGE_COLUMNS)  # 0.69: history merge records
+COLUMNS.update(_CONTAINMENT_COLUMNS)  # 0.69: containment evidence and budget ledgers
 #: Columns a row derives from its run (or file), not from the object itself.
 CONTEXT = {"run", "seq", "source", "line"}
 
@@ -166,12 +168,18 @@ def object_rows(repo: Any, oid: str, read: Any = None) -> dict[str, list[dict[st
         from opentine._query_merges import merge_row
 
         row = merge_row(oid, payload)
-        return {"history_merges": [row]} if row else {}
+        if row:
+            return {"history_merges": [row]}
+        from opentine._query_containment import attestation_rows
+
+        return attestation_rows(oid, payload)
     value = payload.get("value")
     if isinstance(value, dict) and value.get("convention") == "opentine.oversight-decision/1":
         row = oversight_row(oid, repo)
         return {"oversight_decisions": [row]} if row else {}
-    return {}
+    from opentine._query_containment import ledger_rows
+
+    return ledger_rows(oid, payload)
 
 
 def lineage_rows(files: dict[str, bytes]) -> dict[str, list[dict[str, Any]]]:

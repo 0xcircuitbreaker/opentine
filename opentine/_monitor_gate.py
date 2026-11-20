@@ -21,10 +21,15 @@ Every verdict that is not ``allow``, and every enforced one, is signed and held
 repository and a key, so every blocked action has a verdict record. The clock,
 the wall clock and the deadline runner are injectable so the deadline and the
 fail-closed paths are tested without waiting.
+
+0.69: with a repository and a key, every action is also run through the
+advisory containment detectors (:mod:`opentine._containment_detect`) and each
+finding is signed and held; this never changes the outcome (owner decision D12).
 """
 
 from __future__ import annotations
 
+import hashlib
 import secrets
 import subprocess
 import threading
@@ -33,7 +38,7 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any
 
-from opentine import _monitor_stop, _monitor_verdict
+from opentine import _containment_detect, _monitor_stop, _monitor_verdict
 from opentine._monitor_verdict import CONVENTION, input_digest, text_digest
 from opentine._monitors import MonitorError
 
@@ -100,7 +105,8 @@ class Gate:
         if alternate is None and config.get("alternate"):
             alternate = command_alternate(config["alternate"])
         self.alternate = alternate
-        self.counts = {"forward": 0, "replace": 0, "block": 0, "recorded": 0}
+        self.counts = {"forward": 0, "replace": 0, "block": 0, "recorded": 0, "observed": 0}
+        self.allowlist: list[str] | None = None  # 0.69: hosts the containment scan allows
         self._lock, self._target = threading.Lock(), None
 
     def _score(self, request: dict[str, Any]) -> tuple[str, dict[str, Any] | None, int]:
@@ -144,6 +150,7 @@ class Gate:
         if stopped is not None:
             claim.update(action="block", decided_by="stop-token", stop=stopped["token"])
             return self._finish(claim, "block", None, f"stopped ({stopped['scope']})")
+        self._observe(tool, params.get("arguments"), claim["decided_at"])
         decided_by, reply, claim["latency_ms"] = self._score(request)
         claim["decided_by"] = decided_by
         if reply is None:
@@ -200,6 +207,18 @@ class Gate:
             replacement = {**replacement, "_meta": meta}
         return {"outcome": outcome, "verdict": verdict, "claim": claim,
                 "replacement": replacement, "reason": reason}  # fmt: skip
+
+    def _observe(self, tool: str, arguments: Any, at: str) -> None:
+        """Sign and hold advisory containment findings on this action (never blocks)."""
+        if self.repo is None or self.key is None:
+            return
+        text = _containment_detect.text_of(tool, arguments)
+        evidence = "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
+        for hit in _containment_detect.scan_text(text, self.allowlist):
+            finding = {**hit, "step": self.counts["observed"], "evidence_digest": evidence}
+            with self._lock:
+                _containment_detect.record(self.repo, self._run(), finding, self.key, at)
+        self.counts["observed"] += 1
 
     def _run(self) -> str:
         if self._target is None:

@@ -77,7 +77,7 @@ and forked entries all count, so a bad entry cannot hide spend. Such entries
 are reported as `fail:budget.ledger-unsigned`, `fail:budget.ledger-fork` or
 `fail:budget.ledger-optimizer-key`. When a `runner` role is pinned, an entry
 signed by any other key is reported as `advisory:budget.ledger-signer`.
-`runner` is a new key role (0.70) and is guarded like the other guarded
+`runner` is a new key role (0.69) and is guarded like the other guarded
 roles: an optimizer key that also holds it is a `fail:key-separation.shared`
 finding in `tine keys lint`.
 

@@ -56,6 +56,9 @@ HISTORY_MERGE = "history-merge:"
 #: (opentine._budget_ledger): released never, so a loop cannot delete its own spend.
 BUDGET_LEDGER = "budget-ledger:"
 BUDGET_FLAG = "budget-flag:"
+#: 0.69: rows that keep a signed sandbox policy or containment finding
+#: (opentine._containment): released never, so a loop cannot delete what it tried.
+CONTAINMENT = "containment:"
 MAX_HOLDS_BYTES = 4 * 1024 * 1024
 
 
@@ -169,6 +172,8 @@ def release(repo, target: str) -> list[dict[str, str]]:
             raise HoldError(f"{target} keeps a history-merge record: it is never released")
         if any(r["target"].startswith((BUDGET_LEDGER, BUDGET_FLAG)) for r in gone):
             raise HoldError(f"{target} keeps a budget-ledger entry: it is never released")
+        if any(r["target"].startswith(CONTAINMENT) for r in gone):
+            raise HoldError(f"{target} keeps a containment record: it is never released")
         return [r for r in rows if r not in gone]
 
     edit_holds(holds_path(repo), change)

@@ -254,10 +254,10 @@ from opentine.models.google import Google
 from opentine.models.ollama import Ollama
 from opentine.models.openai import OpenAI
 
-OpenAI("gpt-6.1-sol")             # native Responses API
+OpenAI("gpt-6.1-sol")  # native Responses API
 Anthropic("claude-sonnet-5-5")
 Google("gemini-3.8-flash")
-Ollama("qwen3")                  # usage/timing retained; API is unmetered
+Ollama("qwen3")  # usage/timing retained; API is unmetered
 ```
 
 Hosted OpenAI-compatible adapters use Chat Completions with provider-scoped
@@ -265,18 +265,27 @@ usage and prices:
 
 ```python
 from opentine.models.compat import (
-    DeepSeek, GLM, Grok, Groq, Hermes, Kimi, Ministral,
-    Mistral, OpenRouter, Qwen, Together,
+    DeepSeek,
+    GLM,
+    Grok,
+    Groq,
+    Hermes,
+    Kimi,
+    Ministral,
+    Mistral,
+    OpenRouter,
+    Qwen,
+    Together,
 )
 
-Kimi()                            # kimi-k3, api.moonshot.ai
-DeepSeek()                        # deepseek-flash (V4.1-Flash)
-GLM()                             # glm-5.3 / Z.AI global endpoint
-Grok()                            # grok-4.7
-Qwen()                            # qwen3.8-max international endpoint
-Ministral()                       # ministral-14b-2512
-OpenRouter()                      # openai/gpt-oss-120b
-Hermes()                          # direct Nous; local price overlay expected
+Kimi()  # kimi-k3, api.moonshot.ai
+DeepSeek()  # deepseek-flash (V4.1-Flash)
+GLM()  # glm-5.3 / Z.AI global endpoint
+Grok()  # grok-4.7
+Qwen()  # qwen3.8-max international endpoint
+Ministral()  # ministral-14b-2512
+OpenRouter()  # openai/gpt-oss-120b
+Hermes()  # direct Nous; local price overlay expected
 ```
 
 `GLM_REGION=china` (or a legacy dotted GLM key) selects the BigModel China
@@ -477,10 +486,17 @@ from opentine import Recorder, Repo, TraceEvent
 
 repo = Repo.open(".")
 recording = Recorder.start(repo, ref="heads/main")
-recording.append(TraceEvent(
-    kind="model", timestamp=0, trace_id="trace", span_id="model-1",
-    model="kimi-k3", inputs={"prompt": "hello"}, outputs={"text": "hi"},
-))
+recording.append(
+    TraceEvent(
+        kind="model",
+        timestamp=0,
+        trace_id="trace",
+        span_id="model-1",
+        model="kimi-k3",
+        inputs={"prompt": "hello"},
+        outputs={"text": "hi"},
+    )
+)
 run_id = recording.finalize()
 evaluation = recording.evaluate({"quality": 0.9}, evaluator="judge")
 recording.promote("production")
@@ -691,7 +707,7 @@ See [SECURITY_MODEL.md](https://github.com/0xcircuitbreaker/opentine/blob/v0.53.
 
 ## CLI Reference
 
-`tine` ships 139 subcommands; `tine --help` lists the 13 everyday ones by
+`tine` ships 140 subcommands; `tine --help` lists the 13 everyday ones by
 section and `tine help --all` lists every one. Each one prints its own `--help`, which is
 authoritative when this page has drifted. `tine --version` (`-V`) prints the
 installed version.
