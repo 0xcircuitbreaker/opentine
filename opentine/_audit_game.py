@@ -98,6 +98,7 @@ def record(repo: Any, run: str, claim: dict[str, Any], key: Any) -> str:
 
 def records(repo: Any, game: str | None = None) -> dict[str, list[dict[str, Any]]]:
     """``{game: [{oid, run, signer, signed, claim}]}`` from the held records."""
+    from opentine._signing_pins import used_key_fingerprint
     from opentine.attest_signing import verify_attestation
     from opentine.repository._holds import AUDIT_GAME, holds_path, read_holds
 
@@ -113,7 +114,10 @@ def records(repo: Any, game: str | None = None) -> dict[str, list[dict[str, Any]
         except Exception:  # noqa: BLE001 - an unreadable record is reported
             payload = {}
         result = verify_attestation(payload, trust_embedded=True) if payload else None
-        signed = bool(result and result.ok and result.algorithm == "ed25519")
+        # The signer field is signed text, not the key: it must name the key that signed.
+        used = used_key_fingerprint(payload.get("signature")) if payload else None
+        signed = bool(result and result.ok and result.algorithm == "ed25519"
+                      and used == payload.get("signer"))  # fmt: skip
         claim = payload.get("claim")
         out.setdefault(name, []).append({
             "oid": row["oid"], "run": payload.get("target_id"), "signer": payload.get("signer"),

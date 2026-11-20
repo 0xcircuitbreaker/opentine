@@ -56,9 +56,9 @@ def test_unseal_needs_an_eval_role_key(hold: Hold, capsys) -> None:
         code, row = hold.unseal(capsys, seed=seed)
         assert code == 1 and codes(row) == {"holdout.role"}
     assert not (hold.folder() / "access").exists()
-    (hold.repo.path / "trust-bundle.note").unlink()  # the roles are now only the file
+    (hold.repo.path / "trust-bundle.note").unlink()  # a pinned owner fails closed
     code, row = hold.unseal(capsys)
-    assert code == 1 and "owner-pinned" in row["refusals"][0]["detail"]
+    assert code == 1 and "trust bundle missing" in row["refusals"][0]["detail"]
 
 
 def test_unseal_records_who_which_run_and_why_before_release(hold, capsys) -> None:

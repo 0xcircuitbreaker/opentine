@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased — Security and integrity audit
+
+- Audit-game records count as signed only when the payload `signer` names the
+  key that actually signed (`used_key_fingerprint`); a findings record signed
+  by any key and claiming the pinned auditor's fingerprint no longer counts.
+- Loop stops (`verify_stop`) and monitor stop tokens (`verify_token`) report
+  `unverified` when the payload `signer` does not name the signing key, so a
+  stop can no longer be attributed to the pinned stopper by another key.
+- With an owner key pinned, a missing trust bundle now fails closed
+  (`KeyRoleError`) instead of falling back to the unsigned `key-roles.toml` as
+  `unpinned`; deleting `.tine/trust-bundle.note` no longer lets an optimizer
+  key land a history merge or downgrade any role check.
+
 ## 0.67.0 — Merging run histories (2026-11-20)
 
 - `tine merge-history snapshot|plan|apply|verify` merges what parallel loops
