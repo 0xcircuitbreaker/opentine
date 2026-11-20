@@ -25,6 +25,37 @@
 - Schemas `tine-cli-uplift-1`, `opentine-uplift-suite-1`,
   `opentine-uplift-record-1`, `opentine-uplift-export-1`; docs/UPLIFT.md.
   No new object kind and no new `tine verify` code.
+- `tine trends [--json] [--export FILE]`: capability trends over the 0.58
+  lineage graph, from signed records only. Per variant: mean score and pass
+  rate with 0.57 bootstrap intervals, cost per success (signed 0.69 budget
+  ledger spend), the 50%-success time horizon (logistic fit on log2 task
+  minutes, studentized bootstrap interval) and a paired comparison with each
+  parent, where a significant drop is a regression (`--fail-on-regression`
+  exits 1). Per generation (depth in the parent graph): counts and the best
+  unflagged variant. See docs/TRENDS.md.
+- Flags: `lineage.score-tainted` (0.59 taint), `lineage.memory-quarantined`
+  (0.61) and the variant's own `lineage.*` findings. Variants with unsigned or
+  untrusted eval evidence keep a row with their metrics withheld; invalid
+  records and parent cycles are listed under `excluded`.
+- Task lengths are a signed file convention, `opentine.trends.task-lengths/1`
+  (`tine trends --sign-lengths FILE --key KEY --dataset DIGEST`), used only when signed by a
+  `dataset`-role key from the owner-pinned trust bundle that is not an
+  optimizer key; otherwise the horizon is withheld and `lengths.status` says why.
+- `--export` writes `opentine-trends/1` (inputs plus the reported numbers);
+  `opentine/data/trends/recompute.mjs` recomputes it in a browser or Node byte
+  for byte (SplitMix64 resampling, integer arithmetic, and a horizon fit that
+  uses only IEEE double `+ - * /`).
+- Acceptance: on `tests/data/trends_horizon_synth.json` (100 seeded datasets
+  from a known logistic, `scripts/gen_trends_synth.py`) the planted horizon is
+  inside the 95% interval in 96 of 100.
+- Fail closed against a loop: unpinned eval signers withhold metrics;
+  `unchecked[]` (withheld, excluded or relabelled variants) fails
+  `--fail-on-regression`; task lengths are bound to an eval dataset digest
+  (`--dataset`); an item scored by several cited evals keeps its worst
+  verdict; cost counts only finite non-negative spend from a pinned `runner`
+  key; `tine lineage record` refuses to re-sign a variant with another claim.
+- New schemas `tine-cli-trends-1`, `opentine-trends-1`,
+  `opentine-trends-task-lengths-1`. No new object kinds or `tine verify` codes.
 
 ## 0.71.0 — Checkpoint and weight custody (2026-11-20)
 

@@ -6762,4 +6762,45 @@ ROWS: tuple[tuple, ...] = (
             "repo": ".",
         },
     ),
+    (
+        "plain:trends --json --export t.json",
+        "plain",
+        ["trends", "--json", "--export", "t.json"],
+        "opentine._cli_trends:cmd_trends",
+        False,
+        {
+            "command": "trends",
+            "json": True,
+            "export": "t.json",
+            "alpha": "0.05",
+            "seed": 0,
+            "resamples": 2000,
+            "repo": ".",
+            "fail_on_regression": False,
+        },
+    ),
+    (
+        "plain:trends --sign-lengths l.json --key k --suite s --dataset sha256:ab",
+        "plain",
+        [
+            "trends",
+            "--sign-lengths",
+            "l.json",
+            "--key",
+            "k",
+            "--suite",
+            "s",
+            "--dataset",
+            "sha256:ab",
+        ],  # fmt: skip
+        "opentine._cli_trends:cmd_trends",
+        False,
+        {
+            "command": "trends",
+            "sign_lengths": "l.json",
+            "key": "k",
+            "suite": "s",
+            "dataset": "sha256:ab",
+        },  # fmt: skip
+    ),
 )
