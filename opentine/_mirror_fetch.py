@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import base64
 import errno
+import logging
 import os
 import shutil
 import signal
@@ -29,18 +30,21 @@ from pathlib import Path
 from opentine._mirror_git import GitError, _env, _pinned, command_for, size
 
 SAMPLE_SECONDS = 0.05
+LOG = logging.getLogger("opentine.mirror")
+#: Windows errors a just-killed process's open handles cause: access denied, sharing violation.
+_BUSY = (5, 32)
 
 
 def _writable_retry(func, path, _exc) -> None:
     # git writes pack and loose object files read-only; Windows refuses to delete those,
     # and briefly refuses (sharing violation) while a just-killed process's handles close.
-    for attempt in range(40):
+    for attempt in range(100):
         try:
             os.chmod(path, stat.S_IWRITE | stat.S_IREAD)
             func(path)
             return
         except PermissionError as exc:
-            if getattr(exc, "winerror", None) != 32 or attempt == 39:
+            if getattr(exc, "winerror", None) not in _BUSY or attempt == 99:
                 raise
             time.sleep(0.05)
 
@@ -139,7 +143,11 @@ def fetch(upstream: str, dest: Path, *, allow_local: bool, timeout: float, max_b
             raise GitError("the upstream is larger than the mirror limit", "mirror.limit-exceeded")
     except GitError as exc:
         if exc.code == "mirror.limit-exceeded":
-            remove_tree(dest)
+            try:
+                remove_tree(dest)
+            except OSError as failed:  # the limit still wins; the leftover is reported, not raised
+                LOG.warning("mirror over the size limit, but could not delete %s: %s", dest, failed)
+                exc.add_note(f"could not delete the partial mirror: {failed}")
         raise
 
 

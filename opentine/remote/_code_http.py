@@ -111,7 +111,12 @@ def code_read(app, tenant: str, root, cfg, read: str, environ, sr, mirror: dict[
     linked = store.link_of(root, tenant)
     state = store.state_of(root, tenant)
     repo = store.repo(root, tenant)
-    if linked is None or state is None or not (repo / "HEAD").is_file():
+    if (
+        linked is None
+        or state is None
+        or state["status"] == "paused"
+        or not (repo / "HEAD").is_file()
+    ):
         raise reads.Hidden("not synced")
     try:
         found = _read(repo, cfg, linked, read, _query(environ), root, tenant)
