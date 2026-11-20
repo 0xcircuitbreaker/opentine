@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Security and integrity audit
+## 0.68.0 — Security and integrity hardening (2026-11-20)
 
 - Audit-game records count as signed only when the payload `signer` names the
   key that actually signed (`used_key_fingerprint`); a findings record signed

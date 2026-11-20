@@ -4,4 +4,4 @@
  * tests/test_051_browser_bundles.py; the browser build reports it.
  */
 
-export const OPENTINE_VERSION = "0.67.0";
+export const OPENTINE_VERSION = "0.68.0";
