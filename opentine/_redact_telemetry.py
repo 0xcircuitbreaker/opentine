@@ -12,7 +12,10 @@ redacted public copy, harness by harness (:data:`HARNESSES`):
 * records whose ``type`` is listed under ``drop`` are removed entirely;
 * records matching a ``reduce`` entry keep only the allowlisted keys, and keys
   under ``placeholders`` become a fixed placeholder;
-* keys listed under ``strip`` are removed at any depth of any record.
+* keys listed under ``strip`` are removed at any depth of any record, except
+  inside ``opaque`` keys (a tool's own arguments);
+* a string value holding an escaped stream (a tool result) is scrubbed too, and
+  a JSON array of records is scrubbed record by record.
 
 Text is handled as JSON lines (one record per line; lines that are not a JSON
 object are kept byte for byte) or as one JSON document. A line is rewritten only
@@ -51,6 +54,27 @@ HARNESSES: dict[str, dict[str, Any]] = {
                 "persistedOutputPath",
             }
         ),
+        # A tool's own arguments are the agent's data, never telemetry.
+        "opaque": frozenset({"input"}),
+    },
+    "gemini-cli-stream-json": {
+        "marker": '"session_id"',
+        "types": frozenset({"init", "message", "tool_use", "tool_result", "result"}),
+        "drop": frozenset(),
+        "reduce": {("init", None): frozenset({"type", "model"})},
+        "placeholders": {},
+        "strip": frozenset({"session_id"}),
+        "opaque": frozenset({"parameters"}),
+    },
+    "codex-exec-json": {
+        "marker": '"thread_id"',
+        "id_key": "thread_id",
+        "types": frozenset({"thread.started"}),
+        "drop": frozenset(),
+        "reduce": {},
+        "placeholders": {},
+        "strip": frozenset({"thread_id"}),
+        "opaque": frozenset(),
     },
 }
 
@@ -61,6 +85,12 @@ def _clean(record: Any, spec: dict[str, Any], removed: list[int]) -> Any:
         for item in record:  # a loop: one frame per nesting level
             out_list.append(_clean(item, spec, removed))
         return out_list
+    if isinstance(record, str):  # an escaped stream inside a tool result
+        if '"' not in record:
+            return record
+        clean, found = scrub(record)
+        removed[0] += found
+        return clean
     if not isinstance(record, dict):
         return record
     keep = spec["reduce"].get((record.get("type"), record.get("subtype")))
@@ -74,12 +104,19 @@ def _clean(record: Any, spec: dict[str, Any], removed: list[int]) -> Any:
                 removed[0] += 1
             out[key] = spec["placeholders"][key]
             continue
-        out[key] = _clean(value, spec, removed)
+        out[key] = value if key in spec["opaque"] else _clean(value, spec, removed)
     return out
 
 
 def _record(record: Any, removed: list[int]) -> tuple[bool, Any]:
-    """``(keep, cleaned)`` for one decoded record under every harness."""
+    """``(keep, cleaned)`` for one decoded record (or array of them) under every harness."""
+    if isinstance(record, list):  # ``--output-format json --verbose``: an array
+        items = []
+        for item in record:
+            keep, clean = _record(item, removed)
+            if keep:
+                items.append(clean)
+        return True, items
     for spec in HARNESSES.values():
         if not isinstance(record, dict):
             continue
@@ -87,7 +124,7 @@ def _record(record: Any, removed: list[int]) -> tuple[bool, Any]:
         if kind in spec["drop"]:
             removed[0] += 1
             return False, None
-        if kind in spec["types"] and "session_id" in record:
+        if kind in spec["types"] and spec.get("id_key", "session_id") in record:
             record = _clean(record, spec, removed)
     return True, record
 
@@ -118,7 +155,7 @@ def scrub(text: str) -> tuple[str, int]:
     total, out = 0, []
     for line in text.splitlines(keepends=True):
         body = line.rstrip("\r\n")
-        if not body.lstrip().startswith("{"):
+        if not body.lstrip().startswith(("{", "[")):
             out.append(line)
             continue
         try:
