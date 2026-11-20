@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Containment evidence and budgets
+## 0.69.0 — Containment evidence and budgets (2026-11-20)
 
 - `tine budget sign-policy|apply|record|status|ledger|check|gate`: budget
   policies per loop or agent (`opentine-budget-policy/1`: tokens, GPU-hours,
