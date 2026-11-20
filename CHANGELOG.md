@@ -1,5 +1,32 @@
 # Changelog
 
+## Unreleased — Checkpoint and weight custody
+
+- `tine custody record EVENT LOCATION --artifact NAME` records checkpoint and
+  weight custody events (`created`, `copied`, `loaded`, `exported`,
+  `destroyed`, `approved`). Weights are referenced by digest only: `--file` is
+  read as a size-capped streaming SHA-256 (`--max-bytes`, default 1 TiB) and
+  never stored or uploaded.
+- Each event is a signed attestation claim (`opentine.weight-custody/1`, a claim
+  convention, not an object kind), hash-chained per artifact (`seq`, `prev`) and
+  kept by a `custody:weights:` hold that `tine hold release` refuses. Events link
+  the checkpoint to its training run (`--run`), data commitments (`--data`) and
+  lineage node (`--lineage`). The signer is bound to the signing key; event
+  signers count only with a `runner` role, approvals only with a `policy` role,
+  both from the owner-pinned trust bundle.
+- `tine custody chain NAME` and `tine custody check NAME [--file LOCATION=PATH]`
+  report chain breaks (`custody-chain-broken`) and gaps (`custody-gap`): an
+  artifact seen at a new location or digest without a copy event, a load
+  without a preceding create or copy, use after destroy. Unpinned signers are
+  advisory unless `--strict`.
+- `--tag model-organism` on the created event makes loads stricter: a load
+  without an earlier pinned approval of that digest is
+  `custody-unapproved-load`, and `tine custody gate` (agent `PreToolUse` hook)
+  denies tool calls naming the artifact's locations or digests until one
+  exists. The gate fails closed on an unreadable payload or record.
+- New schemas `tine-cli-custody-weights-1` and `opentine-weight-custody-1`;
+  docs/CUSTODY.md.
+
 ## 0.70.0 — Redaction of paths and emails (2026-11-20)
 
 - Redacted public copies (`tine bundle create --redacted-public`, `tine publish

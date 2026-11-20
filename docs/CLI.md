@@ -2095,6 +2095,18 @@ All commands take `--repo PATH`; `--json` prints `tine-cli-containment/1`.
 Findings and failing policy records are listed in the oversight queue as
 `containment:` items; see docs/CONTAINMENT.md.
 
+## Checkpoint and weight custody (0.71)
+
+| Command | What it does |
+| --- | --- |
+| `tine custody record EVENT LOCATION --artifact NAME --sign-key KEY [--file PATH \| --digest DIGEST] [--max-bytes N] [--run RUN] [--data DIGEST]... [--lineage NODE] [--tag model-organism]` | Signs, hash-chains and holds one custody event (`created`, `copied`, `loaded`, `exported`, `destroyed`, `approved`); `--file` is read only to digest it |
+| `tine custody chain NAME` | Lists the artifact's events with their chain and pinned-role state |
+| `tine custody check NAME [--file LOCATION=PATH]... [--strict]` | Reports gaps; exits 1 on `custody-gap`, `custody-chain-broken` or `custody-unapproved-load`; `advisory:custody.signer-unpinned` blocks only with `--strict` |
+| `tine custody gate [--agent claude-code\|codex\|generic]` | Agent hook: denies a tool call naming a `model-organism` artifact without a pinned approval; fails closed |
+
+`--json` prints `tine-cli-custody-weights/1`; events follow the claim
+convention `opentine.weight-custody/1`. See docs/CUSTODY.md.
+
 ## Merging run histories (0.69)
 
 | Command | What it does |
