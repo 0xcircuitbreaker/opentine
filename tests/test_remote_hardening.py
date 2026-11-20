@@ -281,7 +281,6 @@ def test_m6_server_has_conservative_defaults():
 
 def test_m6_absolute_request_deadline_interrupts_active_connection():
     import threading
-    import time
 
     from opentine.remote.server import ThreadingWSGIServer
 
@@ -311,11 +310,10 @@ def test_m6_absolute_request_deadline_interrupts_active_connection():
     server._request_slots.acquire()
     accepted = Request()
     worker = threading.Thread(target=server.process_request_thread, args=(accepted, ("local", 0)))
-    started = time.monotonic()
     worker.start()
     try:
-        worker.join(timeout=0.5)
-        assert not worker.is_alive() and time.monotonic() - started < 0.3
+        worker.join(timeout=30)  # hang guard only: a worker waiting for a slot never returns
+        assert not worker.is_alive() and accepted.closed.is_set()
     finally:
         accepted.close()
 

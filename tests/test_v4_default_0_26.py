@@ -12,7 +12,6 @@ import hashlib
 import json
 import shutil
 import threading
-import time
 from pathlib import Path
 
 import pytest
@@ -229,20 +228,29 @@ def test_descriptor_rewrite_waits_for_the_config_lock(room, monkeypatch):
     monkeypatch.setenv(FORMAT_ENV, "3")
     repo = Repo.init(room / "r")
     monkeypatch.delenv(FORMAT_ENV)
-    held = threading.Event()
+    held, release, order = threading.Event(), threading.Event(), []
 
     def hold() -> None:
         with config_lock(repo.path):
             held.set()
-            time.sleep(0.3)
+            release.wait()
+            order.append("holder-exit")
+
+    def mark() -> None:
+        mark_v4(repo)
+        order.append("rewrite-done")
 
     worker = threading.Thread(target=hold)
     worker.start()
     held.wait()
-    started = time.monotonic()
-    mark_v4(repo)
-    assert time.monotonic() - started >= 0.2  # it waited instead of racing a gc
+    marker = threading.Thread(target=mark)
+    marker.start()
+    marker.join(0.2)  # a rewrite that ignored the lock would be done by now
+    assert order == []  # it waited instead of racing a gc
+    release.set()
+    marker.join()
     worker.join()
+    assert order == ["holder-exit", "rewrite-done"]
     assert read_config(repo.path / "config.json")["objects"] == 4
 
 

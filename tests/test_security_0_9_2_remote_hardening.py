@@ -6,6 +6,7 @@ Each test names the item it pins; each fails on the code before the change.
 from __future__ import annotations
 
 import base64
+import contextlib
 import io
 import json
 import select
@@ -139,13 +140,17 @@ _HOLD_LOCK = """
 import sys, time
 from pathlib import Path
 from opentine.remote._audit import audit_file_lock
+log, release = Path(sys.argv[2]), Path(sys.argv[3])
 with audit_file_lock(Path(sys.argv[1])):
     print("locked", flush=True)
-    time.sleep(float(sys.argv[2]))
+    while not release.exists():  # hold until the test says so: no timed hold
+        time.sleep(0.01)
+    with log.open("a") as out:
+        out.write("holder-exit\\n")
 """
 
 
-def test_association_installs_serialize_across_processes(tmp_path):
+def test_association_installs_serialize_across_processes(tmp_path, monkeypatch):
     app, remote, who = _reference(tmp_path)
     writer = who("writer-token")
     local = Repo.init(tmp_path / "local")
@@ -153,22 +158,42 @@ def test_association_installs_serialize_across_processes(tmp_path):
     local.attest(run, {"ok": True}, signer="ci")
     plain = Repo.init(tmp_path / "plain")
     plain.put("blob", b"no associations here", redact=False)
+    log, release = tmp_path / "order.log", tmp_path / "release"
+    waiting = threading.Event()
+    real_lock = remote.index.association_lock
+
+    @contextlib.contextmanager
+    def logged_lock():
+        waiting.set()
+        with real_lock():
+            with log.open("a") as out:
+                out.write("install-enter\n")
+            yield
+
+    monkeypatch.setattr(remote.index, "association_lock", logged_lock)
     lock = f"{remote.index.path}.association-lock"
     holder = subprocess.Popen(
-        [sys.executable, "-c", _HOLD_LOCK, lock, "3"], stdout=subprocess.PIPE, text=True
+        [sys.executable, "-c", _HOLD_LOCK, lock, str(log), str(release)],
+        stdout=subprocess.PIPE,
+        text=True,
     )
     try:
         assert holder.stdout.readline().strip() == "locked"
-        started = time.monotonic()
         remote.install_pack(writer, "acme", plain.pack())  # no associations: never waits
-        assert time.monotonic() - started < 1.5
-        started = time.monotonic()
-        remote.install_pack(writer, "acme", local.pack())  # an attestation: waits its turn
-        waited = time.monotonic() - started
+        assert not waiting.is_set()  # it never even asked for the cross-process lock
+        installer = threading.Thread(
+            target=remote.install_pack, args=(writer, "acme", local.pack())
+        )
+        installer.start()  # an attestation: waits its turn
+        assert waiting.wait(60)  # hang guard, not a timing threshold
+        assert not log.exists()  # asked for the lock, still blocked behind the holder
+        release.touch()
+        installer.join()
     finally:
+        release.touch()
         holder.wait(timeout=30)
         holder.stdout.close()
-    assert waited >= 0.5
+    assert log.read_text().splitlines() == ["holder-exit", "install-enter"]
 
 
 # --- 3. slow or crowding clients cannot hold every worker --------------------------- #
