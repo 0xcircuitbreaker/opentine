@@ -10,6 +10,8 @@ from opentine.autosave import Autosaver
 from opentine.cache import CacheEntry, semantic_key
 from opentine.graph import Run, RunStatus, StepKind
 
+_clock = time.monotonic  # budget duration source; tests inject it
+
 
 class RuntimeLoopMixin:
     async def _invoke(self, run: Run, messages: list[dict[str, Any]], request: dict[str, Any]):
@@ -187,10 +189,20 @@ class RuntimeLoopMixin:
     ) -> Run:
         budget = run.budget()
         prior_duration = run.total_duration
-        continued_at = time.monotonic()
+        continued_at = _clock()
 
         def elapsed_duration() -> float:
-            return prior_duration + time.monotonic() - continued_at
+            return prior_duration + _clock() - continued_at
+
+        def exhausted() -> bool:
+            assert budget is not None
+            breach = budget.check(
+                cost=run.total_cost,
+                usage=run.total_tokens,
+                steps=len(run.steps),
+                duration=max(run.total_duration, elapsed_duration()),
+            )
+            return breach is not None
 
         for _ in range(self.max_steps):
             if budget is not None and self._enforce_budget(
@@ -207,6 +219,9 @@ class RuntimeLoopMixin:
             response, duration = await self._invoke(run, messages, request)
             assistant, tool_calls, refused = self._record_model(run, response, duration)
             messages.append(assistant)
+            if budget is not None and not refused and tool_calls and exhausted():
+                # Breached before the first call: answer every call, unrun.
+                await self._execute_tools(run, messages, tool_calls, lambda: True)
             if budget is not None and self._enforce_budget(
                 run, budget, elapsed_duration=elapsed_duration()
             ):
@@ -221,17 +236,7 @@ class RuntimeLoopMixin:
                 run,
                 messages,
                 tool_calls,
-                None
-                if budget is None
-                else lambda: (
-                    budget.check(
-                        cost=run.total_cost,
-                        usage=run.total_tokens,
-                        steps=len(run.steps),
-                        duration=max(run.total_duration, elapsed_duration()),
-                    )
-                    is not None
-                ),
+                None if budget is None else exhausted,
             )
             if budget is not None and self._enforce_budget(
                 run, budget, elapsed_duration=elapsed_duration()
