@@ -18,7 +18,7 @@ from tests.trends_helpers import build, write_lengths
 ARGS = ["--resamples", "200"]
 
 
-def run(argv: list[str]) -> int:
+def tine(argv: list[str]) -> int:
     try:
         cli.main(argv)
     except SystemExit as exc:
@@ -27,7 +27,7 @@ def run(argv: list[str]) -> int:
 
 
 def trends(root: Path, capsys, *extra: str) -> dict:
-    assert run(["trends", "--repo", root.as_posix(), "--json", *ARGS, *extra]) == 0
+    assert tine(["trends", "--repo", root.as_posix(), "--json", *ARGS, *extra]) == 0
     out = json.loads(capsys.readouterr().out)
     _schemas.validate(out, "tine-cli-trends-1")
     return out
@@ -66,7 +66,7 @@ def test_generations_metrics_and_regressions(lineage, capsys) -> None:
 
 def test_fail_on_regression_exits_1(lineage, capsys) -> None:
     root, _ = lineage
-    assert run(["trends", "--repo", root.as_posix(), "--fail-on-regression", *ARGS]) == 1
+    assert tine(["trends", "--repo", root.as_posix(), "--fail-on-regression", *ARGS]) == 1
     assert "REGRESSION" in capsys.readouterr().out
 
 
@@ -165,7 +165,7 @@ def test_seed_changes_intervals_not_means(lineage, capsys) -> None:
 def test_refuses_bad_parameters(lineage, capsys) -> None:
     root, _ = lineage
     for extra in (["--seed", str(2**53)], ["--alpha", "1"], ["--resamples", "5"]):
-        assert run(["trends", "--repo", root.as_posix(), *extra]) != 0
+        assert tine(["trends", "--repo", root.as_posix(), *extra]) != 0
     capsys.readouterr()
 
 
@@ -176,7 +176,7 @@ def test_sign_lengths_cli(tmp_path, capsys) -> None:
     (tmp_path / "k").write_bytes(DATASET.encode())
     (tmp_path / "l.json").write_bytes(b'{"a": "1.5", "b": "30"}')
     out = tmp_path / "signed.json"
-    assert run(["trends", "--sign-lengths", (tmp_path / "l.json").as_posix(), "--key",
+    assert tine(["trends", "--sign-lengths", (tmp_path / "l.json").as_posix(), "--key",
                 (tmp_path / "k").as_posix(), "--task-lengths", out.as_posix(), "--at", AT,
                 "--json"]) == 0  # fmt: skip
     printed = json.loads(capsys.readouterr().out)
