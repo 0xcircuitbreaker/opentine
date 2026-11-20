@@ -28,8 +28,10 @@ import re
 from collections import Counter
 from typing import Any
 
+from opentine._redact_publish_patterns import EMAIL, PATH, URL_USER, login_at
+
 PUBLISH_RULESET = "opentine-redaction/2+publish/1"
-HOME, EMAIL, USER = "<HOME>", "<EMAIL>", "<USER>"
+HOME, EMAIL_TOKEN, USER = "<HOME>", "<EMAIL>", "<USER>"
 #: Logins that name no person: never treated as "the local user".
 GENERIC_LOGINS = frozenset({"", "local", "root", "nobody", "unknown", "user", "admin", "system"})
 #: Accounts shared by everyone who uses a host; an ssh login with one is not personal.
@@ -38,15 +40,6 @@ SERVICE_ACCOUNTS = frozenset(
 )
 ACTOR_KEYS = frozenset({"actor", "actors", "writers"})
 
-_SEP = r"(?:\\\\|\\|/)"
-_SEG = r"[^\\/\s\"'`:*?<>|,;()\[\]{}]+"
-_END = r"(?=[/\\\s\"'`:,;)\]}]|$)"
-_PATH = re.compile(
-    r"(?:(?<=file://)|(?<![\w.~/\\-]))/(?:root|home/" + _SEG + r"|Users/" + _SEG + r")" + _END
-    + r"|(?<![\w])[A-Za-z]:" + _SEP + r"(?i:users|documents and settings)" + _SEP
-    + r"(?:" + _SEG + r"(?: " + _SEG + r"){1,3}(?=" + _SEP + r")|" + _SEG + r")" + _END
-    + r"|(?<![\w~/\\.-])~(?:[a-z_][a-z0-9_-]{0,31})?(?=[/\\]|$|[\"'`])"
-)  # fmt: skip
 #: Generic TLDs an address plausibly uses; any other two-letter label is a ccTLD.
 _TLDS = frozenset(
     "com net org edu gov mil int io dev app ai info biz xyz cloud tech online site email "
@@ -56,12 +49,6 @@ _TLDS = frozenset(
 )
 #: Two-letter labels that are far more often file extensions than countries here.
 _NOT_CC = frozenset("js ts py md rb go rs sh cs gz xz so pl pm hs kt ml mk rc".split())
-_EMAIL = re.compile(
-    r"(?<![\w.%+@/-])([A-Za-z0-9](?:[A-Za-z0-9._%+-]{0,62}[A-Za-z0-9_-])?)"
-    r"@((?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+([A-Za-z]{2,24}))"
-    r"(?![\w-]|\.[A-Za-z0-9])(:)?"
-)
-_SSH_USER = re.compile(r"(?:(?<=ssh://)|(?<=sftp://))([A-Za-z0-9._-]{1,64})@(?=[A-Za-z0-9])")
 
 
 def login() -> str | None:
@@ -89,11 +76,11 @@ def scrub_text(text: str, *, login: str | None) -> tuple[str, Counter[str]]:
         counts["path"] += 1
         return HOME
 
-    def ssh(match: re.Match[str]) -> str:
+    def url_user(match: re.Match[str]) -> str:
         if match.group(1).lower() in SERVICE_ACCOUNTS:
             return match.group(0)
         counts["user"] += 1
-        return USER + "@"
+        return USER
 
     def email(match: re.Match[str]) -> str:
         local, domain, tld, colon = match.groups()
@@ -105,13 +92,19 @@ def scrub_text(text: str, *, login: str | None) -> tuple[str, Counter[str]]:
             counts["user"] += 1
             return f"{USER}@{domain}:"
         counts["email"] += 1
-        return EMAIL
+        return EMAIL_TOKEN
 
-    if "/" in text or "\\" in text or "~" in text:
-        text = _PATH.sub(path, text)
-    if "@" in text:
-        text = _EMAIL.sub(email, text)  # first: its lookbehind skips ``ssh://user@``
-        text = _SSH_USER.sub(ssh, text)
+    def own(match: re.Match[str]) -> str:
+        counts["user"] += 1
+        return USER + "@"
+
+    if "/" in text or "\\" in text or "~" in text or "%" in text:
+        text = PATH.sub(path, text)
+    if "@" in text or "\uff20" in text or "%40" in text or "\\u0040" in text:
+        text = URL_USER.sub(url_user, text)  # first: ``user:pw@host`` is no address
+        text = EMAIL.sub(email, text)
+        if login is not None and login.lower() not in SERVICE_ACCOUNTS:
+            text = login_at(login).sub(own, text)
     return text, +counts
 
 

@@ -12,6 +12,10 @@
   scp-style or `ssh://` login becomes `<USER>` unless it is a service account
   such as `git`; and `actor` / `actors` / `writers` values equal to the local
   login name become `<USER>`. The copy stays a valid, verifiable run.
+- Review: also UNC home shares, `/var/home`, WSL `/mnt/<d>/Users`, URL-encoded
+  and doubly JSON-escaped paths, `%40` / `\u0040` / fullwidth `＠` addresses,
+  any URL's userinfo user, `<login>@host` prompts and tree entry names; per-object
+  counts no longer double when two sources derive the same object.
 - `tine bundle create --redacted-public` prints a `redaction` key: the ruleset,
   per-object counts by kind (`path`, `email`, `user`) and totals.
 - `tine op log --redact` shows the op log with the same rules applied to what

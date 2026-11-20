@@ -93,10 +93,15 @@ def _derived(
     if envelope.encoding == "raw":  # a tree: its entries are links
         import json
 
-        from opentine.kernel import _parse_int, canonical_json
+        from opentine._tree import encode_tree
+        from opentine.kernel import _parse_int
 
         tree = _rewrite(json.loads(envelope.body, parse_int=_parse_int), mapping)
-        return ObjectEnvelope.create("blob", canonical_json(tree), envelope.schema)
+        for row in tree.get("entries", []) + tree.get("omitted", []):  # names can hold emails
+            row["name"], found = _redact_publish.scrub_text(row["name"], login=login)
+            counts.update(found)
+        body = encode_tree(tree["entries"], tree.get("omitted", []))  # re-sorted; refuses clashes
+        return ObjectEnvelope.create("blob", body, envelope.schema)
     where = f"redacted copy {envelope.object_type!r}"
     payload, found = _redact_publish.scrub_value(
         guarded_redaction(envelope.payload(), where=where), login=login
@@ -104,6 +109,12 @@ def _derived(
     counts.update(found)
     payload = _rewrite(payload, mapping)
     return ObjectEnvelope.create(envelope.object_type, payload, envelope.schema)
+
+
+def _count(counts: dict[str, dict[str, int]], oid: str, found: Counter[str]) -> None:
+    """Record *found* for *oid* once: equal sources derive one object, counted once."""
+    if found and oid not in counts:
+        counts[oid] = dict(found)
 
 
 def derive(
@@ -139,10 +150,8 @@ def derive(
         found: Counter[str] = Counter()
         new = _derived(repo.get(oid), mapping, login, found)
         mapping[oid] = new.oid
-        if counts is not None and found:
-            per = counts.setdefault(new.oid, {})
-            for kind, number in found.items():
-                per[kind] = per.get(kind, 0) + number
+        if counts is not None:
+            _count(counts, new.oid, found)
         objects[new.oid] = new.encode()
     view = _View(objects, boundary)
     for oid in objects:

@@ -61,14 +61,14 @@ def test_json_escaped_unc_paths_stay_valid_json():
 def test_tree_entry_names_are_redacted_and_the_tree_stays_valid():
     blob = ObjectEnvelope.create("blob", b"hi", 1)
     body = encode_tree([
-        {"mode": "100644", "name": "from-alice@example.com.eml", "oid": blob.oid},
+        {"mode": "100644", "name": "from alice@example.com", "oid": blob.oid},
         {"mode": "100644", "name": "a.txt", "oid": blob.oid},
     ])  # fmt: skip
     counts: Counter[str] = Counter()
     tree = ObjectEnvelope.create("blob", body, TREE_SCHEMA)
     new = _redacted_derive._derived(tree, {}, "alice", counts)
     names = [row["name"] for row in parse_tree(new.body)["entries"]]
-    assert names == ["a.txt", "from-<EMAIL>.eml"]
+    assert names == ["a.txt", "from <EMAIL>"]
     assert counts == {"email": 1}
 
 

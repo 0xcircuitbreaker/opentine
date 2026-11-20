@@ -24,16 +24,22 @@ carries:
 
 | Kind | What | Becomes |
 |---|---|---|
-| `path` | `/root`, `/home/<u>`, `/Users/<u>`, `X:\Users\<u>` (any separator, also JSON-escaped), `~`, `~<u>` | `<HOME>`, rest of the path kept |
-| `email` | `local@domain.tld` where the TLD is a known generic TLD or a two-letter country code that is not a common file extension | `<EMAIL>` |
-| `user` | the user of `user@host:path` and `ssh://user@host`, unless a service account (`git`, `hg`, `ubuntu`, `ec2-user`, ...) | `<USER>@host` |
+| `path` | `/root`, `/home/<u>`, `/var/home/<u>`, `/Users/<u>`, `/mnt/<d>/Users/<u>`, `X:\Users\<u>`, UNC `\\host\Users\<u>` / `\\host\home$\<u>` (any separator, JSON-escaped at any depth or URL-encoded), `~`, `~<u>` | `<HOME>`, rest of the path kept |
+| `email` | `local@domain.tld` (also `%40`, `\u0040`, fullwidth `＠`) where the TLD is a known generic TLD or a two-letter country code that is not a common file extension | `<EMAIL>` |
+| `user` | the user of `user@host:path`, of any URL's `scheme://user[:pw]@host` and `<login>@host` (a shell prompt), unless a service account (`git`, `hg`, `ubuntu`, `ec2-user`, ...) | `<USER>@host` |
 | `user` | an `actor`, `actors` or `writers` value equal to this machine's login, when that login names a person (not `root`, `local`, `nobody`, ...) | `<USER>` |
 
 Left alone on purpose: `pnpm@10.33.0`, `ms@4.0.0`, `@click.option`,
 `@types/node`, `lodash@npm:4.17.21`, `icon@2x.png`, `x@w.shape`,
-`user@localhost`, `git@github.com:org/repo`, `/var/home/x`, `/homework`,
+`user@localhost`, `git@github.com:org/repo`, `/var/homebrew`, `/homework`,
 `https://example.com/Users/list`. `tests/test_070_redaction_paths_emails.py`
-holds the full table of true and false positives.
+holds the full table of true and false positives; `tests/test_070_redaction_review.py`
+the red-team rows. Tree entry names are redacted too (re-sorted; a clash refuses
+the copy).
+
+Not caught: base64 or otherwise encoded text inside tool output, an address
+split across lines, lookalike letters other than `＠`, lowercase `/users/<u>`,
+and a bare login name outside the forms above.
 
 Replacements contain no quote or backslash, so JSON stays JSON; two object
 keys that would collapse into one refuse the copy. The copy is rebuilt and
