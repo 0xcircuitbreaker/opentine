@@ -16,7 +16,7 @@ _FPR = {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
 _ANN = {"type": "string", "pattern": "^annotation:sha256:[0-9a-f]{64}$"}
 _ITEM = {
     "type": "string",
-    "pattern": "^(promotion|monitor|integrity|budget|containment|organism|custody):.+$",
+    "pattern": "^(promotion|monitor|integrity|budget|containment|organism|custody|transcript):.+$",
 }
 _DECISION = {"enum": ["request", "approve", "reject"]}
 _DIGEST = {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
@@ -25,7 +25,7 @@ _HEAD = {"schema": {"const": "tine-cli-oversight/1"}}
 _TIER = closed(["tier", "k", "n"], {"tier": STR, "k": INT, "n": INT})
 _ROUTE = closed(["source", "tier", "label"], {
     "source": {"enum": ["promotion", "integrity", "monitor", "eval", "budget",
-                          "containment", "organism", "custody"]}, "tier": STR,
+                          "containment", "organism", "custody", "transcript"]}, "tier": STR,
     "label": STR, "metric": opt(STR), "above": opt(NUM), "below": opt(NUM),
     "actions": {"type": "array", "items": STR}})  # fmt: skip
 _POLICY = closed(["status", "why", "floors", "sha256", "tiers", "routes"], {
@@ -48,7 +48,7 @@ _ROW = closed(["id", "decision", "signer", "decided_at", "counted", "viewed"], {
 _ITEM_ROW = closed(["item", "source", "opened_at", "tiers", "state", "rejected_by",
                     "uncounted", "decisions"], {
     "item": _ITEM, "source": {"enum": ["promotion", "integrity", "monitor", "budget",
-                                       "containment", "organism", "custody"]},
+                                       "containment", "organism", "custody", "transcript"]},
     "opened_at": opt(STR),
     "tiers": {"type": "array", "items": _TALLY},
     "state": {"enum": ["pending", "approved", "rejected", "unrouted"]},

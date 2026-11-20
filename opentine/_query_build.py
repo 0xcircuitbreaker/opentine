@@ -98,6 +98,8 @@ def build(repo: Any, dirs: list[str] | None = None, *, workers: int | None = Non
 
     *experiments* ``None`` keeps the remembered experiment folders.
     """
+    from opentine._query_transcripts import cluster_rows
+
     store = Path(repo.path)
     dirs = sorted({Path(d).resolve().as_posix() for d in dirs or []})
     exps = remembered_dirs(store, "experiments") if experiments is None else experiments
@@ -108,7 +110,8 @@ def build(repo: Any, dirs: list[str] | None = None, *, workers: int | None = Non
                        for r in qr.verdict_lines(source, raw)],
              **qr.lineage_rows(_lineage_files(store)),
              **qx.rows(qx.experiment_files(store, exps)),
-             **qe.rows(qe.elicit_files(store))}  # fmt: skip
+             **qe.rows(qe.elicit_files(store)),
+             **cluster_rows(repo, oids)}  # fmt: skip
     meta = {"fingerprint": fingerprint, "objects": qi.objects_digest(oids),
             **sources(store, dirs, exps)}  # fmt: skip
     path = qi.index_path(store)
