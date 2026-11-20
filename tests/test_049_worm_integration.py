@@ -71,13 +71,22 @@ def _race(client, rounds: int = 8) -> None:
         first = ObjectEnvelope.create("blob", base)
         second = ObjectEnvelope.create("blob", base + b"tail")
         store.put("acme", first.oid, first.encode())
-        jobs = [threading.Thread(target=store.delete, args=("acme", first.oid)),
-                threading.Thread(target=store.put,
-                                 args=("acme", second.oid, second.encode()))]  # fmt: skip
+        errors: list[BaseException] = []
+
+        def run(call, *args):
+            try:
+                call(*args)
+            except BaseException as exc:  # a thread's failure must fail the test, not vanish
+                errors.append(exc)
+
+        put = (store.put, "acme", second.oid, second.encode())
+        jobs = [threading.Thread(target=run, args=(store.delete, "acme", first.oid)),
+                threading.Thread(target=run, args=put)]  # fmt: skip
         for job in jobs:
             job.start()
         for job in jobs:
             job.join()
+        assert not errors, errors
         assert store.get("acme", second.oid) == second.encode()
         store.delete("acme", second.oid)
     assert store.sweep_expired("acme")["swept"] == 0
@@ -92,6 +101,27 @@ def _moto_client():
     return mock_aws, boto3
 
 
+def _atomic_requests(client):
+    """Make each in-process moto request atomic, as every real S3 request is.
+
+    moto's ``ListObjectsV2`` iterates the bucket's live key dict, so a delete on
+    another thread mid-listing raises a bare ``KeyError`` from inside moto (which
+    the store then reads as a missing object). Real S3 never fails a listing that
+    way. Serializing whole requests keeps the race between the store's *calls*
+    (what ``_race`` tests) while removing the emulator's own thread-unsafety.
+    """
+    import threading
+
+    lock, call = threading.Lock(), client._make_api_call
+
+    def locked(*args, **kwargs):
+        with lock:
+            return call(*args, **kwargs)
+
+    client._make_api_call = locked
+    return client
+
+
 def test_moto_object_lock(tmp_path, monkeypatch):
     mock_aws, boto3 = _moto_client()
     for name in ("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"):
@@ -100,7 +130,7 @@ def test_moto_object_lock(tmp_path, monkeypatch):
     from opentine.remote._worm_s3 import S3BlobClient
 
     with mock_aws():
-        s3 = boto3.client("s3", region_name="us-east-1")
+        s3 = _atomic_requests(boto3.client("s3", region_name="us-east-1"))
         s3.create_bucket(Bucket="locked", ObjectLockEnabledForBucket=True)
         _scenario(S3BlobClient("locked", client=s3), tmp_path)
         _race(S3BlobClient("locked", client=s3))

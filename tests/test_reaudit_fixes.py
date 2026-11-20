@@ -11,7 +11,6 @@ import os
 import sqlite3
 import stat
 import threading
-import time
 from pathlib import Path
 
 import httpx
@@ -101,6 +100,7 @@ def test_h1_control_plane_deadline_includes_response_headers():
 
         def __enter__(self):
             self.session.release.wait(timeout=1)
+            self.session.woke = True
             raise httpx.ReadTimeout("interrupted")
 
         def __exit__(self, *args):
@@ -109,7 +109,7 @@ def test_h1_control_plane_deadline_includes_response_headers():
     class Session:
         def __init__(self):
             self.release = threading.Event()
-            self.closed = False
+            self.closed = self.woke = False
 
         def stream(self, *args, **kwargs):
             return BlockedStream(self)
@@ -118,11 +118,10 @@ def test_h1_control_plane_deadline_includes_response_headers():
             self.closed = True
 
     session = Session()
-    started = time.monotonic()
     try:
         with pytest.raises(ValueError, match="total request deadline"):
             request_json(session, "GET", "/v1/capabilities", max_seconds=0.03)
-        assert time.monotonic() - started < 0.5 and session.closed
+        assert session.closed and not session.woke  # gave up while the read still blocked
     finally:
         session.release.set()
 

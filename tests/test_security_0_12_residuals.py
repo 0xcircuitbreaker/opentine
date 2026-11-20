@@ -80,10 +80,8 @@ def test_https_fetch_has_a_total_deadline_against_a_trickling_server(monkeypatch
             200, stream=Trickle(), headers={"content-type": "application/json"}
         ),
     )
-    started = time.monotonic()
-    with pytest.raises(_jwks.OIDCError):
+    with pytest.raises(_jwks.OIDCError, match="deadline"):  # not the truncated JSON
         _jwks.https_fetch("https://idp.example/jwks", seconds=0.5)
-    assert time.monotonic() - started < 3
 
 
 # -- R3: catalog signature domain separation -----------------------------------

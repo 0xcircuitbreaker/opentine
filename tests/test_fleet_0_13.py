@@ -199,13 +199,11 @@ argv = {_py("import time; time.sleep(120)")}
     state = _runner.create(fleet)
     result: list[int] = []
     thread = threading.Thread(target=lambda: result.append(_runner.run(fleet, state, poll=0.05)))
-    started = time.monotonic()
     thread.start()
     time.sleep(0.5)
     _runner.request_stop(state.directory, state.id)
     thread.join(timeout=30)
     assert not thread.is_alive() and result == [1]
-    assert time.monotonic() - started < 30
     statuses = {m["status"] for m in State.load(state.directory, state.id).data["members"]}
     assert statuses <= {"stopped", "skipped"}
 
