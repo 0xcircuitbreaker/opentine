@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-uplift-record-1.schema.json",
+  "title": "opentine.uplift-record/1 claim",
+  "description": "The claim of an attestation recording one human baseline, AI, AI-assisted or unassisted attempt, or one perceived-vs-measured speed record, against a suite. A claim convention, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "suite",
+    "record",
+    "task",
+    "subject",
+    "condition",
+    "success",
+    "minutes",
+    "perceived_minutes",
+    "generation",
+    "at"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.uplift-record/1"
+    },
+    "suite": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "record": {
+      "enum": [
+        "baseline",
+        "run",
+        "speed"
+      ]
+    },
+    "task": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+    },
+    "subject": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+    },
+    "condition": {
+      "enum": [
+        "human",
+        "ai",
+        "ai-assisted",
+        "unassisted"
+      ]
+    },
+    "success": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "minutes": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9]+(\\.[0-9]+)?$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "perceived_minutes": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9]+(\\.[0-9]+)?$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "generation": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "at": {
+      "type": "string"
+    }
+  }
+}

@@ -1,5 +1,31 @@
 # Changelog
 
+## Unreleased — Uplift and capability trends
+
+- `tine uplift suite|record|horizon|compare`: versioned task suites addressed
+  by a suite digest (task list, lengths, scoring), human baseline records,
+  AI, AI-assisted and unassisted run records, and perceived vs measured speed
+  records, as signed attestation claims (`opentine.uplift-suite/1`,
+  `opentine.uplift-record/1`) held under `uplift:` rows that are never
+  released. Records count only when signed by a pinned `scorer` or `eval` key
+  bound to the signing key; pinned optimizer keys are refused.
+- `tine uplift horizon`: pure-stdlib logistic fit of success against log2 task
+  length giving the 50%-success time horizon, with a seeded percentile
+  bootstrap interval (seed and resample count recorded) and a per-generation
+  trend. Small-n, non-varying, separated or non-declining fits are refused
+  (`fail:uplift.fit-refused`).
+- `tine uplift compare`: two groups side by side (success rate, measured
+  minutes on paired tasks, perceived over measured minutes, horizons).
+- Deterministic export (`--export FILE`, `opentine-uplift-export/1`) from which
+  `--from FILE` recomputes every report byte for byte.
+- A synthetic dataset generator from a known logistic
+  (`scripts/gen_uplift_synthetic.py`, committed seed-0 copy); the fit recovers
+  the planted horizon inside the 95% interval in 98 of 100 seeds (test
+  requires 95).
+- Schemas `tine-cli-uplift-1`, `opentine-uplift-suite-1`,
+  `opentine-uplift-record-1`, `opentine-uplift-export-1`; docs/UPLIFT.md.
+  No new object kind and no new `tine verify` code.
+
 ## 0.71.0 — Checkpoint and weight custody (2026-11-20)
 
 - Custody gaps and refused tagged loads go to the oversight queue: the source
@@ -55,7 +81,6 @@
 - Schemas `tine-cli-organism-1`, `opentine-organism-tag-1`,
   `opentine-organism-approval-1`, `opentine-organism-untag-1` and
   `opentine-organism-access-1`; docs/MODEL_ORGANISMS.md.
-
 ## 0.70.0 — Redaction of paths and emails (2026-11-20)
 
 - Redacted public copies (`tine bundle create --redacted-public`, `tine publish

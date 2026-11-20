@@ -1,0 +1,866 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-uplift-1.schema.json",
+  "title": "tine uplift ... --json",
+  "description": "Uplift and capability trends. `suite` and `record` write signed, held claims; `horizon` reports the 50%-success time horizon (logistic fit on log2 task length, seeded bootstrap interval) with a per-generation trend; `compare` sets two groups side by side. Reports are recomputable byte for byte from the export.",
+  "anyOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "suite",
+        "tasks",
+        "record",
+        "run"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-uplift/1"
+        },
+        "command": {
+          "const": "uplift suite"
+        },
+        "suite": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "tasks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "record": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "run": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "record",
+        "suite",
+        "type",
+        "task",
+        "run"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-uplift/1"
+        },
+        "command": {
+          "const": "uplift record"
+        },
+        "record": {
+          "type": "string",
+          "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+        },
+        "suite": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "type": {
+          "enum": [
+            "baseline",
+            "run",
+            "speed"
+          ]
+        },
+        "task": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+        },
+        "run": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "strict",
+        "blocking",
+        "suite",
+        "export_digest",
+        "seed",
+        "resamples",
+        "alpha",
+        "findings",
+        "condition",
+        "subject",
+        "fit",
+        "trend"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-uplift/1"
+        },
+        "command": {
+          "const": "uplift horizon"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "strict": {
+          "type": "boolean"
+        },
+        "blocking": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "suite": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "export_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "resamples": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "alpha": {
+          "type": "string"
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "level",
+              "code",
+              "oid",
+              "message"
+            ],
+            "properties": {
+              "level": {
+                "enum": [
+                  "fail",
+                  "advisory"
+                ]
+              },
+              "code": {
+                "type": "string",
+                "pattern": "^(fail|advisory):uplift\\.[a-z-]+$"
+              },
+              "oid": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "condition": {
+          "enum": [
+            "human",
+            "ai",
+            "ai-assisted",
+            "unassisted"
+          ]
+        },
+        "subject": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "fit": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "n",
+            "successes",
+            "lengths",
+            "intercept",
+            "slope",
+            "horizon_minutes",
+            "ci",
+            "iterations",
+            "bootstrap_used",
+            "bootstrap_failed"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "ok",
+                "insufficient-data",
+                "insufficient-lengths",
+                "no-variation",
+                "not-converged",
+                "no-decline"
+              ]
+            },
+            "n": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "successes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "lengths": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "intercept": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "slope": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "horizon_minutes": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "ci": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                  },
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "iterations": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "bootstrap_used": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "bootstrap_failed": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "trend": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "generation",
+              "status",
+              "n",
+              "successes",
+              "lengths",
+              "intercept",
+              "slope",
+              "horizon_minutes",
+              "ci",
+              "iterations",
+              "bootstrap_used",
+              "bootstrap_failed"
+            ],
+            "properties": {
+              "generation": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "status": {
+                "enum": [
+                  "ok",
+                  "insufficient-data",
+                  "insufficient-lengths",
+                  "no-variation",
+                  "not-converged",
+                  "no-decline"
+                ]
+              },
+              "n": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "successes": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "lengths": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "intercept": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "slope": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "horizon_minutes": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "ci": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                    },
+                    "minItems": 2,
+                    "maxItems": 2
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "iterations": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "bootstrap_used": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "bootstrap_failed": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "strict",
+        "blocking",
+        "suite",
+        "export_digest",
+        "seed",
+        "resamples",
+        "alpha",
+        "findings",
+        "a",
+        "b",
+        "paired_tasks",
+        "b_over_a_minutes"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-uplift/1"
+        },
+        "command": {
+          "const": "uplift compare"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "strict": {
+          "type": "boolean"
+        },
+        "blocking": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "suite": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "export_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "resamples": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "alpha": {
+          "type": "string"
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "level",
+              "code",
+              "oid",
+              "message"
+            ],
+            "properties": {
+              "level": {
+                "enum": [
+                  "fail",
+                  "advisory"
+                ]
+              },
+              "code": {
+                "type": "string",
+                "pattern": "^(fail|advisory):uplift\\.[a-z-]+$"
+              },
+              "oid": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "a": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "condition",
+            "subject",
+            "attempts",
+            "successes",
+            "success_rate",
+            "speed_records",
+            "perceived_over_measured",
+            "fit"
+          ],
+          "properties": {
+            "condition": {
+              "enum": [
+                "human",
+                "ai",
+                "ai-assisted",
+                "unassisted"
+              ]
+            },
+            "subject": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "attempts": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "successes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "success_rate": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "speed_records": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "perceived_over_measured": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fit": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "status",
+                "n",
+                "successes",
+                "lengths",
+                "intercept",
+                "slope",
+                "horizon_minutes",
+                "ci",
+                "iterations",
+                "bootstrap_used",
+                "bootstrap_failed"
+              ],
+              "properties": {
+                "status": {
+                  "enum": [
+                    "ok",
+                    "insufficient-data",
+                    "insufficient-lengths",
+                    "no-variation",
+                    "not-converged",
+                    "no-decline"
+                  ]
+                },
+                "n": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "successes": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "lengths": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "intercept": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "slope": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "horizon_minutes": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "ci": {
+                  "anyOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                      },
+                      "minItems": 2,
+                      "maxItems": 2
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "iterations": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "bootstrap_used": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "bootstrap_failed": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        },
+        "b": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "condition",
+            "subject",
+            "attempts",
+            "successes",
+            "success_rate",
+            "speed_records",
+            "perceived_over_measured",
+            "fit"
+          ],
+          "properties": {
+            "condition": {
+              "enum": [
+                "human",
+                "ai",
+                "ai-assisted",
+                "unassisted"
+              ]
+            },
+            "subject": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_.:-]{1,128}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "attempts": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "successes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "success_rate": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "speed_records": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "perceived_over_measured": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fit": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "status",
+                "n",
+                "successes",
+                "lengths",
+                "intercept",
+                "slope",
+                "horizon_minutes",
+                "ci",
+                "iterations",
+                "bootstrap_used",
+                "bootstrap_failed"
+              ],
+              "properties": {
+                "status": {
+                  "enum": [
+                    "ok",
+                    "insufficient-data",
+                    "insufficient-lengths",
+                    "no-variation",
+                    "not-converged",
+                    "no-decline"
+                  ]
+                },
+                "n": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "successes": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "lengths": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "intercept": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "slope": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "horizon_minutes": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "ci": {
+                  "anyOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                      },
+                      "minItems": 2,
+                      "maxItems": 2
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "iterations": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "bootstrap_used": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "bootstrap_failed": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        },
+        "paired_tasks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "b_over_a_minutes": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

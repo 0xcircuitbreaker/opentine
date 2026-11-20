@@ -2067,6 +2067,20 @@ Records count only when signed by a pinned `scorer` or `eval` key. Catch rates
 are statistical evidence, not proof of intent. `--json` prints
 `tine-cli-sabotage/1`; see docs/SABOTAGE.md.
 
+## Uplift and capability trends (0.73)
+
+| Command | What it does |
+| --- | --- |
+| `tine uplift suite FILE [--run RUN --key KEY] [--at TIME]` | Prints the suite digest; with `--key`, signs and holds an `opentine.uplift-suite/1` record on RUN |
+| `tine uplift record --suite DIGEST --type baseline\|run\|speed --task ID --subject ID --condition human\|ai\|ai-assisted\|unassisted [--success yes\|no] [--minutes D] [--perceived-minutes D] [--generation N] --run RUN --key KEY [--at TIME]` | Signs and holds one `opentine.uplift-record/1` record; refuses an optimizer key (`uplift.key-separation`), an unknown suite or task |
+| `tine uplift horizon (--suite DIGEST\|--from FILE) [--condition C] [--subject ID] [--seed N] [--resamples N] [--alpha A] [--strict] [--export FILE]` | 50%-success time horizon (logistic fit on log2 task length) with a seeded bootstrap interval and a per-generation trend; exits 1 on `fail:uplift.fit-refused`, `fail:uplift.malformed` or `fail:uplift.key-separation` |
+| `tine uplift compare (--suite DIGEST\|--from FILE) --a CONDITION[:SUBJECT] --b CONDITION[:SUBJECT] [--seed N] [--resamples N] [--alpha A] [--strict] [--export FILE]` | Success rates, measured minutes on paired tasks, perceived over measured minutes, and each group's horizon |
+
+Records count only when signed by a pinned `scorer` or `eval` key; advisory
+findings block only with `--strict`. Reports recompute byte for byte from
+`--export` output with `--from`. `--json` prints `tine-cli-uplift/1`; see
+docs/UPLIFT.md.
+
 ## Budgets (0.69)
 
 | Command | What it does |

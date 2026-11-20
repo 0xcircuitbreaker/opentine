@@ -119,6 +119,8 @@ NOT_KINDS = (
     "opentine-elicit-link-1",
     # 0.68 (release 0.66.0): an attestation claim (sabotage task records)
     "opentine-sabotage-task-1",
+    # 0.73 (release 0.72.0): attestation claims (uplift suites and records) and a file format
+    "opentine-uplift-suite-1", "opentine-uplift-record-1", "opentine-uplift-export-1",
     # 0.69 (release 0.67.0): an attestation claim (history merges) and a snapshot file
     "opentine-history-merge-1", "opentine-history-snapshot-1",
     # 0.70 (release 0.69.0): an annotation value (budget ledger) and a signed policy file
