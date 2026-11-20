@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Redaction of paths and emails
+## 0.70.0 — Redaction of paths and emails (2026-11-20)
 
 - Redacted public copies (`tine bundle create --redacted-public`, `tine publish
   hf`) now also run a publication ruleset after the credential ruleset, and
