@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Merging run histories
+## 0.67.0 — Merging run histories (2026-11-20)
 
 - `tine merge-history snapshot|plan|apply|verify` merges what parallel loops
   hold around their runs: `heads/` and `tags/` refs, label states
