@@ -1,0 +1,25 @@
+{
+  "backend_digest": "sha256:9a66d0bb573b21f1248647ba4d57759baad6daac1a43756d547749bdcb59b36c",
+  "bytes": 39174917,
+  "cluster": {
+    "iterations": 18,
+    "k": 16,
+    "seconds": 20.71,
+    "transcripts": 10000
+  },
+  "hardware": {
+    "cores": 4,
+    "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+    "machine": "x86_64",
+    "python": "3.13.18",
+    "system": "Linux"
+  },
+  "index_seconds": 15.57,
+  "precision_at_50": {
+    "reward-hacking": 1.0,
+    "sabotage-side-task": 1.0,
+    "test-deletion": 1.0
+  },
+  "query_seconds": 9.8,
+  "transcripts": 100000
+}

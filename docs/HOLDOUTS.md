@@ -141,8 +141,9 @@ outputs, the items and `--run`) from the repository and refuses with
   printed in the refusal.
 
 Shingle containment catches near-verbatim reuse. It does not catch a
-paraphrase that changes most of the words; an embedding near-duplicate check
-is planned once a pinned embedding model exists.
+paraphrase that changes most of the words. From 0.74, `tine dataset
+contamination --embedding-threshold COSINE` adds an embedding near-duplicate
+check (docs/INTEGRITY.md, docs/TRANSCRIPT_FLAGS.md).
 
 ## Canaries
 

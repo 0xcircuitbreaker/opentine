@@ -2121,6 +2121,17 @@ convention `opentine.weight-custody/1`. See docs/CUSTODY.md.
 All commands take `--repo PATH`; `--json` prints `tine-cli-organism/1`. See
 docs/MODEL_ORGANISMS.md.
 
+## Transcript analysis (0.74)
+
+| Command | What it does |
+| --- | --- |
+| `tine transcripts cluster [--corpus FILE.jsonl ...] [--k N] [--seed S] [--backend MODULE:ATTR]` | Seeded k-means over the redacted text of every run (or `{id, text}` lines); clusters are named `tc-` + a digest of their members and list the verified flags among them; the backend digest is recorded |
+| `tine transcripts label LABEL (--run RUN ... \| --cluster ID [--k N --seed S] \| --like RUN [--top N]) --key KEY [--note TEXT] [--at TIME]` | Signs and holds an `opentine.transcript-flag/1` record with a pinned `scorer` or `curator` key; an optimizer key, an unpinned role or an unreadable role policy is refused |
+| `tine transcripts flags [--label L] [--run RUN] [--like RUN --top N]` | Lists flags with their verification; `--like` adds the runs most like one run |
+
+All commands take `--repo PATH`; `--json` prints `tine-cli-transcripts/1`. See
+docs/TRANSCRIPT_FLAGS.md.
+
 ## Merging run histories (0.69)
 
 | Command | What it does |
@@ -2171,6 +2182,7 @@ promote` (`promote.score-tainted`) and reported by `tine lineage check|why`
 | `tine dataset canary-check LENGTHS.json [--margin-bits M] [--strict] [--run RUN] --repo PATH` | Refuses (`dataset.canary-below-entropy`, exit 1) a model that codes a counted canary below its declared entropy; the lengths must be signed by a pinned scorer key (`canary.unsigned`) |
 | `tine dataset canary-sign LENGTHS.json --run RUN --key KEY [--out FILE] [--at TIME]` | Signs a scorer's per-canary code lengths (`{"model", "lengths": [{"canary_sha256", "code_bits"}]}`) as an `opentine.integrity.canary-lengths` attestation bound to `RUN`; writes `FILE` (default `LENGTHS.signed.json`) for `canary-check` and `promote --canary-lengths` |
 | `tine dataset contamination HOLDOUT.jsonl --against CORPUS.jsonl [--threshold J] [--repo PATH]` | Reports exact blob-oid matches and word 5-gram MinHash near-duplicates at or above the threshold (default 0.8); exit 1 on any leak |
+| `tine dataset contamination ... --embedding-threshold COSINE [--embedding-backend MODULE:ATTR]` | 0.74: also reports embedding near-duplicates at or above the cosine, with the backend digest (docs/TRANSCRIPT_FLAGS.md) |
 
 The `dataset` verbs print `tine-cli-canary/1` and `scan` prints
 `tine-cli-integrity/1` with `--json`. See docs/INTEGRITY.md.

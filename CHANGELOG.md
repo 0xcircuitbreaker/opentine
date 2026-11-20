@@ -1,5 +1,38 @@
 # Changelog
 
+## Unreleased — Transcript analysis at corpus scale
+
+- `tine transcripts cluster [--corpus FILE.jsonl] [--k N] [--seed S]`:
+  seeded spherical k-means over the redacted text of every run (or a JSONL
+  corpus), with the deterministic standard-library embedding
+  `opentine.tfidf-hash/1` (word and bigram features, seeded signed hashing
+  into 2048 buckets, TF-IDF, centred cosine). Every result records the
+  backend digest and the corpus digest; cluster ids (`tc-...`) are digests of
+  their members. `--backend MODULE:ATTR` takes a pinned local model that
+  carries a `weights_digest`; nothing is downloaded.
+- `tine transcripts label LABEL (--run RUN... | --cluster ID | --like RUN)
+  --key KEY` signs a behaviour flag, the claim convention
+  `opentine.transcript-flag/1` (label, evidence run ids, cluster id,
+  labeller, backend) on an existing attestation, held under
+  `transcript-flag:` and never released. Only a `scorer` or `curator` key of
+  the owner-pinned trust bundle may label; an optimizer key, unpinned roles
+  or an unreadable role policy are refused before anything is written.
+- `tine transcripts flags [--label L] [--run RUN] [--like RUN --top N]`
+  lists flags with their verification (signer bound to the signing key,
+  labeller equal to the signer, pinned role) and the runs most like a run.
+- `tine dataset contamination --embedding-threshold COSINE` adds embedding
+  near-duplicates to the exact and MinHash checks, with the backend recorded;
+  without the flag the output is unchanged.
+- A committed synthetic corpus of 600 transcripts with seeded reward hacking,
+  test deletion and sabotage side tasks (`tests/data/transcript_corpus.jsonl`,
+  `scripts/gen_transcript_corpus.py`); `scripts/transcript_recall.py` and the
+  tests check recall@50 of at least 0.9 for each behaviour (1.0, 1.0, 0.96).
+- `scripts/bench/transcripts.py`: 100,000 transcripts indexed in 16 s on a
+  4-core container (docs/bench/0.74-transcripts.md).
+- New schemas `tine-cli-transcripts-1` and `opentine-transcript-flag-1`;
+  `tine-cli-canary-1` gains the optional `embedding` member. See
+  docs/TRANSCRIPT_FLAGS.md.
+
 ## Unreleased — Redaction fixes from dataset review
 
 - The publication `path` rule no longer rewrites a tilde that is content: only
