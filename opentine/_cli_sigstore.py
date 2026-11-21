@@ -188,7 +188,8 @@ def verify_keyless_cli(args: argparse.Namespace, envelope: dict, leaf, entries: 
         mode="for a keyless attestation",
         hint="Its key is a Fulcio certificate: pass --cert-identity and --cert-oidc-issuer.",
     )
-    from opentine._keyless_root import trusted_root_path
+    from opentine._keyless_chain import certificates
+    from opentine._keyless_root import root_scts, trusted_root_path
 
     root_path = trusted_root_path(args)
     needed = _KEYLESS_VERIFY[:2] if root_path else _KEYLESS_VERIFY
@@ -222,10 +223,9 @@ def verify_keyless_cli(args: argparse.Namespace, envelope: dict, leaf, entries: 
             identity=args.cert_identity,
             issuer=args.cert_oidc_issuer,
             integrated_time=receipt.integrated_time,
+            extra=certificates(mat)[1:] if mat else [],
         )
         if trusted is not None:
-            from opentine._keyless_root import root_scts
-
             root_scts(trusted, leaf, roots, required=bool(getattr(args, "require_sct", False)))
         elif getattr(args, "ct_key", None):
             _check_sct(args.ct_key, leaf, roots)
