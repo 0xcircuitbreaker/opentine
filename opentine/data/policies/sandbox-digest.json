@@ -1,0 +1,15 @@
+{
+  "schema": "opentine.policy/1",
+  "name": "sandbox-digest",
+  "description": "The run's sandbox policy, signed by a pinned runner key, has digest params.sandbox_digest (set it with --param)",
+  "rules": [
+    {
+      "id": "sandbox-digest",
+      "effect": "require",
+      "expr": "sandbox.exists(s, s.policy_digest == params.sandbox_digest && 'runner' in s.roles)"
+    }
+  ],
+  "params": {
+    "sandbox_digest": ""
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "schema": "opentine.policy/1",
+  "name": "holdout-signed",
+  "description": "A sealed-holdout eval verdict on the run, signed by a pinned scorer or eval key, that passed",
+  "rules": [
+    {
+      "id": "holdout-signed",
+      "effect": "require",
+      "expr": "evals.exists(e, e.holdout && e.pinned && e.passed)"
+    }
+  ]
+}

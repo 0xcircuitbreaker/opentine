@@ -1,0 +1,42 @@
+{
+  "schema": "opentine.policy/1",
+  "name": "promote",
+  "description": "Promote only if: holdout eval signed, no fail: integrity, k-of-n approvals, budget within cap, sandbox digest matches",
+  "params": {
+    "approvals": 2,
+    "sandbox_digest": ""
+  },
+  "rules": [
+    {
+      "id": "holdout-signed",
+      "effect": "require",
+      "expr": "evals.exists(e, e.holdout && e.pinned && e.passed)"
+    },
+    {
+      "id": "no-integrity-fail",
+      "effect": "require",
+      "expr": "size(integrity.fail_codes) == 0 && integrity.taints == 0"
+    },
+    {
+      "id": "k-of-n-approvals",
+      "effect": "require",
+      "expr": "size(oversight.approvers) >= params.approvals"
+    },
+    {
+      "id": "budget-within-cap",
+      "effect": "require",
+      "expr": "budget != null && budget.in_force && budget.decision == 'allow' && size(budget.over) == 0 && size(budget.fail_codes) == 0"
+    },
+    {
+      "id": "sandbox-digest",
+      "effect": "require",
+      "expr": "sandbox.exists(s, s.policy_digest == params.sandbox_digest && 'runner' in s.roles)"
+    },
+    {
+      "id": "no-containment-findings",
+      "effect": "advisory",
+      "description": "Advisory (D12): recorded, never blocks",
+      "expr": "size(containment) == 0"
+    }
+  ]
+}

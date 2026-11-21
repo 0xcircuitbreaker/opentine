@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-policy-1.schema.json",
+  "title": "opentine.policy/1 policy file",
+  "description": "Declarative admission rules in a bounded CEL subset (docs/POLICY.md). A file convention, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "name",
+    "rules"
+  ],
+  "properties": {
+    "schema": {
+      "const": "opentine.policy/1"
+    },
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "params": {
+      "type": "object"
+    },
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "expr",
+          "effect"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_.:-]{1,64}$"
+          },
+          "expr": {
+            "type": "string",
+            "maxLength": 4096
+          },
+          "effect": {
+            "enum": [
+              "require",
+              "advisory"
+            ]
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "minItems": 1,
+      "maxItems": 64
+    }
+  }
+}

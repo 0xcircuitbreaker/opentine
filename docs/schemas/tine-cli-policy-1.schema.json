@@ -1,0 +1,226 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-policy-1.schema.json",
+  "title": "tine policy check|list|show --json",
+  "description": "A policy decision over the signed records of a run (per-rule outcomes, policy and input digests, the admission record when signed), the standard policies, or the held admission records of a run.",
+  "anyOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "policy",
+        "subject",
+        "input_digest",
+        "decision",
+        "rules",
+        "recorded"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-policy/1"
+        },
+        "command": {
+          "const": "policy check"
+        },
+        "policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "digest"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          }
+        },
+        "subject": {
+          "type": "string"
+        },
+        "input_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "decision": {
+          "enum": [
+            "allow",
+            "deny"
+          ]
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "effect",
+              "outcome",
+              "code",
+              "message"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "effect": {
+                "enum": [
+                  "require",
+                  "advisory"
+                ]
+              },
+              "outcome": {
+                "enum": [
+                  "true",
+                  "false",
+                  "error"
+                ]
+              },
+              "code": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^policy\\.[a-z-]+$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "message": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "recorded": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^attestation:"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "input": {}
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "policies"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-policy/1"
+        },
+        "command": {
+          "const": "policy list"
+        },
+        "policies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "digest",
+              "description"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "digest": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "description": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "subject",
+        "records"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-policy/1"
+        },
+        "command": {
+          "const": "policy show"
+        },
+        "subject": {
+          "type": "string"
+        },
+        "records": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "oid",
+              "signer",
+              "signed",
+              "roles",
+              "claim"
+            ],
+            "properties": {
+              "oid": {
+                "type": "string"
+              },
+              "signer": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "signed": {
+                "type": "boolean"
+              },
+              "roles": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "claim": {}
+            }
+          }
+        }
+      }
+    }
+  ]
+}

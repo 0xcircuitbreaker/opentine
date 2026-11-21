@@ -21,6 +21,8 @@ from opentine._cli_common import _terminal, console
 from opentine._cli_errors import error
 from opentine._cli_organism import COMMANDS as ORGANISM_COMMANDS
 from opentine._cli_organism import add_organism_parser
+from opentine._cli_policy import COMMANDS as POLICY_COMMANDS
+from opentine._cli_policy import add_policy_parser
 from opentine._cli_transcripts import COMMANDS as TRANSCRIPTS_COMMANDS
 from opentine._cli_transcripts import add_transcripts_parser
 
@@ -32,6 +34,7 @@ def add_containment_parser(subparsers: argparse._SubParsersAction) -> None:
     add_transcripts_parser(
         subparsers
     )  # 0.74: tine transcripts index|search|similar|cluster|label|flags
+    add_policy_parser(subparsers)  # 0.75 (release 0.74.0): tine policy check|list|show
     parser = subparsers.add_parser("containment", help="Sandbox policy and containment evidence")
     verbs = parser.add_subparsers(dest="containment_command", required=True)
     rec = verbs.add_parser("record", help="Sign and hold a run's sandbox policy")
@@ -140,4 +143,5 @@ COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
     "containment": cmd_containment,
     **ORGANISM_COMMANDS,
     **TRANSCRIPTS_COMMANDS,
+    **POLICY_COMMANDS,
 }
