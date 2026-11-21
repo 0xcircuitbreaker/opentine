@@ -52,8 +52,9 @@ tine dataset curate --select 'failures:EVAL' --out train --key curator.key --rep
 
    Taint follows content: a candidate whose FastCDC chunks (the dedup
    parameters below) overlap the chunks of a tainted run by at least half of
-   its own chunks is left out too and listed in `excluded`, so a renamed or
-   lightly edited copy of a tainted trajectory does not get in. A
+   its own chunks, or that contains at least half of one tainted run's
+   distinct chunks, is left out too and listed in `excluded`, so a renamed,
+   lightly edited or padded copy of a tainted trajectory does not get in. A
    justification that names the copy lets it in like any tainted run.
 4. **Dedup.** Each remaining run's redacted transcript text (the text `tine
    transcripts` analyses, with the run's own id removed) is cut into FastCDC

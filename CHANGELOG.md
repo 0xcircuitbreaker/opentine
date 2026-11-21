@@ -12,6 +12,9 @@
 - The Python and TS dataset-version checks share one definition of a blank
   `selection` (ASCII whitespace only); they disagreed on U+001C..U+001F,
   U+0085 and U+FEFF. New shared vectors cover each.
+- `tine dataset curate` also leaves out a candidate that contains at least
+  half of one tainted run's distinct chunks, so padding a tainted copy with
+  new text no longer dilutes it below the near-duplicate threshold.
 
 ## 0.75.0 — Dataset curation and AI-BOM export (2026-11-21)
 
