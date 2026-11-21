@@ -10,16 +10,18 @@ back to the original so a replacement removes exactly the matched span:
 
 * NFKD, combining marks and format characters (zero-width joiners and spaces,
   soft hyphens) dropped, then ``casefold`` (``José``, ``JOSE``, ``jo​se``);
-* a term keeps only its letters and digits, and one separator (any character
-  that is not a letter or digit) may sit between any two of them, so
-  ``Jane Doe`` also matches ``jane.doe``, ``JANE_DOE``, ``janedoe`` and
-  ``j-a-n-e d-o-e``, and ``a@b.example`` matches ``a at b example`` only
-  with single separators.
+* a term keeps only its letters and digits, and up to four separators (any
+  character that is not a letter or digit) may sit between any two of them, so
+  ``Jane Doe`` also matches ``jane.doe``, ``JANE_DOE``, ``janedoe``,
+  ``Jane ,  Doe`` and ``j-a-n-e d-o-e``.
 
 Matches are over-inclusive on purpose (``acme`` inside ``acmeville``): a
 false hit removes a few characters, a miss publishes a name. Strings shaped
 like an object id (``run:sha256:<hex>``) are never rewritten or scanned, since
-a short term can sit inside hex and the ids are content digests, not text.
+a short term can sit inside hex and the ids are content digests, not text; only
+the five object kinds count as an id prefix, so ``name:sha256:<hex>`` is scanned.
+Up to four separators may sit between letters, and common Cyrillic and Greek
+look-alikes fold to Latin letters.
 """
 
 from __future__ import annotations
@@ -32,8 +34,15 @@ from typing import Any
 MIN_TERM = 3
 MAX_TERMS = 10_000
 MARK = "[REDACTED:contributor]"
-_OID = re.compile(r"[a-z][a-z0-9_-]*:sha256:[0-9a-f]{64}")
-_SEP = r"[^0-9a-z]?"
+_OID = re.compile(r"([a-z][a-z0-9_-]*):sha256:[0-9a-f]{64}")
+_KINDS = frozenset({"blob", "event", "run", "attestation", "annotation"})
+_SEP = r"[^0-9a-z]{0,4}"
+#: Latin look-alikes from Cyrillic and Greek, applied after casefold (review 0.75).
+_CONFUSABLE = str.maketrans(
+    "\u0430\u0435\u043e\u0440\u0441\u0443\u0445\u0456\u0458\u0455\u0501\u04bb\u04cf"
+    "\u03bd\u03bf\u03b1\u03b5\u03b9\u03ba\u03c4\u03c1\u0432\u043d\u0442\u043c\u043a",
+    "aeopcyxijsdhlvoaeiktpbhtmk",
+)
 
 
 class DenyListError(ValueError):
@@ -45,7 +54,7 @@ def _fold(ch: str) -> str:
     for part in unicodedata.normalize("NFKD", ch):
         if unicodedata.category(part) in ("Mn", "Me", "Cf"):
             continue
-        out.append(part.casefold())
+        out.append(part.casefold().translate(_CONFUSABLE))
     return "".join(out)
 
 
@@ -90,13 +99,16 @@ class DenyList:
 
     def spans(self, text: str) -> list[tuple[int, int]]:
         """Original ``[start, end)`` spans of every match outside object ids."""
-        if _OID.fullmatch(text):
-            return []
         flat, where = normalise(text)
+        # Only a digest, and the prefix of a real object kind, is exempt: a
+        # private name shaped like a prefix (``name:sha256:<hex>``) is not.
+        exempt = [
+            (o.start() if o.group(1) in _KINDS else o.end(1), o.end()) for o in _OID.finditer(text)
+        ]
         out = []
         for found in self._re.finditer(flat):
             start, end = where[found.start()], where[found.end() - 1] + 1
-            if any(o.start() <= start < o.end() for o in _OID.finditer(text)):
+            if any(a <= start < b for a, b in exempt):
                 continue
             out.append((start, end))
         return out

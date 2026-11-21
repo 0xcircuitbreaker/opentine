@@ -21,6 +21,12 @@
   category, no content) in an `opentine-dataset/tombstones/1` manifest that
   `tine dataset add --tombstones` and `tine dataset check --tombstones`
   honour.
+- Contributor tooling hardening: the deny-list folds Cyrillic and Greek
+  look-alikes, allows up to four separators and scans private
+  `name:sha256:<hex>` prefixes; the licence scan reads UTF-16 text, any-case
+  tags and line-split notices and scans look-alike annotations; tombstone
+  manifests refuse duplicate keys and impossible dates; `contrib-redact` and
+  `withdraw` refuse a pinned optimizer key.
 - Schemas `tine-cli-dataset-contrib-1`, `opentine-dataset-licence-1`,
   `opentine-dataset-withdraw-1`, `opentine-dataset-tombstones-1`. No new
   object kind and no new `tine verify` code.

@@ -40,14 +40,17 @@ digits. Matching is on a normalised view of the text:
 
 - Unicode compatibility forms are folded (full-width letters, ligatures),
   accents and other combining marks are dropped, zero-width and other format
-  characters are ignored, and case is folded;
-- a term keeps only its letters and digits, and one separator of any kind may
-  sit between any two of them: `Jane Doe` also matches `jane.doe`,
-  `JANE_DOE`, `janedoe` and `j-a-n-e d-o-e`.
+  characters are ignored, case is folded, and common Cyrillic and Greek
+  look-alike letters read as their Latin counterparts;
+- a term keeps only its letters and digits, and up to four separators of any
+  kind may sit between any two of them: `Jane Doe` also matches `jane.doe`,
+  `JANE_DOE`, `janedoe`, `Jane ,  Doe` and `j-a-n-e d-o-e`.
 
 Matching errs towards removing too much: `acme` also matches inside
-`acmeville`. Strings shaped like object ids (`run:sha256:<hex>`) are never
-rewritten, because they are content digests, not text.
+`acmeville`. The digest of an object id (`run:sha256:<hex>`) is never
+rewritten, because it is a content digest, not text; only the five object
+kinds count as an id prefix, so a string such as `name:sha256:<hex>` is still
+scanned in its prefix.
 
 The list stays on your machine. It is read by the command and is never
 written into the bundle, the signed record, the `--json` output or any
@@ -90,8 +93,14 @@ Refuses (exit 1, `ok: false`, each reason in `problems`) a bundle when:
 - the file-level licence scan is dirty: any `SPDX-License-Identifier:` tag in
   an object naming an id outside the allow-list, or a proprietary notice
   (`all rights reserved`, `proprietary and confidential`, `confidential and
-  proprietary`, `not for redistribution`, `do not distribute`);
+  proprietary`, `not for redistribution`, `do not distribute`). Tags match in
+  any letter case, notices across any run of whitespace, and UTF-16 text is
+  read with its NUL bytes removed. Only a well-formed licence annotation is
+  skipped; an attestation that merely names the convention is scanned;
 - with `--tombstones FILE`, its public or source run is tombstoned.
+
+`contrib-redact` and `withdraw` refuse a key that the owner-pinned trust
+bundle names as an optimizer key.
 
 ## 3. Withdrawal: `tine dataset withdraw`
 

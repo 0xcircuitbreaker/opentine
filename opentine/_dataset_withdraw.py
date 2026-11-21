@@ -44,6 +44,30 @@ _AT = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z")
 _DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 
 
+def _real(value: Any, pattern: re.Pattern[str], fmt: str) -> bool:
+    """*value* has the shape and is a real calendar date or time."""
+    from datetime import datetime
+
+    if not isinstance(value, str) or not pattern.fullmatch(value):
+        return False
+    try:
+        datetime.strptime(value, fmt)
+    except ValueError:
+        return False
+    return True
+
+
+def _no_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    keys = [k for k, _ in pairs]
+    if len(keys) != len(set(keys)):
+        raise ValueError("duplicate keys")
+    return dict(pairs)
+
+
+def _no_constants(name: str) -> Any:
+    raise ValueError(f"{name} is not a JSON number")
+
+
 def digest(run: str) -> str:
     """The tombstone digest of a run id: its own ``sha256:<hex>``."""
     found = _RUN.fullmatch(run)
@@ -62,7 +86,7 @@ def check_claim(claim: Any) -> list[str]:
         problems.append("run is a run id")
     if claim["reason"] not in REASONS:
         problems.append(f"reason is one of {', '.join(REASONS)}")
-    if not isinstance(claim["withdrawn_at"], str) or not _AT.fullmatch(claim["withdrawn_at"]):
+    if not _real(claim["withdrawn_at"], _AT, "%Y-%m-%dT%H:%M:%SZ"):
         problems.append("withdrawn_at is YYYY-MM-DDTHH:MM:SSZ")
     return problems
 
@@ -126,7 +150,11 @@ def tombstone(row: dict[str, Any]) -> dict[str, str]:
 def read_tombstones(path: str | Path) -> list[dict[str, str]]:
     """The tombstones of a manifest file; refuses a malformed one (fail closed)."""
     try:
-        doc = json.loads(Path(path).read_bytes())
+        doc = json.loads(
+            Path(path).read_bytes(),
+            object_pairs_hook=_no_duplicates,
+            parse_constant=_no_constants,
+        )
     except (OSError, ValueError) as exc:
         raise ValueError(f"cannot read the tombstones {path}: {exc}") from None
     rows = doc.get("tombstones") if isinstance(doc, dict) else None
@@ -138,8 +166,7 @@ def read_tombstones(path: str | Path) -> list[dict[str, str]]:
             or set(row) != {"digest", "date", "reason"}
             or not isinstance(row["digest"], str)
             or not _DIGEST.fullmatch(row["digest"])
-            or not isinstance(row["date"], str)
-            or not _DATE.fullmatch(row["date"])
+            or not _real(row["date"], _DATE, "%Y-%m-%d")
             or row["reason"] not in REASONS
         ):
             raise ValueError(f"{path}: a tombstone is malformed")

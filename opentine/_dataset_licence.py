@@ -41,7 +41,7 @@ SPDX_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9.+-]{0,63}")
 _RUN = re.compile(r"run:sha256:[0-9a-f]{64}")
 _FP = re.compile(r"sha256:[0-9a-f]{64}")
 _AT = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z")
-_TAG = re.compile(r"SPDX-License-Identifier:\s*([A-Za-z0-9.+()-][A-Za-z0-9.+() -]*)")
+_TAG = re.compile(r"SPDX-License-Identifier:\s*([A-Za-z0-9.+()-][A-Za-z0-9.+() -]*)", re.I)
 NOTICES = (
     "all rights reserved",
     "proprietary and confidential",
@@ -160,26 +160,46 @@ def _texts(value: Any):
             yield from _texts(item)
 
 
+def _skipped(payload: Any) -> bool:
+    """A well-formed licence annotation (any SPDX id) is not scanned; a look-alike is."""
+    claim = payload.get("claim") if isinstance(payload, dict) else None
+    if not isinstance(claim, dict) or claim.get("convention") != CONVENTION:
+        return False
+    spdx = claim.get("spdx")
+    return isinstance(spdx, str) and not check_claim(claim, (spdx,))
+
+
+def _raw_texts(body: bytes) -> list[str]:
+    # UTF-16 text of ASCII letters reads as letters once its NUL bytes go.
+    texts = [body.decode("utf-8", errors="replace")]
+    if b"\x00" in body:
+        texts.append(body.replace(b"\x00", b"").decode("utf-8", errors="replace"))
+    return texts
+
+
 def scan(objects: dict[str, Any], allow: tuple[str, ...]) -> list[dict[str, str]]:
-    """File-level licence findings in *objects*; licence annotations themselves are skipped."""
+    """File-level licence findings in *objects*; licence annotations themselves are skipped.
+
+    Tags match in any letter case and notices across any run of whitespace.
+    """
+    folded = {a.casefold() for a in allow}
     found = []
     for oid, env in sorted(objects.items()):
         if env.encoding == "raw":
-            texts = [env.body.decode("utf-8", errors="replace")]
+            texts = _raw_texts(env.body)
         else:
             payload = env.payload()
-            claim = payload.get("claim") if isinstance(payload, dict) else None
-            if isinstance(claim, dict) and claim.get("convention") == CONVENTION:
+            if _skipped(payload):
                 continue
             texts = list(_texts(payload))
         for text in texts:
             for tag in _TAG.finditer(text):
                 ids = [i for i in re.split(r"[\s()]+", tag.group(1)) if i]
-                ids = [i for i in ids if i not in ("AND", "OR", "WITH")]
+                ids = [i for i in ids if i.upper() not in ("AND", "OR", "WITH")]
                 for spdx in ids:
-                    if spdx not in allow:
+                    if spdx.casefold() not in folded:
                         found.append({"object": oid, "finding": f"licence tag {spdx}"})
-            low = text.casefold()
+            low = " ".join(text.casefold().split())
             found.extend({"object": oid, "finding": f"notice: {n}"} for n in NOTICES if n in low)
     return found
 

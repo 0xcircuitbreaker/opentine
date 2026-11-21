@@ -79,9 +79,25 @@ def _resolve(repo: Any, name: str) -> tuple[str, str]:
     return ref, run
 
 
+def _signing_key(args: argparse.Namespace, repo: Any) -> Any:
+    """The contributor key; refused when the owner-pinned roles name it an optimizer."""
+    from opentine._cli_integrity import _key
+    from opentine._containment_records import fingerprint
+    from opentine._key_roles import KeyRoleError
+    from opentine._key_roles_pin import pinned
+
+    key = _key(args)
+    try:
+        roles = pinned(repo.path) or {}
+    except KeyRoleError as exc:
+        raise ValueError(f"key-role policy: {exc}") from None
+    if fingerprint(key) in roles.get("optimizer", []):
+        raise ValueError("the key is a pinned optimizer key; it cannot sign for a contributor")
+    return key
+
+
 def _redact(args: argparse.Namespace) -> dict[str, Any]:
     from opentine import _contrib_bundle, _contrib_denylist, _dataset_licence
-    from opentine._cli_integrity import _key
     from opentine._promote import _now
     from opentine.repo import Repo
 
@@ -93,7 +109,7 @@ def _redact(args: argparse.Namespace) -> dict[str, Any]:
         repo,
         ref,
         run,
-        _key(args),
+        _signing_key(args, repo),
         deny,
         spdx=args.licence,
         grant=args.relicensing_grant,
@@ -133,13 +149,12 @@ def _check(args: argparse.Namespace) -> dict[str, Any]:
 
 def _withdraw(args: argparse.Namespace) -> dict[str, Any]:
     from opentine import _dataset_withdraw as wd
-    from opentine._cli_integrity import _key
     from opentine._promote import _now
     from opentine.repo import Repo
 
     repo = Repo.open(Path(args.repo))
     _, run = _resolve(repo, args.run)
-    record = wd.withdraw(repo, run, _key(args), args.reason, args.at or _now())
+    record = wd.withdraw(repo, run, _signing_key(args, repo), args.reason, args.at or _now())
     row = next(r for r in wd.withdrawals(repo) if r["record"] == record)
     stone = wd.tombstone(row)
     count = None
