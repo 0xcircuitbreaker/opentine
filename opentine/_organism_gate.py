@@ -24,6 +24,7 @@ import re
 import sys
 from typing import IO, Any
 
+from opentine._monitor_mcp import _strict
 from opentine._organism import now
 from opentine._organism_registry import (
     RegistryUnreadable,
@@ -144,11 +145,34 @@ class OrganismMcpGuard:
     def _pass(self, raw: bytes) -> tuple[bytes | None, bytes | None, bytes | None]:
         return self.inner.check(raw) if self.inner is not None else (raw, None, None)
 
+    def _refuse_unparseable(self, raw: bytes) -> tuple[None, bytes | None, bytes | None]:
+        """A frame the gate cannot read strictly is never relayed (a server may read it)."""
+        if not raw.strip():
+            return self._pass(raw)
+        self.denied += 1
+        try:
+            guess = json.loads(raw.decode("utf-8", "replace").lstrip("\ufeff"))
+        except (ValueError, RecursionError):
+            guess = None
+        rid = guess.get("id") if isinstance(guess, dict) else None
+        if not isinstance(rid, (str, int)) or isinstance(rid, bool):
+            return None, None, raw
+        reply = {
+            "jsonrpc": "2.0",
+            "id": rid,
+            "error": {
+                "code": ERROR_CODE,
+                "message": "refused: the organism gate cannot parse the frame",
+            },
+        }
+        end = b"\n" if raw.endswith(b"\n") else b""
+        return None, json.dumps(reply, separators=(",", ":"), sort_keys=True).encode() + end, raw
+
     def check(self, raw: bytes) -> tuple[bytes | None, bytes | None, bytes | None]:
         try:
-            message = json.loads(raw.decode("utf-8"))
+            message = _strict(raw)
         except (UnicodeDecodeError, ValueError, RecursionError):
-            return self._pass(raw)
+            return self._refuse_unparseable(raw)
         items = message if isinstance(message, list) else [message]
         rest, replies, blocked = [], [], []
         for msg in items:

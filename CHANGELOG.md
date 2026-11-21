@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased — Security and integrity hardening
+
+- `tine mcp-proxy --organism-gate` no longer relays a frame it cannot parse
+  strictly. Before, one invalid UTF-8 byte in any field sent a `tools/call`
+  that loads a tagged artifact to the server unchecked. Such frames are now
+  refused with JSON-RPC error `-32003` (or dropped when no id is readable).
+- `tine custody gate` ignores a `model-organism` tag signed by a key that
+  pinned key roles deny the `runner`, `policy` and `curator` roles (an
+  optimizer key), matches locations and digests as whole tokens instead of
+  substrings (a one-letter location no longer blocks every tool call; trailing
+  dots, which Windows drops from a path, still end a match), and
+  skips a claim with a non-string location or digest instead of failing every
+  call.
+
 ## 0.75.0 — Dataset curation and AI-BOM export (2026-11-21)
 
 - `tine dataset curate --select EXPR --out NAME --key KEY`: a signed dataset
