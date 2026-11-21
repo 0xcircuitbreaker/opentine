@@ -186,8 +186,25 @@ Verified flags and the runs like them are items of the 0.63 oversight queue
 - `transcript:ATTESTATION`: a verified flag, routed by its label;
 - `transcript:LABEL:RUN`: a run whose centred cosine to one of a verified
   flag's evidence runs is at least 0.6 in this space, fitted over the
-  repository's redacted runs (the 50 nearest runs of each evidence run are
-  considered), a "similar to known bad" hit.
+  repository's redacted runs, a "similar to known bad" hit. Since 0.76 every
+  run at or above the threshold is a hit (earlier releases considered only
+  the 50 nearest runs, so 50 copies of the evidence could push a real
+  variant out); past 10,000 hits the best-scoring are kept and a
+  `RuntimeWarning` reports the truncation. The space's mean is fitted
+  without the evidence runs and the runs whose plain cosine to one of them is
+  at least 0.5, so copies of the flagged run do not centre the behaviour
+  away. Also since 0.76 a run's score is the
+  best of its whole text and its word windows as long as the evidence run
+  (half-overlapping, at most 8,192 per run), so a long benign prompt or
+  output cannot dilute the copied steps under the threshold.
+
+Limits of that similarity: decoys made to sit just under 0.5 plain cosine
+still move the mean towards the behaviour, and every decoy over the
+threshold is itself an item, so a flood is noisy rather than silent. Text inserted *between* every copied step dilutes
+each window too, and only the indexed text is compared. The search index
+reads at most 1 MiB of text per run; system and prompt text share the first
+256 KiB of it, so a padded prompt cannot crowd out the steps, but padding in
+an early step's output can still use up the budget before later steps.
 
 Both are recomputed from the objects every time the queue is read; there is
 no stored index to plant rows in. An unverified flag (bad signature, a
@@ -195,6 +212,13 @@ labeller other than the signer, an unpinned or optimizer signer) opens no
 item and seeds no hits. An item reaches a tier only through a pinned policy
 row `[[route]] source = "transcript"`, whose `label` glob matches the flag
 label; with no such route nothing is queued and nothing blocks.
+
+A run whose text cannot be read is left out of the corpus. A blob larger than
+the 1 MiB per-run text budget contributes its verified prefix; a blob over
+64 MiB is not read. Each queue source is isolated: if one fails (the
+transcript source included), it lists nothing and a `RuntimeWarning` names it,
+while the monitor, integrity, budget, containment and custody items are still
+listed.
 
 ## Query
 

@@ -34,6 +34,35 @@
   verifier; the Python height check recursed, hit the interpreter's limit and
   recorded `policy.steps` in the signed admission. Shared vectors
   `select-height-1000` and `select-height-1023` cover it.
+- One run with a blob over 1 MiB no longer crashes the oversight queue or
+  `tine transcripts`. The search-index text reader hashes a blob of up to
+  64 MiB in full and keeps only its verified prefix; a larger or unreadable
+  blob is read as empty text. A run whose text cannot be read is left out of
+  the transcript corpus, and each oversight-queue source is isolated: a source
+  that fails is warned about and lists nothing, and the other sources still
+  list their items (OT-3).
+- A deeply nested eval verdict line (`[[[[…`) no longer aborts `tine query
+  index`, `tine policy check` or the promote admission input: verdict lines
+  are parsed with the bounded-nesting reader and a line past 200 levels is
+  skipped as malformed. The same reader now parses `tine query --verify` eval
+  rows, lineage records and decisions, `--corpus` JSONL lines and the holds
+  file, which refuse such input with their usual malformed-input error (OT-6).
+- Padding a run's prompt no longer hides it from similar-to-known-bad
+  oversight items. System and prompt text now share a 256 KiB part of the
+  1 MiB per-run search-index text budget, so the steps are still read after a
+  padded prompt, and a run's score against a flag's evidence run is the best
+  of its whole-run score and its evidence-length, half-overlapping word
+  windows (`opentine/_transcript_windows.py`). Text inserted between every
+  copied step still dilutes each window; that limit is documented in
+  docs/TRANSCRIPT_FLAGS.md (OT-7).
+- Decoys that copy a flag's evidence can no longer push a real variant out
+  of the oversight queue. Every run at or above the 0.6 threshold is a
+  similar-to-known-bad hit (the nearest-50 cut is gone); past a work bound of
+  10,000 hits the best-scoring ones are kept and a `RuntimeWarning` reports
+  the truncation. The centring mean is fitted without the evidence runs and
+  runs whose plain cosine to them is at least 0.5, so a flood of copies does
+  not centre the flagged behaviour away. Decoys tuned to sit just under 0.5
+  still shift the mean; see docs/TRANSCRIPT_FLAGS.md (OT-8).
 
 ## 0.75.0 — Dataset curation and AI-BOM export (2026-11-21)
 
