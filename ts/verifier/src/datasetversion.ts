@@ -27,6 +27,8 @@ const NAME = /^[a-z0-9][a-z0-9._-]{0,63}$/;
 const RUN = /^run:sha256:[0-9a-f]{64}$/;
 const ATT = /^attestation:sha256:[0-9a-f]{64}$/;
 const DIGEST = /^sha256:[0-9a-f]{64}$/;
+// Blank is ASCII whitespace only, as Python's BLANK in _dataset_claims.py (not trim()).
+const BLANK = /^[\t\n\v\f\r ]*$/;
 const AT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
 const HEX = /^[0-9a-f]{64}$/;
 
@@ -113,7 +115,7 @@ export function checkVersion(claim: JValue | undefined): string[] {
     return ["previous is null for version 1 and an attestation id after"];
   }
   const selection = claim.get("selection");
-  if (!str(selection) || !selection.trim()) return ["selection is the expression that chose the candidates"];
+  if (!str(selection) || BLANK.test(selection)) return ["selection is the expression that chose the candidates"];
   const problems = checkMembers(claim.get("members"));
   if (problems.length) return problems;
   if (claim.get("members_digest") !== membersDigest(claim.get("members") as JValue)) {

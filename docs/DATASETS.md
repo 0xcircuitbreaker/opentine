@@ -124,6 +124,8 @@ The **offline check** needs only the attestation payload:
 
 * the exact set of fields; `name` lower-case letters, digits, `.`, `_`, `-`;
   `version` 1 with `previous` null, or later with `previous` an attestation id;
+* `selection` a string that is not blank; blank means empty or only ASCII
+  whitespace (tab, LF, VT, FF, CR, space), in Python and TS alike;
 * `members` sorted by run, each run once, no two sharing `content`;
   `members_digest` is `sha256:` over the canonical JSON of `members`;
 * dropped runs sorted, distinct, not members, each `same_as` a member;

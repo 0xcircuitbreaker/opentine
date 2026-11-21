@@ -9,6 +9,9 @@
 - `tine bom export --dataset` refuses a dataset version the repository marks
   unverified now (a member tainted since curation, or a taint filter that
   cannot be applied), as `tine dataset versions` and `materialize` already did.
+- The Python and TS dataset-version checks share one definition of a blank
+  `selection` (ASCII whitespace only); they disagreed on U+001C..U+001F,
+  U+0085 and U+FEFF. New shared vectors cover each.
 
 ## 0.75.0 — Dataset curation and AI-BOM export (2026-11-21)
 

@@ -30,7 +30,15 @@ def test_fixture_covers_good_and_bad_and_every_signature_state() -> None:
     states = {c["expect"]["signature"] for c in cases}
     assert states == {"verified-tofu", "bad-signature", "signer-mismatch", "curator-mismatch",
                       "unsigned"}  # fmt: skip
-    assert sum(c["expect"]["ok"] for c in cases) == 3
+    assert sum(c["expect"]["ok"] for c in cases) == 6
+
+
+def test_a_blank_selection_is_ascii_whitespace_only() -> None:
+    """Python ``str.strip`` and JS ``trim`` disagree on U+001C..U+001F, U+0085, U+FEFF."""
+    found = {c["id"]: c["expect"]["ok"] for c in _fixture()["cases"]}
+    assert found["selection-ascii-blank"] is False
+    for name in ("info-separators", "next-line", "byte-order-mark"):
+        assert found[f"selection-{name}"] is True, name
 
 
 @pytest.mark.parametrize("case", _fixture()["cases"], ids=lambda c: c["id"])
