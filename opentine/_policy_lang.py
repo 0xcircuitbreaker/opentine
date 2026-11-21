@@ -195,18 +195,24 @@ def parse(src: str) -> tuple:
 
 
 def height(tree: Any) -> int:
-    """Nodes on the longest root-to-leaf path (literal values are leaves, not nodes)."""
-    if not isinstance(tree, tuple) or not tree or not isinstance(tree[0], str):
-        best = 0
-        for t in tree if isinstance(tree, tuple) else ():
-            best = max(best, height(t))
-        return best
-    if tree[0] == "lit":
-        return 1
+    """Nodes on the longest root-to-leaf path (literal values are leaves, not nodes).
+
+    Iterative, so a tree of any height is measured, never a ``RecursionError``
+    (TS gets ``policy.parse`` for a long ``a.b.b...`` chain; so must Python).
+    """
     best = 0
-    for t in tree[1:]:
-        best = max(best, height(t))
-    return 1 + best
+    stack = [(tree, 0)]
+    while stack:
+        node, above = stack.pop()
+        if not isinstance(node, tuple):
+            best = max(best, above)
+        elif node and isinstance(node[0], str):  # an expression node
+            best = max(best, above + 1)
+            if node[0] != "lit":
+                stack.extend((t, above + 1) for t in node[1:])
+        else:  # a plain tuple of subtrees (arguments)
+            stack.extend((t, above) for t in node)
+    return best
 
 
 __all__ = ["MAX_DEPTH", "MAX_HEIGHT", "MAX_NODES", "MAX_SAFE", "MAX_SOURCE", "PolicyError",

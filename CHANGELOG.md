@@ -14,6 +14,11 @@
   policy input's `oversight` block now holds the decisions on the run's
   `promotion:LABEL:RUN` items (it matched a decision's anchor blob against the
   run id, so `k-of-n-approvals` never held).
+- Policy expressions: a long `a.b.b...` selection chain (about 1000
+  selections) is refused `policy.parse` (taller than 64), as in the TS
+  verifier; the Python height check recursed, hit the interpreter's limit and
+  recorded `policy.steps` in the signed admission. Shared vectors
+  `select-height-1000` and `select-height-1023` cover it.
 
 ## 0.75.0 — Dataset curation and AI-BOM export (2026-11-21)
 
