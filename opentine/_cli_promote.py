@@ -28,6 +28,9 @@ def add_signed_promote_args(p: Any) -> None:
                    help="A sealed holdout whose exposure budget must hold (0.60)")  # fmt: skip
     p.add_argument("--canary-lengths", metavar="FILE",
                    help="Canary code lengths; a failed canary-check refuses")  # fmt: skip
+    p.add_argument("--require-admission", action="append", default=[], metavar="POLICY",
+                   help="A policy (name, ./file or sha256: digest) that must have admitted "
+                   "TARGET (tine policy check --key); repeatable (0.75)")  # fmt: skip
     p.add_argument("--loop", metavar="LOOP", help="Refuse when LOOP is stopped (tine loop stop)")
     p.add_argument("--state", metavar="DIR", help="Label state (default REPO/.tine/promotion)")
     p.add_argument("--out", metavar="DIR", help="Where decisions go (a FILE for --approve)")
@@ -83,6 +86,11 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
     if args.spent is None:
         raise ValueError("--spent USD is required: the budget cap is checked against it")
     holdout = (Path(args.holdout[0]), Path(args.holdout[1])) if args.holdout else None
+    from opentine._promote import PromotionRefused
+    from opentine._promote_admission import refusals
+
+    if not_admitted := refusals(Path(args.repo), args.target, args.require_admission):
+        raise PromotionRefused(not_admitted)  # before the gate can move the label
     return promotion.promote(key, policy, args.target, args.baseline,
                              baseline=Path(args.baseline_evals), evals=Path(args.evals),
                              holdout=holdout, approvals=[Path(a) for a in args.approval],

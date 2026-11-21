@@ -32,6 +32,12 @@
   policy vectors in `tests/data/policy_vectors.json` (numeric limits,
   NFC/NFD, code-point ordering, surrogates, every bound and error code) run
   in both. `scripts/gen_policy_vectors.py` regenerates them.
+- `tine query` indexes admissions in the `policy_admissions` table; `--verify`
+  marks a row `verified` only for a pinned `policy` signer without `optimizer`.
+- `tine promote --require-admission POLICY` (repeatable) wires the policy
+  engine to the promotion gate: the label does not move unless the policy
+  admitted the candidate (`promote.not-admitted`; an unreadable policy is
+  `promote.admission-policy`, fail closed).
 - `tine sign RUN --keyless` (CI/runner mode): the OIDC token is read from
   `SIGSTORE_ID_TOKEN` or the GitHub Actions ambient token, never from argv. A
   Fulcio-style certificate binds an ephemeral P-256 key to the identity, and
@@ -53,6 +59,9 @@
   owner-pinned trust bundle whose `trust_policy` names the exact
   `cert_oidc_issuer` and `cert_identity` trusts one. A pinned owner with a
   missing or rolled-back bundle fails closed.
+- `tine verify --offline --attestation` names the keyless assurance tier in the
+  `certificate` check and reports it as `caveat:keyless-unpinned` with no
+  authorship unless the owner-pinned trust bundle names the identity.
 
 ## 0.73.0 — Transcript analysis at corpus scale (2026-11-21)
 

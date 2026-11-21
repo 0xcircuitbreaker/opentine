@@ -1735,6 +1735,28 @@ ROWS: tuple[tuple, ...] = (
         {"command": "promote", "expected_old": "abc"},
     ),
     (
+        "plain:promote R --baseline L --require-admission promote --require-admission sha256:ab",
+        "plain",
+        [
+            "promote",
+            "R",
+            "--baseline",
+            "L",
+            "--require-admission",
+            "promote",
+            "--require-admission",
+            "sha256:ab",
+        ],
+        "opentine._repo_cli_write:cmd_promote",
+        True,
+        {
+            "command": "promote",
+            "target": "R",
+            "baseline": "L",
+            "require_admission": ["promote", "sha256:ab"],
+        },
+    ),  # fmt: skip
+    (
         "plain:repo-verify heads/main",
         "plain",
         ["repo-verify", "heads/main"],
@@ -7046,6 +7068,9 @@ ROWS: tuple[tuple, ...] = (
             "input_digest": "D",
             "json": False,
             "repo": ".",
+        },
+    ),
+    (
         "plain:sign r1 --keyless --rekor https://r --fulcio-url https://f --output o.json --json",
         "plain",
         [

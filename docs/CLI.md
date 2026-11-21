@@ -1635,6 +1635,8 @@ spend under the budget cap and an admission policy that covers
 - `--approve` signs an approval.
 - `--revert --reason TEXT` writes a signed revert decision.
 - `--canary DIR` reverts automatically on a signed regression.
+- `--require-admission POLICY` (0.75, repeatable) refuses unless the policy
+  admitted RUN (`promote.not-admitted`); see [POLICY.md](POLICY.md).
 
 `--json` follows `tine-cli-promote-1`. Conventions, refusal codes and outputs:
 [EVALS-PROMOTION.md](EVALS-PROMOTION.md).

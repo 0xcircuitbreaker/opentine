@@ -91,6 +91,12 @@ and 2 for a usage error. These codes belong to this command only. They are not
 `tine verify RUN --attestation RUN.sigstore.json --rekor-key ... --fulcio-root
 ... --cert-identity ... --cert-oidc-issuer ...` reads the same bundle with its
 existing checks and codes (`attestation`, `receipt`, `certificate`, `sct`).
+Since 0.75 a passing `certificate` check names the identity's assurance tier
+in its detail. Unless the owner-pinned trust bundle names the exact issuer and
+identity, the detail reads `caveat:keyless-unpinned` and neither check
+establishes authorship (`authorship` is null): the `--cert-identity` flags are
+the caller's expectation, not an owner pin. A missing or rolled-back bundle
+pins nothing here, so the result stays a caveat. No new `tine verify` codes.
 
 ## Pinning identities (owner trust bundle)
 

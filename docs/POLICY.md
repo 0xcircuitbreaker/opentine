@@ -180,6 +180,22 @@ refused. A bare standard name (`promote`) always means the shipped policy,
 even if a file of that name is in the working directory; use `./promote`
 for such a file.
 
+## In the query index and the promotion gate
+
+Every admission record is a row of the `policy_admissions` table in `tine
+query` (docs/QUERY.md). Under `--verify` each returned row is re-derived from
+its attestation and is `verified` only for a pinned `policy` signer that does
+not hold `optimizer`; any other signer's record is `unverified`, and a row
+whose signature does not verify is `failed`. The index is non-authoritative:
+`tine policy show` decides.
+
+`tine promote RUN --baseline LABEL ... --require-admission POLICY` (repeatable;
+a standard name, `./file` or a `sha256:` policy digest) refuses before the
+label can move unless the policy admitted RUN (the deny-wins `admitted` check
+above): `promote.not-admitted`, or `promote.admission-policy` when the policy
+cannot be read (fails closed). These are command-level codes. Advisory rules
+never decide an admission, so they never block the gate (D12).
+
 ## Standard policies
 
 Shipped in `opentine/data/policies/`:
