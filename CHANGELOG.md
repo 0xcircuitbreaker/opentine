@@ -6,6 +6,14 @@
   record is missing: `lineage.parent-missing` now lists the variant in
   `unchecked[]` (deleting a parent record skipped the paired comparison and
   let a regression pass).
+- `tine promote --require-admission` rebuilds the input `tine policy check`
+  signed: new `--admission-evals DIR`, `--admission-holdout DIR` and
+  `--admission-budget SUBJECT` pass the check's `--evals`, `--holdout` and
+  `--budget` (before, the gate's input had no evals, holdouts or budget, so a
+  policy that reads them, such as `promote`, never counted an allow). The
+  policy input's `oversight` block now holds the decisions on the run's
+  `promotion:LABEL:RUN` items (it matched a decision's anchor blob against the
+  run id, so `k-of-n-approvals` never held).
 
 ## 0.75.0 — Dataset curation and AI-BOM export (2026-11-21)
 

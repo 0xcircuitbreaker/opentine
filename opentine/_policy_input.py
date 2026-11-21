@@ -127,6 +127,16 @@ def _budget(repo: Any, subject: str | None, now_ms: int) -> dict[str, Any] | Non
                                   if f["level"] == "fail"})}  # fmt: skip
 
 
+def _about(item: Any, run: str) -> bool:
+    """A decision's item names *run* (``promotion:LABEL:RUN``); its anchor is a blob."""
+    from opentine._oversight import parse_item
+
+    try:
+        return parse_item(item).get("candidate") == run
+    except (TypeError, ValueError):
+        return False
+
+
 def _integrity(root: Path, run: str) -> dict[str, Any]:
     from opentine._integrity_run import LIST, check_run, taints
 
@@ -167,7 +177,8 @@ def build(repo: Any, root: Path, run: str, *, eval_dirs: list[str] | None = None
                 and who(r.get("signer")) is not None]  # fmt: skip
 
     names = _holdouts(list(holdouts or []), by_key)
-    decisions = [r for r in mine("oversight_decisions", "anchor", run)]
+    decisions = [r for r in tables.get("oversight_decisions", []) if r.get("signed")
+                 and who(r.get("signer")) is not None and _about(r.get("item"), run)]  # fmt: skip
     approvers = sorted({r["signer"] for r in decisions if r["decision"] == "approve"
                         and "approver" in (who(r["signer"]) or [])})  # fmt: skip
     from opentine._query_build import _lineage_files
