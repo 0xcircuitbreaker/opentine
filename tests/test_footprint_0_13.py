@@ -395,7 +395,14 @@ def test_autopack_and_prune_racing_a_live_recorder_lose_nothing(tmp_path):
         stderr=subprocess.PIPE,
     )
     rounds = 0
+    # Bounded: a writer that stalls must fail this test, not spin it until the
+    # per-test timeout kills the whole xdist worker.
+    deadline = time.monotonic() + 120
     while writer.poll() is None or rounds < 2:
+        if time.monotonic() > deadline:
+            writer.kill()
+            _, err = writer.communicate()
+            raise AssertionError(f"writer still running after 120 s: {err.decode()!r}")
         rounds += 1
         try:
             gc(repo, min_age=0)  # harsher than auto-pack: packs even brand-new objects

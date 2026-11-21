@@ -209,7 +209,10 @@ jobs:
         run: >-
           uv run pytest tests -m "$TESTS and not serial" -n auto --dist loadgroup
           --splits "$SHARDS" --group "$SHARD" --durations-path tests/test_durations.json -rfEs
-          --timeout 600 --timeout-method thread
+          --timeout 600 --timeout-method thread --max-worker-restart 0
+          -o faulthandler_timeout=540
+        env:
+          OPENTINE_TEST_TRACE_DIR: ${{ runner.temp }}/test-trace
 
       # Serial pass: tests marked serial share process-wide state and run alone.
       # Exit 5 (no serial test in this shard) is not a failure.
@@ -218,8 +221,20 @@ jobs:
         run: >-
           uv run pytest tests -m "$TESTS and serial" -p no:xdist
           --splits "$SHARDS" --group "$SHARD" --durations-path tests/test_durations.json -rfEs
-          --timeout 600 --timeout-method thread
+          --timeout 600 --timeout-method thread -o faulthandler_timeout=540
           || test $? -eq 5
+        env:
+          OPENTINE_TEST_TRACE_DIR: ${{ runner.temp }}/test-trace
+
+      # A test killed by the per-test timeout takes its worker down; the trace
+      # names the last test each worker started.
+      - name: Upload test trace
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: test-trace-${{ runner.os }}-${{ matrix.python-version }}-${{ strategy.job-index }}
+          path: ${{ runner.temp }}/test-trace
+          if-no-files-found: ignore
 
   python-tests:
     # 0.54: one stable check name for branch protection. It passes when every
