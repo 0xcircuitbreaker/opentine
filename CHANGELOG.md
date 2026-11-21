@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — Security and integrity hardening
+
+- `tine mcp-proxy --organism-gate` no longer relays a frame it cannot parse
+  strictly. Before, one invalid UTF-8 byte in any field sent a `tools/call`
+  that loads a tagged artifact to the server unchecked. Such frames are now
+  refused with JSON-RPC error `-32003` (or dropped when no id is readable).
+
 ## 0.75.0 — Dataset curation and AI-BOM export (2026-11-21)
 
 - `tine dataset curate --select EXPR --out NAME --key KEY`: a signed dataset

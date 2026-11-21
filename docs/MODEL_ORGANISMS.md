@@ -84,7 +84,10 @@ exits 0.
 `tools/call` with JSON-RPC error `-32003`. The error's `data` has
 `{"opentine.organism": {"artifacts": [...]}}`. Other messages are relayed
 unchanged, and a monitor or budget guard still runs on whatever the gate lets
-through.
+through. A non-empty frame the gate cannot parse strictly (invalid UTF-8, a
+byte order mark, an encoded lone surrogate, a duplicate key or a non-standard
+constant) is never relayed: it is answered with error `-32003` when a request
+id can be recovered, and dropped otherwise.
 
 ### Failing closed
 
