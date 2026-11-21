@@ -110,7 +110,8 @@ def decide(repo: Any, tool_input: Any) -> dict[str, Any]:
 
 def _mentions(text: str, mark: str) -> bool:
     """*mark* appears in *text* as a whole token, not inside a longer name."""
-    return re.search(f"(?<!{_NAME}){re.escape(mark)}(?!{_NAME})", text) is not None
+    end = r"(?![\w\-]|\.+[\w\-])"  # trailing dots end a name (Windows drops them)
+    return re.search(f"(?<!{_NAME}){re.escape(mark)}{end}", text) is not None
 
 
 def check_strings(value: Any, out: list[str]) -> list[str]:

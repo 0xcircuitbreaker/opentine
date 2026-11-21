@@ -9,7 +9,8 @@
 - `tine custody gate` ignores a `model-organism` tag signed by a key that
   pinned key roles deny the `runner`, `policy` and `curator` roles (an
   optimizer key), matches locations and digests as whole tokens instead of
-  substrings (a one-letter location no longer blocks every tool call), and
+  substrings (a one-letter location no longer blocks every tool call; trailing
+  dots, which Windows drops from a path, still end a match), and
   skips a claim with a non-string location or digest instead of failing every
   call.
 

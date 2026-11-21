@@ -42,3 +42,17 @@ def test_a_malformed_digest_refuses_only_that_record(repo):  # noqa: F811
     records.record(repo, target, claim, _key("policy"), f"{wc.HOLD}bad:00000000")
     assert gate.decide(repo, {"command": "ls"})["decision"] == "allow"
     assert gate.decide(repo, {"command": "load ckpt/mo.safetensors"})["decision"] == "block"
+
+
+def test_trailing_dots_and_spaces_do_not_hide_a_mark(repo):  # noqa: F811
+    # Windows drops trailing dots and spaces from a path name, so they end a mark.
+    _created(repo, "mo", "policy", "ckpt/mo.safetensors")
+    texts = (
+        "cat ckpt/mo.safetensors.",
+        "cat ckpt/mo.safetensors...",
+        "cat 'ckpt/mo.safetensors. '",
+        "load ckpt/mo.safetensors --fast",
+    )
+    for text in texts:
+        assert gate.decide(repo, {"command": text})["decision"] == "block", text
+    assert gate.decide(repo, {"command": "cat ckpt/mo.safetensors.bak"})["decision"] == "allow"

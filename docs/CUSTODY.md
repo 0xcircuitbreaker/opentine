@@ -95,7 +95,8 @@ counts. A claim whose location or digest is not a string is skipped on its own.
 Matching is by whole token of the tool input (keys and values): a mark must not
 be preceded or followed by a letter, digit, `_`, `.` or `-`, so `./ckpt/m.pt`
 and `--ckpt=ckpt/m.pt` match `ckpt/m.pt` but a one-letter location does not
-match every word. A load through a
+match every word. Trailing dots end a mark (Windows drops them from a path), so
+`ckpt/m.pt.` matches while `ckpt/m.pt.bak` does not. A load through a
 path no event names (a symlink, an alias, re-encoded bytes) is not seen. The
 `loaded` events form the access log.
 
