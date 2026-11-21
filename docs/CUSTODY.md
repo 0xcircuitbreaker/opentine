@@ -88,7 +88,14 @@ The gate does not trust the hold rows alone. It scans every signed
 `created` event keeps its artifact tagged after its hold row is dropped. The tag
 follows the digest: the same bytes recorded under another artifact name are
 tagged too. Destroy events never remove a location from what the gate matches.
-Matching is by substring of the tool input (keys and values); a load through a
+A tag counts only when its signer may record it: once key roles are pinned, a
+`created` tag signed by a key with none of the `runner`, `policy` or `curator`
+roles (an optimizer key) is ignored; with no pinned bundle every signed tag
+counts. A claim whose location or digest is not a string is skipped on its own.
+Matching is by whole token of the tool input (keys and values): a mark must not
+be preceded or followed by a letter, digit, `_`, `.` or `-`, so `./ckpt/m.pt`
+and `--ckpt=ckpt/m.pt` match `ckpt/m.pt` but a one-letter location does not
+match every word. A load through a
 path no event names (a symlink, an alias, re-encoded bytes) is not seen. The
 `loaded` events form the access log.
 
