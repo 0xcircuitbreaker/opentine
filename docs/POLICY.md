@@ -126,7 +126,7 @@ same document and the same input digest (`sha256:` of its canonical JSON).
 | `evals` | signed eval verdicts on the run in `--evals DIR` folders: `{eval, dataset, item, scorer_name, score, threshold, passed, signer, roles, pinned, holdout}`; `pinned` means a `scorer` or `eval` role, `holdout` that the dataset is a verified holdout |
 | `holdouts` | names of `--holdout DIR` sealed holdouts whose commitment verifies and is signed by a pinned `dataset` key |
 | `monitors` | monitor verdicts on the run |
-| `oversight` | `{decisions, approvers}`: decisions on a `promotion:LABEL:RUN` item naming the run, and the distinct pinned `approver` keys that approved |
+| `oversight` | `{decisions, approvers}`: decisions on a `promotion:LABEL:RUN` item naming the run (anchored on that item's own anchor blob, as the oversight queue requires; with a `label` param, only items for that label), and the distinct pinned `approver` keys whose latest decision on the item is an approve (a later reject cancels it) |
 | `lineage` | `{variants}`: signed lineage records (at most 1000) |
 | `integrity` | `{taints, fail_codes}`: signed taints on the run and live `fail:` integrity codes |
 | `budget` | `null` without `--budget SUBJECT`, else `{subject, in_force, decision, over, fail_codes}` from the budget ledger |

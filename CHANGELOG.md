@@ -14,6 +14,10 @@
   policy input's `oversight` block now holds the decisions on the run's
   `promotion:LABEL:RUN` items (it matched a decision's anchor blob against the
   run id, so `k-of-n-approvals` never held).
+- The policy input counts an approval only where the oversight queue would:
+  a decision anchored on a blob other than its item's anchor is ignored, a
+  signer's later reject cancels their earlier approve, and when the check
+  passes a `label` param only approvals of a promotion to that label count.
 - Policy expressions: a long `a.b.b...` selection chain (about 1000
   selections) is refused `policy.parse` (taller than 64), as in the TS
   verifier; the Python height check recursed, hit the interpreter's limit and
