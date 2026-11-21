@@ -443,6 +443,17 @@ def test_every_driven_json_output_validates(monkeypatch, capsys, room, argv, exp
         _tine(monkeypatch, capsys, "lineage", "record", "--run", "run:sha256:" + "a" * 64,
               "--key", "purge.key", "--code-tree", "sha256:" + "1" * 64, "--repo", "repo",
               "--at", "2026-11-01T12:00:00Z", "--json")  # fmt: skip
+    if argv[:2] == ("dataset", "withdraw"):  # 0.78: the contributor annotated its run
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
+        from opentine._cli_dataset_contrib import _resolve
+        from opentine.repo import Repo
+        from tests.dataset_contrib_helpers import annotate
+
+        repo = Repo.open(room / "repo")
+        annotate(
+            repo, _resolve(repo, "main")[1], Ed25519PrivateKey.from_private_bytes(b"\xab" * 32)
+        )
     if argv[:2] == ("keyless", "verify"):  # 0.74: trust material, and a bundle with no cert
         from tests._sigstore_fakes import FakeFulcio, FakeLog
 
