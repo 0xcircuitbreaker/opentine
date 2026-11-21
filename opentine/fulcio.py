@@ -111,6 +111,10 @@ class KeylessSigner:
         if ours != theirs:
             raise SigstoreHTTPError("Fulcio certified a different key than the one requested")
         self.leaf_der = leaf.public_bytes(serialization.Encoding.DER)
+        certs = [leaf] + [x509.load_pem_x509_certificate(pem) for pem in chain[1:]]
+        # The root is the verifier's to supply; a bundle carries leaf + intermediates.
+        self.chain_der = [c.public_bytes(serialization.Encoding.DER) for c in certs
+                          if c is leaf or c.issuer != c.subject]  # fmt: skip
 
     def sign(self, statement: dict[str, Any]) -> dict[str, Any]:
         body = canonical_json(statement)
@@ -123,3 +127,8 @@ class KeylessSigner:
 
     def material(self) -> dict[str, Any]:
         return {"certificate": {"rawBytes": base64.b64encode(self.leaf_der).decode("ascii")}}
+
+    def chain_material(self) -> dict[str, Any]:
+        """Bundle v0.3 ``x509CertificateChain``: the leaf first, then the intermediates."""
+        certs = [{"rawBytes": base64.b64encode(der).decode("ascii")} for der in self.chain_der]
+        return {"x509CertificateChain": {"certificates": certs}}

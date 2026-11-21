@@ -14,7 +14,8 @@
  * reason code (`integrity.code`).
  * Since 0.51 `verifyBundle(blobSource(file))` checks a `tine bundle` file as
  * `tine bundle verify` does, streamed with `Blob.slice`, and `verifyRecord`
- * checks one signed record by its kind.
+ * checks one signed record by its kind. Since 0.75 the policy evaluator and
+ * `loadPolicy` (strict JSON, as `tine policy check` reads a file) are exported.
  */
 
 import { isWrapped, MAGIC, wrapHeader } from "../codec.js";
@@ -97,3 +98,7 @@ export async function verifyArtifact(raw: Uint8Array, name = "artifact", trust?:
   return verifyBytes(body, name, { trustEmbedded: true, pins: trust?.pins });
 }
 export { verifyMemory, verifyPrompt } from "../registry.js";
+// 0.75: the policy language and policy-file loader (`tine policy check` in the browser).
+export { parse as parsePolicyExpr, PolicyError } from "../policy.js";
+export { decide, evaluate as evaluatePolicyExpr, ruleResult } from "../policyeval.js";
+export { checkPolicy, decidePolicy, loadPolicy, MAX_POLICY_BYTES, PolicyFileError, POLICY_SCHEMA, strictPolicyJson } from "../policyfile.js";

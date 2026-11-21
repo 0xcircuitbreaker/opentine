@@ -620,6 +620,27 @@ verified, and one by any other key as failed, exactly like `tine verify --pin`.
 It remembers the highest serial it accepted. The TS command line takes the same
 bundle: `opentine-verify FILE --trust-bundle bundle.note --owner-vkey VKEY`.
 
+## Keyless run signing: `tine sign --keyless`, `tine keyless verify` (0.74)
+
+```
+tine sign RUN --keyless [--rekor URL] [--fulcio-url URL] [--output FILE] [--overwrite] [--json]
+tine keyless verify BUNDLE --fulcio-root PEM --rekor-key PEM [--run RUN] [--trust-bundle FILE] [--json]
+```
+
+`sign --keyless` is for CI jobs and runners. It reads the OIDC token from
+`SIGSTORE_ID_TOKEN` or the GitHub Actions ambient token, gets a short-lived
+Fulcio certificate, signs the run's in-toto statement and logs the signature to
+Rekor. It writes the existing Sigstore bundle (`RUN.sigstore.json`).
+`keyless verify` checks the bundle offline: the receipt, the inclusion proof
+against the signed tree head, the signature, the chain to `--fulcio-root`, and
+the certificate window at the log's integrated time (outside it:
+`caveat:keyless-outside-window`). It then reports the identity and its
+assurance tier. An identity is trusted (`keyless.trusted`, exit 0) only when
+the owner-pinned trust bundle's `trust_policy` names its exact
+`cert_oidc_issuer` and `cert_identity`; otherwise the result is
+`caveat:keyless-unpinned` (exit 1). `--json` writes `tine-cli-keyless/1`. See
+[KEYLESS.md](KEYLESS.md).
+
 ## Agent Trace export (0.19)
 
 ```
@@ -1614,6 +1635,10 @@ spend under the budget cap and an admission policy that covers
 - `--approve` signs an approval.
 - `--revert --reason TEXT` writes a signed revert decision.
 - `--canary DIR` reverts automatically on a signed regression.
+- `--require-admission POLICY` (0.75, repeatable) refuses unless the policy
+  admitted RUN over its current input (`promote.not-admitted`);
+  `--admission-param NAME=VALUE` sets a param of that input, as
+  `tine policy check --param`; see [POLICY.md](POLICY.md).
 
 `--json` follows `tine-cli-promote-1`. Conventions, refusal codes and outputs:
 [EVALS-PROMOTION.md](EVALS-PROMOTION.md).
@@ -2066,6 +2091,19 @@ of intent. `--json` prints `tine-cli-elicit/1`; see docs/ELICITATION.md.
 Records count only when signed by a pinned `scorer` or `eval` key. Catch rates
 are statistical evidence, not proof of intent. `--json` prints
 `tine-cli-sabotage/1`; see docs/SABOTAGE.md.
+
+## Policy engine (0.74)
+
+| Command | What it does |
+| --- | --- |
+| `tine policy check POLICY --subject REF [--evals DIR]... [--holdout DIR]... [--budget SUBJECT] [--param NAME=JSON]... [--key KEY] [--at TIME] [--show-input]` | Evaluates POLICY (a file or a standard policy name) over the input document assembled from the run's signed records; with `--key`, signs and holds an `opentine.policy-admission/1` record; exits 0 on `allow`, 1 on `deny` |
+| `tine policy check POLICY --subject ID --input FILE` | Evaluates over a given input document; never signed |
+| `tine policy list` | The standard policies and their digests |
+| `tine policy show RUN [--policy P [--input-digest D]]` | The held admission records of RUN, with their signers' pinned roles; with `--policy`, whether a counting record allows and none denies (exit 1 if not) |
+
+Any error in a `require` rule denies; `advisory` rules never block. A
+missing or invalid policy is an error and allows nothing. `--json` prints
+`tine-cli-policy/1`; see docs/POLICY.md.
 
 ## Uplift and capability trends (0.73)
 

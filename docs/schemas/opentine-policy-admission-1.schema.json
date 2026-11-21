@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-policy-admission-1.schema.json",
+  "title": "opentine.policy-admission/1 claim",
+  "description": "A signed admission decision (a verification summary) on a run, held and never released. A claim convention on an existing attestation, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "verificationResult",
+    "decision",
+    "policy",
+    "subject",
+    "input_digest",
+    "rules",
+    "at"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.policy-admission/1"
+    },
+    "verificationResult": {
+      "enum": [
+        "PASSED",
+        "FAILED"
+      ]
+    },
+    "decision": {
+      "enum": [
+        "allow",
+        "deny"
+      ]
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "digest"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "subject": {
+      "type": "string"
+    },
+    "input_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "effect",
+          "outcome",
+          "code"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "effect": {
+            "enum": [
+              "require",
+              "advisory"
+            ]
+          },
+          "outcome": {
+            "enum": [
+              "true",
+              "false",
+              "error"
+            ]
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^policy\\.[a-z-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "at": {
+      "type": "string"
+    }
+  }
+}

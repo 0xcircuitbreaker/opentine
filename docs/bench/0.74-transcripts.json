@@ -2,7 +2,7 @@
   "backend_digest": "sha256:19cde5addce74d71a112c4e75703bbd988161fd3b77ada544aac9d8a71f4eb66",
   "bytes": 39174917,
   "cluster": {
-    "iterations": 18,
+    "iterations": 23,
     "k": 16,
     "seconds": 17.93,
     "transcripts": 10000

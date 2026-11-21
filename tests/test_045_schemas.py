@@ -322,9 +322,14 @@ DRIVEN = (
     (("auditor", "check", "--repo", "repo", "--json"), "tine-cli-auditor-1"),  # 0.65
     (("sabotage", "report", "--repo", "repo", "--json"), "tine-cli-sabotage-1"),  # 0.68
     (("uplift", "suite", "suite.json", "--json"), "tine-cli-uplift-1"),  # 0.73
+    (("policy", "list", "--json"), "tine-cli-policy-1"),  # 0.75 (release 0.74.0)
     (("query", "SELECT oid FROM runs", "--repo", "repo", "--json"), "tine-cli-query-1"),  # 0.65
     (("query", "index", "--repo", "repo", "--json"), "tine-cli-query-1"),  # 0.65
     (("transcripts", "index", "--repo", "repo", "--json"), "tine-cli-transcripts-1"),  # 0.74
+    (
+        ("keyless", "verify", "b.json", "--fulcio-root", "f.pem", "--rekor-key", "r.pem", "--json"),
+        "tine-cli-keyless-1",
+    ),  # 0.74
     (("experiment", "sign", "exp.json", "--key", "purge.key", "--json"), "tine-cli-experiment-1"),
     (("experiment", "check", "exp.json", "--json"), "tine-cli-experiment-1"),  # 0.67
     (("elicit", "report", "--repo", "repo", "--json"), "tine-cli-elicit-1"),  # 0.68
@@ -411,6 +416,12 @@ def test_every_driven_json_output_validates(monkeypatch, capsys, room, argv, exp
         for side in ("ea", "eb"):
             _tine(monkeypatch, capsys, "eval", "run", "repo/d.jsonl", "--scorer", "exact",
                   "--key", "purge.key", "--out", side, "--json")  # fmt: skip
+    if argv[:2] == ("keyless", "verify"):  # 0.74: trust material, and a bundle with no cert
+        from tests._sigstore_fakes import FakeFulcio, FakeLog
+
+        (room / "f.pem").write_bytes(FakeFulcio().roots_pem())
+        (room / "r.pem").write_bytes(FakeLog().public_pem())
+        (room / "b.json").write_bytes(b"{}\n")
     _code, out = _tine(monkeypatch, capsys, *argv)
     if expected is None:  # a usage error prints no JSON object at all
         assert not out.strip().startswith("{") or "error" in json.loads(out)

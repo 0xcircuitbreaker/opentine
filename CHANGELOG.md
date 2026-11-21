@@ -1,5 +1,68 @@
 # Changelog
 
+## 0.74.0 — Policy engine and keyless signing (2026-11-21)
+
+- `tine policy check POLICY --subject RUN [--json]`: evaluates a declarative
+  policy over a fixed input document assembled from the run's signed records
+  (eval verdicts, sealed holdouts, monitor verdicts, oversight approvals,
+  lineage, integrity taints and `fail:` codes, the budget ledger, sandbox
+  policies and containment findings). Signers carry roles from the
+  owner-pinned key roles only; records signed by a pinned optimizer key are
+  left out. Exit 0 on `allow`, 1 on `deny`. `tine policy list` and
+  `tine policy show RUN [--policy P [--input-digest D]]` (`admitted`: a
+  record by a pinned `policy` key allows and none denies). Schema `tine-cli-policy/1`. See docs/POLICY.md.
+- The policy language (`opentine.policy/1`, schema `opentine-policy-1`) is a
+  strict CEL subset: literals, field access, indexing, comparisons, `in`,
+  `&&`/`||`/`!`, `has()`, `size()` and the `all`/`exists` macros, with no
+  arithmetic, user functions or other macros. Source length, nesting, node
+  count, tree height, evaluation steps and input depth are bounded by counts.
+  Any error in a `require` rule denies and is recorded with its code;
+  `advisory` rules never block (D12).
+- With `--key`, the decision is signed as an `opentine.policy-admission/1`
+  attestation (a verification summary naming the policy digest, input digest,
+  decision and per-rule outcomes; schema `opentine-policy-admission-1`), held
+  and never released. A pinned optimizer key cannot sign one. A missing or
+  invalid policy allows nothing. No object kind and no `tine verify` code.
+- Standard policies in `opentine/data/policies/`: `holdout-signed`,
+  `no-integrity-fail`, `k-of-n-approvals`, `budget-within-cap`,
+  `sandbox-digest` and `promote` (all five, plus an advisory containment
+  rule).
+- The TypeScript verifier implements the same evaluator
+  (`ts/verifier/src/policy.ts`, `policyeval.ts`); 160 expression vectors and 7
+  policy vectors in `tests/data/policy_vectors.json` (numeric limits,
+  NFC/NFD, code-point ordering, surrogates, every bound and error code) run
+  in both. `scripts/gen_policy_vectors.py` regenerates them.
+- `tine query` indexes admissions in the `policy_admissions` table; `--verify`
+  marks a row `verified` only for a pinned `policy` signer without `optimizer`.
+- `tine promote --require-admission POLICY` (repeatable) wires the policy
+  engine to the promotion gate: the label does not move unless the policy
+  admitted the candidate (`promote.not-admitted`; an unreadable policy is
+  `promote.admission-policy`, fail closed).
+- `tine sign RUN --keyless` (CI/runner mode): the OIDC token is read from
+  `SIGSTORE_ID_TOKEN` or the GitHub Actions ambient token, never from argv. A
+  Fulcio-style certificate binds an ephemeral P-256 key to the identity, and
+  the signature over the run's in-toto statement is logged to Rekor. The output
+  is the existing Sigstore bundle v0.3 (`RUN.sigstore.json`), with the leaf and
+  intermediates, the log entry, the inclusion proof and the signed tree head.
+  No new object kind. See docs/KEYLESS.md.
+- `tine keyless verify BUNDLE --fulcio-root PEM --rekor-key PEM [--run RUN]`:
+  offline verification. The inclusion proof is checked against the signed tree
+  head, the chain is checked to a root the caller supplies (a root in the
+  bundle is never an anchor), and every certificate must be valid at the log's
+  integrated time. Outside the window the result is
+  `caveat:keyless-outside-window`, which is not trusted. Command-level codes
+  only; no new `tine verify` codes. Schema `tine-cli-keyless/1`.
+- Keyless identities map to an assurance tier (`keyless-workflow`,
+  `keyless-person`, `keyless-unbound`) from the SAN and Fulcio's OIDC
+  extensions (issuer, build signer URI, source repository and ref, runner
+  environment, trigger). They are never trusted by default: only an
+  owner-pinned trust bundle whose `trust_policy` names the exact
+  `cert_oidc_issuer` and `cert_identity` trusts one. A pinned owner with a
+  missing or rolled-back bundle fails closed.
+- `tine verify --offline --attestation` names the keyless assurance tier in the
+  `certificate` check and reports it as `caveat:keyless-unpinned` with no
+  authorship unless the owner-pinned trust bundle names the identity.
+
 ## 0.73.0 — Transcript analysis at corpus scale (2026-11-21)
 
 - `tine transcripts index|search|similar RUN [--json]`: a derived,

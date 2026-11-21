@@ -401,6 +401,12 @@ SWEEP: list[tuple[list[str], list[str], str]] = [
     (["sign", "source.tine", "--key-env", KEY_ENV], ["--algorithm", "ed25519"], "honoured"),
     (["sign", "source.tine", "--key-env", KEY_ENV], ["--ed25519-key-file", "ed.hex"], "refused"),
     (["sign", "tampered.tine", "--key-env", KEY_ENV], ["--force"], "honoured"),
+    # 0.74: keyless-only flags have no effect on a key-signed run
+    (["sign", "source.tine", "--key-env", KEY_ENV], ["--keyless"], "refused"),
+    (["sign", "source.tine", "--key-env", KEY_ENV], ["--rekor", "https://r.example"], "refused"),
+    (["sign", "source.tine", "--key-env", KEY_ENV], ["--fulcio-url", "https://f"], "refused"),
+    (["sign", "source.tine", "--key-env", KEY_ENV], ["--output", "o.json"], "refused"),
+    (["sign", "source.tine", "--key-env", KEY_ENV], ["--json"], "refused"),
     (
         ["sign", "source.tine", "--algorithm", "ed25519", "--ed25519-key-file", "ed.hex"],
         ["--key-env", KEY_ENV],

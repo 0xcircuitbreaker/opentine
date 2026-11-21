@@ -1,0 +1,12 @@
+{
+  "schema": "opentine.policy/1",
+  "name": "budget-within-cap",
+  "description": "A signed budget policy is in force for --budget SUBJECT and no limit is reached",
+  "rules": [
+    {
+      "id": "budget-within-cap",
+      "effect": "require",
+      "expr": "budget != null && budget.in_force && budget.decision == 'allow' && size(budget.over) == 0 && size(budget.fail_codes) == 0"
+    }
+  ]
+}
