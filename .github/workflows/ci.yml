@@ -209,6 +209,7 @@ jobs:
         run: >-
           uv run pytest tests -m "$TESTS and not serial" -n auto --dist loadgroup
           --splits "$SHARDS" --group "$SHARD" --durations-path tests/test_durations.json -rfEs
+          --timeout 600 --timeout-method thread
 
       # Serial pass: tests marked serial share process-wide state and run alone.
       # Exit 5 (no serial test in this shard) is not a failure.
@@ -217,6 +218,7 @@ jobs:
         run: >-
           uv run pytest tests -m "$TESTS and serial" -p no:xdist
           --splits "$SHARDS" --group "$SHARD" --durations-path tests/test_durations.json -rfEs
+          --timeout 600 --timeout-method thread
           || test $? -eq 5
 
   python-tests:
