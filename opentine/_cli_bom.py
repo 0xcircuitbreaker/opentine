@@ -58,12 +58,35 @@ def build(args: argparse.Namespace) -> bytes:
                                       and len(args.name) <= 256):  # fmt: skip
         raise BomError("--name is 1..256 printable characters")
     counting = curators(Path(args.repo)) if args.dataset else set()
-    datasets = [read_dataset(spec, counting) for spec in args.dataset]
+    current = _current(Path(args.repo)) if args.dataset else None
+    datasets = [read_dataset(spec, counting, current) for spec in args.dataset]
     files = read_folder(_folder(args), max_files=args.max_files, max_bytes=args.max_bytes)
     row = tainted(args, files, check(files, args.variant, trust(args)))
     model = collect(files, row, name=args.name, licence=args.licence, datasets=datasets)
     render_doc = _aibom_cdx.document if args.format == "cyclonedx" else _aibom_spdx.document
     return render(render_doc(model))
+
+
+def _current(path: Path) -> Callable[[dict], str] | None:
+    """The repository's verification of a dataset version claim as of now.
+
+    A member tainted since curation and not justified then makes the version
+    unverified, as ``tine dataset versions`` reports it. Without a repository
+    at *path* nothing can have been tainted there, so there is no check.
+    """
+    from opentine._dataset_taint import TaintFilterError, tainted
+    from opentine._dataset_version import _still_clean
+    from opentine.repository import Repo
+
+    try:
+        repo = Repo.open(path)
+    except FileNotFoundError:
+        return None
+    try:
+        taint: dict | None = tainted(repo)
+    except TaintFilterError:
+        taint = None
+    return lambda claim: _still_clean(claim, taint)
 
 
 def cmd_bom(args: argparse.Namespace) -> None:

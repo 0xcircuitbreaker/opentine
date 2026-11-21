@@ -6,6 +6,9 @@
   but the signed record's public run, or whose pack holds another run object;
   every run in the pack is checked against `--tombstones`. A withdrawn,
   unredacted run could previously ride along under an extra ref.
+- `tine bom export --dataset` refuses a dataset version the repository marks
+  unverified now (a member tainted since curation, or a taint filter that
+  cannot be applied), as `tine dataset versions` and `materialize` already did.
 
 ## 0.75.0 — Dataset curation and AI-BOM export (2026-11-21)
 

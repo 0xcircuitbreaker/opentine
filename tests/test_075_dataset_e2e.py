@@ -116,13 +116,6 @@ def test_curated_versions_feed_evals_holdouts_query_and_the_bom(capsys, repo, ke
                             "version": first["record"], "signed": 1}]  # fmt: skip
     assert [c["status"] for c in out["verification"]["rows"]] == ["verified"]
 
-    # A late taint makes the version unverified and stops materializing it (fail closed).
-    _seed_taints(repo, [*second["members"], *tainted][:10])
-    assert dv.versions(repo, "train")[-1]["verification"].startswith("unverified")
-    code, _ = _cli(capsys, "dataset", "materialize", second["record"], "--out",
-                   str(tmp_path / "late.jsonl"), "--repo", root, "--json")  # fmt: skip
-    assert code != 0 and not (tmp_path / "late.jsonl").exists()
-
     # The AI-BOM of a lineage node carries the curated version and its taint filter.
     _store, _parent, child = lineage(repo.path.parent)
     version = tmp_path / "v1.json"
@@ -140,3 +133,17 @@ def test_curated_versions_feed_evals_holdouts_query_and_the_bom(capsys, repo, ke
     props = {p["name"]: p["value"] for p in train["properties"]}
     taint = json.loads(props["opentine:taint-filter"])
     assert taint["sources"] == list(SOURCES) and set(taint["excluded"]) == set(tainted)
+
+    # A late taint makes the version unverified and stops materializing it (fail closed).
+    _seed_taints(repo, [*second["members"], *tainted][:10])
+    assert dv.versions(repo, "train")[-1]["verification"].startswith("unverified")
+    code, _ = _cli(capsys, "dataset", "materialize", second["record"], "--out",
+                   str(tmp_path / "late.jsonl"), "--repo", root, "--json")  # fmt: skip
+    assert code != 0 and not (tmp_path / "late.jsonl").exists()
+
+    # Once a member is tainted after curation the BOM export refuses the version too.
+    capsys.readouterr()
+    code = _tine("bom", "export", child, "--format", "cyclonedx", "--repo", root,
+                 "--dir", (repo.path.parent / "lineage").as_posix(), "--out", bom.as_posix(),
+                 "--dataset", f"training={version.as_posix()}")  # fmt: skip
+    assert code == 1 and "tainted since" in " ".join(capsys.readouterr().err.split())
