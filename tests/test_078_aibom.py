@@ -116,7 +116,7 @@ def test_cyclonedx_carries_lineage_datasets_taint_filter_evals_and_licences(node
     tprops = {p["name"]: p["value"] for p in train["properties"]}
     assert json.loads(tprops["opentine:taint-filter"]) == FILTER
     assert tprops["opentine:dataset-signer"] == fingerprint(EVALER)
-    assert train["licenses"] == [{"expression": "CC-BY-4.0"}]
+    assert not train.get("licenses")  # a version claim asserts no licence
     assert bom["serialNumber"].startswith("urn:uuid:")
 
 
@@ -167,7 +167,7 @@ def test_dataset_versions_must_be_signed_and_well_formed(node) -> None:
 
 def test_a_dataset_version_without_a_taint_filter_is_refused(node) -> None:
     tmp_path, _root, child, _extra = node
-    bare = dataset_version(tmp_path / "bare.json", taint=None, licence=None)
+    bare = dataset_version(tmp_path / "bare.json", taint=None)
     out = tmp_path / "bom.json"
     assert _export(tmp_path, child, "cyclonedx", out, "--dataset", f"training={bare}") == 1
     assert not out.exists()

@@ -119,6 +119,12 @@ def read_dataset(spec: str, counting: set[str] | None = None) -> dict[str, Any]:
         raise BomError(f"dataset version {name} is not an Ed25519-signed attestation")
     if claim.get("convention") != VERSION:
         raise BomError(f"dataset version {name} is not an {VERSION} claim")
+    from opentine._dataset_claims import offline
+
+    found = offline(payload)  # the curation check: shape, digest, filter, curator binding
+    if not found["ok"]:
+        why = found["problems"][0] if found["problems"] else found["signature"]
+        raise BomError(f"dataset version {name} fails its offline check: {why}")
     if payload["signer"] not in (counting or set()):
         raise BomError(f"dataset version {name} is not signed by a pinned curator key")
     digest = claim.get("members_digest")

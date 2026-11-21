@@ -64,7 +64,8 @@ _KEYS = {"runs": "PRIMARY KEY (oid)", "steps": "PRIMARY KEY (run, seq)",
          "transcript_clusters": "PRIMARY KEY (oid)", "uplift_suites": "PRIMARY KEY (oid)",
          "uplift_records": "PRIMARY KEY (oid)", "trend_points": "PRIMARY KEY (oid)",
          "dataset_versions": "PRIMARY KEY (oid)",
-         "dataset_members": "PRIMARY KEY (oid, run)"}  # fmt: skip
+         "dataset_members": "PRIMARY KEY (oid, run)",
+         "dataset_tombstones": "PRIMARY KEY (oid)"}  # fmt: skip
 VIEWS = (
     "CREATE VIEW costs AS SELECT oid, run, model, provider, cost, input_tokens, output_tokens"
     " FROM steps",

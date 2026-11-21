@@ -5,7 +5,10 @@
   version, selection, member and excluded counts, the filter mode and
   justification, the members digest, the curator and when;
 * ``dataset_members``: one row per (version, member run), with the member's
-  content digest, to join with ``runs``.
+  content digest, to join with ``runs``;
+* ``dataset_tombstones``: one row per ``opentine.dataset-tombstone/1``
+  attestation: the dataset, the version that held the run, the run, the
+  withdrawal it honours, the curator and when.
 
 ``signed`` is 1 only when the offline check of the version holds: the Ed25519
 signature verifies, the payload ``signer`` is the key that signed and is the
@@ -24,19 +27,40 @@ COLUMNS: dict[str, tuple[str, ...]] = {
                          "selection", "members", "excluded", "mode", "justification",
                          "members_digest", "curator", "created_at"),
     "dataset_members": ("oid", "run", "content"),
+    "dataset_tombstones": ("oid", "target", "signer", "signed", "dataset", "version", "run",
+                           "withdrawal", "curator", "at"),
 }  # fmt: skip
-ROLES_FOR = {"dataset_versions": ("curator",)}
-TABLES = ("dataset_versions",)
+ROLES_FOR = {"dataset_versions": ("curator",), "dataset_tombstones": ("curator",)}
+TABLES = ("dataset_versions", "dataset_tombstones")
 
 
 def _text(value: Any) -> str | None:
     return value if isinstance(value, str) else None
 
 
+def _tombstone(oid: str, payload: dict[str, Any], claim: dict[str, Any]) -> dict[str, Any]:
+    """``signed`` is 1 when the signature holds under the key that signed, that key is
+    the claim's ``curator``, the record is on the tombstoned run and the claim is well formed."""
+    from opentine._dataset_claims import check_record
+    from opentine._signing_pins import used_key_fingerprint
+    from opentine.attest_signing import verify_attestation
+
+    block, signer = payload.get("signature"), payload.get("signer")
+    good = (isinstance(block, dict) and used_key_fingerprint(block) == signer
+            and claim.get("curator") == signer and payload.get("target_id") == claim.get("run")
+            and not check_record(claim)
+            and verify_attestation(payload, trust_embedded=True).ok)  # fmt: skip
+    fields = ("dataset", "version", "run", "withdrawal", "curator", "at")
+    return {"oid": oid, "target": _text(payload.get("target_id")), "signer": _text(signer),
+            "signed": int(good), **{k: _text(claim.get(k)) for k in fields}}  # fmt: skip
+
+
 def attestation_rows(oid: str, payload: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
-    from opentine._dataset_claims import VERSION, offline
+    from opentine._dataset_claims import TOMBSTONE, VERSION, offline
 
     claim = payload.get("claim")
+    if isinstance(claim, dict) and claim.get("convention") == TOMBSTONE:
+        return {"dataset_tombstones": [_tombstone(oid, payload, claim)]}
     if not isinstance(claim, dict) or claim.get("convention") != VERSION:
         return {}
     check = offline(payload)

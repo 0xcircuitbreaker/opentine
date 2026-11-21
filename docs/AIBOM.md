@@ -32,7 +32,7 @@ bytes. With `--out FILE --json` the command prints a `tine-cli-bom/1` summary
 | Eval results | `modelCard.quantitativeAnalysis.performanceMetrics` (`passed/items` per dataset) and an `opentine:eval` property per eval | `ai_metric` entries and the lineage-record annotation |
 | Eval signers | in each `opentine:eval` property (`signers`) | in the lineage-record annotation |
 | Record and dataset-version signers | `opentine:record-signer`, `opentine:dataset-signer` | annotations |
-| Licences | `licenses[].expression` on the model (`--licence`) and on datasets (the version's `licence`) | `simplelicensing_LicenseExpression` and `hasDeclaredLicense` |
+| Licences | `licenses[].expression` on the model (`--licence`); a dataset version asserts no licence, so datasets carry none (contributed-run licences are checked by `tine dataset check`, docs/DATASET_CONTRIBUTORS.md) | `simplelicensing_LicenseExpression` and `hasDeclaredLicense` |
 | Mutation run, selector, loop, promotion policy and decision | `opentine:*` properties | the lineage-record annotation |
 
 Training dataset versions are attached to the exported variant only; eval
@@ -55,10 +55,14 @@ signers as in `tine lineage check`.
 The export reads
 
 ```json
-{"convention": "opentine.dataset-version/1", "name": "...",
+{"convention": "opentine.dataset-version/1", "name": "...", "version": 1,
  "members": [...], "members_digest": "sha256:HEX",
- "taint_filter": {...}, "licence": "SPDX expression"}
+ "taint_filter": {...}, "curator": "sha256:FINGERPRINT", ...}
 ```
+
+as written by `tine dataset curate`; the whole claim must pass the same
+offline check as `tine dataset verify-version` (shape, members digest, taint
+filter, signature, signer and curator binding).
 
 `ROLE` is `training` or `eval`. The dataset's digest in the document is
 `members_digest`, and the export recomputes it over `members` (sha256 of the
@@ -69,6 +73,7 @@ new object kind).
 The export refuses, with exit 1 and nothing written:
 
 - an unsigned or edited version, an unknown role, or another convention;
+- a version that fails the `tine dataset verify-version` offline check;
 - a `members_digest` that is not the digest of `members`;
 - a version with no taint filter;
 - a version whose signer is not a pinned `curator` key, or is also an
