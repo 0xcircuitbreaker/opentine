@@ -181,6 +181,16 @@
         "subject": {
           "type": "string"
         },
+        "admitted": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "records": {
           "type": "array",
           "items": {
@@ -191,6 +201,7 @@
               "signer",
               "signed",
               "roles",
+              "counts",
               "claim"
             ],
             "properties": {
@@ -208,6 +219,9 @@
                 ]
               },
               "signed": {
+                "type": "boolean"
+              },
+              "counts": {
                 "type": "boolean"
               },
               "roles": {

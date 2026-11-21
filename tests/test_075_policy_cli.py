@@ -33,6 +33,10 @@ def _key_file(tmp_path, name, key):
 
 @pytest.fixture
 def setup(tmp_path):
+    return make_setup(tmp_path)
+
+
+def make_setup(tmp_path):
     repo = Repo.init(tmp_path / "r")
     run = repo.put_run(costed_run("subject", 0.5, 100)).run_id
     roles = (f'version = 1\n[roles]\nrunner = ["{_hex(RUNNER)}"]\npolicy = ["{_hex(POLICY_KEY)}"]\n'

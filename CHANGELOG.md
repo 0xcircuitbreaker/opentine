@@ -9,7 +9,8 @@
   policies and containment findings). Signers carry roles from the
   owner-pinned key roles only; records signed by a pinned optimizer key are
   left out. Exit 0 on `allow`, 1 on `deny`. `tine policy list` and
-  `tine policy show RUN`. Schema `tine-cli-policy/1`. See docs/POLICY.md.
+  `tine policy show RUN [--policy P [--input-digest D]]` (`admitted`: a
+  record by a pinned `policy` key allows and none denies). Schema `tine-cli-policy/1`. See docs/POLICY.md.
 - The policy language (`opentine.policy/1`, schema `opentine-policy-1`) is a
   strict CEL subset: literals, field access, indexing, comparisons, `in`,
   `&&`/`||`/`!`, `has()`, `size()` and the `all`/`exists` macros, with no

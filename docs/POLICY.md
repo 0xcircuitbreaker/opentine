@@ -156,11 +156,29 @@ verification summary), with the claim (schema `opentine-policy-admission-1`):
 
 Denies are recorded too. The record is held under
 `policy-admission:RUN-HEX` and `tine hold release` refuses it, so a loop
-cannot delete a deny it received. A pinned `optimizer` key cannot sign one
+cannot delete a deny it received. Only a key pinned with the `policy` role
+in the owner-pinned key roles signs one (`policy.signer-role`); a pinned
+`optimizer` key is refused even if it also holds `policy`
 (`policy.key-separation`). The claim is consistent by construction: the
-decision follows from the `require` outcomes. Whether a record counts for a
-consumer is a role question: `tine policy show RUN` lists each record with
-its signer's pinned roles (the expected role is `policy`).
+decision follows from the `require` outcomes, and `subject` names the run
+the attestation is attached to.
+
+A record **counts** only when its signature verifies with the signer bound
+to the signing key, the claim is valid, it targets and names the run, and
+its signer holds the pinned `policy` role and not `optimizer`.
+`tine policy show RUN --policy POLICY [--input-digest D]` reports
+`admitted`: a counting record for that policy digest allows and none
+denies. The check is order-free, since holds are kept sorted by id and `at`
+is self-claimed: with `--input-digest D` only records naming D are
+considered, so an allow over older records does not admit the current
+input; without it, any counting deny refuses (deny wins). It exits 1 when
+not admitted.
+
+Policy files, `--param` values and `--input` documents are strict JSON:
+duplicate keys, `NaN`/`Infinity` and integers beyond +-(2**53 - 1) are
+refused. A bare standard name (`promote`) always means the shipped policy,
+even if a file of that name is in the working directory; use `./promote`
+for such a file.
 
 ## Standard policies
 

@@ -43,9 +43,10 @@ _SHAPES = [
             "name": STR, "digest": _DIGEST, "description": STR})}}),
     closed(["command", "schema", "subject", "records"], {
         **_HEAD, "command": {"const": "policy show"}, "subject": STR,
+        "admitted": opt(BOOL),
         "records": {"type": "array", "items": closed(["oid", "signer", "signed", "roles",
-                                                      "claim"], {
-            "oid": STR, "signer": opt(STR), "signed": BOOL,
+                                                      "counts", "claim"], {
+            "oid": STR, "signer": opt(STR), "signed": BOOL, "counts": BOOL,
             "roles": {"type": "array", "items": STR}, "claim": {}})}}),
 ]  # fmt: skip
 _RULE = closed(["id", "expr", "effect"], {

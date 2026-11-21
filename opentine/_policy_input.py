@@ -36,6 +36,7 @@ from typing import Any
 from opentine._policy_lang import number_ok
 
 MAX_LINEAGE = 1000
+_INF = float("inf")
 
 
 def _safe(value: Any) -> Any:
@@ -43,12 +44,20 @@ def _safe(value: Any) -> Any:
         return value
     if isinstance(value, (int, float)):
         if not number_ok(value):
-            return None if isinstance(value, float) and value != value else str(int(value))
+            if isinstance(value, float) and (value != value or value in (_INF, -_INF)):
+                return None
+            return str(int(value))
         return value
     if isinstance(value, list):
-        return [_safe(v) for v in value]
+        out = []
+        for v in value:
+            out.append(_safe(v))
+        return out
     if isinstance(value, dict):
-        return {str(k): _safe(v) for k, v in value.items()}
+        mapped = {}
+        for k, v in value.items():
+            mapped[str(k)] = _safe(v)
+        return mapped
     return str(value)
 
 

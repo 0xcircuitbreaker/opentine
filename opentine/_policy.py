@@ -26,7 +26,7 @@ from pathlib import Path
 from typing import Any
 
 from opentine._policy_eval import check_input, evaluate
-from opentine._policy_lang import PolicyError, parse
+from opentine._policy_lang import PolicyError, number_ok, parse
 
 SCHEMA = "opentine.policy/1"
 EFFECTS = ("require", "advisory")
@@ -76,9 +76,12 @@ def check_policy(doc: Any) -> list[str]:
 
 def load(path: str | Path) -> tuple[dict[str, Any], bytes]:
     """The policy at *path* (or a standard policy by name) and its bytes."""
+    # A bare standard name always means the shipped policy: a file of that name in the
+    # working directory cannot shadow it (use ./NAME for such a file).
+    if isinstance(path, str) and re.fullmatch(r"[a-z0-9-]{1,64}", path):
+        if (STANDARD_DIR / f"{path}.json").is_file() or not Path(path).exists():
+            path = STANDARD_DIR / f"{path}.json"
     path = Path(path)
-    if not path.exists() and re.fullmatch(r"[a-z0-9-]{1,64}", str(path)):
-        path = STANDARD_DIR / f"{path}.json"
     try:
         raw = path.read_bytes()
     except OSError as exc:
@@ -86,13 +89,39 @@ def load(path: str | Path) -> tuple[dict[str, Any], bytes]:
     if len(raw) > MAX_POLICY_BYTES:
         raise PolicyFileError(f"policy {path} is larger than {MAX_POLICY_BYTES} bytes")
     try:
-        doc = json.loads(raw.decode("utf-8"))
+        doc = strict_json(raw.decode("utf-8"))
     except (UnicodeDecodeError, ValueError, RecursionError) as exc:
         raise PolicyFileError(f"policy {path} is not JSON: {exc}") from exc
     problems = check_policy(doc)
     if problems:
         raise PolicyFileError(f"policy {path}: {problems[0]}")
     return doc, raw
+
+
+def _pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    out: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in out:
+            raise ValueError(f"duplicate key {key!r}")
+        out[key] = value
+    return out
+
+
+def _constant(name: str) -> Any:
+    raise ValueError(f"{name} is not a JSON number")
+
+
+def _number(text: str) -> Any:
+    value = float(text) if any(c in text for c in ".eE") else int(text)
+    if not number_ok(value):
+        raise ValueError(f"number {text[:32]} is not finite or not JSON-safe")
+    return value
+
+
+def strict_json(text: str) -> Any:
+    """JSON with no duplicate keys, no NaN/Infinity and only JSON-safe numbers."""
+    return json.loads(text, object_pairs_hook=_pairs, parse_constant=_constant,
+                      parse_int=_number, parse_float=_number)  # fmt: skip
 
 
 def standard() -> list[str]:
@@ -143,4 +172,4 @@ def decide(doc: dict[str, Any], document: Any) -> dict[str, Any]:
 
 
 __all__ = ["EFFECTS", "SCHEMA", "PolicyFileError", "check_policy", "decide", "input_digest",
-           "load", "policy_digest", "rule_result", "standard"]  # fmt: skip
+           "load", "policy_digest", "rule_result", "standard", "strict_json"]  # fmt: skip

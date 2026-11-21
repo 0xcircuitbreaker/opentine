@@ -2074,7 +2074,7 @@ are statistical evidence, not proof of intent. `--json` prints
 | `tine policy check POLICY --subject REF [--evals DIR]... [--holdout DIR]... [--budget SUBJECT] [--param NAME=JSON]... [--key KEY] [--at TIME] [--show-input]` | Evaluates POLICY (a file or a standard policy name) over the input document assembled from the run's signed records; with `--key`, signs and holds an `opentine.policy-admission/1` record; exits 0 on `allow`, 1 on `deny` |
 | `tine policy check POLICY --subject ID --input FILE` | Evaluates over a given input document; never signed |
 | `tine policy list` | The standard policies and their digests |
-| `tine policy show RUN` | The held admission records of RUN, with their signers' pinned roles |
+| `tine policy show RUN [--policy P [--input-digest D]]` | The held admission records of RUN, with their signers' pinned roles; with `--policy`, whether a counting record allows and none denies (exit 1 if not) |
 
 Any error in a `require` rule denies; `advisory` rules never block. A
 missing or invalid policy is an error and allows nothing. `--json` prints

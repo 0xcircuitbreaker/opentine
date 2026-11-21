@@ -13,7 +13,7 @@ attestation (:mod:`opentine._policy_record`). Exit 0 on ``allow``, 1 on
 from __future__ import annotations
 
 import argparse
-import json
+import re
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -45,20 +45,28 @@ def add_policy_parser(subparsers: argparse._SubParsersAction) -> None:
     lst = verbs.add_parser("list", help="The standard policies shipped with OpenTine")
     show = verbs.add_parser("show", help="The held admission records of a run")
     show.add_argument("run", metavar="RUN", help="The run (id or ref)")
+    show.add_argument("--policy", metavar="POLICY",
+                      help="Whether a record of POLICY allows and none denies")  # fmt: skip
+    show.add_argument("--input-digest", metavar="DIGEST",
+                      help="With --policy: the record must name this input digest")  # fmt: skip
     for verb in (check, lst, show):
         verb.add_argument("--repo", default=".", metavar="PATH", help="Repository")
         verb.add_argument("--json", action="store_true", help="Print a JSON object")
 
 
 def _params(policy: dict[str, Any], given: list[str]) -> dict[str, Any]:
+    from opentine._policy import strict_json
+
     out = dict(policy.get("params", {}))
     for item in given:
         name, sep, raw = item.partition("=")
         if not sep or not name:
             raise ValueError(f"--param {item!r} is not NAME=VALUE")
         try:
-            out[name] = json.loads(raw)
+            out[name] = strict_json(raw)
         except ValueError:
+            if re.fullmatch(r"\s*-?(nan|infinity|inf|[0-9][0-9.eE+-]*)\s*", raw, re.I):
+                raise ValueError(f"--param {name}: not a finite JSON-safe value") from None
             out[name] = raw
     return out
 
@@ -79,7 +87,7 @@ def _check(args: argparse.Namespace) -> tuple[dict[str, Any], list[str]]:
     if args.input_file:
         if args.key:
             raise ValueError("--input is never signed: drop --key")
-        document = json.loads(Path(args.input_file).read_bytes().decode("utf-8"))
+        document = _policy.strict_json(Path(args.input_file).read_bytes().decode("utf-8"))
         subject = args.subject
     else:
         from opentine import _policy_input
@@ -133,10 +141,19 @@ def _show(args: argparse.Namespace) -> tuple[dict[str, Any], list[str]]:
     repo = Repo.open(args.repo)
     run = _run_id(repo, args.run)
     rows = _policy_record.rows(repo, run)
+    admitted = None
+    if args.policy:
+        from opentine import _policy
+
+        digest = _policy.policy_digest(_policy.load(args.policy)[0])
+        admitted = _policy_record.admitted(repo, run, digest, args.input_digest)
     lines = [f"{r['oid']} {'signed' if r['signed'] else 'UNSIGNED'} "
              f"{(r['claim'] or {}).get('decision')} {(r['claim'] or {}).get('policy')}"
              for r in rows]  # fmt: skip
-    return {"subject": run, "records": rows}, lines or [f"no admission records for {run}"]
+    lines = lines or [f"no admission records for {run}"]
+    if admitted is not None:
+        lines.append(f"admitted: {'yes' if admitted else 'no'}")
+    return {"subject": run, "admitted": admitted, "records": rows}, lines
 
 
 _VERBS = {"check": _check, "list": _list, "show": _show}
@@ -157,6 +174,8 @@ def cmd_policy(args: argparse.Namespace) -> None:
         for line in lines:
             console.print(_terminal(line), markup=False)
     if verb == "check" and body["decision"] != "allow":
+        raise SystemExit(1)
+    if verb == "show" and body["admitted"] is False:
         raise SystemExit(1)
 
 

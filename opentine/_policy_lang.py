@@ -197,12 +197,16 @@ def parse(src: str) -> tuple:
 def height(tree: Any) -> int:
     """Nodes on the longest root-to-leaf path (literal values are leaves, not nodes)."""
     if not isinstance(tree, tuple) or not tree or not isinstance(tree[0], str):
-        if isinstance(tree, tuple):
-            return max((height(t) for t in tree), default=0)
-        return 0
+        best = 0
+        for t in tree if isinstance(tree, tuple) else ():
+            best = max(best, height(t))
+        return best
     if tree[0] == "lit":
         return 1
-    return 1 + max((height(t) for t in tree[1:]), default=0)
+    best = 0
+    for t in tree[1:]:
+        best = max(best, height(t))
+    return 1 + best
 
 
 __all__ = ["MAX_DEPTH", "MAX_HEIGHT", "MAX_NODES", "MAX_SAFE", "MAX_SOURCE", "PolicyError",

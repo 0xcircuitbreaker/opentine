@@ -75,7 +75,9 @@ def hold_target(run: str) -> str:
 
 def record(repo: Any, run: str, body: dict[str, Any], key: Any) -> str:
     """Sign *body* onto *run* and hold it; the attestation id."""
-    from opentine._sabotage import scorers
+    from pathlib import Path
+
+    from opentine._policy_input import _roles
     from opentine._signing_pins import key_fingerprint
     from opentine.repository._attest import attest
     from opentine.repository._holds import edit_holds, holds_path
@@ -85,8 +87,13 @@ def record(repo: Any, run: str, body: dict[str, Any], key: Any) -> str:
     if problems:
         raise ValueError(f"not a valid admission record: {problems[0]}")
     signer = key_fingerprint(key.public_key().public_bytes_raw())
-    if signer in scorers(repo)[1]:
+    if body["subject"] != run:
+        raise ValueError("an admission record names the run it is attached to")
+    roles = _roles(Path(repo.path))[1].get(signer, [])
+    if "optimizer" in roles:
         raise ValueError("policy.key-separation: a pinned optimizer key cannot sign admissions")
+    if "policy" not in roles:
+        raise ValueError("policy.signer-role: the signing key is not pinned with the policy role")
     oid = attest(repo, run, body, signer=signer, key=key, algorithm="ed25519",
                  signed_at=body["at"])  # fmt: skip
     touch_links(repo, [oid])
@@ -118,8 +125,38 @@ def rows(repo: Any, run: str) -> list[dict[str, Any]]:
                     "signed": bool(payload) and _signed_attestation(payload)
                     and not check_claim(value),
                     "roles": by_key.get(payload.get("signer"), []),
+                    "counts": counts(payload, run, by_key.get(payload.get("signer"), [])),
                     "claim": value if isinstance(value, dict) else None})  # fmt: skip
     return out
 
 
-__all__ = ["CONVENTION", "check_claim", "claim", "hold_target", "record", "rows"]
+def counts(payload: dict[str, Any], run: str, roles: list[str]) -> bool:
+    """A record counts: signed by its signer, valid, about *run*, by a pinned policy key."""
+    from opentine._query_rows import _signed_attestation
+
+    value = payload.get("claim")
+    return (bool(payload) and payload.get("target_id") == run and _signed_attestation(payload)
+            and not check_claim(value) and value["subject"] == run
+            and "policy" in roles and "optimizer" not in roles)  # fmt: skip
+
+
+def admitted(repo: Any, run: str, digest: str, input_digest: str | None = None) -> bool:
+    """A counting record for policy *digest* allows *run* and none denies it.
+
+    Order-free (holds are kept sorted by id and ``at`` is self-claimed, so neither
+    can say which record is newer): with *input_digest*, only records naming it
+    are considered, so an allow over older records does not admit the current
+    input; without it, any counting deny for the policy refuses (deny wins).
+    """
+    found = [
+        r["claim"]
+        for r in rows(repo, run)
+        if r["counts"]
+        and r["claim"]["policy"]["digest"] == digest
+        and (input_digest is None or r["claim"]["input_digest"] == input_digest)
+    ]
+    return bool(found) and all(c["decision"] == "allow" for c in found)
+
+
+__all__ = ["CONVENTION", "admitted", "check_claim", "claim", "counts", "hold_target", "record",
+           "rows"]  # fmt: skip

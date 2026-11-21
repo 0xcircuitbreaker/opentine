@@ -94,9 +94,19 @@ def equal(a: Any, b: Any) -> bool:
     if ka != kb:
         return False
     if ka == "list":
-        return len(a) == len(b) and all(equal(x, y) for x, y in zip(a, b, strict=True))
+        if len(a) != len(b):
+            return False
+        for x, y in zip(a, b, strict=True):
+            if not equal(x, y):
+                return False
+        return True
     if ka == "map":
-        return set(a) == set(b) and all(equal(a[k], b[k]) for k in a)
+        if set(a) != set(b):
+            return False
+        for k in a:
+            if not equal(a[k], b[k]):
+                return False
+        return True
     return a == b
 
 

@@ -7032,4 +7032,20 @@ ROWS: tuple[tuple, ...] = (
         False,
         {"command": "policy", "policy_command": "show", "run": "R", "json": True, "repo": "."},
     ),
+    (
+        "plain:policy show R --policy promote --input-digest D",
+        "plain",
+        ["policy", "show", "R", "--policy", "promote", "--input-digest", "D"],
+        "opentine._cli_policy:cmd_policy",
+        False,
+        {
+            "command": "policy",
+            "policy_command": "show",
+            "run": "R",
+            "policy": "promote",
+            "input_digest": "D",
+            "json": False,
+            "repo": ".",
+        },
+    ),
 )
