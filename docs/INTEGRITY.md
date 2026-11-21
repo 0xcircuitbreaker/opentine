@@ -256,8 +256,16 @@ The command reports two kinds of leak and records the method in the result:
   found in the union of corpus shingles (its `coverage`) is at or above the
   threshold.
 
-The command exits 1 on any leak. Embedding similarity is out of scope for this
-check.
+- Embedding (0.74, opt-in with `--embedding-threshold T`): each item's text is
+  embedded with the transcript backend (`transcript-hash/1`, or a local model
+  named by `--embedding-backend MODULE:ATTR` whose weights digest is recorded)
+  and items whose nearest corpus items have cosine similarity at or above `T`
+  are reported under `embedding.near`, with the backend digest and threshold.
+  This catches rewordings that keep the vocabulary but break 5-gram overlap.
+  Items already reported as exact, near or chunked are not repeated. See
+  docs/TRANSCRIPTS.md.
+
+The command exits 1 on any leak.
 
 ### Mutations and what a writer can still do
 
@@ -300,8 +308,10 @@ vector family. `tests/test_060_integrity.py` regenerates the fixture from
 - Canaries (0.60): sealed holdout items (TINEAES), `tine dataset unseal`
   access records, exposure budgets and holdout rotation are separate plan
   items. The scan reads repository objects and raw files, so it does not
-  inflate compressed exports. Embedding near-duplicates wait for a pinned
-  embedding model. No TypeScript reader reads canary records yet.
+  inflate compressed exports. Embedding near-duplicates are opt-in
+  (`--embedding-threshold`, 0.74) and see shared vocabulary, not meaning, unless
+  a pinned local model is given. No TypeScript reader reads canary records
+  yet.
 - The remaining advisory heuristics of the plan (skip insertion,
   special-casing, visible/holdout gap, judge vs ground truth, fabricated tool
   evidence) and the seeded red-team corpus with its benign baseline.

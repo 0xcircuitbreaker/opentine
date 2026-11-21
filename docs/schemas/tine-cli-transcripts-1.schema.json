@@ -1,0 +1,629 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-transcripts-1.schema.json",
+  "title": "tine transcripts index|search|similar|cluster|label|flags --json",
+  "description": "Embedding search over run transcripts through a derived, non-authoritative index (`index`, `search`, `similar`), seeded clusters over transcript embeddings (`cluster`), signed behaviour flags (`label`, `flags`) and runs like a run. The backend digest names the embedding parameters (and pinned model weights).",
+  "anyOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "authority",
+        "index",
+        "rebuilt",
+        "exists",
+        "stale",
+        "reasons",
+        "backend",
+        "backend_digest",
+        "caps",
+        "counts",
+        "disagreeing"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-transcripts/1"
+        },
+        "authority": {
+          "const": "non-authoritative"
+        },
+        "command": {
+          "const": "transcripts index"
+        },
+        "index": {
+          "type": "string"
+        },
+        "rebuilt": {
+          "type": "boolean"
+        },
+        "exists": {
+          "type": "boolean"
+        },
+        "stale": {
+          "type": "boolean"
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "backend": {
+          "type": "object"
+        },
+        "backend_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "caps": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "step_bytes",
+            "max_bytes"
+          ],
+          "properties": {
+            "step_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "max_bytes": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "counts": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "runs",
+                "embedded",
+                "reused",
+                "truncated"
+              ],
+              "properties": {
+                "runs": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "embedded": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "reused": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "truncated": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "disagreeing": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "authority",
+        "stale",
+        "stale_reasons",
+        "backend_digest",
+        "query",
+        "k",
+        "method",
+        "candidates",
+        "indexed",
+        "hits"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-transcripts/1"
+        },
+        "authority": {
+          "const": "non-authoritative"
+        },
+        "command": {
+          "enum": [
+            "transcripts search",
+            "transcripts similar"
+          ]
+        },
+        "stale": {
+          "type": "boolean"
+        },
+        "stale_reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "backend_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "query": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "text_sha256"
+              ],
+              "properties": {
+                "text_sha256": {
+                  "type": "string"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "run"
+              ],
+              "properties": {
+                "run": {
+                  "type": "string"
+                }
+              }
+            }
+          ]
+        },
+        "k": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "method": {
+          "enum": [
+            "exact",
+            "lsh",
+            "exact-fallback"
+          ]
+        },
+        "candidates": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "indexed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "hits": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "run",
+              "score",
+              "steps",
+              "bytes",
+              "truncated",
+              "text_sha256"
+            ],
+            "properties": {
+              "run": {
+                "type": "string"
+              },
+              "score": {
+                "type": "number"
+              },
+              "steps": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "bytes": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "truncated": {
+                "type": "boolean"
+              },
+              "text_sha256": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "backend",
+        "corpus",
+        "k",
+        "seed",
+        "iterations",
+        "clusters"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-transcripts/1"
+        },
+        "command": {
+          "const": "transcripts cluster"
+        },
+        "backend": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "dim",
+            "digest",
+            "weights_digest"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "dim": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "weights_digest": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "corpus": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source",
+            "count",
+            "digest"
+          ],
+          "properties": {
+            "source": {
+              "enum": [
+                "repo",
+                "files"
+              ]
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          }
+        },
+        "k": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "iterations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "clusters": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "size",
+              "members",
+              "exemplar",
+              "flags"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^tc-[0-9a-f]{16}$"
+              },
+              "size": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "members": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "exemplar": {
+                "type": "string"
+              },
+              "flags": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "record",
+        "label",
+        "evidence"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-transcripts/1"
+        },
+        "command": {
+          "const": "transcripts label"
+        },
+        "record": {
+          "type": "string",
+          "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+        },
+        "label": {
+          "type": "string"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^run:sha256:[0-9a-f]{64}$"
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "flags"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-transcripts/1"
+        },
+        "command": {
+          "const": "transcripts flags"
+        },
+        "flags": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "record",
+              "hold",
+              "label",
+              "evidence",
+              "cluster",
+              "labeller",
+              "backend",
+              "note",
+              "labelled_at",
+              "verification"
+            ],
+            "properties": {
+              "record": {
+                "type": "string",
+                "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+              },
+              "hold": {
+                "type": "string"
+              },
+              "label": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "evidence": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "cluster": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "labeller": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "backend": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "name",
+                      "digest",
+                      "weights_digest"
+                    ],
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "digest": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "weights_digest": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "note": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "labelled_at": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "verification": {
+                "type": "string",
+                "pattern": "^(verified|unverified: .+)$"
+              }
+            }
+          }
+        },
+        "like": {
+          "type": "string",
+          "pattern": "^run:sha256:[0-9a-f]{64}$"
+        },
+        "backend": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "dim",
+            "digest",
+            "weights_digest"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "dim": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "weights_digest": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "similar": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "run",
+              "score"
+            ],
+            "properties": {
+              "run": {
+                "type": "string"
+              },
+              "score": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

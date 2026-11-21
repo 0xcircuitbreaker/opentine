@@ -1,5 +1,93 @@
 # Changelog
 
+## 0.73.0 — Transcript analysis at corpus scale (2026-11-21)
+
+- `tine transcripts index|search|similar RUN [--json]`: a derived,
+  rebuildable, non-authoritative embedding index over run transcripts (steps,
+  tool calls, outputs) at `.tine/transcripts/index.sqlite`. `similar RUN`
+  finds the trajectories nearest to a run; `search TEXT` ranks runs against a
+  text. Schema `tine-cli-transcripts/1`. See docs/TRANSCRIPTS.md.
+- Default backend `transcript-hash/1`: standard library only and
+  deterministic (per-step hashed token, bigram and character 4-gram features,
+  seeded sparse random projection to 512 dimensions), identified by a backend
+  digest recorded in the index. `--backend MODULE:ATTR` uses a local model
+  whose weights file digest is recorded and can be pinned with
+  `--weights-digest`; nothing is downloaded.
+- Size caps per step input/output (`--step-bytes`, default 2048) and per
+  transcript (`--max-bytes`, default 32768), with truncated transcripts
+  counted. Staleness reports a changed backend, caps, search parameters or
+  run set; a rebuild re-embeds only new runs.
+- Search is exact up to 200,000 runs (numpy speeds it when the `embed` extra
+  is installed) and random-hyperplane LSH with exact re-scoring above that or
+  with `--approx`, falling back to the exact scan when the probes come up
+  short.
+- `tine dataset contamination --embedding-threshold T` adds embedding
+  near-duplicates (cosine >= T, backend digest and threshold recorded) to the
+  0.60 contamination check. Opt-in; existing output is unchanged without it.
+- The index file is never trusted: an adapter named in it is never imported,
+  caps come from the command line, rows for unknown runs and non-finite or
+  non-unit vectors are left out and mark it stale, a missing row marks it
+  stale, `similar RUN` embeds RUN from its objects, `index --rebuild` embeds
+  every run again (`--refresh` reuses rows) and `index --verify` lists rows
+  that disagree with the objects.
+- `transcript-hash/1` normalises text before taking features (NFKC, format
+  characters dropped, Cyrillic and Greek lookalikes, decoded base64);
+  repeated steps are kept once, an over-cap transcript keeps its first and
+  last steps, and objects over 16 MiB are never read into memory.
+- A seeded synthetic transcript corpus (`tests/transcript_corpus.py`) with
+  eight planted behaviours: recall at top 50 is at least 0.9 (0.94 measured).
+- `scripts/bench/transcripts_index.py` measures 100k transcripts; results and
+  hardware in docs/bench/0.73-transcripts.md.
+
+- Clustering and flags use their own embedding space,
+  `opentine.tfidf-hash/1` (`opentine/_transcript_space.py`); its features
+  are taken after Unicode NFKC, case folding, dropping
+  format characters, mapping Cyrillic and Greek lookalikes and decoding
+  base64 tokens, over every word (no 20,000-word cap to pad past); the
+  backend digest changes accordingly. `--corpus` lines with duplicate keys
+  or NaN/Infinity are refused, a model returning the wrong dimension or
+  non-finite numbers is refused, and a flag's `labelled_at` must be
+  `YYYY-MM-DDTHH:MM:SSZ`.
+- `tine transcripts cluster [--corpus FILE.jsonl] [--k N] [--seed S]`:
+  seeded spherical k-means over the redacted text of every run (or a JSONL
+  corpus), with the deterministic standard-library embedding
+  `opentine.tfidf-hash/1` (word and bigram features, seeded signed hashing
+  into 2048 buckets, TF-IDF, centred cosine). Every result records the
+  backend digest and the corpus digest; cluster ids (`tc-...`) are digests of
+  their members. `--backend MODULE:ATTR` takes a pinned local model that
+  carries a `weights_digest`; nothing is downloaded.
+- `tine transcripts label LABEL (--run RUN... | --cluster ID | --like RUN)
+  --key KEY` signs a behaviour flag, the claim convention
+  `opentine.transcript-flag/1` (label, evidence run ids, cluster id,
+  labeller, backend) on an existing attestation, held under
+  `transcript-flag:` and never released. Only a `scorer` or `curator` key of
+  the owner-pinned trust bundle may label; an optimizer key, unpinned roles
+  or an unreadable role policy are refused before anything is written.
+- `tine transcripts flags [--label L] [--run RUN] [--like RUN --top N]`
+  lists flags with their verification (signer bound to the signing key,
+  labeller equal to the signer, pinned role) and the runs most like a run.
+- A committed synthetic corpus of 600 transcripts with seeded reward hacking,
+  test deletion and sabotage side tasks (`tests/data/transcript_corpus.jsonl`,
+  `scripts/gen_transcript_corpus.py`); `scripts/transcript_recall.py` and the
+  tests check recall@50 of at least 0.9 for each behaviour (1.0, 1.0, 0.96).
+- `scripts/bench/transcripts.py`: 100,000 transcripts indexed in 16 s on a
+  4-core container (docs/bench/0.74-transcripts.md).
+- New schemas `tine-cli-transcripts-1` (all six verbs) and
+  `opentine-transcript-flag-1` (now with a `labelled_at` pattern);
+  `tine-cli-canary-1` gains the optional `embedding` member. See
+  docs/TRANSCRIPT_FLAGS.md.
+- Oversight queue (0.63): new source `transcript`. Every verified behaviour
+  flag is an item `transcript:ATTESTATION`, and every run whose transcript is
+  like a verified flag's evidence run (centred cosine >= 0.6, recomputed from
+  the objects) is an item `transcript:LABEL:RUN`. Items reach a tier only
+  through a `[[route]] source = "transcript"` row of the pinned policy, whose
+  `label` glob matches the flag label; nothing blocks by default. Unverified
+  flags open nothing.
+- `tine query`: new tables `transcript_flags` (every held flag with its
+  verification) and `transcript_clusters` (one row per member of the
+  seeded k-means clusters, default k and seed 0), recomputed from the
+  objects; neither is stored.
+
 ## 0.72.0 — Uplift and capability trends (2026-11-20)
 
 - `tine uplift suite|record|horizon|compare`: versioned task suites addressed

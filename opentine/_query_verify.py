@@ -31,6 +31,7 @@ from opentine import _query_experiments as qx
 from opentine import _query_merges as qm
 from opentine import _query_research as qe
 from opentine import _query_rows as qr
+from opentine import _query_transcripts as qt
 from opentine import _query_uplift as qu
 from opentine._query_build import eval_files, eval_source, remembered_dirs
 
@@ -113,7 +114,7 @@ def _table_of(db: Any, oid: str, row: dict[str, Any]) -> str | None:
     for table in ("evals", *trend, "lineage_variants", "monitor_verdicts", "oversight_decisions",
                   *results, "experiments", "reproductions", "sabotage_tasks", *items,
                   "elicit_links", "history_merges", *qc.TABLES, *qd.ROLES_FOR,
-                  *qu.ROLES_FOR):  # fmt: skip
+                  *qu.ROLES_FOR, *qt.TABLES):  # fmt: skip
         if db.execute(f"SELECT 1 FROM {table} WHERE oid = ? LIMIT 1", (oid,)).fetchone():
             return table
     return None
@@ -152,9 +153,14 @@ def check(repo: Any, oid: str, row: dict[str, Any], db: Any,
     need = ROLE_FOR.get(table or "")
     if need and (need not in out["roles"] or "optimizer" in out["roles"]):
         return {**out, "status": "unverified", "reason": f"the signer holds no {need} role"}
-    roles = {**qe.ROLES_FOR, **qm.ROLES_FOR, **qc.ROLES_FOR, **qd.ROLES_FOR, **qu.ROLES_FOR}.get(
-        "elicit_links" if table == "elicit_items" else table or ""
-    )
+    roles = {
+        **qe.ROLES_FOR,
+        **qm.ROLES_FOR,
+        **qc.ROLES_FOR,
+        **qd.ROLES_FOR,
+        **qu.ROLES_FOR,
+        **qt.ROLES_FOR,
+    }.get("elicit_links" if table == "elicit_items" else table or "")
     if roles and (not set(roles) & set(out["roles"]) or "optimizer" in out["roles"]):
         return {**out, "status": "unverified",
                 "reason": f"the signer holds no {' or '.join(roles)} role"}  # fmt: skip

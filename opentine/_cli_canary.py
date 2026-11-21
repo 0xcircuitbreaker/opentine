@@ -7,7 +7,9 @@ below its declared entropy (:mod:`opentine._canary_check`); ``canary-sign
 LENGTHS.json --run RUN --key KEY`` signs a scorer's code lengths for that run
 (what ``canary-check`` reads); ``contamination
 HOLDOUT.jsonl --against CORPUS.jsonl`` reports exact-oid and MinHash 5-gram
-near-duplicate leaks (:mod:`opentine._contamination`). Each exits 1 when it
+near-duplicate leaks (:mod:`opentine._contamination`), and with
+``--embedding-threshold T`` embedding near-duplicates too (0.74,
+:mod:`opentine._contamination_embed`). Each exits 1 when it
 refuses or finds a leak. ``tine integrity scan`` lives in ``_cli_integrity``.
 """
 
@@ -48,6 +50,9 @@ def add_canary_verbs(verbs: Any) -> None:
     cont.add_argument("dataset", metavar="HOLDOUT.jsonl")
     cont.add_argument("--against", action="append", default=[], metavar="CORPUS.jsonl")
     cont.add_argument("--threshold", type=float, default=0.8, help="5-gram Jaccard (default 0.8)")
+    cont.add_argument("--embedding-threshold", type=float, metavar="T",
+                      help="Also report embedding near-duplicates at cosine >= T")  # fmt: skip
+    cont.add_argument("--embedding-backend", metavar="SPEC", help="hash (default) or MODULE:ATTR")
     for verb in (add, listing, check, sign, cont):
         verb.add_argument("--repo", default=".", metavar="PATH", help="Repository root")
         verb.add_argument("--json", action="store_true", help="Print a JSON object")
@@ -84,8 +89,23 @@ def _row(args: argparse.Namespace) -> dict[str, Any]:
         from opentine.repo import Repo
 
         repo = Repo.open(root)
-    return cont.check(read_jsonl(Path(args.dataset)), cont.corpus_rows(args.against),
-                      threshold=args.threshold, repo=repo)  # fmt: skip
+    holdout, corpus = read_jsonl(Path(args.dataset)), cont.corpus_rows(args.against)
+    row = cont.check(holdout, corpus, threshold=args.threshold, repo=repo)
+    if args.embedding_threshold is not None:
+        from opentine import _contamination_embed, _transcript_embed
+
+        seen = frozenset(h["id"] for key in ("exact", "near", "chunked") for h in row[key])
+        found = _contamination_embed.check(
+            holdout,
+            corpus,
+            threshold=args.embedding_threshold,
+            skip=seen,
+            backend=_transcript_embed.load(args.embedding_backend),
+        )
+        row["embedding"] = found
+        row["counts"]["embedding"] = len(found["near"])
+        row["ok"] = row["ok"] and not found["near"]
+    return row
 
 
 def _sign(args: argparse.Namespace) -> dict[str, Any]:

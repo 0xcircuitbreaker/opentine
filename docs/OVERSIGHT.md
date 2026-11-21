@@ -68,6 +68,12 @@ are recomputed from the held records on every read. Approving one records a
 review; it never allows a load, which still needs a custody or organism
 approval (docs/CUSTODY.md).
 
+A `transcript:ATTESTATION` item (0.74, route `source = "transcript"`, `label`
+a glob over the flag label) names a verified behaviour flag, and a
+`transcript:LABEL:RUN` item names a run like one of that flag's evidence
+runs. Both are recomputed from the held flags and the run objects on every
+read; an unverified flag opens nothing (docs/TRANSCRIPT_FLAGS.md).
+
 An item routed into several tiers must satisfy each of them.
 
 ### Pinning

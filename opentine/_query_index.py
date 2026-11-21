@@ -45,6 +45,7 @@ _INDEXES = (
     "CREATE INDEX sabotage_task ON sabotage_tasks (task)",
     "CREATE INDEX elicit_items_oid ON elicit_items (oid)",
     "CREATE INDEX custody_artifact ON weight_custody (artifact)",
+    "CREATE INDEX flag_runs_run ON transcript_flag_runs (run)",
     "CREATE INDEX uplift_records_suite ON uplift_records (suite)",
     "CREATE INDEX trend_points_generation ON trend_points (generation)",
 )  # fmt: skip
@@ -57,7 +58,9 @@ _KEYS = {"runs": "PRIMARY KEY (oid)", "steps": "PRIMARY KEY (run, seq)",
          "history_merges": "PRIMARY KEY (oid)", "sandbox_policies": "PRIMARY KEY (oid)",
          "containment_findings": "PRIMARY KEY (oid)",
          "budget_ledger": "PRIMARY KEY (oid)", "weight_custody": "PRIMARY KEY (oid)",
-         "organism_records": "PRIMARY KEY (oid)", "uplift_suites": "PRIMARY KEY (oid)",
+         "organism_records": "PRIMARY KEY (oid)", "transcript_flags": "PRIMARY KEY (oid)",
+         "transcript_flag_runs": "PRIMARY KEY (oid, run)",
+         "transcript_clusters": "PRIMARY KEY (oid)", "uplift_suites": "PRIMARY KEY (oid)",
          "uplift_records": "PRIMARY KEY (oid)", "trend_points": "PRIMARY KEY (oid)"}  # fmt: skip
 VIEWS = (
     "CREATE VIEW costs AS SELECT oid, run, model, provider, cost, input_tokens, output_tokens"

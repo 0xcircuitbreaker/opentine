@@ -318,11 +318,13 @@ DRIVEN = (
     (("containment", "check", "heads/main", "--repo", "repo", "--json"), "tine-cli-containment-1"),
     (("custody", "check", "ckpt", "--repo", "repo", "--json"), "tine-cli-custody-weights-1"),
     (("organism", "status", "--repo", "repo", "--json"), "tine-cli-organism-1"),  # 0.72
+    (("transcripts", "flags", "--repo", "repo", "--json"), "tine-cli-transcripts-1"),  # 0.74
     (("auditor", "check", "--repo", "repo", "--json"), "tine-cli-auditor-1"),  # 0.65
     (("sabotage", "report", "--repo", "repo", "--json"), "tine-cli-sabotage-1"),  # 0.68
     (("uplift", "suite", "suite.json", "--json"), "tine-cli-uplift-1"),  # 0.73
     (("query", "SELECT oid FROM runs", "--repo", "repo", "--json"), "tine-cli-query-1"),  # 0.65
     (("query", "index", "--repo", "repo", "--json"), "tine-cli-query-1"),  # 0.65
+    (("transcripts", "index", "--repo", "repo", "--json"), "tine-cli-transcripts-1"),  # 0.74
     (("experiment", "sign", "exp.json", "--key", "purge.key", "--json"), "tine-cli-experiment-1"),
     (("experiment", "check", "exp.json", "--json"), "tine-cli-experiment-1"),  # 0.67
     (("elicit", "report", "--repo", "repo", "--json"), "tine-cli-elicit-1"),  # 0.68

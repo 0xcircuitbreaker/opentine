@@ -102,7 +102,8 @@
                       "budget",
                       "containment",
                       "organism",
-                      "custody"
+                      "custody",
+                      "transcript"
                     ]
                   },
                   "tier": {
@@ -191,7 +192,7 @@
               },
               "item": {
                 "type": "string",
-                "pattern": "^(promotion|monitor|integrity|budget|containment|organism|custody):.+$"
+                "pattern": "^(promotion|monitor|integrity|budget|containment|organism|custody|transcript):.+$"
               },
               "action": {
                 "enum": [
@@ -308,7 +309,7 @@
             "properties": {
               "item": {
                 "type": "string",
-                "pattern": "^(promotion|monitor|integrity|budget|containment|organism|custody):.+$"
+                "pattern": "^(promotion|monitor|integrity|budget|containment|organism|custody|transcript):.+$"
               },
               "source": {
                 "enum": [
@@ -318,7 +319,8 @@
                   "budget",
                   "containment",
                   "organism",
-                  "custody"
+                  "custody",
+                  "transcript"
                 ]
               },
               "opened_at": {

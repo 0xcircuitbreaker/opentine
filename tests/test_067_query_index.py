@@ -39,7 +39,9 @@ def test_the_index_holds_every_table_and_every_row_names_its_oid(capsys, room):
                               "elicit_links": 0, "elicit_items": 0,
                               "history_merges": 0, "sandbox_policies": 0,
                               "containment_findings": 0, "budget_ledger": 0,
-                              "weight_custody": 0, "organism_records": 0, "uplift_suites": 0,
+                              "weight_custody": 0, "organism_records": 0,
+                              "transcript_flags": 0, "transcript_flag_runs": 0,
+                              "transcript_clusters": 3, "uplift_suites": 0,
                               "uplift_records": 0, "trend_points": 0}  # fmt: skip
     path = room["repo"].path / "query" / "index.sqlite"
     with closing(sqlite3.connect(path)) as db:

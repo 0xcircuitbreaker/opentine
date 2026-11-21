@@ -179,10 +179,10 @@ file only withholds the horizon (`missing`).
 
 ## Not covered
 
-The `tine uplift` half of plan item 0.73 (versioned task suites, human
-baseline records, AI-assisted vs unassisted paired runs, perceived vs measured
-speed) is not part of this command; task lengths here are only the per-item
-minutes the horizon needs.
+Versioned task suites, human baseline records, AI-assisted vs unassisted
+paired runs and perceived vs measured speed are a separate command,
+`tine uplift` (docs/UPLIFT.md), shipped in the same release; task lengths here
+are only the per-item minutes the horizon needs.
 
 A caller can rerun `tine trends` with many seeds and report the one it likes;
 the seed is in the export, but nothing pins it. Lineage, eval and task-length

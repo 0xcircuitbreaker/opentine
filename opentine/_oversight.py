@@ -49,6 +49,7 @@ def promotion_item(label: str, candidate: str) -> str:
 def parse_item(item: str) -> dict[str, Any]:
     """``{"source", "label", "candidate", "oid"}`` for an item name."""
     from opentine._promote_checks import LABEL_RE, RUN_RE
+    from opentine._transcript_flags import LABEL_RE as FLAG_LABEL_RE
 
     source, _, rest = item.partition(":")
     if source == "promotion":
@@ -64,9 +65,16 @@ def parse_item(item: str) -> dict[str, Any]:
     elif source == "custody" and rest.startswith(("attestation:sha256:", "blob:sha256:")):
         # 0.72: a custody gap (an event attestation) or a refused tagged load (an access blob)
         return {"source": source, "label": None, "candidate": None, "oid": rest}
+    elif source == "transcript":  # 0.74: a behaviour flag, or a run like a flagged one
+        if rest.startswith("attestation:sha256:"):
+            return {"source": source, "label": None, "candidate": None, "oid": rest}
+        label, _, run = rest.partition(":")
+        if FLAG_LABEL_RE.fullmatch(label) and RUN_RE.fullmatch(run):
+            return {"source": source, "label": label, "candidate": None, "oid": run}
     raise ValueError(f"{item!r} is not an oversight item (promotion:LABEL:RUN, monitor:"
                      "ATTESTATION, integrity:|containment:|organism:ATTESTATION, "
-                     "budget:ANNOTATION or custody:ATTESTATION|BLOB)")  # fmt: skip
+                     "budget:ANNOTATION, custody:ATTESTATION|BLOB, transcript:ATTESTATION "
+                     "or transcript:LABEL:RUN)")  # fmt: skip
 
 
 def anchor_bytes(item: str) -> bytes:
