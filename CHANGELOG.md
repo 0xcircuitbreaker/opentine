@@ -22,8 +22,8 @@
   a pinned `curator` or `policy` key for that dataset name; an optimizer key,
   unpinned roles or a forged or other-dataset justification refuse. An
   optimizer key may not curate.
-- Contributor tooling: `tine dataset withdraw RUN` signs an
-  `opentine.dataset-withdrawal/1`; later versions leave the run out and write
+- Contributor withdrawals: a verified `tine dataset withdraw` claim (or an
+  `opentine.dataset-withdrawal/1` from the Python API) removes the run; later versions leave the run out and write
   an `opentine.dataset-tombstone/1` when the previous version held it.
 - `tine dataset versions [NAME]` lists versions with their verification
   (`verified` needs a pinned `curator` signer); `tine dataset verify-version
@@ -55,6 +55,34 @@
 - The official CycloneDX 1.6 and SPDX 3.0.1 JSON schemas are vendored under
   `tests/data/aibom/` and pinned by sha256; the tests validate both formats
   against them. `--out FILE --json` prints `tine-cli-bom/1`.
+- `tine dataset contrib-redact RUN --deny-list FILE --licence SPDX --key K
+  --out BUNDLE`: contributor tooling for open run datasets. Runs the
+  redaction pass, applies a local contributor deny-list (names, emails,
+  hostnames, project names; matched across case, Unicode compatibility forms,
+  accents, zero-width characters and split forms), signs a `--redacted-public`
+  bundle with a licence annotation, then unbundles the copy and scans it: the
+  bundle is kept only on zero deny-list hits. The deny-list is never written
+  into the bundle, the record or the output. See docs/DATASET_CONTRIBUTORS.md.
+- Claim convention `opentine-dataset/licence/1` (SPDX id, allow-list check,
+  relicensing-grant opt-in, contributor key) on an attestation, and `tine
+  dataset check BUNDLE` refusing bundles without a valid annotation signed by
+  the bundle's contributor key, with an SPDX id outside a configurable
+  allow-list (`--allow`), or with a dirty file-level licence scan.
+- `tine dataset withdraw RUN --key K --reason CATEGORY` signs a held
+  `opentine-dataset/withdraw/1` claim (`tine hold release` refuses it);
+  `--tombstones FILE` records the run's tombstone (digest, date, reason
+  category, no content) in an `opentine-dataset/tombstones/1` manifest that
+  `tine dataset add --tombstones` and `tine dataset check --tombstones`
+  honour.
+- Contributor tooling hardening: the deny-list folds Cyrillic and Greek
+  look-alikes, allows up to four separators and scans private
+  `name:sha256:<hex>` prefixes; the licence scan reads UTF-16 text, any-case
+  tags and line-split notices and scans look-alike annotations; tombstone
+  manifests refuse duplicate keys and impossible dates; `contrib-redact` and
+  `withdraw` refuse a pinned optimizer key.
+- Schemas `tine-cli-dataset-contrib-1`, `opentine-dataset-licence-1`,
+  `opentine-dataset-withdraw-1`, `opentine-dataset-tombstones-1`. No new
+  object kind and no new `tine verify` code.
 
 ## 0.73.0 — Transcript analysis at corpus scale (2026-11-21)
 

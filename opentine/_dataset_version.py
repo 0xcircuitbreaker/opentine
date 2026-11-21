@@ -112,6 +112,11 @@ def withdrawals(repo: Any) -> dict[str, str]:
                 and claim["contributor"] == row["signer"]
                 and not _is_optimizer(repo, row["signer"])):  # fmt: skip
             out.setdefault(claim["run"], row["oid"])
+    from opentine._dataset_withdraw import withdrawals as contributed
+
+    for row in contributed(repo):  # ``tine dataset withdraw`` (opentine-dataset/withdraw/1)
+        if row["state"] == "verified" and not _is_optimizer(repo, row["contributor"]):
+            out.setdefault(row["run"], row["record"])
     return out
 
 

@@ -1,7 +1,7 @@
 """JSON Schemas for curated dataset versions (0.75).
 
 ``tine-cli-dataset-curate-1`` is the ``tine dataset
-curate|justify|withdraw|versions|verify-version --json`` output.
+curate|justify|versions|verify-version --json`` output.
 ``opentine-dataset-version-1`` is the ``opentine.dataset-version/1`` claim: a
 convention on an existing attestation, not an object kind (docs/DATASETS.md).
 """
@@ -40,9 +40,6 @@ _SHAPES = [
     closed(["command", "schema", "ok", "record", "name", "runs"], {
         **_HEAD, "command": {"const": "dataset justify"}, "ok": {"const": True},
         "record": _ATT, "name": STR, "runs": _RUNS}),
-    closed(["command", "schema", "ok", "record", "run"], {
-        **_HEAD, "command": {"const": "dataset withdraw"}, "ok": {"const": True},
-        "record": _ATT, "run": _RUN}),
     closed(["command", "schema", "ok", "versions"], {
         **_HEAD, "command": {"const": "dataset versions"}, "ok": {"const": True},
         "versions": {"type": "array", "items": _VERSION_ROW}}),
@@ -69,7 +66,7 @@ _CLAIM = closed(["convention", "name", "version", "previous", "selection", "memb
     "withdrawn": _RUNS, "curator": _DIGEST, "created_at": _AT})  # fmt: skip
 SCHEMAS: dict[str, dict[str, Any]] = {
     "tine-cli-dataset-curate-1": doc("tine-cli-dataset-curate-1",
-        "tine dataset curate|justify|withdraw|versions|verify-version --json",
+        "tine dataset curate|justify|versions|verify-version --json",
         "Signed dataset versions curated from runs. `curate` selects runs, leaves out "
         "withdrawn and tainted runs (integrity taints, monitor verdicts, oversight rejections, "
         "sabotage task records, verified behaviour flags), dedups by content-defined chunks "
@@ -84,7 +81,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
 }  # fmt: skip
 COMMAND_SCHEMAS: dict[str, str] = {
     f"dataset {verb}": "tine-cli-dataset-curate-1"
-    for verb in ("curate", "justify", "withdraw", "versions", "verify-version")
+    for verb in ("curate", "justify", "versions", "verify-version")
 }
 
 __all__ = ["COMMAND_SCHEMAS", "SCHEMAS"]

@@ -1,11 +1,12 @@
-"""``tine dataset curate|justify|withdraw|versions|verify-version`` (0.75).
+"""``tine dataset curate|justify|versions|verify-version`` (0.75).
 
 ``curate --select EXPR --out NAME --key KEY`` signs a dataset version from the
 repository's runs (:mod:`opentine._dataset_version`): withdrawn runs and runs
 the taint filter names are left out; ``--include-tainted --justification ID``
 lets in the tainted runs a pinned curator or policy key justified.
 ``justify NAME --run RUN... --reason TEXT --key KEY`` signs that justification.
-``withdraw RUN --reason TEXT --key KEY`` records a contributor's withdrawal.
+A contributor's ``tine dataset withdraw`` (:mod:`opentine._cli_dataset_contrib`)
+leaves the run out of later versions.
 ``versions [NAME]`` lists versions with their verification;
 ``verify-version (ID | --file PAYLOAD.json)`` checks one version offline
 (no trust bundle; exits 1 when it fails). See docs/DATASETS.md.
@@ -19,7 +20,7 @@ from pathlib import Path
 from typing import Any
 
 SCHEMA = "tine-cli-dataset-curate/1"
-VERBS = ("curate", "justify", "withdraw", "versions", "verify-version")
+VERBS = ("curate", "justify", "versions", "verify-version")
 
 
 def add_curate_verbs(verbs: Any) -> None:
@@ -35,11 +36,8 @@ def add_curate_verbs(verbs: Any) -> None:
     justify = verbs.add_parser("justify", help="Justify letting tainted runs into a dataset")
     justify.add_argument("name", metavar="NAME")
     justify.add_argument("--run", action="append", required=True, metavar="RUN")
-    withdraw = verbs.add_parser("withdraw", help="Withdraw a run from later dataset versions")
-    withdraw.add_argument("run", metavar="RUN")
-    for verb in (justify, withdraw):
-        verb.add_argument("--reason", required=True, metavar="TEXT")
-    for verb in (curate, justify, withdraw):
+    justify.add_argument("--reason", required=True, metavar="TEXT")
+    for verb in (curate, justify):
         verb.add_argument("--key", required=True, metavar="KEY", help="Ed25519 key")
         verb.add_argument("--at", metavar="TIME", help="YYYY-MM-DDTHH:MM:SSZ (default: now)")
     listing = verbs.add_parser("versions", help="Dataset versions and their verification")
@@ -47,7 +45,7 @@ def add_curate_verbs(verbs: Any) -> None:
     check = verbs.add_parser("verify-version", help="Check one dataset version offline")
     check.add_argument("record", nargs="?", metavar="ID", help="The version attestation id")
     check.add_argument("--file", metavar="PAYLOAD.json", help="An exported attestation payload")
-    for verb in (curate, justify, withdraw, listing, check):
+    for verb in (curate, justify, listing, check):
         verb.add_argument("--repo", default=".", metavar="PATH", help="Repository")
         verb.add_argument("--json", action="store_true", help="Print a JSON object")
 
@@ -80,10 +78,6 @@ def _row(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[str]
         oid = dv.justify(repo, args.name, runs, args.reason, key, at)
         return {"ok": True, "record": oid, "name": args.name, "runs": sorted(set(runs))}, [
             f"justified {len(set(runs))} run(s) for {args.name}: {oid}"]  # fmt: skip
-    if verb == "withdraw":
-        run = _resolve(repo, args.run)
-        oid = dv.withdraw(repo, run, args.reason, key, at)
-        return {"ok": True, "record": oid, "run": run}, [f"withdrew {run}: {oid}"]
     out = dv.curate(repo, args.out, args.select, key, at, eval_dirs=args.evals,
                     include_tainted=args.include_tainted,
                     justification_id=args.justification)  # fmt: skip

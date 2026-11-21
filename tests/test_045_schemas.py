@@ -328,6 +328,21 @@ DRIVEN = (
     (("query", "index", "--repo", "repo", "--json"), "tine-cli-query-1"),  # 0.65
     (("transcripts", "index", "--repo", "repo", "--json"), "tine-cli-transcripts-1"),  # 0.74
     (("dataset", "versions", "--repo", "repo", "--json"), "tine-cli-dataset-curate-1"),  # 0.75
+    (
+        (
+            "dataset",
+            "withdraw",
+            "main",
+            "--key",
+            "purge.key",
+            "--reason",
+            "privacy",
+            "--repo",
+            "repo",
+            "--json",
+        ),
+        "tine-cli-dataset-contrib-1",
+    ),  # 0.78
     (("experiment", "sign", "exp.json", "--key", "purge.key", "--json"), "tine-cli-experiment-1"),
     (("experiment", "check", "exp.json", "--json"), "tine-cli-experiment-1"),  # 0.67
     (("elicit", "report", "--repo", "repo", "--json"), "tine-cli-elicit-1"),  # 0.68

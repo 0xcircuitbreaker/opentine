@@ -2228,11 +2228,21 @@ The `dataset` verbs print `tine-cli-canary/1` and `scan` prints
 | --- | --- |
 | `tine dataset curate --select EXPR --out NAME --key KEY [--evals DIR]... [--include-tainted --justification ID] [--at TIME] --repo PATH` | Signs an `opentine.dataset-version/1` attestation: the runs `EXPR` selects (`all`, `failures:EVAL`, `passes:EVAL`, `eval:EVAL`, `model:GLOB`, `run:RUN`, joined by `and`, each optionally `not`; `failures of eval EVAL` reads as `failures:EVAL`), minus withdrawn runs and runs the taint filter names, deduplicated by content-defined chunks. An optimizer key is refused. With `--include-tainted`, only the tainted runs a valid justification names come in |
 | `tine dataset justify NAME --run RUN... --reason TEXT --key KEY [--at TIME] --repo PATH` | Signs an `opentine.dataset-justification/1` for dataset `NAME`; refused unless the key is a pinned `curator` or `policy` key and not an optimizer key |
-| `tine dataset withdraw RUN --reason TEXT --key KEY [--at TIME] --repo PATH` | Signs an `opentine.dataset-withdrawal/1`: the run leaves every later version, and a later version writes an `opentine.dataset-tombstone/1` for it when the previous version held it |
 | `tine dataset versions [NAME] --repo PATH` | Lists the held versions with member and excluded counts and their verification (`verified` needs a pinned `curator` signer) |
 | `tine dataset verify-version (ID --repo PATH \| --file PAYLOAD.json)` | Checks one version offline (shape, members digest, taint filter, signature, signer and curator binding); exit 1 when `ok` is false |
 
 They print `tine-cli-dataset-curate/1` with `--json`. See docs/DATASETS.md.
+## Contributing runs to an open dataset (0.75)
+
+| Command | What it does |
+| --- | --- |
+| `tine dataset contrib-redact RUN --deny-list FILE --licence SPDX [--relicensing-grant] --key KEY --out BUNDLE [--allow SPDX]... [--pack-format F] [--at TIME] --repo PATH` | Writes a signed `--redacted-public` bundle of one run with the local deny-list applied (case, Unicode and split forms) and a signed `opentine-dataset/licence/1` annotation; unbundles the copy and scans it, and keeps the bundle only on zero deny-list hits (exit 1 otherwise). The deny-list is never written anywhere |
+| `tine dataset check BUNDLE [--allow SPDX]... [--pubkey PATH] [--tombstones FILE]` | Refuses (exit 1) a bundle without a verified licence annotation by the key that signed its redacted-copy record, with an SPDX id outside the allow-list, a dirty file-level licence scan, or a tombstoned run |
+| `tine dataset withdraw RUN --key KEY --reason consent-withdrawn\|privacy\|licence\|quality\|other [--tombstones FILE] [--at TIME] --repo PATH` | Signs and holds an `opentine-dataset/withdraw/1` claim (`tine hold release` refuses it); with `--tombstones` adds the run's tombstone (digest, date, reason) to that manifest |
+
+`tine dataset add --tombstones FILE` refuses a tombstoned run, and with
+`--repo` a run that has a verified withdrawal. These verbs print
+`tine-cli-dataset-contrib/1` with `--json`. See docs/DATASET_CONTRIBUTORS.md.
 
 ## Monitor backtests and collusion tests (0.63)
 
@@ -2262,7 +2272,7 @@ against a server that does not list it.
 ## Evals and datasets (0.45)
 
 ```text
-tine dataset add DATASET.jsonl --from-run RUN [--repo PATH] [--id ID] [--expected TEXT]
+tine dataset add DATASET.jsonl --from-run RUN [--repo PATH] [--id ID] [--expected TEXT] [--tombstones FILE]
 tine dataset import SRC --out DATASET.jsonl [--format jsonl|hf] [--split S]
                     [--id-field F] [--input-field F] [--expected-field F]
 tine dataset export DATASET.jsonl --out PATH [--format jsonl|hf] [--split S]

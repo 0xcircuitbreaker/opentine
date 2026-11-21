@@ -56,7 +56,7 @@ def test_a_withdrawn_run_leaves_later_versions_with_a_tombstone(capsys, repo, ke
     runs = [_run(repo, i) for i in range(3)]
     _, first = _curate(capsys, repo, keys)
     assert set(first["members"]) == set(runs)
-    code, out = _cli(capsys, "dataset", "withdraw", runs[1], "--reason", "contributor request",
+    code, out = _cli(capsys, "dataset", "withdraw", runs[1], "--reason", "other",
                      "--key", str(keys["stranger"]), "--at", AT, "--repo",
                      str(repo.path.parent), "--json")  # fmt: skip
     assert code == 0, out

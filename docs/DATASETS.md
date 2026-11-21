@@ -144,6 +144,14 @@ held as `dataset-record:withdrawal:RUN`. It counts when its signature holds,
 `contributor` is the key that signed, and that key is not a pinned `optimizer`
 key (`withdraw` refuses one). A withdrawal only ever removes a run.
 
+`tine dataset withdraw` writes the contributor convention
+`opentine-dataset/withdraw/1` (docs/DATASET_CONTRIBUTORS.md, held as
+`dataset-withdraw:RUN`). Curation counts it the same way when its state is
+`verified` and the contributor is not a pinned `optimizer` key, so a
+contributor's withdrawal removes the run from every later version and the next
+version writes a tombstone. `opentine.dataset-withdrawal/1` stays readable for
+records written through the Python API.
+
 ### `opentine.dataset-tombstone/1`
 
 `{"convention", "dataset", "version", "run", "withdrawal", "curator", "at"}`:
@@ -172,7 +180,8 @@ records:
 * **Check what a version holds**: `tine dataset versions NAME --json` lists every
   version, and `tine query "SELECT run FROM dataset_members WHERE oid = 'ID'"`
   lists its members, so a contributor can see whether a run is in.
-* **Withdraw** a run with `tine dataset withdraw RUN --reason TEXT --key KEY`.
+* **Withdraw** a run with `tine dataset withdraw RUN --key KEY --reason
+  consent-withdrawn|privacy|licence|quality|other` (docs/DATASET_CONTRIBUTORS.md).
   Every later version leaves it out and lists it in `withdrawn`, and the first
   version after the withdrawal writes a tombstone naming the version that held
   it. Published versions are not rewritten: a withdrawal applies forward.

@@ -18,6 +18,8 @@ from opentine._schema_defs_curate import COMMAND_SCHEMAS as _CURATE_COMMANDS
 from opentine._schema_defs_curate import SCHEMAS as _CURATE
 from opentine._schema_defs_custody import COMMAND_SCHEMAS as _CUSTODY_COMMANDS
 from opentine._schema_defs_custody import SCHEMAS as _CUSTODY
+from opentine._schema_defs_dataset_contrib import COMMAND_SCHEMAS as _CONTRIB_COMMANDS
+from opentine._schema_defs_dataset_contrib import SCHEMAS as _CONTRIB
 from opentine._schema_defs_elicit import COMMAND_SCHEMAS as _ELICIT_COMMANDS
 from opentine._schema_defs_elicit import SCHEMAS as _ELICIT
 from opentine._schema_defs_experiment import COMMAND_SCHEMAS as _EXPERIMENT_COMMANDS
@@ -52,6 +54,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     **_TRANSCRIPTS,
     **_CURATE,
     **_BOM,
+    **_CONTRIB,
 }
 COMMAND_SCHEMAS: dict[str, str] = {
     **_QUERY_COMMANDS,
@@ -68,6 +71,7 @@ COMMAND_SCHEMAS: dict[str, str] = {
     **_TRANSCRIPTS_COMMANDS,
     **_CURATE_COMMANDS,
     **_BOM_COMMANDS,
+    **_CONTRIB_COMMANDS,
 }
 
 __all__ = ["COMMAND_SCHEMAS", "SCHEMAS"]
