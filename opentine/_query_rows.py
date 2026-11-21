@@ -19,6 +19,7 @@ from typing import Any
 
 from opentine._query_containment import COLUMNS as _CONTAINMENT_COLUMNS
 from opentine._query_custody import COLUMNS as _CUSTODY_COLUMNS
+from opentine._query_datasets import COLUMNS as _DATASET_COLUMNS
 from opentine._query_experiments import COLUMNS as _EXPERIMENT_COLUMNS
 from opentine._query_merges import COLUMNS as _MERGE_COLUMNS
 from opentine._query_research import COLUMNS as _RESEARCH_COLUMNS
@@ -47,6 +48,7 @@ COLUMNS.update(_CONTAINMENT_COLUMNS)  # 0.69: containment evidence and budget le
 COLUMNS.update(_CUSTODY_COLUMNS)  # 0.72: weight custody events and model-organism records
 COLUMNS.update(_TRANSCRIPT_COLUMNS)  # 0.74: behaviour flags and transcript clusters
 COLUMNS.update(_UPLIFT_COLUMNS)  # 0.73: uplift suites and records, trend points
+COLUMNS.update(_DATASET_COLUMNS)  # 0.75: curated dataset versions and their members
 #: Columns a row derives from its run (or file), not from the object itself.
 CONTEXT = {"run", "seq", "source", "line"}
 
@@ -178,11 +180,13 @@ def object_rows(repo: Any, oid: str, read: Any = None) -> dict[str, list[dict[st
             return {"history_merges": [row]}
         from opentine._query_containment import attestation_rows
         from opentine._query_custody import attestation_rows as custody_rows
+        from opentine._query_datasets import attestation_rows as dataset_rows
         from opentine._query_transcripts import attestation_rows as flag_rows
         from opentine._query_uplift import attestation_rows as uplift_rows
 
         found = attestation_rows(oid, payload) or custody_rows(oid, payload)
-        return found or flag_rows(oid, payload) or uplift_rows(oid, payload)
+        found = found or flag_rows(oid, payload) or uplift_rows(oid, payload)
+        return found or dataset_rows(oid, payload)
     value = payload.get("value")
     if isinstance(value, dict) and value.get("convention") == "opentine.oversight-decision/1":
         row = oversight_row(oid, repo)
