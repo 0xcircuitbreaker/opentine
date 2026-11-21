@@ -1,5 +1,42 @@
 # Changelog
 
+## Unreleased — Dataset curation and AI-BOM export
+
+- `tine dataset curate --select EXPR --out NAME --key KEY`: a signed dataset
+  version curated from runs (claim convention `opentine.dataset-version/1` on
+  an existing attestation; no object kind, no `tine verify` code). `EXPR` is
+  `all`, `failures:EVAL`, `passes:EVAL`, `eval:EVAL`, `model:GLOB` or
+  `run:RUN` terms joined by `and` (each optionally `not`); `failures of eval
+  EVAL` reads as `failures:EVAL`. Only signed eval verdicts count. See
+  docs/DATASETS.md.
+- Members are deduplicated by content-defined chunks (FastCDC over the
+  redacted transcript, fixed parameters recorded in the claim); duplicates are
+  listed with the member they repeat, and `members_digest` covers the list.
+- Taint filter on by default: runs with a held integrity taint, a non-`allow`
+  monitor verdict, an oversight rejection, an attempted sabotage side task or
+  a verified behaviour flag are left out and listed in
+  `taint_filter.excluded`. The filter reads only held records and fails
+  closed when one cannot be read.
+- `--include-tainted --justification ID` lets in only the tainted runs named
+  by an `opentine.dataset-justification/1` (`tine dataset justify`) signed by
+  a pinned `curator` or `policy` key for that dataset name; an optimizer key,
+  unpinned roles or a forged or other-dataset justification refuse. An
+  optimizer key may not curate.
+- Contributor tooling: `tine dataset withdraw RUN` signs an
+  `opentine.dataset-withdrawal/1`; later versions leave the run out and write
+  an `opentine.dataset-tombstone/1` when the previous version held it.
+- `tine dataset versions [NAME]` lists versions with their verification
+  (`verified` needs a pinned `curator` signer); `tine dataset verify-version
+  (ID | --file PAYLOAD.json)` checks one version offline. Every dataset record
+  is held (`dataset-record:`) and `tine hold release` refuses it.
+- The TS verifier checks dataset versions (`checkDatasetVersion`) and answers
+  the shared vectors in `tests/data/dataset_version.json` exactly as the
+  Python check does.
+- `tine query` indexes `dataset_versions` and `dataset_members`; `--verify`
+  marks a version row `verified` only for a pinned `curator` signer without
+  `optimizer`.
+- Schemas `tine-cli-dataset-curate-1` and `opentine-dataset-version-1`.
+
 ## 0.73.0 — Transcript analysis at corpus scale (2026-11-21)
 
 - `tine transcripts index|search|similar RUN [--json]`: a derived,
