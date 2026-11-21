@@ -51,18 +51,32 @@ signers as in `tine lineage check`.
 
 `--dataset ROLE=FILE` names a dataset version: an existing attestation
 (Ed25519-signed, verifying under its embedded key, that key being the
-`signer`) whose claim carries at least
+`signer`) carrying an `opentine.dataset-version/1` claim (docs/DATASETS.md).
+The export reads
 
 ```json
-{"dataset": "sha256:HEX", "name": "...", "taint_filter": {...} | null,
- "licence": "SPDX expression"}
+{"convention": "opentine.dataset-version/1", "name": "...",
+ "members": [...], "members_digest": "sha256:HEX",
+ "taint_filter": {...}, "licence": "SPDX expression"}
 ```
 
-`ROLE` is `training` or `eval`. The claim's `convention` is recorded as given;
-dataset versions, taint-filter records, withdrawal claims and tombstones are
-claim conventions on existing attestations (docs/FREEZE.md: no new object
-kind). An unsigned or edited version, an unknown role, or a claim without a
-`sha256:` dataset digest is refused.
+`ROLE` is `training` or `eval`. The dataset's digest in the document is
+`members_digest`, and the export recomputes it over `members` (sha256 of the
+canonical JSON). Dataset versions, taint-filter records, withdrawal claims and
+tombstones are claim conventions on existing attestations (docs/FREEZE.md: no
+new object kind).
+
+The export refuses, with exit 1 and nothing written:
+
+- an unsigned or edited version, an unknown role, or another convention;
+- a `members_digest` that is not the digest of `members`;
+- a version with no taint filter;
+- a version whose signer is not a pinned `curator` key, or is also an
+  `optimizer` key. Roles come only from the owner-signed trust bundle
+  (`_key_roles_pin`). If no bundle is pinned, or the policy cannot be read,
+  every `--dataset` is refused;
+- an eval whose verdict rows disagree on dataset, scorer, scorer version or
+  threshold, or that repeat a JSON key or carry NaN or Infinity.
 
 ## Determinism
 

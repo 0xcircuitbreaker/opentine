@@ -50,14 +50,15 @@ def add_bom_parser(subparsers: argparse._SubParsersAction) -> None:
 def build(args: argparse.Namespace) -> bytes:
     """The document's bytes for *args* (raises ``BomError``/``ValueError`` on refusal)."""
     from opentine import _aibom_cdx, _aibom_spdx
-    from opentine._aibom import BomError, collect, read_dataset, render
+    from opentine._aibom import BomError, collect, curators, read_dataset, render
     from opentine._cli_lineage import _folder, tainted, trust
     from opentine._lineage_check import check, read_folder
 
     if args.name is not None and not (args.name.strip() and args.name.isprintable()
                                       and len(args.name) <= 256):  # fmt: skip
         raise BomError("--name is 1..256 printable characters")
-    datasets = [read_dataset(spec) for spec in args.dataset]
+    counting = curators(Path(args.repo)) if args.dataset else set()
+    datasets = [read_dataset(spec, counting) for spec in args.dataset]
     files = read_folder(_folder(args), max_files=args.max_files, max_bytes=args.max_bytes)
     row = tainted(args, files, check(files, args.variant, trust(args)))
     model = collect(files, row, name=args.name, licence=args.licence, datasets=datasets)

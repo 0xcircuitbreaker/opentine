@@ -27,6 +27,7 @@ from opentine.kernel import canonical_json
 
 ROLES = ("training", "eval")
 LICENCE_MAX = 256
+VERSION = "opentine.dataset-version/1"
 
 
 class BomError(ValueError):
@@ -35,12 +36,16 @@ class BomError(ValueError):
 
 def _verdicts(files: dict[str, bytes], digest: str) -> list[dict[str, Any]]:
     raw = files.get(f"evals/{digest[7:]}.jsonl", b"")
-    return [json.loads(line) for line in raw.decode("utf-8").splitlines() if line.strip()]
+    return [loads(line) for line in raw.decode("utf-8").splitlines() if line.strip()]
 
 
 def _eval(files: dict[str, bytes], row: dict[str, str]) -> dict[str, Any]:
     rows = _verdicts(files, row["eval"])
     first = rows[0] if rows else {}
+    keys = ("dataset", "scorer", "scorer_version", "threshold")
+    if any(not isinstance(r, dict) or any(r.get(k) != first.get(k) for k in keys)
+           for r in rows):  # fmt: skip
+        raise BomError(f"eval {row['eval']} has verdicts for more than one dataset or scorer")
     return {
         "eval": row["eval"],
         "verdicts_sha256": row["verdicts_sha256"],
@@ -81,8 +86,26 @@ def check_licence(value: str | None) -> str | None:
     return value.strip()
 
 
-def read_dataset(spec: str) -> dict[str, Any]:
-    """``ROLE=FILE``: a signed dataset version attestation, as a BOM dataset entry."""
+def curators(repo: Path) -> set[str]:
+    """Pinned ``curator`` keys that are not ``optimizer`` keys; refuses when unpinned."""
+    from opentine._key_roles import KeyRoleError
+    from opentine._key_roles_pin import resolve
+
+    try:
+        found = resolve(Path(repo) / ".tine")
+    except KeyRoleError as exc:
+        raise BomError(f"key-role policy: {exc}") from exc
+    if found["status"] != "pinned":
+        raise BomError("dataset versions need pinned curator keys (no owner-signed trust bundle)")
+    roles = found["roles"] or {}
+    return set(roles.get("curator", [])) - set(roles.get("optimizer", []))
+
+
+def read_dataset(spec: str, counting: set[str] | None = None) -> dict[str, Any]:
+    """``ROLE=FILE``: a signed dataset version attestation, as a BOM dataset entry.
+
+    *counting* is :func:`curators`: the signer must be one of them.
+    """
     role, sep, name = spec.partition("=")
     if not sep or role not in ROLES or not name:
         raise BomError(f"--dataset takes ROLE=FILE with ROLE one of {', '.join(ROLES)}")
@@ -94,10 +117,22 @@ def read_dataset(spec: str) -> dict[str, Any]:
     claim = payload.get("claim") if isinstance(payload, dict) else None
     if not isinstance(claim, dict) or not signed(payload):
         raise BomError(f"dataset version {name} is not an Ed25519-signed attestation")
-    digest = claim.get("dataset")
+    if claim.get("convention") != VERSION:
+        raise BomError(f"dataset version {name} is not an {VERSION} claim")
+    if payload["signer"] not in (counting or set()):
+        raise BomError(f"dataset version {name} is not signed by a pinned curator key")
+    digest = claim.get("members_digest")
     if not (isinstance(digest, str) and DIGEST_RE.fullmatch(digest)):
-        raise BomError(f"dataset version {name} names no sha256: dataset digest")
+        raise BomError(f"dataset version {name} names no sha256: members digest")
+    members = claim.get("members")
+    if (
+        not isinstance(members, list)
+        or digest[7:] != hashlib.sha256(canonical_json(members)).hexdigest()
+    ):
+        raise BomError(f"dataset version {name}: members_digest is not its members' digest")
     taint = claim.get("taint_filter")
+    if not isinstance(taint, dict):
+        raise BomError(f"dataset version {name} records no taint filter")
     label = claim.get("name")
     return {
         "role": role,
@@ -180,5 +215,6 @@ def render(document: dict[str, Any]) -> bytes:
     return (json.dumps(document, indent=2, sort_keys=True, ensure_ascii=False) + "\n").encode()
 
 
-__all__ = ["ROLES", "BomError", "check_licence", "collect", "digest_uuid", "read_dataset",
+__all__ = ["ROLES", "VERSION", "BomError", "check_licence", "collect", "curators",
+           "digest_uuid", "read_dataset",
            "render", "used_by"]  # fmt: skip

@@ -16,7 +16,16 @@ import sys
 import pytest
 
 from opentine import cli
-from tests.aibom_helpers import FILTER, SCHEMAS, TRAIN, dataset_version, lineage, validator
+from tests.aibom_helpers import (
+    FILTER,
+    SCHEMAS,
+    TRAIN,
+    dataset_version,
+    lineage,
+    pin_curator,
+    validator,
+)
+from tests.key_roles_helpers import isolated_trust_config  # noqa: F401 - autouse
 from tests.promote_helpers import EVALER, fingerprint
 
 pytestmark = pytest.mark.filterwarnings("ignore::UserWarning")
@@ -41,6 +50,7 @@ def _export(tmp_path, variant, fmt, out, *extra) -> int:
 @pytest.fixture
 def node(tmp_path):
     _store, root, child = lineage(tmp_path)
+    pin_curator(tmp_path, fingerprint(EVALER))
     version = dataset_version(tmp_path / "train.json")
     extra = ("--dataset", f"training={version.as_posix()}", "--licence", "Apache-2.0",
              "--name", "toy-agent")  # fmt: skip
@@ -123,7 +133,7 @@ def test_spdx_carries_ancestry_training_testing_and_taint_filter(node) -> None:
     assert len(rels[("testedOn", cid)]) == 1 and ("hasDeclaredLicense", cid) in rels
     data = next(e for e in graph if e["type"] == "dataset_DatasetPackage"
                 and e["software_packageVersion"] == TRAIN)  # fmt: skip
-    assert "integrity-tainted" in data["dataset_dataPreprocessing"][0]
+    assert "integrity-taint" in data["dataset_dataPreprocessing"][0]
     model = next(e for e in graph if e.get("spdxId") == cid)
     assert model["ai_metric"][0]["value"] == "36/40"
     document = next(e for e in graph if e["type"] == "SpdxDocument")
@@ -155,15 +165,12 @@ def test_dataset_versions_must_be_signed_and_well_formed(node) -> None:
     assert _export(tmp_path, child, "spdx", out, "--dataset", f"eval={bad.as_posix()}") == 1
 
 
-def test_a_dataset_version_without_a_taint_filter_says_so(node) -> None:
+def test_a_dataset_version_without_a_taint_filter_is_refused(node) -> None:
     tmp_path, _root, child, _extra = node
     bare = dataset_version(tmp_path / "bare.json", taint=None, licence=None)
     out = tmp_path / "bom.json"
-    assert _export(tmp_path, child, "cyclonedx", out, "--dataset", f"training={bare}") == 0
-    bom = json.loads(out.read_bytes())
-    train = next(c for c in bom["components"] if c["bom-ref"] == f"dataset:training:{TRAIN}")
-    tprops = {p["name"]: p["value"] for p in train["properties"]}
-    assert tprops["opentine:taint-filter-recorded"] == "false" and "licenses" not in train
+    assert _export(tmp_path, child, "cyclonedx", out, "--dataset", f"training={bare}") == 1
+    assert not out.exists()
 
 
 def test_json_summary_names_the_file_digest(node, capsys) -> None:

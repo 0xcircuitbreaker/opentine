@@ -8,12 +8,27 @@ from pathlib import Path
 
 from opentine._lineage import record
 from opentine.attest_signing import sign_attestation
+from opentine.kernel import canonical_json
 from tests.lineage_helpers import RECORDER, art, key, promoted
 from tests.promote_helpers import AT, EVALER, RUN_A, RUN_B, fingerprint
 
 SCHEMAS = Path(__file__).parent / "data" / "aibom"
-TRAIN = "sha256:" + hashlib.sha256(b"train-v1").hexdigest()
-FILTER = {"exclude": ["integrity-tainted", "monitor-flagged"], "excluded_runs": 3}
+MEMBERS = [{"chunks": "sha256:" + "c" * 64, "run": "run:sha256:" + "a" * 64}]
+TRAIN = "sha256:" + hashlib.sha256(canonical_json(MEMBERS)).hexdigest()
+FILTER = {"mode": "default", "excluded": [], "included_tainted": [], "justification": None,
+          "sources": ["integrity-taint", "monitor-verdict"]}  # fmt: skip
+
+
+def pin_curator(repo: Path, *fingerprints: str, optimizer: tuple[str, ...] = ()) -> None:
+    """Pin *fingerprints* as ``curator`` keys (and *optimizer*) in ``repo/.tine``."""
+    from tests.key_roles_helpers import pin_roles
+
+    store = repo / ".tine"
+    store.mkdir(parents=True, exist_ok=True)
+    roles = {"curator": list(fingerprints), "optimizer": list(optimizer)}
+    lines = ["version = 1", "[roles]"] + [f"{r} = {json.dumps(k)}" for r, k in roles.items()]
+    (store / "key-roles.toml").write_bytes(("\n".join(lines) + "\n").encode("utf-8"))
+    pin_roles(store)
 
 
 def lineage(base: Path) -> tuple[Path, str, str]:
@@ -34,9 +49,15 @@ def dataset_version(
     signer: str = EVALER,
     taint: dict | None = FILTER,
     licence: str | None = "CC-BY-4.0",
+    members: list | None = None,
+    convention: str = "opentine.dataset-version/1",
 ) -> Path:
-    """A signed dataset version: a claim convention on an existing attestation."""
-    claim = {"convention": "opentine.dataset-version/1", "dataset": digest, "name": "train-v1",
+    """A signed ``opentine.dataset-version/1`` claim (docs/DATASETS.md) on an attestation.
+
+    *digest* is the ``members_digest``; *members* defaults to the list it digests.
+    """
+    claim = {"convention": convention, "members_digest": digest, "name": "train-v1",
+             "members": MEMBERS if members is None else members,
              "taint_filter": taint}  # fmt: skip
     if licence:
         claim["licence"] = licence
