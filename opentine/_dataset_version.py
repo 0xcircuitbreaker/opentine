@@ -105,17 +105,18 @@ def _still_clean(claim: dict[str, Any], taint: dict[str, Any] | None) -> str:
 
 def withdrawals(repo: Any) -> dict[str, str]:
     """``{run: withdrawal id}`` for every signed, well formed, held withdrawal."""
+    from opentine._dataset_withdraw import withdrawals as contributed
+    from opentine._dataset_withdraw_auth import authority
+
     out: dict[str, str] = {}
     for _, row in records.held(repo, f"{HOLD}withdrawal:"):
         claim = row["claim"]
         if (row["signed"] and not dc.check_record(claim) and claim["convention"] == dc.WITHDRAWAL
                 and claim["contributor"] == row["signer"]
-                and not _is_optimizer(repo, row["signer"])):  # fmt: skip
+                and authority(repo, claim["run"], row["signer"], claim["reason"])[0]):  # fmt: skip
             out.setdefault(claim["run"], row["oid"])
-    from opentine._dataset_withdraw import withdrawals as contributed
-
     for row in contributed(repo):  # ``tine dataset withdraw`` (opentine-dataset/withdraw/1)
-        if row["state"] == "verified" and not _is_optimizer(repo, row["contributor"]):
+        if row["state"] == "verified":  # signer checked by authority() there
             out.setdefault(row["run"], row["record"])
     return out
 
@@ -167,8 +168,11 @@ def _is_optimizer(repo: Any, signer: str) -> bool:
 
 def withdraw(repo: Any, run: str, reason: str, key: Any, at: str) -> str:
     signer = records.fingerprint(key)
-    if _is_optimizer(repo, signer):
-        raise PermissionError("refusing to withdraw: the signer is an optimizer key")
+    from opentine._dataset_withdraw_auth import authority
+
+    who, why = authority(repo, run, signer, reason)
+    if who is None:
+        raise PermissionError(f"refusing to withdraw: {why}")
     claim = {"convention": dc.WITHDRAWAL, "run": run, "reason": reason, "contributor": signer,
              "at": at}  # fmt: skip
     problems = dc.check_record(claim)

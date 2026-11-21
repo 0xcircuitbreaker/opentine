@@ -123,8 +123,19 @@ The reason is a category, one of `consent-withdrawn`, `privacy`, `licence`,
 `quality`, `other`; there is no free text. The record is kept by a `tine
 hold` row whose target starts `dataset-withdraw:`, and `tine hold release`
 refuses it, so an automated loop cannot delete a withdrawal. A withdrawal is
-`verified` only when its Ed25519 signature holds and the payload `signer` and
-the claim's `contributor` are the key that signed.
+`verified` only when its Ed25519 signature holds, the payload `signer` and
+the claim's `contributor` are the key that signed, and that key may withdraw
+the run:
+
+- the contributor key: the key that signed the run's licence annotation
+  (section 2). Keep that key: it is how you withdraw later. If the run carries
+  annotations from more than one key, no contributor withdrawal counts;
+- a pinned `curator` key: a maintainer takedown, with one of the reason
+  categories above.
+
+Any other key is refused by `withdraw` and its record is listed `unverified`;
+a pinned optimizer key is refused even if it annotated the run. A contributor
+who lost their key asks a maintainer for a curator-signed takedown of the run.
 
 ### Tombstones
 

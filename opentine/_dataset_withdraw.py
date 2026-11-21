@@ -11,8 +11,9 @@
 
 and keeps it with a ``tine hold`` row whose target starts ``dataset-withdraw:``,
 which ``tine hold release`` refuses: a loop cannot delete a withdrawal. A
-withdrawal is ``verified`` only when its Ed25519 signature holds and the
-payload ``signer`` and ``contributor`` are the key that signed.
+withdrawal is ``verified`` only when its Ed25519 signature holds, the
+payload ``signer`` and ``contributor`` are the key that signed, and that key is
+the run's contributor or a pinned curator (:mod:`opentine._dataset_withdraw_auth`).
 
 A **tombstone** is what a dataset manifest keeps of a withdrawn run: its
 digest, the date and the reason category, never content::
@@ -107,12 +108,18 @@ def withdraw(repo: Any, run: str, key: Any, reason: str, at: str) -> str:
         raise ValueError(f"not a valid withdrawal: {problems[0]}")
     if not repo.has(run):
         raise KeyError(f"no run {run} in the repository")
+    from opentine._dataset_withdraw_auth import authority
+
+    who, why = authority(repo, run, claim["contributor"], reason)
+    if who is None:
+        raise PermissionError(f"refusing to withdraw: {why}")
     return records.record(repo, run, claim, key, f"{HOLD}{run}")
 
 
 def withdrawals(repo: Any) -> list[dict[str, Any]]:
     """Every held withdrawal with its verification state."""
     from opentine import _containment_records as records
+    from opentine._dataset_withdraw_auth import authority
 
     out = []
     for target, row in records.held(repo, HOLD):
@@ -126,8 +133,11 @@ def withdrawals(repo: Any) -> list[dict[str, Any]]:
             state = "unverified: the contributor is not the key that signed"
         elif row["target"] != claim.get("run"):
             state = "unverified: the record is on another object"
+        elif problems:
+            state = f"unverified: {problems[0]}"
         else:
-            state = f"unverified: {problems[0]}" if problems else "verified"
+            who, why = authority(repo, claim["run"], row["signer"], claim["reason"])
+            state = "verified" if who else f"unverified: {why}"
         out.append(
             {
                 "record": row["oid"],

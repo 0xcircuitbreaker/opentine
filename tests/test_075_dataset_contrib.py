@@ -21,6 +21,7 @@ from opentine.graph import Run, StepKind
 from opentine.policies import PolicySet
 from opentine.repository import Repo
 from opentine.repository._holds import HoldError, release
+from tests.dataset_contrib_helpers import annotate
 
 AT = "2026-11-20T00:00:00Z"
 DENY = "# contributor deny-list\nJane Doe\nacme corp\nProjectZebra\nbuildhost-07.internal\n"
@@ -243,6 +244,8 @@ def test_check_refuses_a_bundle_without_an_annotation_or_with_a_dirty_scan(room,
 
 def test_withdraw_is_held_and_its_tombstone_is_honoured(capsys, room):
     stones = room["tmp"] / "tombstones.json"
+    alice = bytes.fromhex(room["keys"]["alice"].read_text().strip())
+    annotate(room["repo"], room["run"], Ed25519PrivateKey.from_private_bytes(alice))
     code, body = _tine(
         capsys,
         "dataset",

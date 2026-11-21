@@ -141,13 +141,26 @@ signed onto the first run and held as `dataset-record:justification:NAME:RUN`.
 
 `{"convention", "run", "reason", "contributor", "at"}`, signed onto the run and
 held as `dataset-record:withdrawal:RUN`. It counts when its signature holds,
-`contributor` is the key that signed, and that key is not a pinned `optimizer`
-key (`withdraw` refuses one). A withdrawal only ever removes a run.
+`contributor` is the key that signed, and that key may withdraw the run (below;
+`withdraw` refuses any other key). A withdrawal only ever removes a run.
+
+**Who may withdraw.** A withdrawal counts only when its signer is
+
+* the run's contributor: the one key that signed a valid licence annotation
+  (`opentine-dataset/licence/1`) on the run in the repository. A repository
+  run records no signer of its own, so the annotation is its recorded signer.
+  If annotations on the run name more than one key, no contributor counts;
+* or a pinned `curator` key, as a maintainer takedown, whose reason is one of
+  the categories `consent-withdrawn`, `privacy`, `licence`, `quality`,
+  `other`.
+
+A pinned `optimizer` key never counts, even when it annotated the run, and an
+unpinned third-party key cannot withdraw someone else's run.
 
 `tine dataset withdraw` writes the contributor convention
 `opentine-dataset/withdraw/1` (docs/DATASET_CONTRIBUTORS.md, held as
 `dataset-withdraw:RUN`). Curation counts it the same way when its state is
-`verified` and the contributor is not a pinned `optimizer` key, so a
+`verified` (which includes the rule above), so a
 contributor's withdrawal removes the run from every later version and the next
 version writes a tombstone. `opentine.dataset-withdrawal/1` stays readable for
 records written through the Python API.

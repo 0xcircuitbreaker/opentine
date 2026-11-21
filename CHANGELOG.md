@@ -89,6 +89,11 @@
   tags and line-split notices and scans look-alike annotations; tombstone
   manifests refuse duplicate keys and impossible dates; `contrib-redact` and
   `withdraw` refuse a pinned optimizer key.
+- Who may withdraw: a withdrawal (either convention) counts only when signed
+  by the run's contributor, the one key that signed its licence annotation, or
+  by a pinned `curator` key as a takedown with a reason category. Any other
+  key is refused by `withdraw` and listed `unverified`; a pinned optimizer key
+  never counts. A contributor who lost their key asks for a curator takedown.
 - Schemas `tine-cli-dataset-contrib-1`, `opentine-dataset-licence-1`,
   `opentine-dataset-withdraw-1`, `opentine-dataset-tombstones-1`. No new
   object kind and no new `tine verify` code.
