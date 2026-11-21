@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Policy engine and keyless signing
+## 0.74.0 — Policy engine and keyless signing (2026-11-21)
 
 - `tine policy check POLICY --subject RUN [--json]`: evaluates a declarative
   policy over a fixed input document assembled from the run's signed records
