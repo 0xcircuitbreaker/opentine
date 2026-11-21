@@ -52,6 +52,18 @@ def _write(path: Path, raw: bytes) -> None:
         path.write_bytes(raw)
 
 
+def _append_only(path: Path, claim: dict[str, Any]) -> None:
+    """Refuse to re-sign a recorded variant with another claim (new parents or evals):
+    a loop must not re-root a regressed variant to drop its parent link (0.72)."""
+    try:
+        old = loads(path.read_bytes()).get("claim")
+    except (OSError, ValueError, AttributeError):
+        return
+    if old != claim:
+        raise ValueError(f"variant {claim['variant']} is already recorded with another claim; "
+                         "records are append-only")  # fmt: skip
+
+
 def _artifacts(given: dict[str, str | None]) -> dict[str, str]:
     out = {k: v for k, v in given.items() if v is not None}
     if not out:
@@ -130,6 +142,7 @@ def record(key: Any, *, run: str, artifacts: dict[str, str | None], store: Path,
     signed = {**payload, "signature": sign_attestation(payload, key, algorithm="ed25519",
                                                         signed_at=at or _now())}  # fmt: skip
     path = store / "variants" / f"{ident[7:]}.json"
+    _append_only(path, claim)
     _write(path, (json.dumps(signed, indent=2, sort_keys=True) + "\n").encode("utf-8"))
     return {"variant": ident, "record": path.as_posix(), "parents": list(parents),
             "evals": rows, "decision": cited}  # fmt: skip

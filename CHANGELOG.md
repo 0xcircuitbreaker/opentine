@@ -88,7 +88,73 @@
   seeded k-means clusters, default k and seed 0), recomputed from the
   objects; neither is stored.
 
-## Unreleased — Redaction fixes from dataset review
+## 0.72.0 — Uplift and capability trends (2026-11-20)
+
+- `tine uplift suite|record|horizon|compare`: versioned task suites addressed
+  by a suite digest (task list, lengths, scoring), human baseline records,
+  AI, AI-assisted and unassisted run records, and perceived vs measured speed
+  records, as signed attestation claims (`opentine.uplift-suite/1`,
+  `opentine.uplift-record/1`) held under `uplift:` rows that are never
+  released. Records count only when signed by a pinned `scorer` or `eval` key
+  bound to the signing key; pinned optimizer keys are refused.
+- `tine uplift horizon`: pure-stdlib logistic fit of success against log2 task
+  length giving the 50%-success time horizon, with a seeded percentile
+  bootstrap interval (seed and resample count recorded) and a per-generation
+  trend. Small-n, non-varying, separated or non-declining fits are refused
+  (`fail:uplift.fit-refused`).
+- `tine uplift compare`: two groups side by side (success rate, measured
+  minutes on paired tasks, perceived over measured minutes, horizons).
+- Deterministic export (`--export FILE`, `opentine-uplift-export/1`) from which
+  `--from FILE` recomputes every report byte for byte.
+- A synthetic dataset generator from a known logistic
+  (`scripts/gen_uplift_synthetic.py`, committed seed-0 copy); the fit recovers
+  the planted horizon inside the 95% interval in 98 of 100 seeds (test
+  requires 95).
+- Schemas `tine-cli-uplift-1`, `opentine-uplift-suite-1`,
+  `opentine-uplift-record-1`, `opentine-uplift-export-1`; docs/UPLIFT.md.
+  No new object kind and no new `tine verify` code.
+- `tine trends [--json] [--export FILE]`: capability trends over the 0.58
+  lineage graph, from signed records only. Per variant: mean score and pass
+  rate with 0.57 bootstrap intervals, cost per success (signed 0.69 budget
+  ledger spend), the 50%-success time horizon (logistic fit on log2 task
+  minutes, studentized bootstrap interval) and a paired comparison with each
+  parent, where a significant drop is a regression (`--fail-on-regression`
+  exits 1). Per generation (depth in the parent graph): counts and the best
+  unflagged variant. See docs/TRENDS.md.
+- Flags: `lineage.score-tainted` (0.59 taint), `lineage.memory-quarantined`
+  (0.61) and the variant's own `lineage.*` findings. Variants with unsigned or
+  untrusted eval evidence keep a row with their metrics withheld; invalid
+  records and parent cycles are listed under `excluded`.
+- Task lengths are a signed file convention, `opentine.trends.task-lengths/1`
+  (`tine trends --sign-lengths FILE --key KEY --dataset DIGEST`), used only when signed by a
+  `dataset`-role key from the owner-pinned trust bundle that is not an
+  optimizer key; otherwise the horizon is withheld and `lengths.status` says why.
+- `--export` writes `opentine-trends/1` (inputs plus the reported numbers);
+  `opentine/data/trends/recompute.mjs` recomputes it in a browser or Node byte
+  for byte (SplitMix64 resampling, integer arithmetic, and a horizon fit that
+  uses only IEEE double `+ - * /`).
+- Acceptance: on `tests/data/trends_horizon_synth.json` (100 seeded datasets
+  from a known logistic, `scripts/gen_trends_synth.py`) the planted horizon is
+  inside the 95% interval in 96 of 100.
+- Fail closed against a loop: unpinned eval signers withhold metrics;
+  `unchecked[]` (withheld, excluded or relabelled variants) fails
+  `--fail-on-regression`; task lengths are bound to an eval dataset digest
+  (`--dataset`); an item scored by several cited evals keeps its worst
+  verdict; cost counts only finite non-negative spend from a pinned `runner`
+  key; `tine lineage record` refuses to re-sign a variant with another claim.
+- New schemas `tine-cli-trends-1`, `opentine-trends-1`,
+  `opentine-trends-task-lengths-1`. No new object kinds or `tine verify` codes.
+
+- `tine query` indexes uplift and trends: `uplift_suites` and `uplift_records`
+  (every uplift attestation, with the lineage `generation` a record names) and
+  `trend_points` (one row per lineage variant: generation, point estimates,
+  flags and whether its metrics are withheld, keyed by the variant's lineage
+  record so it joins `lineage_variants` and `lineage_edges`). `--verify`
+  re-derives trend points from the lineage folder; the index goes stale when the
+  pinned key roles change. `--verify` now also applies the custody and organism
+  role requirements, which were documented but not looked up.
+
+### Also in this release: redaction fixes from the dataset review
 
 - The publication `path` rule no longer rewrites a tilde that is content: only
   `~/` and `~<u>/` where a path starts (line start, space, quote, `=`, `:`, an
@@ -168,7 +234,6 @@
 - Schemas `tine-cli-organism-1`, `opentine-organism-tag-1`,
   `opentine-organism-approval-1`, `opentine-organism-untag-1` and
   `opentine-organism-access-1`; docs/MODEL_ORGANISMS.md.
-
 ## 0.70.0 — Redaction of paths and emails (2026-11-20)
 
 - Redacted public copies (`tine bundle create --redacted-public`, `tine publish

@@ -1,6 +1,6 @@
 [project]
 name = "opentine"
-version = "0.71.0"
+version = "0.72.0"
 description = "Git-shaped provenance for agent runs with verified objects, semantic forks, and universal usage accounting."
 readme = "README.md"
 license = "Apache-2.0"
@@ -81,6 +81,7 @@ dev = [
     "pytest-asyncio>=1.0",
     "pytest-rerunfailures>=15.0",
     "pytest-split>=0.10",
+    "pytest-timeout>=2.3",
     "pytest-xdist>=3.6",
     "ruff>=0.4",
     "twine>=5.0",

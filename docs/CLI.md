@@ -2067,6 +2067,20 @@ Records count only when signed by a pinned `scorer` or `eval` key. Catch rates
 are statistical evidence, not proof of intent. `--json` prints
 `tine-cli-sabotage/1`; see docs/SABOTAGE.md.
 
+## Uplift and capability trends (0.73)
+
+| Command | What it does |
+| --- | --- |
+| `tine uplift suite FILE [--run RUN --key KEY] [--at TIME]` | Prints the suite digest; with `--key`, signs and holds an `opentine.uplift-suite/1` record on RUN |
+| `tine uplift record --suite DIGEST --type baseline\|run\|speed --task ID --subject ID --condition human\|ai\|ai-assisted\|unassisted [--success yes\|no] [--minutes D] [--perceived-minutes D] [--generation N] --run RUN --key KEY [--at TIME]` | Signs and holds one `opentine.uplift-record/1` record; refuses an optimizer key (`uplift.key-separation`), an unknown suite or task |
+| `tine uplift horizon (--suite DIGEST\|--from FILE) [--condition C] [--subject ID] [--seed N] [--resamples N] [--alpha A] [--strict] [--export FILE]` | 50%-success time horizon (logistic fit on log2 task length) with a seeded bootstrap interval and a per-generation trend; exits 1 on `fail:uplift.fit-refused`, `fail:uplift.malformed` or `fail:uplift.key-separation` |
+| `tine uplift compare (--suite DIGEST\|--from FILE) --a CONDITION[:SUBJECT] --b CONDITION[:SUBJECT] [--seed N] [--resamples N] [--alpha A] [--strict] [--export FILE]` | Success rates, measured minutes on paired tasks, perceived over measured minutes, and each group's horizon |
+
+Records count only when signed by a pinned `scorer` or `eval` key; advisory
+findings block only with `--strict`. Reports recompute byte for byte from
+`--export` output with `--from`. `--json` prints `tine-cli-uplift/1`; see
+docs/UPLIFT.md.
+
 ## Budgets (0.69)
 
 | Command | What it does |
@@ -2170,6 +2184,17 @@ conflict toward the side that weakens a hold. `--json` prints
 `--json` prints `tine-cli-lineage/1`. Every subcommand but `record` refuses a
 lineage folder over `--max-files` (200000) or `--max-bytes` (1 GiB) before
 reading it. See docs/LINEAGE.md.
+
+## Capability trends (0.72)
+
+| Command | What it does |
+| --- | --- |
+| `tine trends [--loop LOOP] [--alpha A] [--seed N] [--resamples N] [--task-lengths FILE] [--promotion-policy TOML] [--fail-on-regression] [--export FILE] [--max-files N] [--max-bytes N] [--dir DIR] --repo PATH` | Per-variant and per-generation metrics over the lineage graph from signed records only: mean score and pass rate with 0.57 bootstrap intervals, cost per success (signed budget-ledger spend), the 50%-success time horizon with a studentized bootstrap interval, and a paired comparison with each parent (a significant drop is a regression). Flags `lineage.score-tainted`, `lineage.memory-quarantined` and the variant's own `lineage.*` findings; `--fail-on-regression` exits 1 on a regression |
+| `tine trends --sign-lengths FILE --key KEY --dataset DIGEST [--suite NAME] [--at TIME] [--task-lengths FILE] --repo PATH` | Signs an `{item: minutes}` map as `opentine.trends.task-lengths/1` (default `REPO/.tine/trends/task-lengths.json`); the horizon uses it only for verdicts of that eval dataset digest, and only when the signer holds the pinned `dataset` role and is not an optimizer key |
+
+`--json` prints `tine-cli-trends/1`; `--export` writes `opentine-trends/1`, which
+`opentine/data/trends/recompute.mjs` recomputes byte for byte in a browser or
+Node. See docs/TRENDS.md.
 
 ## Protected surfaces (0.60)
 

@@ -19,6 +19,7 @@ from pathlib import Path
 
 from opentine._cli_common import _terminal, console
 from opentine._cli_errors import USAGE, error
+from opentine._cli_trends import add_trends_parser, cmd_trends
 from opentine._lineage import MAX_BYTES, MAX_FILES
 
 SCHEMA = "tine-cli-lineage/1"
@@ -84,6 +85,7 @@ def add_lineage_parser(subparsers: argparse._SubParsersAction) -> None:
                      help="Stop after N ancestors and mark the walk truncated")  # fmt: skip
     archive.add_argument("--signed", action="store_true", help="Only verified records")
     index.add_argument("--rebuild", action="store_true", help="Delete and rebuild the index")
+    add_trends_parser(subparsers)  # 0.72: tine trends, over the same lineage folder
 
 
 def _folder(args: argparse.Namespace) -> Path:
@@ -188,6 +190,9 @@ def cmd_lineage(args: argparse.Namespace) -> None:
         raise SystemExit(1)
 
 
-COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {"lineage": cmd_lineage}
+COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
+    "lineage": cmd_lineage,
+    "trends": cmd_trends,
+}
 
 __all__ = ["COMMANDS", "SCHEMA", "add_lineage_parser", "cmd_lineage"]

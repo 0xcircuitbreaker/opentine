@@ -1,17 +1,13 @@
 """``tine fleet up|status|stop|cost|record|resume|logs|send``: run a declared fleet.
 
-``tine fleet up fleet.toml --trust`` reviews-then-trusts the manifest's exact
-bytes and runs its members (``--dry-run`` lists them, running nothing);
-``status [ID]`` shows a fleet's members (every fleet without ID; with
-``--repo PATH``, the repository's ``tine fan-out`` records instead); ``stop ID``
-asks the running ``up`` to kill every member's process tree; ``cost ID`` sums
-the members' reported costs. ``cost --repo PATH RUN`` instead totals a fleet
-recorded by ``tine import --fleet`` (each shared step counted once). ``--dir``
-is the state directory (default ``.tine_fleet``, beside the manifest for ``up``).
-``record RUN.tine`` shows, signs or attests a run's ``opentine-fleet/1`` record
-(``_cli_fleet_record``). ``resume``, ``logs`` and ``send`` live in
-:mod:`opentine._cli_fleet_ops`; this module also registers ``tine task``
-(:mod:`opentine._cli_task`).
+``up fleet.toml --trust`` reviews-then-trusts the manifest's exact bytes and
+runs its members (``--dry-run`` lists them); ``status [ID]`` shows members
+(``--repo``: the ``tine fan-out`` records); ``stop ID`` kills every member's
+process tree; ``cost ID`` sums reported costs (``cost --repo PATH RUN``: a fleet
+from ``tine import --fleet``, shared steps once). ``--dir`` is the state
+directory. ``record`` is in ``_cli_fleet_record``; ``resume``, ``logs`` and
+``send`` in :mod:`opentine._cli_fleet_ops`. Also registers ``tine task`` and
+the research command groups.
 """
 
 from __future__ import annotations
@@ -57,6 +53,8 @@ from opentine._cli_sabotage import COMMANDS as SABOTAGE_COMMANDS
 from opentine._cli_sabotage import add_sabotage_parser
 from opentine._cli_task import COMMANDS as TASK_COMMANDS
 from opentine._cli_task import add_task_parser
+from opentine._cli_uplift import COMMANDS as UPLIFT_COMMANDS
+from opentine._cli_uplift import add_uplift_parser
 
 
 def add_fleet_parser(subparsers: argparse._SubParsersAction) -> None:
@@ -91,6 +89,7 @@ def add_fleet_parser(subparsers: argparse._SubParsersAction) -> None:
     add_merge_history_parser(subparsers)  # 0.69: tine merge-history snapshot|plan|apply|verify
     add_budget_parser(subparsers)  # 0.69: tine budget sign-policy|apply|record|status|check
     add_containment_parser(subparsers)  # 0.69: tine containment record|check|scan
+    add_uplift_parser(subparsers)  # 0.73: tine uplift suite|record|horizon|compare
 
 
 def _fail(message: object) -> SystemExit:
@@ -245,6 +244,7 @@ COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
     **MERGE_HISTORY_COMMANDS,
     **BUDGET_COMMANDS,
     **CONTAINMENT_COMMANDS,
+    **UPLIFT_COMMANDS,
 }
 
 __all__ = ["COMMANDS", "add_fleet_parser", "cmd_fleet"]
