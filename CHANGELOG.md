@@ -35,6 +35,15 @@
 - `tine query` indexes `dataset_versions` and `dataset_members`; `--verify`
   marks a version row `verified` only for a pinned `curator` signer without
   `optimizer`.
+- `tine dataset materialize ID --out D.jsonl` writes a verified version as eval
+  items for `tine eval` and `tine dataset seal` (holdouts); an unverified version
+  (including one with a member tainted since curation) is refused, and runs
+  withdrawn since curation are left out.
+- `tine query` adds `dataset_tombstones`, verified per row like versions.
+- `tine bom export` runs the full `verify-version` offline check on each
+  `--dataset`; a version claim asserts no licence, so dataset components carry
+  none. One `tine dataset withdraw` verb (the contributor one) serves both
+  curation and open-dataset tombstones.
 - Schemas `tine-cli-dataset-curate-1` and `opentine-dataset-version-1`.
 - `tine bom export LINEAGE_NODE --format cyclonedx|spdx [--out FILE]`: a
   CycloneDX 1.6 ML-BOM or an SPDX 3.0.1 AI/Dataset profile document for one

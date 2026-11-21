@@ -185,6 +185,11 @@ records:
   Every later version leaves it out and lists it in `withdrawn`, and the first
   version after the withdrawal writes a tombstone naming the version that held
   it. Published versions are not rewritten: a withdrawal applies forward.
+* **Use a version in evals and holdouts** with `tine dataset materialize ID --out
+  D.jsonl`: only a `verified` version is written (a pinned `curator` signer, no
+  member tainted since curation), as eval items `tine eval` scores and
+  `tine dataset seal` seals; runs withdrawn since curation are left out and
+  listed. Tombstones are queryable as `dataset_tombstones` (docs/QUERY.md).
 * **Verify a published version offline** with `tine dataset verify-version
   --file PAYLOAD.json` or the TS verifier; neither needs the repository or the
   network.

@@ -7042,6 +7042,21 @@ ROWS: tuple[tuple, ...] = (
         {"command": "dataset", "dataset_command": "versions", "name": "train", "json": True},
     ),
     (
+        "plain:dataset materialize a1 --out d.jsonl --json",
+        "plain",
+        ["dataset", "materialize", "a1", "--out", "d.jsonl", "--json"],
+        "opentine._cli_dataset:cmd_dataset",
+        False,
+        {
+            "command": "dataset",
+            "dataset_command": "materialize",
+            "record": "a1",
+            "out": "d.jsonl",
+            "repo": ".",
+            "json": True,
+        },
+    ),
+    (
         "plain:dataset verify-version --file v.json --json",
         "plain",
         ["dataset", "verify-version", "--file", "v.json", "--json"],

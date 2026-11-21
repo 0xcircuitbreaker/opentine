@@ -2231,6 +2231,8 @@ The `dataset` verbs print `tine-cli-canary/1` and `scan` prints
 | `tine dataset versions [NAME] --repo PATH` | Lists the held versions with member and excluded counts and their verification (`verified` needs a pinned `curator` signer) |
 | `tine dataset verify-version (ID --repo PATH \| --file PAYLOAD.json)` | Checks one version offline (shape, members digest, taint filter, signature, signer and curator binding); exit 1 when `ok` is false |
 
+| `tine dataset materialize ID --out DATASET.jsonl --repo PATH` | Writes a `verified` version's members as eval items (prompt as `input`, last answer as `output`, the version and member content digest in `metadata`) for `tine eval`, `tine dataset show` and `tine dataset seal`; refuses an unverified version (fail closed) and leaves out runs withdrawn since curation |
+
 They print `tine-cli-dataset-curate/1` with `--json`. See docs/DATASETS.md.
 ## Contributing runs to an open dataset (0.75)
 

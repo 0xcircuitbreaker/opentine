@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opentine.com/schemas/tine-cli-dataset-curate-1.schema.json",
-  "title": "tine dataset curate|justify|withdraw|versions|verify-version --json",
-  "description": "Signed dataset versions curated from runs. `curate` selects runs, leaves out withdrawn and tainted runs (integrity taints, monitor verdicts, oversight rejections, sabotage task records, verified behaviour flags), dedups by content-defined chunks and signs the version; `--include-tainted` needs a justification signed by a pinned curator or policy key. `verify-version` checks one version offline and exits 1 when `ok` is false.",
+  "title": "tine dataset curate|justify|versions|verify-version|materialize --json",
+  "description": "Signed dataset versions curated from runs. `curate` selects runs, leaves out withdrawn and tainted runs (integrity taints, monitor verdicts, oversight rejections, sabotage task records, verified behaviour flags), dedups by content-defined chunks and signs the version; `--include-tainted` needs a justification signed by a pinned curator or policy key. `verify-version` checks one version offline and exits 1 when `ok` is false. `materialize` writes a verified version as eval items.",
   "oneOf": [
     {
       "type": "object",
@@ -173,14 +173,19 @@
         "schema",
         "ok",
         "record",
-        "run"
+        "name",
+        "version",
+        "out",
+        "items",
+        "digest",
+        "withdrawn"
       ],
       "properties": {
         "schema": {
           "const": "tine-cli-dataset-curate/1"
         },
         "command": {
-          "const": "dataset withdraw"
+          "const": "dataset materialize"
         },
         "ok": {
           "const": true
@@ -189,9 +194,29 @@
           "type": "string",
           "pattern": "^attestation:sha256:[0-9a-f]{64}$"
         },
-        "run": {
-          "type": "string",
-          "pattern": "^run:sha256:[0-9a-f]{64}$"
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "out": {
+          "type": "string"
+        },
+        "items": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "digest": {
+          "type": "string"
+        },
+        "withdrawn": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^run:sha256:[0-9a-f]{64}$"
+          }
         }
       }
     },

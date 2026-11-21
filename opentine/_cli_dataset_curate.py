@@ -1,4 +1,4 @@
-"""``tine dataset curate|justify|versions|verify-version`` (0.75).
+"""``tine dataset curate|justify|versions|verify-version|materialize`` (0.75).
 
 ``curate --select EXPR --out NAME --key KEY`` signs a dataset version from the
 repository's runs (:mod:`opentine._dataset_version`): withdrawn runs and runs
@@ -9,7 +9,9 @@ A contributor's ``tine dataset withdraw`` (:mod:`opentine._cli_dataset_contrib`)
 leaves the run out of later versions.
 ``versions [NAME]`` lists versions with their verification;
 ``verify-version (ID | --file PAYLOAD.json)`` checks one version offline
-(no trust bundle; exits 1 when it fails). See docs/DATASETS.md.
+(no trust bundle; exits 1 when it fails); ``materialize ID --out D.jsonl``
+writes a verified version as eval items (:mod:`opentine._dataset_materialize`).
+See docs/DATASETS.md.
 """
 
 from __future__ import annotations
@@ -20,7 +22,7 @@ from pathlib import Path
 from typing import Any
 
 SCHEMA = "tine-cli-dataset-curate/1"
-VERBS = ("curate", "justify", "versions", "verify-version")
+VERBS = ("curate", "justify", "versions", "verify-version", "materialize")
 
 
 def add_curate_verbs(verbs: Any) -> None:
@@ -45,7 +47,10 @@ def add_curate_verbs(verbs: Any) -> None:
     check = verbs.add_parser("verify-version", help="Check one dataset version offline")
     check.add_argument("record", nargs="?", metavar="ID", help="The version attestation id")
     check.add_argument("--file", metavar="PAYLOAD.json", help="An exported attestation payload")
-    for verb in (curate, justify, listing, check):
+    mat = verbs.add_parser("materialize", help="Write a verified dataset version as eval items")
+    mat.add_argument("record", metavar="ID", help="The version attestation id")
+    mat.add_argument("--out", required=True, metavar="DATASET.jsonl")
+    for verb in (curate, justify, listing, check, mat):
         verb.add_argument("--repo", default=".", metavar="PATH", help="Repository")
         verb.add_argument("--json", action="store_true", help="Print a JSON object")
 
@@ -72,6 +77,12 @@ def _row(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[str]
             f"{r['record']}" for r in rows] or ["no dataset versions"]  # fmt: skip
     if verb == "verify-version":
         return _verify(args, repo)
+    if verb == "materialize":
+        from opentine._dataset_materialize import materialize
+
+        row = materialize(repo, args.record, args.out)
+        return row, [f"wrote {row['items']} item(s) of {row['name']} v{row['version']} to "
+                     f"{row['out']} ({row['digest']})"]  # fmt: skip
     key, at = ed25519_private(args.key), args.at or _now()
     if verb == "justify":
         runs = [_resolve(repo, r) for r in args.run]
