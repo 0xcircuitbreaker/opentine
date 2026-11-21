@@ -64,6 +64,20 @@ def test_a_near_duplicate_of_a_tainted_run_is_left_out(repo):
     assert near in out["claim"]["taint_filter"]["excluded"]
 
 
+def test_a_copy_padded_with_more_new_text_than_it_copies_is_left_out(repo):
+    """Containment of a tainted run, not overlap with the candidate (audit OT-15)."""
+    _pin(repo)
+    bad = _twin(repo, "orig")
+    pad = " ".join(f"unrelated{i * 7919 % 10007}" for i in range(1200))
+    padded = _twin(repo, "padded", BODY + " " + pad)
+    clean = _run(repo, 1)
+    _taint(repo, bad)
+    out = dv.curate(repo, "train", "all", CURATOR, AT)
+    runs = {m["run"] for m in out["claim"]["members"]}
+    assert runs == {clean}
+    assert padded in out["claim"]["taint_filter"]["excluded"]
+
+
 def test_a_forged_version_cannot_become_the_previous_version(repo):
     _pin(repo)
     _run(repo, 1)

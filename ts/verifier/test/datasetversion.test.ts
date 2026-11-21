@@ -19,7 +19,7 @@ const cases = fixture.get("cases") as JObject[];
 
 test("the fixture has good and bad cases", () => {
   const oks = cases.filter((c) => (c.get("expect") as JObject).get("ok") === true);
-  assert.equal(oks.length, 3);
+  assert.equal(oks.length, 6);
   assert.ok(cases.length > oks.length);
 });
 

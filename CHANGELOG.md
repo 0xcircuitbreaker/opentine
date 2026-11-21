@@ -63,6 +63,19 @@
   runs whose plain cosine to them is at least 0.5, so a flood of copies does
   not centre the flagged behaviour away. Decoys tuned to sit just under 0.5
   still shift the mean; see docs/TRANSCRIPT_FLAGS.md (OT-8).
+- `tine dataset check` refuses a contributed bundle whose refs name anything
+  but the signed record's public run, or whose pack holds another run object;
+  every run in the pack is checked against `--tombstones`. A withdrawn,
+  unredacted run could previously ride along under an extra ref.
+- `tine bom export --dataset` refuses a dataset version the repository marks
+  unverified now (a member tainted since curation, or a taint filter that
+  cannot be applied), as `tine dataset versions` and `materialize` already did.
+- The Python and TS dataset-version checks share one definition of a blank
+  `selection` (ASCII whitespace only); they disagreed on U+001C..U+001F,
+  U+0085 and U+FEFF. New shared vectors cover each.
+- `tine dataset curate` also leaves out a candidate that contains at least
+  half of one tainted run's distinct chunks, so padding a tainted copy with
+  new text no longer dilutes it below the near-duplicate threshold.
 
 ## 0.75.0 — Dataset curation and AI-BOM export (2026-11-21)
 

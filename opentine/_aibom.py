@@ -101,10 +101,14 @@ def curators(repo: Path) -> set[str]:
     return set(roles.get("curator", [])) - set(roles.get("optimizer", []))
 
 
-def read_dataset(spec: str, counting: set[str] | None = None) -> dict[str, Any]:
+def read_dataset(
+    spec: str, counting: set[str] | None = None, current: Any = None
+) -> dict[str, Any]:
     """``ROLE=FILE``: a signed dataset version attestation, as a BOM dataset entry.
 
-    *counting* is :func:`curators`: the signer must be one of them.
+    *counting* is :func:`curators`: the signer must be one of them. *current*,
+    given the claim, returns the repository's verification of it now
+    (``verified`` or ``unverified: why``); anything but ``verified`` is refused.
     """
     role, sep, name = spec.partition("=")
     if not sep or role not in ROLES or not name:
@@ -127,6 +131,9 @@ def read_dataset(spec: str, counting: set[str] | None = None) -> dict[str, Any]:
         raise BomError(f"dataset version {name} fails its offline check: {why}")
     if payload["signer"] not in (counting or set()):
         raise BomError(f"dataset version {name} is not signed by a pinned curator key")
+    state = current(claim) if current is not None else "verified"
+    if state != "verified":
+        raise BomError(f"dataset version {name} is {state}")
     digest = claim.get("members_digest")
     if not (isinstance(digest, str) and DIGEST_RE.fullmatch(digest)):
         raise BomError(f"dataset version {name} names no sha256: members digest")

@@ -75,6 +75,10 @@ The export refuses, with exit 1 and nothing written:
 - an unsigned or edited version, an unknown role, or another convention;
 - a version that fails the `tine dataset verify-version` offline check;
 - a `members_digest` that is not the digest of `members`;
+- a version the `--repo` repository marks unverified now: a member that is
+  tainted there today and was not justified (`included_tainted`) at curation,
+  or a taint filter that cannot be applied, as `tine dataset versions` reports
+  it and `tine dataset materialize` refuses it;
 - a version with no taint filter;
 - a version whose signer is not a pinned `curator` key, or is also an
   `optimizer` key. Roles come only from the owner-signed trust bundle
