@@ -274,8 +274,12 @@ jobs:
       - name: Install dependencies (re-resolved for 3.15)
         run: uv sync --all-extras
 
+      # The release-toolchain test pins the committed requires-python cap, which
+      # this job lifts on purpose above; every other test runs as in the matrix.
       - name: Run tests (parallel)
-        run: uv run pytest tests -m "$TESTS and not serial" -n auto --dist loadgroup -rfEs
+        run: >-
+          uv run pytest tests -m "$TESTS and not serial" -n auto --dist loadgroup -rfEs
+          --deselect tests/test_release_workflow.py::test_release_toolchain_is_locked_and_sdist_carries_the_lock
 
       - name: Run tests (serial)
         run: uv run pytest tests -m "$TESTS and serial" -p no:xdist -rfEs || test $? -eq 5
