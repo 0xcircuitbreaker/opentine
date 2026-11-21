@@ -1,5 +1,37 @@
 # Changelog
 
+## Unreleased — Policy engine and keyless signing
+
+- `tine policy check POLICY --subject RUN [--json]`: evaluates a declarative
+  policy over a fixed input document assembled from the run's signed records
+  (eval verdicts, sealed holdouts, monitor verdicts, oversight approvals,
+  lineage, integrity taints and `fail:` codes, the budget ledger, sandbox
+  policies and containment findings). Signers carry roles from the
+  owner-pinned key roles only; records signed by a pinned optimizer key are
+  left out. Exit 0 on `allow`, 1 on `deny`. `tine policy list` and
+  `tine policy show RUN`. Schema `tine-cli-policy/1`. See docs/POLICY.md.
+- The policy language (`opentine.policy/1`, schema `opentine-policy-1`) is a
+  strict CEL subset: literals, field access, indexing, comparisons, `in`,
+  `&&`/`||`/`!`, `has()`, `size()` and the `all`/`exists` macros, with no
+  arithmetic, user functions or other macros. Source length, nesting, node
+  count, tree height, evaluation steps and input depth are bounded by counts.
+  Any error in a `require` rule denies and is recorded with its code;
+  `advisory` rules never block (D12).
+- With `--key`, the decision is signed as an `opentine.policy-admission/1`
+  attestation (a verification summary naming the policy digest, input digest,
+  decision and per-rule outcomes; schema `opentine-policy-admission-1`), held
+  and never released. A pinned optimizer key cannot sign one. A missing or
+  invalid policy allows nothing. No object kind and no `tine verify` code.
+- Standard policies in `opentine/data/policies/`: `holdout-signed`,
+  `no-integrity-fail`, `k-of-n-approvals`, `budget-within-cap`,
+  `sandbox-digest` and `promote` (all five, plus an advisory containment
+  rule).
+- The TypeScript verifier implements the same evaluator
+  (`ts/verifier/src/policy.ts`, `policyeval.ts`); 160 expression vectors and 7
+  policy vectors in `tests/data/policy_vectors.json` (numeric limits,
+  NFC/NFD, code-point ordering, surrogates, every bound and error code) run
+  in both. `scripts/gen_policy_vectors.py` regenerates them.
+
 ## 0.73.0 — Transcript analysis at corpus scale (2026-11-21)
 
 - `tine transcripts index|search|similar RUN [--json]`: a derived,

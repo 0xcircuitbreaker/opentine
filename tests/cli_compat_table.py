@@ -6988,4 +6988,48 @@ ROWS: tuple[tuple, ...] = (
             "dataset": "sha256:ab",
         },  # fmt: skip
     ),
+    (
+        "plain:policy check promote --subject R --param approvals=3 --key k --json",
+        "plain",
+        [
+            "policy",
+            "check",
+            "promote",
+            "--subject",
+            "R",
+            "--param",
+            "approvals=3",
+            "--key",
+            "k",
+            "--json",
+        ],
+        "opentine._cli_policy:cmd_policy",
+        False,
+        {
+            "command": "policy",
+            "policy_command": "check",
+            "policy": "promote",
+            "subject": "R",
+            "param": ["approvals=3"],
+            "key": "k",
+            "json": True,
+            "repo": ".",
+        },  # fmt: skip
+    ),
+    (
+        "plain:policy list --json",
+        "plain",
+        ["policy", "list", "--json"],
+        "opentine._cli_policy:cmd_policy",
+        False,
+        {"command": "policy", "policy_command": "list", "json": True, "repo": "."},
+    ),
+    (
+        "plain:policy show R --json",
+        "plain",
+        ["policy", "show", "R", "--json"],
+        "opentine._cli_policy:cmd_policy",
+        False,
+        {"command": "policy", "policy_command": "show", "run": "R", "json": True, "repo": "."},
+    ),
 )

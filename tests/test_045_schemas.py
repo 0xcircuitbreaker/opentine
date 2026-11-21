@@ -322,6 +322,7 @@ DRIVEN = (
     (("auditor", "check", "--repo", "repo", "--json"), "tine-cli-auditor-1"),  # 0.65
     (("sabotage", "report", "--repo", "repo", "--json"), "tine-cli-sabotage-1"),  # 0.68
     (("uplift", "suite", "suite.json", "--json"), "tine-cli-uplift-1"),  # 0.73
+    (("policy", "list", "--json"), "tine-cli-policy-1"),  # 0.75 (release 0.74.0)
     (("query", "SELECT oid FROM runs", "--repo", "repo", "--json"), "tine-cli-query-1"),  # 0.65
     (("query", "index", "--repo", "repo", "--json"), "tine-cli-query-1"),  # 0.65
     (("transcripts", "index", "--repo", "repo", "--json"), "tine-cli-transcripts-1"),  # 0.74
