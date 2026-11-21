@@ -3,9 +3,14 @@
 From a repository, every ``run:`` object's indexed text (the same text the
 search index holds) after credential and PII redaction
 (:func:`opentine.repository._embed_index.redacted_text`), so no analysis or
-annotation can recover a secret. From ``--corpus FILE.jsonl``, one object per
-line with ``id`` and ``text`` (and optionally ``behaviour``, used only by the
-recall evaluation), as the committed synthetic corpus has.
+annotation can recover a secret. The run's own object id is removed from its
+text: it is a content hash that covers the run's wall-clock ``created_at``, so
+as a feature it is a unique random token that says nothing about behaviour yet
+moves clusters and scores between otherwise identical corpora.
+
+From ``--corpus FILE.jsonl``, one object per line with ``id`` and ``text``
+(and optionally ``behaviour``, used only by the recall evaluation), as the
+committed synthetic corpus has.
 """
 
 from __future__ import annotations
@@ -27,7 +32,7 @@ def from_repo(repo: Any, *, limit: int = MAX_RUNS) -> dict[str, str]:
     for oid in sorted(o for o in repo.iter_oids(limit=limit) if o.startswith("run:")):
         text = redacted_text(repo, oid, classifier)
         if text is not None:
-            out[oid] = text
+            out[oid] = text.replace(oid, "")
     return out
 
 

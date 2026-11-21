@@ -1,12 +1,14 @@
 """Seeded clustering, similarity search and the recall@k evaluation (0.74).
 
-Clustering is spherical k-means over a :class:`~opentine._transcript_space.Space`:
-runs are taken in sorted id order, initial centres by k-means++ from
+Clustering is spherical k-means over a
+:class:`~opentine._transcript_space.Space`: runs are taken in content order
+(text digest, then id: run ids hash a wall-clock time, so id order is not a
+property of the transcripts), initial centres by k-means++ from
 ``random.Random(seed)``, then at most ``ITERATIONS`` rounds of assign (highest
 dot product, ties to the lower centre index) and re-centre, stopping early
 when no assignment changes. Same corpus, backend, ``k`` and seed: same
-clusters. A cluster's id is ``tc-`` and the first 16 hex digits of the
-SHA-256 of its sorted member ids, so it names its members, not its position.
+clusters. A cluster's id is ``tc-`` and the first 16 hex digits of the SHA-256
+of its sorted member ids, so it names its members, not its position.
 
 :func:`similar` ranks runs by centred similarity to the centroid of one or
 more exemplar runs ("find trajectories like these"). :func:`recall_at` is the
@@ -47,7 +49,7 @@ def _centre(vectors: list[Sparse], dim: int) -> list[float]:
 
 
 def _seeds(space: Space, k: int, rng: random.Random) -> list[list[float]]:
-    ids = space.ids
+    ids = space.order
     first = space.vectors[ids[rng.randrange(len(ids))]]
     centres = [_centre([first], space.dim)]
     best = {i: dot(space.vectors[i], centres[0]) for i in ids}
@@ -71,7 +73,7 @@ def _seeds(space: Space, k: int, rng: random.Random) -> list[list[float]]:
 
 def kmeans(space: Space, k: int | None = None, seed: int = 0) -> dict[str, Any]:
     """``{"k", "seed", "iterations", "clusters": [{"id", "size", "members", "exemplar"}]}``."""
-    ids = space.ids
+    ids = space.order
     k = min(len(ids), default_k(len(ids)) if k is None else k)
     if k < 0 or k > MAX_K:
         raise ValueError(f"k is in 1..{MAX_K}")
@@ -92,7 +94,7 @@ def kmeans(space: Space, k: int | None = None, seed: int = 0) -> dict[str, Any]:
         centres = [_centre(g, space.dim) if g else c for g, c in zip(groups, centres, strict=True)]
     clusters = []
     for j, centre in enumerate(centres):
-        members = [i for i in ids if assign[i] == j]
+        members = sorted(i for i in ids if assign[i] == j)
         if members:
             exemplar = max(members, key=lambda i: (dot(space.vectors[i], centre), i))
             clusters.append({"id": cluster_id(members), "size": len(members),

@@ -88,7 +88,11 @@ class Space:
                  model: Any = None) -> None:  # fmt: skip
         self.dim, self.seed, self.model = dim, seed, model
         self.ids = sorted(texts)
-        self.corpus_digest = digest_of([[i, digest_of(texts[i])] for i in self.ids])
+        digests = {i: digest_of(texts[i]) for i in self.ids}
+        self.corpus_digest = digest_of([[i, digests[i]] for i in self.ids])
+        # content order: run ids hash a wall-clock time, so seeding by id order
+        # would make the same transcripts cluster differently on each recording
+        self.order = sorted(self.ids, key=lambda i: (digests[i], i))
         if model is not None:
             dense = model.embed([texts[i] for i in self.ids]) if self.ids else []
             self.dim = int(model.dim)
