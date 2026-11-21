@@ -31,6 +31,9 @@ INDEX_FORMAT = "opentine-search/1"
 MAX_INDEX_BLOB_BYTES = 1024 * 1024
 MAX_INDEX_TEXT_PER_RUN = 1024 * 1024
 MAX_INDEX_EVENTS_PER_RUN = 100_000
+# system and prompt text share this part of the per-run budget, so a padded
+# prompt cannot crowd the steps (tool calls and outputs) out of the text
+MAX_INDEX_PROMPT_TEXT = 256 * 1024
 # a blob larger than the text budget is hashed in full (so its prefix is verified)
 # and only its prefix is indexed; past this size it is not read at all
 MAX_INDEX_SOURCE_BYTES = 64 * 1024 * 1024
@@ -96,9 +99,10 @@ def extract(repo: Repo, run_id: str) -> tuple[tuple[Any, ...], tuple[str, ...]] 
     if envelope.object_type != "run":
         return None
     payload = envelope.payload()
-    budget = [MAX_INDEX_TEXT_PER_RUN]
+    head = [MAX_INDEX_PROMPT_TEXT]
     seen: set[str] = set()
-    body = [_text(repo, payload.get(key), budget) for key in ("system_blob", "prompt_blob")]
+    body = [_text(repo, payload.get(key), head) for key in ("system_blob", "prompt_blob")]
+    budget = [MAX_INDEX_TEXT_PER_RUN - (MAX_INDEX_PROMPT_TEXT - head[0])]
     tools: list[str] = []
     models: set[str] = set()
     cost = latency = 0.0

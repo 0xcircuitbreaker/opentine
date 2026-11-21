@@ -8,8 +8,9 @@
 * ``transcript:<label>:<run>`` -- every run whose transcript is like one of a
   verified flag's evidence runs (centred cosine at or above
   :data:`SIMILAR_THRESHOLD` in the ``opentine.tfidf-hash/1`` space fitted on
-  the repository's redacted runs, :func:`opentine._transcript_cluster.similar`),
-  a "similar to known bad" hit, labelled like the flag.
+  the repository's redacted runs; 0.76: the best of the whole run and its
+  word windows, :mod:`opentine._transcript_windows`, so padding cannot dilute
+  it), a "similar to known bad" hit, labelled like the flag.
 
 An item reaches a tier only through a ``[[route]] source = "transcript"`` row
 of the pinned policy (``label`` is a glob over the flag label), so nothing
@@ -40,18 +41,22 @@ def similar_hits(repo: Any, verified: list[dict[str, Any]], *,
     flagged = {(f["label"], run) for f in verified for run in f["evidence"] or []}
     if not flagged:
         return {}
-    from opentine._transcript_cluster import similar
     from opentine._transcript_corpus import from_repo
-    from opentine._transcript_space import Space
+    from opentine._transcript_windows import scorer
 
-    space = Space(from_repo(repo))
+    score = scorer(from_repo(repo))
+    space = score.space
     hits: dict[tuple[str, str], dict[str, Any]] = {}
     for label, like in sorted(flagged):
         if like not in space.vectors:
             continue
-        for row in similar(space, [like], top):
-            if row["score"] < threshold:
+        query = space.query([space.vectors[like]])
+        width = score.width(like)
+        rows = [(round(score.best(query, i, width), 6), i) for i in space.ids if i != like]
+        for value, run in sorted(rows, key=lambda r: (-r[0], r[1]))[:top]:
+            if value < threshold:
                 break
+            row = {"run": run, "score": value}
             key = (label, row["run"])
             if key in flagged or (key in hits and hits[key]["score"] >= row["score"]):
                 continue

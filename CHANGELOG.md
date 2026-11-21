@@ -15,6 +15,14 @@
   skipped as malformed. The same reader now parses `tine query --verify` eval
   rows, lineage records and decisions, `--corpus` JSONL lines and the holds
   file, which refuse such input with their usual malformed-input error (OT-6).
+- Padding a run's prompt no longer hides it from similar-to-known-bad
+  oversight items. System and prompt text now share a 256 KiB part of the
+  1 MiB per-run search-index text budget, so the steps are still read after a
+  padded prompt, and a run's score against a flag's evidence run is the best
+  of its whole-run score and its evidence-length, half-overlapping word
+  windows (`opentine/_transcript_windows.py`). Text inserted between every
+  copied step still dilutes each window; that limit is documented in
+  docs/TRANSCRIPT_FLAGS.md (OT-7).
 
 ## 0.75.0 — Dataset curation and AI-BOM export (2026-11-21)
 
