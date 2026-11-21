@@ -62,8 +62,21 @@ def certificates(material: dict) -> list[x509.Certificate]:
     raise KeylessFail("fail:keyless-not-keyless", "bundle carries no signing certificate")
 
 
+def _is_ca(cert: x509.Certificate) -> bool:
+    """A certificate may issue others only as a CA allowed to sign certificates."""
+    try:
+        if not cert.extensions.get_extension_for_class(x509.BasicConstraints).value.ca:
+            return False
+    except x509.ExtensionNotFound:
+        return False
+    try:
+        return cert.extensions.get_extension_for_class(x509.KeyUsage).value.key_cert_sign
+    except x509.ExtensionNotFound:
+        return True
+
+
 def _issued_by(cert: x509.Certificate, candidate: x509.Certificate) -> bool:
-    if candidate.subject != cert.issuer:
+    if candidate.subject != cert.issuer or not _is_ca(candidate):
         return False
     try:
         cert.verify_directly_issued_by(candidate)
