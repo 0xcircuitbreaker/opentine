@@ -196,6 +196,13 @@ item and seeds no hits. An item reaches a tier only through a pinned policy
 row `[[route]] source = "transcript"`, whose `label` glob matches the flag
 label; with no such route nothing is queued and nothing blocks.
 
+A run whose text cannot be read is left out of the corpus. A blob larger than
+the 1 MiB per-run text budget contributes its verified prefix; a blob over
+64 MiB is not read. Each queue source is isolated: if one fails (the
+transcript source included), it lists nothing and a `RuntimeWarning` names it,
+while the monitor, integrity, budget, containment and custody items are still
+listed.
+
 ## Query
 
 `tine query` reads the tables `transcript_flags`, `transcript_flag_runs`

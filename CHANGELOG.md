@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased — Security and integrity hardening
+
+- One run with a blob over 1 MiB no longer crashes the oversight queue or
+  `tine transcripts`. The search-index text reader hashes a blob of up to
+  64 MiB in full and keeps only its verified prefix; a larger or unreadable
+  blob is read as empty text. A run whose text cannot be read is left out of
+  the transcript corpus, and each oversight-queue source is isolated: a source
+  that fails is warned about and lists nothing, and the other sources still
+  list their items (OT-3).
+
 ## 0.75.0 — Dataset curation and AI-BOM export (2026-11-21)
 
 - `tine dataset curate --select EXPR --out NAME --key KEY`: a signed dataset

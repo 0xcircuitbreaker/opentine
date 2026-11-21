@@ -17,6 +17,7 @@ its first decision's): a timestamp from the records, never from the clock.
 from __future__ import annotations
 
 import hashlib
+import warnings
 from typing import Any
 
 from opentine import _oversight, _oversight_policy
@@ -52,7 +53,20 @@ def _sources(repo: Any) -> list[dict[str, Any]]:
     from opentine._weight_custody_review import items as custody_items
 
     # 0.72: custody gaps and refusals; 0.74: behaviour flags and runs like flagged runs
-    return found + _containment(repo) + custody_items(repo) + transcript_items(repo)
+    for name, source in (("containment", _containment), ("custody", custody_items),
+                         ("transcript", transcript_items)):  # fmt: skip
+        found += _isolated(name, source, repo)
+    return found
+
+
+def _isolated(name: str, source: Any, repo: Any) -> list[dict[str, Any]]:
+    """One source's items; a source that fails is warned about, never fatal to the rest."""
+    try:
+        return list(source(repo))
+    except Exception as exc:  # noqa: BLE001 - isolate each source (0.76)
+        warnings.warn(f"oversight source {name} failed and lists nothing: {exc}",
+                      RuntimeWarning, stacklevel=3)  # fmt: skip
+        return []
 
 
 def _containment(repo: Any) -> list[dict[str, Any]]:

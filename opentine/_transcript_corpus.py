@@ -30,7 +30,10 @@ def from_repo(repo: Any, *, limit: int = MAX_RUNS) -> dict[str, str]:
     classifier = load_classifier()
     out: dict[str, str] = {}
     for oid in sorted(o for o in repo.iter_oids(limit=limit) if o.startswith("run:")):
-        text = redacted_text(repo, oid, classifier)
+        try:  # one unreadable run is left out, never the whole corpus
+            text = redacted_text(repo, oid, classifier)
+        except (KeyError, OSError, ValueError):
+            continue
         if text is not None:
             out[oid] = text.replace(oid, "")
     return out

@@ -21,6 +21,7 @@ from contextlib import closing
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from opentine.kernel import KernelError
 from opentine.repository._blob_io import read_verified_blob_prefix
 
 if TYPE_CHECKING:
@@ -30,6 +31,9 @@ INDEX_FORMAT = "opentine-search/1"
 MAX_INDEX_BLOB_BYTES = 1024 * 1024
 MAX_INDEX_TEXT_PER_RUN = 1024 * 1024
 MAX_INDEX_EVENTS_PER_RUN = 100_000
+# a blob larger than the text budget is hashed in full (so its prefix is verified)
+# and only its prefix is indexed; past this size it is not read at all
+MAX_INDEX_SOURCE_BYTES = 64 * 1024 * 1024
 _PATH = re.compile(r"(?:[\w.~-]+/)+[\w.-]+|[\w-]+\.[A-Za-z0-9]{1,8}\b")
 _SCHEMA = (
     "CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY, value TEXT NOT NULL)",
@@ -76,7 +80,12 @@ def _text(repo: Repo, oid: Any, budget: list[int]) -> str:
     if not isinstance(oid, str) or budget[0] <= 0 or not repo.has(oid):
         return ""
     limit = min(MAX_INDEX_BLOB_BYTES, budget[0])
-    raw, _, _ = read_verified_blob_prefix(repo, oid, prefix_limit=limit, source_limit=limit)
+    try:  # a bounded prefix: one oversized or unreadable blob never fails the whole run
+        raw, _, _ = read_verified_blob_prefix(
+            repo, oid, prefix_limit=limit, source_limit=MAX_INDEX_SOURCE_BYTES
+        )
+    except (KernelError, OSError):
+        return ""
     budget[0] -= len(raw)
     return raw.decode("utf-8", errors="replace")
 
