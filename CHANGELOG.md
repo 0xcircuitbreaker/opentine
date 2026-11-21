@@ -25,6 +25,14 @@
   policy input's `oversight` block now holds the decisions on the run's
   `promotion:LABEL:RUN` items (it matched a decision's anchor blob against the
   run id, so `k-of-n-approvals` never held).
+- `holdout-signed` (and so the shipped `promote` policy) can now hold on real
+  records: a sealed holdout's signed commitment records its items' dataset
+  digest (`dataset`), and the policy input marks an eval as a holdout eval
+  when its verdicts' `dataset` equals the digest a verified holdout, signed by
+  a pinned `dataset` key, records. Before, the digest was compared with holdout
+  names, so the rule never held and `tine promote --require-admission promote`
+  could not admit. Commitments sealed before 0.76 carry no digest and match no
+  eval; reseal them with `--rotate-from`.
 - The policy input counts an approval only where the oversight queue would:
   a decision anchored on a blob other than its item's anchor is ignored, a
   signer's later reject cancels their earlier approve, and when the check

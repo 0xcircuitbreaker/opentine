@@ -20,12 +20,14 @@ The commitment claim (an existing attestation, signed by a ``dataset``-role key
 from the owner-pinned trust bundle) is::
 
     {"schema": "opentine.holdout.commitment/1", "holdout": NAME, "root": HEX,
-     "items": N, "generation": G, "previous": HEX|null,
+     "dataset": "sha256:HEX", "items": N, "generation": G, "previous": HEX|null,
      "previous_commitment_sha256": HEX|null,
      "budget": {"max_unseals": U, "max_items": I}}
 
 Rotation (``--rotate-from OLD``) seals a new generation whose ``previous`` names
 the old root and the sha256 of the old commitment's bytes: a commitment chain.
+``dataset`` (0.76) is the items' dataset digest, the one ``tine eval`` puts on
+each verdict; the policy input matches holdout evals by it.
 """
 
 from __future__ import annotations
@@ -154,6 +156,7 @@ def load(folder: Path) -> dict[str, Any]:
 def seal(items: list[dict[str, Any]], out: Path, *, name: str, key: Any, master: bytes,
          budget: dict[str, int], at: str, previous: dict | None = None) -> dict:  # fmt: skip
     """Seal *items* into *out*; *previous* is the loaded commitment this one rotates."""
+    from opentine._eval_dataset import dataset_digest
     from opentine.remote._sealed import seal_with
 
     if not NAME_RE.fullmatch(name):
@@ -171,7 +174,8 @@ def seal(items: list[dict[str, Any]], out: Path, *, name: str, key: Any, master:
         (out / "items" / f"{index:06d}.sealed").write_bytes(blob)
     dump(out / "leaves.json", [h.hex() for h in leaves])
     prev = previous["claim"] if previous else None
-    claim = {"schema": COMMITMENT, "holdout": name, "root": root, "items": len(items),
+    claim = {"schema": COMMITMENT, "holdout": name, "root": root,
+             "dataset": dataset_digest(items), "items": len(items),
              "generation": prev["generation"] + 1 if prev else 1,
              "previous": prev["root"] if prev else None,
              "previous_commitment_sha256": previous["sha256"] if previous else None,

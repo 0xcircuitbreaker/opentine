@@ -4,10 +4,9 @@ The shipped ``promote`` policy reads signed evals (``--evals``), sealed
 holdouts (``--holdout``), a budget (``--budget``) and the run's approvals; the
 gate must assemble them the same way, or an allow from the check never counts.
 
-``holdout-signed`` is left out of the end-to-end ``promote`` check: ``e.holdout``
-compares a verdict's ``dataset`` (always a ``sha256:`` content digest) with
-holdout *names*, which can never be equal, so that rule cannot hold on real
-records yet. Everything else in ``promote`` is the shipped policy.
+These evals are not over the sealed holdout's items, so ``holdout-signed`` is
+left out here; tests/test_076_holdout_digest.py runs the full shipped
+``promote`` policy with a holdout eval. Everything else is the shipped policy.
 """
 
 from __future__ import annotations
@@ -78,7 +77,7 @@ def _check(capsys, root, run, keys, policy, param, assembly):
 
 
 def _promote_without_holdout(tmp_path):
-    """The shipped ``promote`` policy minus ``holdout-signed`` (see the module notes)."""
+    """The shipped ``promote`` policy minus ``holdout-signed`` (no holdout eval here)."""
     from opentine import _policy
 
     doc, _raw = _policy.load("promote")
