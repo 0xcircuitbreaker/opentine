@@ -17,6 +17,7 @@ from opentine._cli_hook import add_hook_parser
 from opentine._cli_import import add_import_parser
 from opentine._cli_json_flow import STATS_SCOPE_NOTE
 from opentine._cli_keygen import add_keygen_parser
+from opentine._cli_keyless import add_sign_keyless_args
 from opentine._cli_media import add_media_parser
 from opentine._cli_migrate_v4 import add_migrate_parser
 from opentine._cli_plugin import add_plugin_parser
@@ -102,6 +103,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--overwrite", action="store_true", help="Replace an existing --save destination"
     )
     sign.add_argument("--force", action="store_true")
+    add_sign_keyless_args(sign)  # 0.74: tine sign --keyless
 
     add_keygen_parser(sub)
 
