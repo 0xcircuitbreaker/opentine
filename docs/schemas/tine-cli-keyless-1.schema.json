@@ -1,0 +1,234 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-keyless-1.schema.json",
+  "title": "tine sign --keyless / tine keyless verify",
+  "description": "Keyless signing and offline verification. A keyless identity is trusted only when an owner-pinned trust bundle names its issuer and exact identity; `assurance_tier` describes the identity and never grants trust.",
+  "anyOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "mode",
+        "run",
+        "bundle",
+        "log_index"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-keyless/1"
+        },
+        "command": {
+          "const": "sign"
+        },
+        "mode": {
+          "const": "keyless"
+        },
+        "run": {
+          "type": "string"
+        },
+        "bundle": {
+          "type": "string"
+        },
+        "log_index": {
+          "type": "integer"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "bundle",
+        "outcome",
+        "code",
+        "reason",
+        "trusted"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-keyless/1"
+        },
+        "command": {
+          "const": "keyless verify"
+        },
+        "bundle": {
+          "type": "string"
+        },
+        "outcome": {
+          "enum": [
+            "pass",
+            "caveat",
+            "fail"
+          ]
+        },
+        "code": {
+          "enum": [
+            "keyless.trusted",
+            "caveat:keyless-unpinned",
+            "caveat:keyless-outside-window",
+            "fail:keyless-malformed",
+            "fail:keyless-not-keyless",
+            "fail:keyless-receipt",
+            "fail:keyless-signature",
+            "fail:keyless-chain",
+            "fail:keyless-subject"
+          ]
+        },
+        "reason": {
+          "type": "string"
+        },
+        "trusted": {
+          "type": "boolean"
+        },
+        "identity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "san",
+            "san_email",
+            "san_uri",
+            "issuer",
+            "build_signer_uri",
+            "build_signer_digest",
+            "runner_environment",
+            "source_repository_uri",
+            "source_repository_digest",
+            "source_repository_ref",
+            "build_trigger"
+          ],
+          "properties": {
+            "san": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "san_email": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "san_uri": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "issuer": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "build_signer_uri": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "build_signer_digest": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "runner_environment": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "source_repository_uri": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "source_repository_digest": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "source_repository_ref": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "build_trigger": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "assurance_tier": {
+          "enum": [
+            "keyless-workflow",
+            "keyless-person",
+            "keyless-unbound"
+          ]
+        },
+        "integrated_time": {
+          "type": "string"
+        },
+        "log_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "not_before": {
+          "type": "string"
+        },
+        "not_after": {
+          "type": "string"
+        },
+        "subject": {
+          "type": "object",
+          "required": [
+            "name",
+            "digest"
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -620,6 +620,27 @@ verified, and one by any other key as failed, exactly like `tine verify --pin`.
 It remembers the highest serial it accepted. The TS command line takes the same
 bundle: `opentine-verify FILE --trust-bundle bundle.note --owner-vkey VKEY`.
 
+## Keyless run signing: `tine sign --keyless`, `tine keyless verify` (0.74)
+
+```
+tine sign RUN --keyless [--rekor URL] [--fulcio-url URL] [--output FILE] [--overwrite] [--json]
+tine keyless verify BUNDLE --fulcio-root PEM --rekor-key PEM [--run RUN] [--trust-bundle FILE] [--json]
+```
+
+`sign --keyless` is for CI jobs and runners. It reads the OIDC token from
+`SIGSTORE_ID_TOKEN` or the GitHub Actions ambient token, gets a short-lived
+Fulcio certificate, signs the run's in-toto statement and logs the signature to
+Rekor. It writes the existing Sigstore bundle (`RUN.sigstore.json`).
+`keyless verify` checks the bundle offline: the receipt, the inclusion proof
+against the signed tree head, the signature, the chain to `--fulcio-root`, and
+the certificate window at the log's integrated time (outside it:
+`caveat:keyless-outside-window`). It then reports the identity and its
+assurance tier. An identity is trusted (`keyless.trusted`, exit 0) only when
+the owner-pinned trust bundle's `trust_policy` names its exact
+`cert_oidc_issuer` and `cert_identity`; otherwise the result is
+`caveat:keyless-unpinned` (exit 1). `--json` writes `tine-cli-keyless/1`. See
+[KEYLESS.md](KEYLESS.md).
+
 ## Agent Trace export (0.19)
 
 ```

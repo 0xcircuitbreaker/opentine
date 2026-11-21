@@ -19,6 +19,8 @@ from typing import Any
 
 from opentine._cli_common import _terminal, console
 from opentine._cli_errors import error
+from opentine._cli_keyless import COMMANDS as KEYLESS_COMMANDS
+from opentine._cli_keyless import add_keyless_parser
 from opentine._cli_organism import COMMANDS as ORGANISM_COMMANDS
 from opentine._cli_organism import add_organism_parser
 from opentine._cli_policy import COMMANDS as POLICY_COMMANDS
@@ -30,6 +32,7 @@ SCHEMA = "tine-cli-containment/1"
 
 
 def add_containment_parser(subparsers: argparse._SubParsersAction) -> None:
+    add_keyless_parser(subparsers)  # 0.74: tine keyless verify
     add_organism_parser(subparsers)  # 0.72: tine organism tag|untag|approve|status|gate
     add_transcripts_parser(
         subparsers
@@ -144,4 +147,5 @@ COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
     **ORGANISM_COMMANDS,
     **TRANSCRIPTS_COMMANDS,
     **POLICY_COMMANDS,
+    **KEYLESS_COMMANDS,
 }

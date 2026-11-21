@@ -18,6 +18,8 @@ from opentine._schema_defs_elicit import COMMAND_SCHEMAS as _ELICIT_COMMANDS
 from opentine._schema_defs_elicit import SCHEMAS as _ELICIT
 from opentine._schema_defs_experiment import COMMAND_SCHEMAS as _EXPERIMENT_COMMANDS
 from opentine._schema_defs_experiment import SCHEMAS as _EXPERIMENT
+from opentine._schema_defs_keyless import COMMAND_SCHEMAS as _KEYLESS_COMMANDS
+from opentine._schema_defs_keyless import SCHEMAS as _KEYLESS
 from opentine._schema_defs_merge_history import COMMAND_SCHEMAS as _MH_COMMANDS
 from opentine._schema_defs_merge_history import SCHEMAS as _MH
 from opentine._schema_defs_organism import COMMAND_SCHEMAS as _ORGANISM_COMMANDS
@@ -49,6 +51,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     **_TRENDS,
     **_TRANSCRIPTS,
     **_POLICY,
+    **_KEYLESS,
 }
 COMMAND_SCHEMAS: dict[str, str] = {
     **_QUERY_COMMANDS,
@@ -64,6 +67,7 @@ COMMAND_SCHEMAS: dict[str, str] = {
     **_TRENDS_COMMANDS,
     **_TRANSCRIPTS_COMMANDS,
     **_POLICY_COMMANDS,
+    **_KEYLESS_COMMANDS,
 }
 
 __all__ = ["COMMAND_SCHEMAS", "SCHEMAS"]

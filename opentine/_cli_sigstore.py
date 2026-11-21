@@ -125,7 +125,8 @@ def sign_for_export(args: argparse.Namespace, statement: dict, signing_key) -> d
         del token
         envelope = signer.sign(statement)
         entry = upload_dsse(envelope, signer.leaf_pem, default_rekor_url(args.rekor))
-        return make_bundle(envelope, signer.material(), [entry])
+        material = signer.chain_material() if getattr(args, "keyless_chain", False) else None
+        return make_bundle(envelope, material or signer.material(), [entry])  # chain: 0.74 sign
     refuse_unhonoured(
         args,
         ("identity_token", "fulcio_url"),

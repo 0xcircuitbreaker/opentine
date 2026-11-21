@@ -32,6 +32,27 @@
   policy vectors in `tests/data/policy_vectors.json` (numeric limits,
   NFC/NFD, code-point ordering, surrogates, every bound and error code) run
   in both. `scripts/gen_policy_vectors.py` regenerates them.
+- `tine sign RUN --keyless` (CI/runner mode): the OIDC token is read from
+  `SIGSTORE_ID_TOKEN` or the GitHub Actions ambient token, never from argv. A
+  Fulcio-style certificate binds an ephemeral P-256 key to the identity, and
+  the signature over the run's in-toto statement is logged to Rekor. The output
+  is the existing Sigstore bundle v0.3 (`RUN.sigstore.json`), with the leaf and
+  intermediates, the log entry, the inclusion proof and the signed tree head.
+  No new object kind. See docs/KEYLESS.md.
+- `tine keyless verify BUNDLE --fulcio-root PEM --rekor-key PEM [--run RUN]`:
+  offline verification. The inclusion proof is checked against the signed tree
+  head, the chain is checked to a root the caller supplies (a root in the
+  bundle is never an anchor), and every certificate must be valid at the log's
+  integrated time. Outside the window the result is
+  `caveat:keyless-outside-window`, which is not trusted. Command-level codes
+  only; no new `tine verify` codes. Schema `tine-cli-keyless/1`.
+- Keyless identities map to an assurance tier (`keyless-workflow`,
+  `keyless-person`, `keyless-unbound`) from the SAN and Fulcio's OIDC
+  extensions (issuer, build signer URI, source repository and ref, runner
+  environment, trigger). They are never trusted by default: only an
+  owner-pinned trust bundle whose `trust_policy` names the exact
+  `cert_oidc_issuer` and `cert_identity` trusts one. A pinned owner with a
+  missing or rolled-back bundle fails closed.
 
 ## 0.73.0 — Transcript analysis at corpus scale (2026-11-21)
 
