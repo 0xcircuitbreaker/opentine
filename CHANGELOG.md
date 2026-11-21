@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — Security and integrity hardening
+
+- `tine dataset check` refuses a contributed bundle whose refs name anything
+  but the signed record's public run, or whose pack holds another run object;
+  every run in the pack is checked against `--tombstones`. A withdrawn,
+  unredacted run could previously ride along under an extra ref.
+
 ## 0.75.0 — Dataset curation and AI-BOM export (2026-11-21)
 
 - `tine dataset curate --select EXPR --out NAME --key KEY`: a signed dataset
