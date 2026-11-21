@@ -2,6 +2,8 @@
 
 0.60 adds sealed holdouts (``seal|unseal|exposure``, :mod:`opentine._cli_holdout`) and
 ``canary-add|canary-list|canary-check|contamination`` (:mod:`opentine._cli_canary`).
+0.75 adds ``curate|justify|withdraw|versions|verify-version``
+(:mod:`opentine._cli_dataset_curate`): signed dataset versions from runs.
 """
 
 from __future__ import annotations
@@ -47,6 +49,9 @@ def add_dataset_parser(sub: Any) -> None:
     from opentine._cli_canary import add_canary_verbs
 
     add_canary_verbs(verbs)  # 0.60: canaries and contamination
+    from opentine._cli_dataset_curate import add_curate_verbs
+
+    add_curate_verbs(verbs)  # 0.75: curated dataset versions
 
 
 def _load_run(name: str, repo: str | None) -> tuple[Any, str]:
@@ -134,6 +139,11 @@ def cmd_dataset(args: argparse.Namespace) -> None:
     if verb in CANARY_VERBS:
         cmd_canary(args)
         return
+    from opentine._cli_dataset_curate import VERBS as CURATE_VERBS
+    from opentine._cli_dataset_curate import cmd_curate
+
+    if verb in CURATE_VERBS:
+        return cmd_curate(args)
     handler = {"add": _add, "import": _import, "export": _export, "show": _show}[verb]
     try:
         row = handler(args)

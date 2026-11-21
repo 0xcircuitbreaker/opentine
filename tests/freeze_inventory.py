@@ -134,6 +134,8 @@ NOT_KINDS = (
     "opentine-organism-access-1",
     # 0.74 (release 0.73.0): an attestation claim (transcript behaviour flags)
     "opentine-transcript-flag-1",
+    # 0.78 (release 0.75.0): an attestation claim (curated dataset versions)
+    "opentine-dataset-version-1",
     # 0.72: file conventions (the trends export and signed task lengths)
     "opentine-trends-1", "opentine-trends-task-lengths-1",
 )  # fmt: skip

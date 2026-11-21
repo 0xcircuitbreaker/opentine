@@ -12,6 +12,8 @@ from opentine._schema_defs_budget import COMMAND_SCHEMAS as _BUDGET_COMMANDS
 from opentine._schema_defs_budget import SCHEMAS as _BUDGET
 from opentine._schema_defs_containment import COMMAND_SCHEMAS as _CONTAINMENT_COMMANDS
 from opentine._schema_defs_containment import SCHEMAS as _CONTAINMENT
+from opentine._schema_defs_curate import COMMAND_SCHEMAS as _CURATE_COMMANDS
+from opentine._schema_defs_curate import SCHEMAS as _CURATE
 from opentine._schema_defs_custody import COMMAND_SCHEMAS as _CUSTODY_COMMANDS
 from opentine._schema_defs_custody import SCHEMAS as _CUSTODY
 from opentine._schema_defs_elicit import COMMAND_SCHEMAS as _ELICIT_COMMANDS
@@ -46,6 +48,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     **_UPLIFT,
     **_TRENDS,
     **_TRANSCRIPTS,
+    **_CURATE,
 }
 COMMAND_SCHEMAS: dict[str, str] = {
     **_QUERY_COMMANDS,
@@ -60,6 +63,7 @@ COMMAND_SCHEMAS: dict[str, str] = {
     **_UPLIFT_COMMANDS,
     **_TRENDS_COMMANDS,
     **_TRANSCRIPTS_COMMANDS,
+    **_CURATE_COMMANDS,
 }
 
 __all__ = ["COMMAND_SCHEMAS", "SCHEMAS"]
