@@ -69,6 +69,32 @@ def pytest_configure(config):
     assert _cli_common.console.color_system is None, _cli_common.console.color_system
 
 
+#: CI sets OPENTINE_TEST_TRACE_DIR: each process appends "start"/"end" lines per
+#: test to its own file, flushed at once, so a test that hangs until the
+#: per-test timeout kills its xdist worker is named in an uploaded artifact.
+_TRACE_DIR = os.environ.get("OPENTINE_TEST_TRACE_DIR")
+
+
+def _trace(line):
+    if not _TRACE_DIR:
+        return
+    import time
+
+    worker = os.environ.get("PYTEST_XDIST_WORKER", "main")
+    os.makedirs(_TRACE_DIR, exist_ok=True)
+    path = os.path.join(_TRACE_DIR, f"{worker}-{os.getpid()}.log")
+    with open(path, "a", encoding="utf-8") as handle:
+        handle.write(f"{time.strftime('%H:%M:%S')} {line}\n")
+
+
+def pytest_runtest_logstart(nodeid, location):
+    _trace(f"start {nodeid}")
+
+
+def pytest_runtest_logfinish(nodeid, location):
+    _trace(f"end {nodeid}")
+
+
 def pytest_addoption(parser):
     parser.addoption("--provider", default="anthropic", help="Provider name for live tests")
     parser.addoption(
