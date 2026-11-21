@@ -186,13 +186,21 @@ Verified flags and the runs like them are items of the 0.63 oversight queue
 - `transcript:ATTESTATION`: a verified flag, routed by its label;
 - `transcript:LABEL:RUN`: a run whose centred cosine to one of a verified
   flag's evidence runs is at least 0.6 in this space, fitted over the
-  repository's redacted runs (the 50 nearest runs of each evidence run are
-  considered), a "similar to known bad" hit. Since 0.76 a run's score is the
+  repository's redacted runs, a "similar to known bad" hit. Since 0.76 every
+  run at or above the threshold is a hit (earlier releases considered only
+  the 50 nearest runs, so 50 copies of the evidence could push a real
+  variant out); past 10,000 hits the best-scoring are kept and a
+  `RuntimeWarning` reports the truncation. The space's mean is fitted
+  without the evidence runs and the runs whose plain cosine to one of them is
+  at least 0.5, so copies of the flagged run do not centre the behaviour
+  away. Also since 0.76 a run's score is the
   best of its whole text and its word windows as long as the evidence run
   (half-overlapping, at most 8,192 per run), so a long benign prompt or
   output cannot dilute the copied steps under the threshold.
 
-Limits of that similarity: text inserted *between* every copied step dilutes
+Limits of that similarity: decoys made to sit just under 0.5 plain cosine
+still move the mean towards the behaviour, and every decoy over the
+threshold is itself an item, so a flood is noisy rather than silent. Text inserted *between* every copied step dilutes
 each window too, and only the indexed text is compared. The search index
 reads at most 1 MiB of text per run; system and prompt text share the first
 256 KiB of it, so a padded prompt cannot crowd out the steps, but padding in

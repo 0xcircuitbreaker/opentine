@@ -23,6 +23,14 @@
   windows (`opentine/_transcript_windows.py`). Text inserted between every
   copied step still dilutes each window; that limit is documented in
   docs/TRANSCRIPT_FLAGS.md (OT-7).
+- Decoys that copy a flag's evidence can no longer push a real variant out
+  of the oversight queue. Every run at or above the 0.6 threshold is a
+  similar-to-known-bad hit (the nearest-50 cut is gone); past a work bound of
+  10,000 hits the best-scoring ones are kept and a `RuntimeWarning` reports
+  the truncation. The centring mean is fitted without the evidence runs and
+  runs whose plain cosine to them is at least 0.5, so a flood of copies does
+  not centre the flagged behaviour away. Decoys tuned to sit just under 0.5
+  still shift the mean; see docs/TRANSCRIPT_FLAGS.md (OT-8).
 
 ## 0.75.0 — Dataset curation and AI-BOM export (2026-11-21)
 

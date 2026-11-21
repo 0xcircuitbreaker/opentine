@@ -26,6 +26,7 @@ from opentine._transcript_space import Space, Sparse, dot
 
 MIN_WINDOW_WORDS = 16
 MAX_WINDOWS = 8192
+COPY_COSINE = 0.5
 
 
 def windows(text: str, width: int) -> list[str]:
@@ -68,8 +69,39 @@ class Scorer:
         return score
 
 
-def scorer(texts: dict[str, str]) -> Any:
-    return Scorer(Space(texts), texts)
+def recentre(space: Space, evidence: list[str]) -> None:
+    """Fit *space*'s mean without the evidence runs and their near copies.
+
+    Centring removes what every transcript shares. Copies of a flagged run are
+    not background: 50 decoys that copy the evidence would otherwise move the
+    mean onto the flagged behaviour and centre a real variant's score to
+    nothing. A run whose plain cosine to an evidence run is at least
+    :data:`COPY_COSINE` is left out of the mean (if every run is, the mean is kept).
+    """
+    known = [space.vectors[e] for e in evidence if e in space.vectors]
+    rest = [v for v in space.vectors.values() if all(dot(v, k) < COPY_COSINE for k in known)]
+    if not known or not rest:
+        return
+    mean = [0.0] * space.dim
+    for vector in rest:
+        for k, v in vector.items():
+            mean[k] += v / len(rest)
+    space.mean, space._mm = mean, sum(m * m for m in mean)
+    space._norm = {i: space._centred_norm(v) for i, v in space.vectors.items()}
 
 
-__all__ = ["MAX_WINDOWS", "MIN_WINDOW_WORDS", "Scorer", "scorer", "windows"]
+def scorer(texts: dict[str, str], evidence: list[str] | None = None) -> Any:
+    space = Space(texts)
+    recentre(space, evidence or [])
+    return Scorer(space, texts)
+
+
+__all__ = [
+    "COPY_COSINE",
+    "MAX_WINDOWS",
+    "MIN_WINDOW_WORDS",
+    "Scorer",
+    "recentre",
+    "scorer",
+    "windows",
+]
