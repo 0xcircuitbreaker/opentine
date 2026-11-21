@@ -2265,7 +2265,7 @@ The `dataset` verbs print `tine-cli-canary/1` and `scan` prints
 | Command | What it does |
 | --- | --- |
 | `tine dataset curate --select EXPR --out NAME --key KEY [--evals DIR]... [--include-tainted --justification ID] [--at TIME] --repo PATH` | Signs an `opentine.dataset-version/1` attestation: the runs `EXPR` selects (`all`, `failures:EVAL`, `passes:EVAL`, `eval:EVAL`, `model:GLOB`, `run:RUN`, joined by `and`, each optionally `not`; `failures of eval EVAL` reads as `failures:EVAL`), minus withdrawn runs and runs the taint filter names, deduplicated by content-defined chunks. An optimizer key is refused. With `--include-tainted`, only the tainted runs a valid justification names come in |
-| `tine dataset justify NAME --run RUN... --reason TEXT --key KEY [--at TIME] --repo PATH` | Signs an `opentine.dataset-justification/1` for dataset `NAME`; refused unless the key is a pinned `curator` or `policy` key and not an optimizer key |
+| `tine dataset justify NAME --run RUN... --reason TEXT --key KEY [--at TIME] --repo PATH` | Signs an `opentine.dataset-justification/1` for the next version of dataset `NAME` (it is never replayed for a later version); refused unless the key is a pinned `curator` or `policy` key and not an optimizer key |
 | `tine dataset versions [NAME] --repo PATH` | Lists the held versions with member and excluded counts and their verification (`verified` needs a pinned `curator` signer) |
 | `tine dataset verify-version (ID --repo PATH \| --file PAYLOAD.json)` | Checks one version offline (shape, members digest, taint filter, signature, signer and curator binding); exit 1 when `ok` is false |
 

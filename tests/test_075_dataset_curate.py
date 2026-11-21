@@ -192,6 +192,7 @@ def test_a_forged_or_other_dataset_justification_is_refused(capsys, repo, keys):
         {
             "convention": dc.JUSTIFICATION,
             "dataset": "train",
+            "for_version": 1,
             "runs": [tainted[0]],
             "reason": "x",
             "curator": records.fingerprint(STRANGER),

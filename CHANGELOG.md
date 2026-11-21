@@ -89,6 +89,10 @@
   tags and line-split notices and scans look-alike annotations; tombstone
   manifests refuse duplicate keys and impossible dates; `contrib-redact` and
   `withdraw` refuse a pinned optimizer key.
+- A taint justification is bound to one version: `tine dataset justify`
+  records `for_version` (the next version number of that dataset) and
+  `curate --include-tainted` refuses a justification for any other version, so
+  it cannot be replayed to let tainted runs into a later version.
 - Who may withdraw: a withdrawal (either convention) counts only when signed
   by the run's contributor, the one key that signed its licence annotation, or
   by a pinned `curator` key as a takedown with a reason category. Any other

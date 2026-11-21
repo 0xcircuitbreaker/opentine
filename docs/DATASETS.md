@@ -83,6 +83,13 @@ Only the tainted runs the justification names come in; they are listed in
 Without a pinned trust bundle, or with an optimizer, unpinned, forged or other
 dataset's justification, curation refuses (fail closed).
 
+A justification is bound to one version: `justify` records `for_version`, the
+number the next version of that dataset will have (the latest verified
+version plus one), and `curate` refuses a justification whose `for_version` is
+not the number it is about to sign. A justification used for version N cannot
+let tainted runs into version N+1; justify again for each version that needs
+them.
+
 ## Keys
 
 The signer of every record is the key that signed it (`used_key_fingerprint`).
@@ -134,8 +141,8 @@ field for field.
 
 ### `opentine.dataset-justification/1`
 
-`{"convention", "dataset", "runs" (sorted, at least one), "reason", "curator", "at"}`,
-signed onto the first run and held as `dataset-record:justification:NAME:RUN`.
+`{"convention", "dataset", "for_version" (a positive version number), "runs"
+(sorted, at least one), "reason", "curator", "at"}`, signed onto the first run and held as `dataset-record:justification:NAME:RUN`.
 
 ### `opentine.dataset-withdrawal/1`
 

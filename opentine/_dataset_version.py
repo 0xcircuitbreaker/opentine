@@ -6,13 +6,11 @@ dedups by content-defined chunks and signs an ``opentine.dataset-version/1``
 claim (:mod:`opentine._dataset_claims`) onto a small anchor run. Every record
 is held by a ``dataset-record:`` row that ``tine hold release`` refuses.
 
-Keys: the signer is always the key that signed (``used_key_fingerprint``).
-An ``optimizer`` key may not curate, justify or tombstone; an unreadable
-key-role policy refuses (fail closed). A version is ``verified`` only when its
-offline check holds and its signer is a pinned ``curator`` key. Tainted runs
-enter only with ``include_tainted`` and a justification signed by a pinned
-``curator`` or ``policy`` key for this dataset name; without a pinned trust
-bundle that gate refuses.
+Keys: the signer is the key that signed. An ``optimizer`` key may not curate,
+justify or tombstone; an unreadable key-role policy refuses. A version is
+``verified`` when its offline check holds and a pinned ``curator`` signed it.
+Tainted runs enter only with a justification a pinned ``curator`` or ``policy``
+key signed for this dataset name and this version number (never replayed).
 """
 
 from __future__ import annotations
@@ -121,8 +119,14 @@ def withdrawals(repo: Any) -> dict[str, str]:
     return out
 
 
-def justification(repo: Any, oid: str, name: str) -> list[str]:
-    """The runs a valid justification lets into *name*; raises ``PermissionError`` otherwise."""
+def _last(repo: Any, name: str, signer: str | None) -> dict[str, Any] | None:
+    """The latest version of *name* a new version follows (verified, or this key's own)."""
+    return ([v for v in versions(repo, name) if v["verification"] == "verified"
+             or (signer and _own(v, signer))] or [None])[-1]  # fmt: skip
+
+
+def justification(repo: Any, oid: str, name: str, number: int) -> list[str]:
+    """The runs a valid justification lets into version *number* of *name*, else refuses."""
     row = records.read(repo, oid)
     claim = row["claim"]
     if not row["signed"]:
@@ -131,6 +135,9 @@ def justification(repo: Any, oid: str, name: str) -> list[str]:
         raise PermissionError(f"{oid} is not a valid dataset justification")
     if claim["dataset"] != name or claim["curator"] != row["signer"]:
         raise PermissionError("the justification is for another dataset or another key")
+    if claim["for_version"] != number:
+        raise PermissionError(f"the justification is for version {claim['for_version']} of "
+                              f"{name}, not version {number}: it is not replayed")  # fmt: skip
     ok, why = _roles(repo, row["signer"], JUSTIFIERS)
     if not ok:
         raise PermissionError(f"the justification does not count: {why}")
@@ -142,7 +149,9 @@ def justify(repo: Any, name: str, runs: list[str], reason: str, key: Any, at: st
     ok, why = _roles(repo, signer, JUSTIFIERS)
     if not ok:
         raise PermissionError(f"refusing to justify: {why}")
-    claim = {"convention": dc.JUSTIFICATION, "dataset": name, "runs": sorted(set(runs)),
+    last = _last(repo, name, None)
+    claim = {"convention": dc.JUSTIFICATION, "dataset": name,
+             "for_version": (last["version"] + 1) if last else 1, "runs": sorted(set(runs)),
              "reason": reason, "curator": signer, "at": at}  # fmt: skip
     problems = dc.check_record(claim)
     if problems:
@@ -197,7 +206,9 @@ def curate(repo: Any, name: str, selection: str, key: Any, at: str, *,
         raise ValueError("--include-tainted and --justification go together")
     signer = records.fingerprint(key)
     _refuse_optimizer(repo, signer)
-    allowed = set(justification(repo, justification_id, name)) if justification_id else set()
+    last = _last(repo, name, signer)
+    number = (last["version"] + 1) if last else 1
+    allowed = set(justification(repo, justification_id, name, number) if justification_id else ())
     chosen = candidates(repo, selection, eval_dirs)
     gone = withdrawals(repo)
     withdrawn = [r for r in chosen if r in gone]
@@ -207,10 +218,6 @@ def curate(repo: Any, name: str, selection: str, key: Any, at: str, *,
     kept = [r for r in chosen if r not in gone and (r not in taint or r in allowed)]
     members, dropped = dedup(repo, kept)
     runs = {m["run"] for m in members}
-    prior = [v for v in versions(repo, name)
-             if v["verification"] == "verified" or _own(v, signer)]  # fmt: skip
-    last = prior[-1] if prior else None
-    number = (last["version"] + 1) if last else 1
     claim = {"convention": dc.VERSION, "name": name, "version": number,
              "previous": last["record"] if last else None, "selection": selection,
              "members": members, "members_digest": dc.members_digest(members),

@@ -9,7 +9,8 @@ No object kind and no ``tine verify`` code is added; each record is an
   content-defined chunks, so no two members share content), the runs dropped
   as duplicates, and the taint filter that was applied;
 * ``opentine.dataset-justification/1`` -- a curator's or policy key's signed
-  reason to let named tainted runs into one dataset (``--include-tainted``);
+  reason to let named tainted runs into one version of one dataset
+  (``--include-tainted``; ``for_version`` is the version number it admits them to);
 * ``opentine.dataset-withdrawal/1`` -- a contributor's signed request that a
   run leave every later version;
 * ``opentine.dataset-tombstone/1`` -- written when a later version drops a
@@ -159,7 +160,7 @@ def check_version(claim: Any) -> list[str]:
 def check_record(claim: Any) -> list[str]:
     """Problems with a justification, withdrawal or tombstone claim (none: valid)."""
     shapes = {
-        JUSTIFICATION: ("dataset", "runs", "reason", "curator", "at"),
+        JUSTIFICATION: ("dataset", "for_version", "runs", "reason", "curator", "at"),
         WITHDRAWAL: ("run", "reason", "contributor", "at"),
         TOMBSTONE: ("dataset", "version", "run", "withdrawal", "curator", "at"),
     }
@@ -171,6 +172,9 @@ def check_record(claim: Any) -> list[str]:
     if "dataset" in claim and not (isinstance(claim["dataset"], str)
                                    and NAME_RE.fullmatch(claim["dataset"])):  # fmt: skip
         return ["dataset is a dataset name"]
+    number = claim.get("for_version", 1)
+    if not isinstance(number, int) or isinstance(number, bool) or number < 1:
+        return ["for_version is a positive version number"]
     if "runs" in claim and (not _runs(claim["runs"]) or not claim["runs"]):
         return ["runs is a non-empty sorted list of distinct run ids"]
     if "run" in claim and not (isinstance(claim["run"], str) and RUN_RE.fullmatch(claim["run"])):
