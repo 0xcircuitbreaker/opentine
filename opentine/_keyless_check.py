@@ -30,50 +30,10 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import ExtendedKeyUsageOID
 
-from opentine._keyless_chain import KeylessFail, certificates
+from opentine._keyless_chain import KeylessFail, certificates, chain_path
 from opentine._keyless_identity import facts, pinned_by, tier
 from opentine.intoto import PAYLOAD_TYPE, _statement, pae
 from opentine.sigstore_bundle import check_entry, split
-
-_MAX_DEPTH = 5
-
-
-def _is_ca(cert: x509.Certificate) -> bool:
-    """A certificate may issue others only as a CA allowed to sign certificates."""
-    try:
-        if not cert.extensions.get_extension_for_class(x509.BasicConstraints).value.ca:
-            return False
-    except x509.ExtensionNotFound:
-        return False
-    try:
-        return cert.extensions.get_extension_for_class(x509.KeyUsage).value.key_cert_sign
-    except x509.ExtensionNotFound:
-        return True
-
-
-def _issued_by(cert: x509.Certificate, candidate: x509.Certificate) -> bool:
-    if candidate.subject != cert.issuer or not _is_ca(candidate):
-        return False
-    try:
-        cert.verify_directly_issued_by(candidate)
-    except (InvalidSignature, ValueError, TypeError):
-        return False
-    return True
-
-
-def chain_path(leaf, extra: list, roots: list) -> list[x509.Certificate]:
-    """leaf .. root, each signed by the next; the root must be self-signed and in *roots*."""
-    path, cert = [leaf], leaf
-    for _ in range(_MAX_DEPTH):
-        if cert in roots and cert.issuer == cert.subject:
-            return path
-        pool = roots + [c for c in extra if c.issuer != c.subject]
-        nxt = next((c for c in pool if c not in path and _issued_by(cert, c)), None)
-        if nxt is None:
-            raise KeylessFail("fail:keyless-chain", "certificate does not chain to the trust root")
-        path.append(nxt)
-        cert = nxt
-    raise KeylessFail("fail:keyless-chain", "certificate chain is too long")
 
 
 def _signature(envelope: dict, leaf: x509.Certificate) -> dict[str, Any]:

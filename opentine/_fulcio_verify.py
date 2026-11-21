@@ -5,7 +5,9 @@ A keyless envelope is trusted only when all of these hold:
 * the DSSE signature verifies under the certificate's ECDSA key;
 * the certificate chains, signature by signature, to a certificate in the
   caller's ``--fulcio-root`` file (Fulcio root and intermediates, PEM), and
-  every certificate on that path is valid at the log's ``integratedTime``;
+  every certificate on that path is valid at the log's ``integratedTime``
+  (the walk, its depth limit and its CA checks are those of ``tine keyless
+  verify``: :func:`opentine._keyless_chain.chain_path`);
 * the leaf is a code-signing certificate whose SAN equals ``--cert-identity``
   and whose OIDC-issuer extension (1.3.6.1.4.1.57264.1.8, or the legacy .1.1)
   equals ``--cert-oidc-issuer``.
@@ -26,12 +28,11 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import ExtendedKeyUsageOID
 
-from opentine._keyless_chain import KeylessFail, certificates
+from opentine._keyless_chain import KeylessFail, certificates, chain_path
 from opentine.intoto import PAYLOAD_TYPE, pae
 
 ISSUER_V2 = x509.ObjectIdentifier("1.3.6.1.4.1.57264.1.8")
 ISSUER_V1 = x509.ObjectIdentifier("1.3.6.1.4.1.57264.1.1")
-_MAX_DEPTH = 4
 
 __all__ = ["cert_identity", "leaf_from_material", "load_roots", "verify_keyless"]
 
@@ -85,31 +86,6 @@ def cert_identity(cert: x509.Certificate) -> tuple[list[str], str | None]:
     return names, issuer
 
 
-def _valid_at(cert: x509.Certificate, when: datetime) -> bool:
-    return cert.not_valid_before_utc <= when <= cert.not_valid_after_utc
-
-
-def _chain_to_root(leaf: x509.Certificate, roots: list[x509.Certificate], when: datetime) -> None:
-    cert = leaf
-    for _ in range(_MAX_DEPTH):
-        if not _valid_at(cert, when):
-            raise ValueError("a certificate on the chain was not valid at the signing time")
-        if cert in roots and cert.issuer == cert.subject:
-            return
-        for candidate in roots:
-            if candidate.subject != cert.issuer:
-                continue
-            try:
-                cert.verify_directly_issued_by(candidate)
-            except (InvalidSignature, ValueError, TypeError):
-                continue
-            cert = candidate
-            break
-        else:
-            raise ValueError("certificate does not chain to a trusted --fulcio-root")
-    raise ValueError("certificate chain is too long")
-
-
 def verify_keyless(
     envelope: dict,
     leaf: x509.Certificate,
@@ -118,6 +94,7 @@ def verify_keyless(
     identity: str,
     issuer: str,
     integrated_time: int,
+    extra: list | None = None,
 ) -> None:
     """Raise ``ValueError`` with the reason unless every keyless check passes."""
     key = leaf.public_key()
@@ -145,7 +122,10 @@ def verify_keyless(
     if ExtendedKeyUsageOID.CODE_SIGNING not in usage:
         raise ValueError("certificate is not a code-signing certificate")
     when = datetime.fromtimestamp(integrated_time, tz=UTC)
-    _chain_to_root(leaf, roots, when)
+    # The same walk, depth limit and CA checks as ``tine keyless verify``.
+    path = chain_path(leaf, list(extra or []), roots)
+    if any(not c.not_valid_before_utc <= when <= c.not_valid_after_utc for c in path):
+        raise ValueError("a certificate on the chain was not valid at the signing time")
     names, cert_issuer = cert_identity(leaf)
     if identity not in names:
         raise ValueError("certificate identity does not match --cert-identity")

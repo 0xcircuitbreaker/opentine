@@ -7,6 +7,12 @@
   `verificationMaterial` carries more than one of `certificate`,
   `x509CertificateChain` and `publicKey`. Before, the two commands could pick
   different leaves from such a bundle and report different signers (OT-12).
+- Keyless verification: `tine verify --fulcio-root` now walks the certificate
+  chain with the same helper as `tine keyless verify`: one depth limit (leaf
+  plus up to four certificates to the root), every issuer must be a CA allowed
+  to sign certificates, and bundled intermediates are used the same way.
+  Before, a chain with three intermediates passed one command and failed the
+  other, and `tine verify` accepted a non-CA issuer (OT-13).
 
 ## 0.75.0 — Dataset curation and AI-BOM export (2026-11-21)
 
