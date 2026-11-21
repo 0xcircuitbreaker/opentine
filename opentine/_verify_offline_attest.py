@@ -88,12 +88,18 @@ def attestation_checks(args: argparse.Namespace, path: Path | None) -> list[Chec
     except ValueError as exc:
         bad = Check("attestation", "fail", "attestation.unreadable", str(exc), "none", True)
         return [bad, *_skip("attestation.unreadable", "attestation unreadable")[1:]]
-    checks = [_envelope(args, result, path, check_subject, keyless)]
+    found = None
+    if keyless and result.status == "verified-keyless":
+        from opentine._keyless_tier import assess
+
+        found = assess(material)
+    trusted = found is None or found["pinned"]
+    checks = [_envelope(args, result, path, check_subject, keyless, trusted)]
     checks.append(_receipt(args, receipt, bool(entries), keyless))
-    return checks + _keyless(args, result, keyless)
+    return checks + _keyless(args, result, keyless, found)
 
 
-def _envelope(args, result, path, check_subject, keyless: bool) -> Check:
+def _envelope(args, result, path, check_subject, keyless: bool, trusted: bool = True) -> Check:
     status = result.status
     tofu = status == "verified-tofu"
     if keyless:
@@ -118,7 +124,8 @@ def _envelope(args, result, path, check_subject, keyless: bool) -> Check:
     detail = f"{status}; subject matches the run digest" + (
         f"; tine-attest/2 record {binding}" if binding else ""
     )
-    return Check("attestation", "pass", f"attestation.{status}", detail, basis, True, not tofu)
+    authenticates = not tofu and trusted  # an unpinned keyless identity is a caveat only
+    return Check("attestation", "pass", f"attestation.{status}", detail, basis, True, authenticates)
 
 
 def _receipt(args: argparse.Namespace, receipt: Any, carried: bool, keyless: bool) -> Check:
@@ -144,14 +151,17 @@ def _receipt(args: argparse.Namespace, receipt: Any, carried: bool, keyless: boo
     return Check("rekor-receipt", outcome, f"receipt.{status}", detail, basis, required)
 
 
-def _keyless(args: argparse.Namespace, result: Any, keyless: bool) -> list[Check]:
+def _keyless(args: argparse.Namespace, result: Any, keyless: bool,
+             found: dict[str, Any] | None = None) -> list[Check]:  # fmt: skip
     if not keyless:
         return _skip("certificate.not-keyless", "signed by a key, not a certificate")[2:]
     basis = _root_basis(args)
     if result.status == "verified-keyless":
-        cert = Check(
-            "certificate", "pass", "certificate.verified", "chain and identity", basis, True
-        )
+        from opentine._keyless_tier import detail
+
+        pinned = bool(found and found["pinned"])
+        text = detail(found) if found else "chain and identity"
+        cert = Check("certificate", "pass", "certificate.verified", text, basis, True, pinned)
     else:
         outcome = "unavailable-offline" if result.status == "no-key" else "fail"
         cert = Check("certificate", outcome, f"certificate.{result.status}", result.reason, basis)

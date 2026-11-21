@@ -1,0 +1,12 @@
+{
+  "schema": "opentine.policy/1",
+  "name": "no-integrity-fail",
+  "description": "No fail: integrity finding and no signed taint on the run",
+  "rules": [
+    {
+      "id": "no-integrity-fail",
+      "effect": "require",
+      "expr": "size(integrity.fail_codes) == 0 && integrity.taints == 0"
+    }
+  ]
+}

@@ -24,10 +24,14 @@ from opentine._schema_defs_elicit import COMMAND_SCHEMAS as _ELICIT_COMMANDS
 from opentine._schema_defs_elicit import SCHEMAS as _ELICIT
 from opentine._schema_defs_experiment import COMMAND_SCHEMAS as _EXPERIMENT_COMMANDS
 from opentine._schema_defs_experiment import SCHEMAS as _EXPERIMENT
+from opentine._schema_defs_keyless import COMMAND_SCHEMAS as _KEYLESS_COMMANDS
+from opentine._schema_defs_keyless import SCHEMAS as _KEYLESS
 from opentine._schema_defs_merge_history import COMMAND_SCHEMAS as _MH_COMMANDS
 from opentine._schema_defs_merge_history import SCHEMAS as _MH
 from opentine._schema_defs_organism import COMMAND_SCHEMAS as _ORGANISM_COMMANDS
 from opentine._schema_defs_organism import SCHEMAS as _ORGANISM
+from opentine._schema_defs_policy import COMMAND_SCHEMAS as _POLICY_COMMANDS
+from opentine._schema_defs_policy import SCHEMAS as _POLICY
 from opentine._schema_defs_query import COMMAND_SCHEMAS as _QUERY_COMMANDS
 from opentine._schema_defs_query import SCHEMAS as _QUERY
 from opentine._schema_defs_sabotage import COMMAND_SCHEMAS as _SABOTAGE_COMMANDS
@@ -55,6 +59,8 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     **_CURATE,
     **_BOM,
     **_CONTRIB,
+    **_POLICY,
+    **_KEYLESS,
 }
 COMMAND_SCHEMAS: dict[str, str] = {
     **_QUERY_COMMANDS,
@@ -72,6 +78,8 @@ COMMAND_SCHEMAS: dict[str, str] = {
     **_CURATE_COMMANDS,
     **_BOM_COMMANDS,
     **_CONTRIB_COMMANDS,
+    **_POLICY_COMMANDS,
+    **_KEYLESS_COMMANDS,
 }
 
 __all__ = ["COMMAND_SCHEMAS", "SCHEMAS"]

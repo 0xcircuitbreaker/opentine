@@ -1,0 +1,15 @@
+{
+  "schema": "opentine.policy/1",
+  "name": "k-of-n-approvals",
+  "description": "At least params.approvals distinct pinned approver keys approved the run",
+  "rules": [
+    {
+      "id": "k-of-n-approvals",
+      "effect": "require",
+      "expr": "size(oversight.approvers) >= params.approvals"
+    }
+  ],
+  "params": {
+    "approvals": 2
+  }
+}

@@ -136,6 +136,8 @@ NOT_KINDS = (
     "opentine-transcript-flag-1",
     # 0.78 (release 0.75.0): an attestation claim (curated dataset versions)
     "opentine-dataset-version-1",
+    # 0.75 (release 0.74.0): a policy file and an attestation claim (admission records)
+    "opentine-policy-1", "opentine-policy-admission-1",
     # 0.72: file conventions (the trends export and signed task lengths)
     "opentine-trends-1", "opentine-trends-task-lengths-1",
     # 0.78 (release 0.75.0): attestation claims (dataset licences, withdrawals), a manifest file

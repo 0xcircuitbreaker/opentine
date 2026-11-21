@@ -30,6 +30,7 @@ from opentine import _query_custody as qd
 from opentine import _query_datasets as qs
 from opentine import _query_experiments as qx
 from opentine import _query_merges as qm
+from opentine import _query_policy as qp
 from opentine import _query_research as qe
 from opentine import _query_rows as qr
 from opentine import _query_transcripts as qt
@@ -115,7 +116,7 @@ def _table_of(db: Any, oid: str, row: dict[str, Any]) -> str | None:
     for table in ("evals", *trend, "lineage_variants", "monitor_verdicts", "oversight_decisions",
                   *results, "experiments", "reproductions", "sabotage_tasks", *items,
                   "elicit_links", "history_merges", *qc.TABLES, *qd.ROLES_FOR,
-                  *qu.ROLES_FOR, *qt.TABLES, *qs.TABLES):  # fmt: skip
+                  *qu.ROLES_FOR, *qt.TABLES, *qs.TABLES, *qp.TABLES):  # fmt: skip
         if db.execute(f"SELECT 1 FROM {table} WHERE oid = ? LIMIT 1", (oid,)).fetchone():
             return table
     return None
@@ -149,6 +150,8 @@ def check(repo: Any, oid: str, row: dict[str, Any], db: Any,
                 "reason": "the signature does not verify" if signer else "not signed"}  # fmt: skip
     if not out["roles"]:
         return {**out, "status": "unverified", "reason": "the signer holds no pinned role"}
+    if table == "policy_admissions" and derived.get("subject") != derived.get("target"):
+        return {**out, "status": "unverified", "reason": "the claim names another run"}
     if table == "reproductions" and "optimizer" in out["roles"]:
         return {**out, "status": "unverified", "reason": "the report signer holds optimizer"}
     need = ROLE_FOR.get(table or "")
@@ -162,6 +165,7 @@ def check(repo: Any, oid: str, row: dict[str, Any], db: Any,
         **qu.ROLES_FOR,
         **qt.ROLES_FOR,
         **qs.ROLES_FOR,
+        **qp.ROLES_FOR,
     }.get("elicit_links" if table == "elicit_items" else table or "")
     if roles and (not set(roles) & set(out["roles"]) or "optimizer" in out["roles"]):
         return {**out, "status": "unverified",

@@ -73,11 +73,12 @@ TRANSCRIPT_FLAG = "transcript-flag:"
 #: 0.73: rows that keep an uplift suite or record (opentine._uplift): released
 #: never, so a loop cannot delete a result it dislikes.
 UPLIFT = "uplift:"
-#: 0.75: rows that keep a dataset version, taint justification, withdrawal or tombstone
-#: (opentine._dataset_version): released never, so a loop cannot rewrite its training data.
+#: 0.75: rows that keep a dataset record (opentine._dataset_version) or a signed withdrawal
+#: (opentine._dataset_withdraw): released never, so a loop cannot rewrite its training data.
 DATASET_RECORD = "dataset-record:"
-#: 0.75: rows that keep a signed dataset withdrawal (opentine._dataset_withdraw): never released.
 DATASET_WITHDRAW = "dataset-withdraw:"
+#: 0.74: rows that keep a signed policy admission record (opentine._policy_record): never released.
+POLICY_ADMISSION = "policy-admission:"
 MAX_HOLDS_BYTES = 4 * 1024 * 1024
 
 
@@ -205,6 +206,8 @@ def release(repo, target: str) -> list[dict[str, str]]:
             raise HoldError(f"{target} keeps a dataset record: it is never released")
         if any(r["target"].startswith(DATASET_WITHDRAW) for r in gone):
             raise HoldError(f"{target} keeps a dataset withdrawal: it is never released")
+        if any(r["target"].startswith(POLICY_ADMISSION) for r in gone):
+            raise HoldError(f"{target} keeps a policy admission record: it is never released")
         return [r for r in rows if r not in gone]
 
     edit_holds(holds_path(repo), change)

@@ -26,6 +26,7 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
+from opentine._json_shallow import loads as shallow_loads
 from opentine.trace._transcript_common import (
     Chain,
     bounded_id,
@@ -83,7 +84,7 @@ def _blocks(pattern: re.Pattern[str], text: str) -> tuple[list[dict[str, Any]], 
             continue
         body = match.group(1).strip()
         try:
-            value = json.loads(body) if len(body) <= MAX_BLOCK_CHARS else None
+            value = shallow_loads(body) if len(body) <= MAX_BLOCK_CHARS else None
         except (ValueError, RecursionError):
             value = None
         if isinstance(value, dict):
