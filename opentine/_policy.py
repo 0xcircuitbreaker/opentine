@@ -20,11 +20,11 @@ the input document's top-level keys bound as variables.
 from __future__ import annotations
 
 import hashlib
-import json
 import re
 from pathlib import Path
 from typing import Any
 
+from opentine._json_shallow import loads as shallow_loads
 from opentine._policy_eval import check_input, evaluate
 from opentine._policy_lang import PolicyError, number_ok, parse
 
@@ -120,8 +120,8 @@ def _number(text: str) -> Any:
 
 def strict_json(text: str) -> Any:
     """JSON with no duplicate keys, no NaN/Infinity and only JSON-safe numbers."""
-    return json.loads(text, object_pairs_hook=_pairs, parse_constant=_constant,
-                      parse_int=_number, parse_float=_number)  # fmt: skip
+    return shallow_loads(text, object_pairs_hook=_pairs, parse_constant=_constant,
+                         parse_int=_number, parse_float=_number)  # fmt: skip
 
 
 def standard() -> list[str]:

@@ -53,3 +53,29 @@ def test_hook_and_hermes_inputs_survive_a_small_stack(tmp_path, size):
     text = f"<tool_call>{deep}</tool_call><tool_call>{{}}</tool_call>"
     found = _in_thread(size, lambda: hermes._blocks(hermes._CALL, text))
     assert found == ([{}], 1)
+
+
+@pytest.mark.parametrize("size", [512 * 1024, 1024 * 1024])
+def test_policy_json_refuses_deep_nesting_in_a_small_stack(size):
+    from opentine._policy import strict_json
+
+    def attempt(text):
+        try:
+            return strict_json(text)
+        except ValueError as exc:
+            return exc
+
+    deep = "[" * 100_000 + "]" * 100_000
+    assert isinstance(_in_thread(size, lambda: attempt(deep)), ValueError)
+    assert _in_thread(size, lambda: attempt('{"k": [[1]]}')) == {"k": [[1]]}
+
+
+@pytest.mark.parametrize("size", [512 * 1024, 1024 * 1024])
+def test_keyless_bundle_reader_refuses_deep_nesting_in_a_small_stack(tmp_path, size):
+    import inspect
+
+    from opentine import _cli_keyless
+
+    assert "shallow_loads(Path(args.bundle)" in inspect.getsource(_cli_keyless._verify)
+    deep = ("[" * 100_000 + "]" * 100_000).encode()
+    assert isinstance(_in_thread(size, lambda: _try(deep.decode())), ValueError)

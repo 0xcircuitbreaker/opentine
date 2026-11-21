@@ -30,13 +30,13 @@ def nesting(text: str) -> int:
     return best
 
 
-def loads(text: str | bytes, limit: int = MAX_NESTING) -> Any:
-    """:func:`json.loads`, or :class:`ValueError` when *text* nests deeper than *limit*."""
+def loads(text: str | bytes, limit: int = MAX_NESTING, **kwargs: Any) -> Any:
+    """:func:`json.loads` (with *kwargs*), or :class:`ValueError` past *limit* nesting."""
     if isinstance(text, (bytes, bytearray)):
         text = bytes(text).decode("utf-8")
     if nesting(text) > limit:
         raise ValueError(f"JSON nested deeper than {limit}")
-    return json.loads(text)
+    return json.loads(text, **kwargs)
 
 
 __all__ = ["MAX_NESTING", "loads", "nesting"]

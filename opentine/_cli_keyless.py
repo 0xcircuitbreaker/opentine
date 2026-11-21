@@ -126,13 +126,14 @@ def _sign(args: argparse.Namespace) -> None:
 
 def _verify(args: argparse.Namespace) -> dict[str, Any]:
     from opentine._fulcio_verify import load_roots
+    from opentine._json_shallow import loads as shallow_loads
     from opentine._keyless_check import KeylessFail, check
     from opentine._rekor_proof import load_log_key
 
     try:
         roots = load_roots(Path(args.fulcio_root).read_bytes())
         log_key = load_log_key(Path(args.rekor_key).read_bytes())
-        document = json.loads(Path(args.bundle).read_bytes().splitlines()[0])
+        document = shallow_loads(Path(args.bundle).read_bytes().splitlines()[0])
     except (OSError, ValueError, IndexError) as exc:
         raise error(exc, USAGE, prefix="keyless verify: ") from exc
     pinned = pins(args.trust_bundle)

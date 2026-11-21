@@ -45,7 +45,23 @@ function convert(value: JValue): PValue {
 }
 
 /** JSON with no duplicate keys, no NaN/Infinity and only JSON-safe numbers (strict_json). */
+/** Same as Python ``_json_shallow.MAX_NESTING``: deeper input is refused before parsing. */
+export const MAX_JSON_NESTING = 200;
+
+/** Deepest ``[``/``{`` nesting in *text*, ignoring brackets inside strings (mirrors Python). */
+export function jsonNesting(text: string): number {
+  let depth = 0;
+  let best = 0;
+  for (const m of text.matchAll(/"(?:[^"\\]|\\.)*"?|[[\]{}]/gs)) {
+    const ch = m[0][0];
+    if (ch === "[" || ch === "{") best = Math.max(best, ++depth);
+    else if (ch === "]" || ch === "}") depth--;
+  }
+  return best;
+}
+
 export function strictPolicyJson(text: string): PValue {
+  if (jsonNesting(text) > MAX_JSON_NESTING) throw new PolicyFileError("json", `not JSON: JSON nested deeper than ${MAX_JSON_NESTING}`);
   try {
     return convert(parseText(text, STRICT));
   } catch (e) {

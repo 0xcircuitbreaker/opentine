@@ -37,6 +37,20 @@ FILES = [
     bad("infinity", "{" + HEAD + ', "params": {"k": Infinity}, ' + R + "}", "json"),
     bad("negative-infinity", "{" + HEAD + ', "params": {"k": -Infinity}, ' + R + "}", "json"),
     bad("float-overflow", "{" + HEAD + ', "params": {"k": 1e400}, ' + R + "}", "json"),
+    ok(
+        "nested-param-at-limit",
+        "{" + HEAD + ', "params": {"k": ' + "[" * 198 + "]" * 198 + "}, " + R + "}",
+    ),
+    bad(
+        "nested-param-past-limit",
+        "{" + HEAD + ', "params": {"k": ' + "[" * 199 + "]" * 199 + "}, " + R + "}",
+        "json",
+    ),
+    bad("deep-nesting-bomb", "[" * 5000 + "]" * 5000, "json"),
+    ok(
+        "brackets-in-strings-do-not-count",
+        "{" + HEAD + ', "params": {"k": "' + "[" * 500 + '"}, ' + R + "}",
+    ),
     bad("unsafe-int", "{" + HEAD + ', "params": {"k": 9007199254740992}, ' + R + "}", "json"),
     bad(
         "unsafe-negative-int",
