@@ -8,6 +8,9 @@ ROOT = sys.argv[1] if len(sys.argv) > 1 else str(__import__("pathlib").Path(__fi
 sys.path.insert(0, ROOT)
 from opentine import _policy  # noqa: E402
 
+sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent))
+from policy_file_vectors import FILES, stage  # noqa: E402
+
 INPUT = {
     "n": 3,
     "f": 2.5,
@@ -346,6 +349,7 @@ def main(root: str) -> None:
             or ("codes" in p and codes != p["codes"])
         ):
             bad.append((p["id"], result))
+    bad += [(f["id"], stage(f["text"])) for f in FILES if stage(f["text"]) != f["expect"]]
     for b in bad:
         print("MISMATCH", b)
     if bad:
@@ -353,10 +357,12 @@ def main(root: str) -> None:
     doc = {
         "comment": "Shared policy-language conformance vectors (0.74): run by "
         "tests/test_075_policy_vectors.py and ts/verifier/test/policy.test.ts. "
-        "A case with input null uses the shared input.",
+        "A case with input null uses the shared input. files: policy-file text and "
+        "whether it loads (ok) or is refused as JSON or as a policy.",
         "input": INPUT,
         "cases": V,
         "policies": POLICIES,
+        "files": FILES,
     }
     text = json.dumps(doc, indent=1, ensure_ascii=True) + "\n"
     with open(f"{root}/tests/data/policy_vectors.json", "w", encoding="utf-8", newline="\n") as f:

@@ -25,3 +25,6 @@ export { verifyMemory, verifyPrompt } from "./registry.js";
 export { keyFingerprint, openTrustBundle, parseVkey, type TrustBundle } from "./trustbundle.js";
 export { verifyTimestampToken, type Verdict as TimestampVerdict, type Window as TimestampWindow } from "./tsp.js";
 export { keylessSigningTime, keylessTokenTime, type TimestampAuthority } from "./keyless.js";
+export { parse as parsePolicyExpr, PolicyError, type PValue } from "./policy.js";
+export { decide, evaluate as evaluatePolicyExpr, ruleResult, type Policy, type RuleResult } from "./policyeval.js";
+export { checkPolicy, decidePolicy, loadPolicy, MAX_POLICY_BYTES, PolicyFileError, POLICY_SCHEMA, strictPolicyJson } from "./policyfile.js";

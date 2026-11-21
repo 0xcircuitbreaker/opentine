@@ -67,3 +67,14 @@ def test_evaluation_counts_steps_not_time():
     ev = Evaluator({"l": list(range(10))})
     assert ev.run(parse("l.all(x, x >= 0)")) is True
     assert 0 < ev.steps < MAX_STEPS
+
+
+@pytest.mark.parametrize("case", VECTORS["files"], ids=lambda c: c["id"])
+def test_policy_file_vector(case):
+    """The same file vectors the TS loader (policyfile.ts) runs: ok, json or policy."""
+    try:
+        doc = _policy.strict_json(case["text"])
+    except ValueError:
+        assert case["expect"] == "json"
+        return
+    assert ("policy" if _policy.check_policy(doc) else "ok") == case["expect"]

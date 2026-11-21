@@ -1,5 +1,5 @@
 {
- "comment": "Shared policy-language conformance vectors (0.74): run by tests/test_075_policy_vectors.py and ts/verifier/test/policy.test.ts. A case with input null uses the shared input.",
+ "comment": "Shared policy-language conformance vectors (0.74): run by tests/test_075_policy_vectors.py and ts/verifier/test/policy.test.ts. A case with input null uses the shared input. files: policy-file text and whether it loads (ok) or is refused as JSON or as a policy.",
  "input": {
   "n": 3,
   "f": 2.5,
@@ -1658,6 +1658,148 @@
    "outcomes": [
     "false"
    ]
+  }
+ ],
+ "files": [
+  {
+   "id": "minimal",
+   "text": "{\"schema\": \"opentine.policy/1\", \"name\": \"p\", \"rules\": [{\"id\": \"a\", \"effect\": \"require\", \"expr\": \"true\"}]}",
+   "expect": "ok"
+  },
+  {
+   "id": "params-and-description",
+   "text": "{\"schema\": \"opentine.policy/1\", \"name\": \"p\", \"description\": \"d\", \"params\": {\"k\": [1, 2.5, -3]}, \"rules\": [{\"id\": \"a\", \"effect\": \"require\", \"expr\": \"true\"}]}",
+   "expect": "ok"
+  },
+  {
+   "id": "max-safe-int",
+   "text": "{\"schema\": \"opentine.policy/1\", \"name\": \"p\", \"params\": {\"k\": 9007199254740991}, \"rules\": [{\"id\": \"a\", \"effect\": \"require\", \"expr\": \"true\"}]}",
+   "expect": "ok"
+  },
+  {
+   "id": "min-safe-int",
+   "text": "{\"schema\": \"opentine.policy/1\", \"name\": \"p\", \"params\": {\"k\": -9007199254740991}, \"rules\": [{\"id\": \"a\", \"effect\": \"require\", \"expr\": \"true\"}]}",
+   "expect": "ok"
+  },
+  {
+   "id": "fraction-beyond-safe-is-fine",
+   "text": "{\"schema\": \"opentine.policy/1\", \"name\": \"p\", \"params\": {\"k\": 0.5}, \"rules\": [{\"id\": \"a\", \"effect\": \"require\", \"expr\": \"true\"}]}",
+   "expect": "ok"
+  },
+  {
+   "id": "proto-key",
+   "text": "{\"schema\": \"opentine.policy/1\", \"name\": \"p\", \"params\": {\"__proto__\": 1}, \"rules\": [{\"id\": \"a\", \"effect\": \"require\", \"expr\": \"true\"}]}",
+   "expect": "ok"
+  },
+  {
+   "id": "duplicate-top-key",
+   "text": "{\"schema\": \"opentine.policy/1\", \"name\": \"p\", \"name\": \"q\", \"rules\": [{\"id\": \"a\", \"effect\": \"require\", \"expr\": \"true\"}]}",
+   "expect": "json"
+  },
+  {
+   "id": "duplicate-nested-key",
+   "text": "{\"schema\": \"opentine.policy/1\", \"name\": \"p\", \"params\": {\"a\": 1, \"a\": 2}, \"rules\": [{\"id\": \"a\", \"effect\": \"require\", \"expr\": \"true\"}]}",
+   "expect": "json"
+  },
+  {
+   "id": "duplicate-rule-key",
+   "text": "{\"schema\": \"opentine.policy/1\", \"name\": \"p\", \"rules\": [{\"id\": \"a\", \"id\": \"b\", \"effect\": \"require\", \"expr\": \"true\"}]}",
+   "expect": "json"
+  },
+  {
+   "id": "nan",
+   "text": "{\"schema\": \"opentine.policy/1\", \"name\": \"p\", \"params\": {\"k\": NaN}, \"rules\": [{\"id\": \"a\", \"effect\": \"require\", \"expr\": \"true\"}]}",
+   "expect": "json"
+  },
+  {
+   "id": "infinity",
+   "text": "{\"schema\": \"opentine.policy/1\", \"name\": \"p\", \"params\": {\"k\": Infinity}, \"rules\": [{\"id\": \"a\", \"effect\": \"require\", \"expr\": \"true\"}]}",
+   "expect": "json"
+  },
+  {
+   "id": "negative-infinity",
+   "text": "{\"schema\": \"opentine.policy/1\", \"name\": \"p\", \"params\": {\"k\": -Infinity}, \"rules\": [{\"id\": \"a\", \"effect\": \"require\", \"expr\": \"true\"}]}",
+   "expect": "json"
+  },
+  {
+   "id": "float-overflow",
+   "text": "{\"schema\": \"opentine.policy/1\", \"name\": \"p\", \"params\": {\"k\": 1e400}, \"rules\": [{\"id\": \"a\", \"effect\": \"require\", \"expr\": \"true\"}]}",
+   "expect": "json"
+  },
+  {
+   "id": "unsafe-int",
+   "text": "{\"schema\": \"opentine.policy/1\", \"name\": \"p\", \"params\": {\"k\": 9007199254740992}, \"rules\": [{\"id\": \"a\", \"effect\": \"require\", \"expr\": \"true\"}]}",
+   "expect": "json"
+  },
+  {
+   "id": "unsafe-negative-int",
+   "text": "{\"schema\": \"opentine.policy/1\", \"name\": \"p\", \"params\": {\"k\": -9007199254740992}, \"rules\": [{\"id\": \"a\", \"effect\": \"require\", \"expr\": \"true\"}]}",
+   "expect": "json"
+  },
+  {
+   "id": "unsafe-integral-float",
+   "text": "{\"schema\": \"opentine.policy/1\", \"name\": \"p\", \"params\": {\"k\": 1e16}, \"rules\": [{\"id\": \"a\", \"effect\": \"require\", \"expr\": \"true\"}]}",
+   "expect": "json"
+  },
+  {
+   "id": "unsafe-integral-float-dot",
+   "text": "{\"schema\": \"opentine.policy/1\", \"name\": \"p\", \"params\": {\"k\": 9007199254740992.0}, \"rules\": [{\"id\": \"a\", \"effect\": \"require\", \"expr\": \"true\"}]}",
+   "expect": "json"
+  },
+  {
+   "id": "trailing-garbage",
+   "text": "{\"schema\": \"opentine.policy/1\", \"name\": \"p\", \"rules\": [{\"id\": \"a\", \"effect\": \"require\", \"expr\": \"true\"}]} x",
+   "expect": "json"
+  },
+  {
+   "id": "not-json",
+   "text": "schema: opentine.policy/1",
+   "expect": "json"
+  },
+  {
+   "id": "wrong-schema",
+   "text": "{\"schema\": \"opentine.policy/2\", \"name\": \"p\", \"rules\": [{\"id\": \"a\", \"effect\": \"require\", \"expr\": \"true\"}]}",
+   "expect": "policy"
+  },
+  {
+   "id": "unknown-field",
+   "text": "{\"schema\": \"opentine.policy/1\", \"name\": \"p\", \"extra\": 1, \"rules\": [{\"id\": \"a\", \"effect\": \"require\", \"expr\": \"true\"}]}",
+   "expect": "policy"
+  },
+  {
+   "id": "empty-name",
+   "text": "{\"schema\": \"opentine.policy/1\", \"name\": \"\", \"rules\": [{\"id\": \"a\", \"effect\": \"require\", \"expr\": \"true\"}]}",
+   "expect": "policy"
+  },
+  {
+   "id": "null-params",
+   "text": "{\"schema\": \"opentine.policy/1\", \"name\": \"p\", \"params\": null, \"rules\": [{\"id\": \"a\", \"effect\": \"require\", \"expr\": \"true\"}]}",
+   "expect": "policy"
+  },
+  {
+   "id": "no-rules",
+   "text": "{\"schema\": \"opentine.policy/1\", \"name\": \"p\", \"rules\": []}",
+   "expect": "policy"
+  },
+  {
+   "id": "bad-effect",
+   "text": "{\"schema\": \"opentine.policy/1\", \"name\": \"p\", \"rules\": [{\"id\": \"a\", \"effect\": \"block\", \"expr\": \"true\"}]}",
+   "expect": "policy"
+  },
+  {
+   "id": "repeated-rule-id",
+   "text": "{\"schema\": \"opentine.policy/1\", \"name\": \"p\", \"rules\": [{\"id\": \"a\", \"effect\": \"require\", \"expr\": \"true\"}, {\"id\": \"a\", \"effect\": \"advisory\", \"expr\": \"true\"}]}",
+   "expect": "policy"
+  },
+  {
+   "id": "bad-rule-id",
+   "text": "{\"schema\": \"opentine.policy/1\", \"name\": \"p\", \"rules\": [{\"id\": \"a b\", \"effect\": \"require\", \"expr\": \"true\"}]}",
+   "expect": "policy"
+  },
+  {
+   "id": "not-an-object",
+   "text": "[1]",
+   "expect": "policy"
   }
  ]
 }
