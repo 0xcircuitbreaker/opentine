@@ -29,8 +29,9 @@ from opentine._trends import CONVENTION
 WITHHOLD = {"lineage.evidence-missing", "lineage.signer-untrusted"}
 #: one mutation run recorded as more than one variant (re-parented or re-rooted)
 RELABELLED = "trends.run-relabelled"
-#: flags under which a variant's regression status cannot be established
-BLIND = WITHHOLD | {RELABELLED}
+#: flags under which a variant's regression status cannot be established; a
+#: missing parent record means no paired comparison ran, so it fails closed
+BLIND = WITHHOLD | {RELABELLED, "lineage.parent-missing"}
 
 
 def _generations(parents: dict[str, list[str]]) -> tuple[dict[str, int], list[str]]:

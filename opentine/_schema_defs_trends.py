@@ -79,7 +79,7 @@ _CLI = closed(["command", "schema", "signers", "lengths", "excluded", "unchecked
     "unchecked": {"type": "array", "items": closed(["variant", "code"], {
         "variant": _SHA, "code": {"enum": ["lineage.record-invalid", "lineage.cycle",
                                            "lineage.evidence-missing", "lineage.signer-untrusted",
-                                           "trends.run-relabelled"]}})},
+                                           "lineage.parent-missing", "trends.run-relabelled"]}})},
     "export_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, **_RESULT})  # fmt: skip
 _SIGNED = closed(["command", "schema", "signed", "suite", "signer", "items"], {
     "command": {"const": "trends"}, "schema": {"const": "tine-cli-trends/1"}, "signed": STR,

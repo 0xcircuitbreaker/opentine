@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — Security and integrity hardening
+
+- `tine trends --fail-on-regression` fails closed when a parent's lineage
+  record is missing: `lineage.parent-missing` now lists the variant in
+  `unchecked[]` (deleting a parent record skipped the paired comparison and
+  let a regression pass).
+
 ## 0.75.0 — Dataset curation and AI-BOM export (2026-11-21)
 
 - `tine dataset curate --select EXPR --out NAME --key KEY`: a signed dataset
