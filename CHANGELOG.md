@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Dataset curation and AI-BOM export
+## 0.75.0 — Dataset curation and AI-BOM export (2026-11-21)
 
 - `tine dataset curate --select EXPR --out NAME --key KEY`: a signed dataset
   version curated from runs (claim convention `opentine.dataset-version/1` on
@@ -94,10 +94,15 @@
   `curate --include-tainted` refuses a justification for any other version, so
   it cannot be replayed to let tainted runs into a later version.
 - Who may withdraw: a withdrawal (either convention) counts only when signed
-  by the run's contributor, the one key that signed its licence annotation, or
-  by a pinned `curator` key as a takedown with a reason category. Any other
-  key is refused by `withdraw` and listed `unverified`; a pinned optimizer key
-  never counts. A contributor who lost their key asks for a curator takedown.
+  by the run's contributor, a key that signed its licence annotation and is
+  pinned in the `runner` role, or by a pinned `curator` key as a takedown with
+  a reason category. Any other key is refused by `withdraw` and listed
+  `unverified`; a pinned optimizer key never counts. A stranger who annotates
+  a run first is not its contributor, and a later annotation does not cancel a
+  withdrawal already signed. A contributor who lost their key asks for a
+  curator takedown.
+- The tombstones manifest and `tine dataset verify-version --file` are read as
+  untrusted JSON: at most 8 MiB and 200 levels of nesting, no duplicate keys.
 - Schemas `tine-cli-dataset-contrib-1`, `opentine-dataset-licence-1`,
   `opentine-dataset-withdraw-1`, `opentine-dataset-tombstones-1`. No new
   object kind and no new `tine verify` code.
