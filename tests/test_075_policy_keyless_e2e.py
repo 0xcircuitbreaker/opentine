@@ -93,9 +93,9 @@ def test_admissions_reach_the_query_index_and_the_promotion_gate(tmp_path, capsy
     code, body = _tine(capsys, "policy", "check", "sandbox-digest", "--subject", run, "--param",
                        param, "--key", key, *base)  # fmt: skip
     assert code == 0 and body["decision"] == "allow" and body["recorded"]
-    assert refusals(root, run, ["sandbox-digest"]) == []
+    assert refusals(root, run, ["sandbox-digest"], [param]) == []
     digest = _policy.policy_digest(_policy.load("sandbox-digest")[0])
-    assert refusals(root, run, [digest]) == []
+    assert refusals(root, run, [digest], [param]) == []
     assert [r["code"] for r in refusals(root, run, ["promote"])] == ["promote.not-admitted"]
     missing = refusals(root, run, [str(tmp_path / "missing.json")])
     assert [r["code"] for r in missing] == ["promote.admission-policy"]
@@ -118,7 +118,7 @@ def test_admissions_reach_the_query_index_and_the_promotion_gate(tmp_path, capsy
     assert rows[good]["decision"] == "allow" and rows[good]["subject"] == run
     assert checks[good]["status"] == "verified" and checks[good]["roles"] == ["policy"]
     assert rows[stray]["signed"] == 1 and checks[stray]["status"] == "unverified"
-    assert refusals(root, run, ["sandbox-digest"]) == []  # the stray record is not held
+    assert refusals(root, run, ["sandbox-digest"], [param]) == []  # the stray record is not held
 
 
 def _verify(capsys) -> dict:

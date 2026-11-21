@@ -31,6 +31,9 @@ def add_signed_promote_args(p: Any) -> None:
     p.add_argument("--require-admission", action="append", default=[], metavar="POLICY",
                    help="A policy (name, ./file or sha256: digest) that must have admitted "
                    "TARGET (tine policy check --key); repeatable (0.75)")  # fmt: skip
+    p.add_argument("--admission-param", action="append", default=[], metavar="NAME=VALUE",
+                   help="A policy param for the --require-admission input (as tine policy "
+                   "check --param); repeatable")  # fmt: skip
     p.add_argument("--loop", metavar="LOOP", help="Refuse when LOOP is stopped (tine loop stop)")
     p.add_argument("--state", metavar="DIR", help="Label state (default REPO/.tine/promotion)")
     p.add_argument("--out", metavar="DIR", help="Where decisions go (a FILE for --approve)")
@@ -89,7 +92,9 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
     from opentine._promote import PromotionRefused
     from opentine._promote_admission import refusals
 
-    if not_admitted := refusals(Path(args.repo), args.target, args.require_admission):
+    if not_admitted := refusals(
+        Path(args.repo), args.target, args.require_admission, args.admission_param
+    ):
         raise PromotionRefused(not_admitted)  # before the gate can move the label
     return promotion.promote(key, policy, args.target, args.baseline,
                              baseline=Path(args.baseline_evals), evals=Path(args.evals),

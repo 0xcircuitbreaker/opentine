@@ -149,6 +149,8 @@ def check(repo: Any, oid: str, row: dict[str, Any], db: Any,
                 "reason": "the signature does not verify" if signer else "not signed"}  # fmt: skip
     if not out["roles"]:
         return {**out, "status": "unverified", "reason": "the signer holds no pinned role"}
+    if table == "policy_admissions" and derived.get("subject") != derived.get("target"):
+        return {**out, "status": "unverified", "reason": "the claim names another run"}
     if table == "reproductions" and "optimizer" in out["roles"]:
         return {**out, "status": "unverified", "reason": "the report signer holds optimizer"}
     need = ROLE_FOR.get(table or "")

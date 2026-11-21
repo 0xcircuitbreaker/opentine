@@ -185,14 +185,19 @@ for such a file.
 Every admission record is a row of the `policy_admissions` table in `tine
 query` (docs/QUERY.md). Under `--verify` each returned row is re-derived from
 its attestation and is `verified` only for a pinned `policy` signer that does
-not hold `optimizer`; any other signer's record is `unverified`, and a row
+not hold `optimizer`; any other signer's record, and a record whose claim
+names a run other than its target, is `unverified`, and a row
 whose signature does not verify is `failed`. The index is non-authoritative:
 `tine policy show` decides.
 
 `tine promote RUN --baseline LABEL ... --require-admission POLICY` (repeatable;
 a standard name, `./file` or a `sha256:` policy digest) refuses before the
-label can move unless the policy admitted RUN (the deny-wins `admitted` check
-above): `promote.not-admitted`, or `promote.admission-policy` when the policy
+label can move unless the policy admitted RUN over its *current* input: the
+gate assembles the input `tine policy check` would (the policy's params,
+overridden by `--admission-param NAME=VALUE`), takes its input digest and counts
+only admissions naming it. A run denied earlier is admitted by an allow over new
+inputs; an allow over inputs that have since changed no longer counts. Refusals:
+`promote.not-admitted`, or `promote.admission-policy` when the policy
 cannot be read (fails closed). These are command-level codes. Advisory rules
 never decide an admission, so they never block the gate (D12).
 
