@@ -20,7 +20,7 @@ from opentine import _dataset_version as dv
 from opentine import cli
 from opentine._dataset_claims import SOURCES
 from tests.aibom_helpers import lineage
-from tests.dataset_contrib_helpers import annotate
+from tests.dataset_contrib_helpers import annotate, pin_contributor
 from tests.key_roles_helpers import isolated_trust_config, pin_roles  # noqa: F401
 from tests.promote_helpers import EVALER, fingerprint
 from tests.test_075_dataset_curate import (  # noqa: F401
@@ -91,6 +91,7 @@ def test_curated_versions_feed_evals_holdouts_query_and_the_bom(capsys, repo, ke
 
     # A contributor withdraws one clean run: the next version leaves it out with a tombstone.
     annotate(repo, clean[0], STRANGER)  # the contributor's licence annotation on its run
+    pin_contributor(repo, STRANGER)  # a contributor key is pinned in the runner role
     code, gone = _cli(capsys, "dataset", "withdraw", clean[0], "--key", str(keys["stranger"]),
                       "--reason", "consent-withdrawn", "--at", AT, "--repo", root,
                       "--json")  # fmt: skip

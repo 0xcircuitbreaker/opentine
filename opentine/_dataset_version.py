@@ -111,7 +111,7 @@ def withdrawals(repo: Any) -> dict[str, str]:
         claim = row["claim"]
         if (row["signed"] and not dc.check_record(claim) and claim["convention"] == dc.WITHDRAWAL
                 and claim["contributor"] == row["signer"]
-                and authority(repo, claim["run"], row["signer"], claim["reason"])[0]):  # fmt: skip
+                and authority(repo, claim["run"], row["signer"], claim["reason"], signed=True)[0]):  # fmt: skip  # noqa: E501
             out.setdefault(claim["run"], row["oid"])
     for row in contributed(repo):  # ``tine dataset withdraw`` (opentine-dataset/withdraw/1)
         if row["state"] == "verified":  # signer checked by authority() there

@@ -9,7 +9,7 @@ import pytest
 from opentine import _dataset_claims as dc
 from opentine import _dataset_version as dv
 from opentine import _eval_verdict
-from tests.dataset_contrib_helpers import annotate
+from tests.dataset_contrib_helpers import annotate, pin_contributor
 from tests.key_roles_helpers import isolated_trust_config  # noqa: F401
 from tests.test_075_dataset_curate import (  # noqa: F401
     AT,
@@ -59,6 +59,7 @@ def test_a_withdrawn_run_leaves_later_versions_with_a_tombstone(capsys, repo, ke
     _, first = _curate(capsys, repo, keys)
     assert set(first["members"]) == set(runs)
     annotate(repo, runs[1], STRANGER)  # the contributor's licence annotation on its run
+    pin_contributor(repo, STRANGER)  # a contributor key is pinned in the runner role
     code, out = _cli(capsys, "dataset", "withdraw", runs[1], "--reason", "other",
                      "--key", str(keys["stranger"]), "--at", AT, "--repo",
                      str(repo.path.parent), "--json")  # fmt: skip

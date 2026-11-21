@@ -128,8 +128,11 @@ the claim's `contributor` are the key that signed, and that key may withdraw
 the run:
 
 - the contributor key: the key that signed the run's licence annotation
-  (section 2). Keep that key: it is how you withdraw later. If the run carries
-  annotations from more than one key, no contributor withdrawal counts;
+  (section 2), once the repository owner has pinned it in the `runner` role
+  of the key-role policy (an unpinned key that annotates a run, first or
+  later, is never its contributor). Keep that key: it is how you withdraw
+  later. If pinned annotations on the run name more than one key, a new
+  withdrawal is refused; one already signed stays in force;
 - a pinned `curator` key: a maintainer takedown, with one of the reason
   categories above.
 
@@ -154,7 +157,9 @@ tombstoned run (and with `--repo`, a run that has a verified withdrawal),
 `tine dataset check --tombstones FILE` refuses a tombstoned bundle, and
 `opentine._dataset_withdraw.honour(items, tombstones)` drops such items from a
 built dataset. A malformed or unreadable tombstone file is refused, never
-treated as empty.
+treated as empty. A tombstone file, like a `verify-version --file` claim, is
+read as untrusted JSON: more than 8 MiB, nesting deeper than 200 levels,
+duplicate keys or `NaN` are refused.
 
 ## Schemas
 

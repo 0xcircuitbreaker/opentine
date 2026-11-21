@@ -153,10 +153,14 @@ held as `dataset-record:withdrawal:RUN`. It counts when its signature holds,
 
 **Who may withdraw.** A withdrawal counts only when its signer is
 
-* the run's contributor: the one key that signed a valid licence annotation
-  (`opentine-dataset/licence/1`) on the run in the repository. A repository
-  run records no signer of its own, so the annotation is its recorded signer.
-  If annotations on the run name more than one key, no contributor counts;
+* the run's contributor: a key that signed a valid licence annotation
+  (`opentine-dataset/licence/1`) on the run in the repository **and** is
+  pinned in the `runner` role of the owner-signed key-role policy. A
+  repository run records no signer of its own and anyone can store an
+  annotation, so an unpinned key that annotates a run, first or later, is
+  never its contributor. If pinned annotations name more than one key, a new
+  withdrawal is refused; a withdrawal already signed by a contributor key
+  stays in force when another key annotates the run later;
 * or a pinned `curator` key, as a maintainer takedown, whose reason is one of
   the categories `consent-withdrawn`, `privacy`, `licence`, `quality`,
   `other`.

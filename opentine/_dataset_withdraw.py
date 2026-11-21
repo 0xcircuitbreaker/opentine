@@ -43,6 +43,7 @@ _RUN = re.compile(r"run:sha256:([0-9a-f]{64})")
 _DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
 _AT = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z")
 _DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
+MAX_JSON_BYTES = 8 * 1024 * 1024
 
 
 def _real(value: Any, pattern: re.Pattern[str], fmt: str) -> bool:
@@ -136,7 +137,7 @@ def withdrawals(repo: Any) -> list[dict[str, Any]]:
         elif problems:
             state = f"unverified: {problems[0]}"
         else:
-            who, why = authority(repo, claim["run"], row["signer"], claim["reason"])
+            who, why = authority(repo, claim["run"], row["signer"], claim["reason"], signed=True)
             state = "verified" if who else f"unverified: {why}"
         out.append(
             {
@@ -157,14 +158,22 @@ def tombstone(row: dict[str, Any]) -> dict[str, str]:
     return {"digest": digest(row["run"]), "date": row["withdrawn_at"][:10], "reason": row["reason"]}
 
 
+def load_json(path: str | Path) -> Any:
+    """Untrusted JSON from *path*: at most :data:`MAX_JSON_BYTES`, shallow, no
+    duplicate keys or ``NaN``; :class:`ValueError` (or ``OSError``) otherwise."""
+    from opentine._json_shallow import loads
+
+    with open(path, "rb") as fh:
+        data = fh.read(MAX_JSON_BYTES + 1)
+    if len(data) > MAX_JSON_BYTES:
+        raise ValueError(f"larger than {MAX_JSON_BYTES} bytes")
+    return loads(data, object_pairs_hook=_no_duplicates, parse_constant=_no_constants)
+
+
 def read_tombstones(path: str | Path) -> list[dict[str, str]]:
     """The tombstones of a manifest file; refuses a malformed one (fail closed)."""
     try:
-        doc = json.loads(
-            Path(path).read_bytes(),
-            object_pairs_hook=_no_duplicates,
-            parse_constant=_no_constants,
-        )
+        doc = load_json(path)
     except (OSError, ValueError) as exc:
         raise ValueError(f"cannot read the tombstones {path}: {exc}") from None
     rows = doc.get("tombstones") if isinstance(doc, dict) else None
@@ -208,11 +217,13 @@ def honour(items: list[dict[str, Any]], rows: list[dict[str, str]]) -> list[dict
 __all__ = [
     "CONVENTION",
     "HOLD",
+    "MAX_JSON_BYTES",
     "REASONS",
     "TOMBSTONES",
     "check_claim",
     "digest",
     "honour",
+    "load_json",
     "read_tombstones",
     "tombstone",
     "tombstoned",

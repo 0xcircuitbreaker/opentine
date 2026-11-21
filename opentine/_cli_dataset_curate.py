@@ -17,8 +17,6 @@ See docs/DATASETS.md.
 from __future__ import annotations
 
 import argparse
-import json
-from pathlib import Path
 from typing import Any
 
 SCHEMA = "tine-cli-dataset-curate/1"
@@ -112,7 +110,9 @@ def _verify(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[s
     if bool(args.record) == bool(args.file):
         raise ValueError("name one version: an attestation id or --file")
     if args.file:
-        payload, record = json.loads(Path(args.file).read_bytes()), None
+        from opentine._dataset_withdraw import load_json
+
+        payload, record = load_json(args.file), None
     else:
         record = args.record
         payload = repo.get(record).payload()

@@ -10,6 +10,7 @@ from opentine import _dataset_claims as dc
 from opentine import _dataset_version as dv
 from opentine import _dataset_withdraw as wd
 from tests.dataset_contrib_helpers import annotate as _annotate
+from tests.dataset_contrib_helpers import pin_contributor
 from tests.key_roles_helpers import isolated_trust_config  # noqa: F401
 from tests.test_075_dataset_curate import (  # noqa: F401
     AT,
@@ -66,14 +67,30 @@ def test_the_contributor_key_withdrawal_is_honoured(repo):
     _pin(repo)
     run = _run(repo, 1)
     annotate(repo, run)
+    with pytest.raises(PermissionError):  # an unpinned annotating key is no contributor
+        wd.withdraw(repo, run, CONTRIBUTOR, "consent-withdrawn", AT)
+    pin_contributor(repo, CONTRIBUTOR)
     record = wd.withdraw(repo, run, CONTRIBUTOR, "consent-withdrawn", AT)
     assert dv.withdrawals(repo) == {run: record}
     out = dv.curate(repo, "train", "all", CURATOR, AT)
     assert out["claim"]["withdrawn"] == [run]
 
 
+def test_two_pinned_annotating_keys_refuse_a_new_withdrawal(repo):
+    _pin(repo)
+    pin_contributor(repo, CONTRIBUTOR)
+    pin_contributor(repo, STRANGER)
+    run = _run(repo, 1)
+    annotate(repo, run)
+    annotate(repo, run, STRANGER)
+    for key in (CONTRIBUTOR, STRANGER):
+        with pytest.raises(PermissionError):
+            wd.withdraw(repo, run, key, "privacy", AT)
+
+
 def test_a_second_annotating_key_makes_the_contributor_ambiguous(repo):
     _pin(repo)
+    pin_contributor(repo, CONTRIBUTOR)
     run = _run(repo, 1)
     annotate(repo, run)
     annotate(repo, run, STRANGER)
