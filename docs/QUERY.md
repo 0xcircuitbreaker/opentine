@@ -77,7 +77,8 @@ record's Ed25519 signature verifies against the key it names; it says nothing
 about whether that key is trusted.
 
 Eval verdicts are read from the lineage folder's `evals/*.jsonl` and from the
-`verdicts.jsonl` of each folder given with `--evals DIR`.
+`verdicts.jsonl` of each folder given with `--evals DIR`. A line that is not
+JSON, or is nested deeper than 200 levels, is skipped.
 
 Experiment manifests and reproduce reports (docs/EXPERIMENTS.md) are read from
 every `*.json` under `.tine/experiments/` and under each folder given with

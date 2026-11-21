@@ -15,9 +15,10 @@ committed synthetic corpus has.
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any
+
+from opentine import _json_shallow
 
 MAX_RUNS = 1_000_000
 
@@ -55,7 +56,7 @@ def _constant(name: str) -> Any:
 def _loads(line: str, where: str) -> Any:
     """Strict JSON: no duplicate keys, no NaN or Infinity (a later key cannot hide text)."""
     try:
-        return json.loads(line, object_pairs_hook=_pairs, parse_constant=_constant)
+        return _json_shallow.loads(line, object_pairs_hook=_pairs, parse_constant=_constant)
     except ValueError as exc:
         raise ValueError(f"{where}: {exc}") from None
 

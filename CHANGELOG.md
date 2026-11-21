@@ -9,6 +9,12 @@
   the transcript corpus, and each oversight-queue source is isolated: a source
   that fails is warned about and lists nothing, and the other sources still
   list their items (OT-3).
+- A deeply nested eval verdict line (`[[[[…`) no longer aborts `tine query
+  index`, `tine policy check` or the promote admission input: verdict lines
+  are parsed with the bounded-nesting reader and a line past 200 levels is
+  skipped as malformed. The same reader now parses `tine query --verify` eval
+  rows, lineage records and decisions, `--corpus` JSONL lines and the holds
+  file, which refuse such input with their usual malformed-input error (OT-6).
 
 ## 0.75.0 — Dataset curation and AI-BOM export (2026-11-21)
 

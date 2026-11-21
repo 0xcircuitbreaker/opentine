@@ -11,12 +11,12 @@ a root. An unreadable holds file refuses every delete (fail closed).
 
 from __future__ import annotations
 
-import json
 import os
 import time
 from collections.abc import Callable
 from pathlib import Path
 
+from opentine import _json_shallow
 from opentine.kernel import OID_RE, KernelError, canonical_json
 from opentine.repository import _winretry
 from opentine.repository._lockfile import acquire
@@ -95,7 +95,7 @@ def read_holds(path: Path) -> list[dict[str, str]]:
     except OSError as exc:
         raise HoldError(f"cannot read holds file {path}: {exc}") from exc
     try:
-        record = json.loads(data) if len(data) <= MAX_HOLDS_BYTES else None
+        record = _json_shallow.loads(data) if len(data) <= MAX_HOLDS_BYTES else None
         rows = record["holds"] if record and record.get("format") == FORMAT else None
         if not isinstance(rows, list) or not all(_valid(row) for row in rows):
             raise ValueError("not a tine-holds/1 file")

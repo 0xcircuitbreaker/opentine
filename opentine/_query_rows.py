@@ -12,10 +12,12 @@ has comes from the owner-pinned key roles only (:mod:`opentine._query_verify`).
 
 from __future__ import annotations
 
+import hashlib
 import json
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
+from opentine import _json_shallow
 from opentine._query_containment import COLUMNS as _CONTAINMENT_COLUMNS
 from opentine._query_custody import COLUMNS as _CUSTODY_COLUMNS
 from opentine._query_datasets import COLUMNS as _DATASET_COLUMNS
@@ -229,15 +231,13 @@ def eval_row(oid: str, source: str, line: int, verdict: Any) -> dict[str, Any] |
 
 def verdict_lines(source: str, raw: bytes) -> list[dict[str, Any]]:
     """Eval rows for every verdict line of one ``.jsonl`` file (bad lines are skipped)."""
-    import hashlib
-
     out = []
     for number, line in enumerate(raw.split(b"\n"), start=1):
         line = line.rstrip(b"\r")
         if not line.strip():
             continue
         try:
-            verdict = json.loads(line)
+            verdict = _json_shallow.loads(line)  # bounded nesting: untrusted lines
         except ValueError:
             continue
         row = eval_row("sha256:" + hashlib.sha256(line).hexdigest(), source, number, verdict)
