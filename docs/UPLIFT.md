@@ -1,4 +1,4 @@
-# Uplift and capability trends (0.73)
+# Uplift and capability trends (0.73, release 0.72.0)
 
 `tine uplift` records how well people and AI systems do on a fixed, versioned
 set of tasks, and turns those records into a **50%-success time horizon**: the

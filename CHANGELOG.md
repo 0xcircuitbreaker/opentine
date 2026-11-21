@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Transcript analysis at corpus scale
+## 0.73.0 — Transcript analysis at corpus scale (2026-11-21)
 
 - `tine transcripts index|search|similar RUN [--json]`: a derived,
   rebuildable, non-authoritative embedding index over run transcripts (steps,
