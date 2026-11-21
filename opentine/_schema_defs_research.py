@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from opentine._schema_defs_bom import COMMAND_SCHEMAS as _BOM_COMMANDS
+from opentine._schema_defs_bom import SCHEMAS as _BOM
 from opentine._schema_defs_budget import COMMAND_SCHEMAS as _BUDGET_COMMANDS
 from opentine._schema_defs_budget import SCHEMAS as _BUDGET
 from opentine._schema_defs_containment import COMMAND_SCHEMAS as _CONTAINMENT_COMMANDS
@@ -49,6 +51,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     **_TRENDS,
     **_TRANSCRIPTS,
     **_CURATE,
+    **_BOM,
 }
 COMMAND_SCHEMAS: dict[str, str] = {
     **_QUERY_COMMANDS,
@@ -64,6 +67,7 @@ COMMAND_SCHEMAS: dict[str, str] = {
     **_TRENDS_COMMANDS,
     **_TRANSCRIPTS_COMMANDS,
     **_CURATE_COMMANDS,
+    **_BOM_COMMANDS,
 }
 
 __all__ = ["COMMAND_SCHEMAS", "SCHEMAS"]

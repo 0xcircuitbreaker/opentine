@@ -36,6 +36,25 @@
   marks a version row `verified` only for a pinned `curator` signer without
   `optimizer`.
 - Schemas `tine-cli-dataset-curate-1` and `opentine-dataset-version-1`.
+- `tine bom export LINEAGE_NODE --format cyclonedx|spdx [--out FILE]`: a
+  CycloneDX 1.6 ML-BOM or an SPDX 3.0.1 AI/Dataset profile document for one
+  lineage variant: the variant and its artifacts, its parent lineage, the
+  training and eval dataset versions (`--dataset training=FILE|eval=FILE`,
+  signed attestations) with their digests and taint filters, eval results and
+  the keys that signed them, and licences (`--licence`, and each dataset
+  version's). See docs/AIBOM.md.
+- The export refuses a node that fails `tine lineage check` (including the
+  integrity and memory-quarantine findings) and an unsigned or edited dataset
+  version; nothing is written. A dataset version must be an
+  `opentine.dataset-version/1` claim signed by a pinned `curator` key that is
+  not an `optimizer` key (refused when no trust bundle is pinned), its
+  `members_digest` must match its members, and it must record a taint filter.
+  Eval verdict rows that disagree on dataset or scorer, repeat a key or carry
+  NaN are refused. Output is byte-identical on rerun: times are
+  record signing times and identifiers are derived from digests.
+- The official CycloneDX 1.6 and SPDX 3.0.1 JSON schemas are vendored under
+  `tests/data/aibom/` and pinned by sha256; the tests validate both formats
+  against them. `--out FILE --json` prints `tine-cli-bom/1`.
 
 ## 0.73.0 — Transcript analysis at corpus scale (2026-11-21)
 

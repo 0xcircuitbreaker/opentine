@@ -2404,3 +2404,13 @@ file) and `hooks/<agent>.json` (each hook file, redacted). Every member is
 re-scanned after redaction and nothing is written if a credential shape
 survives. Members carry a fixed mtime, so the same state gives the same bytes.
 Any other path keeps the single JSON document.
+
+## AI-BOM export (0.78)
+
+| Command | What it does |
+| --- | --- |
+| `tine bom export LINEAGE_NODE --format cyclonedx\|spdx [--out FILE] [--dataset ROLE=FILE]... [--licence EXPR] [--name NAME] [--promotion-policy TOML] [--dir DIR]` | Writes a CycloneDX 1.6 ML-BOM or an SPDX 3.0.1 AI/Dataset document for one lineage variant: its ancestry, training and eval dataset versions with digests and taint filters, eval results and signers, licences. Refuses a node that fails `tine lineage check`; output is byte-identical on rerun |
+
+`--dataset` takes `training=FILE` or `eval=FILE`, a signed dataset version
+attestation. Without `--out` the document goes to stdout; `--json` (with
+`--out`) prints `tine-cli-bom/1`. See docs/AIBOM.md.
