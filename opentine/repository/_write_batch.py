@@ -15,7 +15,9 @@ object that is not durable, because refs move only after :func:`flush`.
 
 Reads and existence checks inside a batch see the staged objects, so link
 validation behaves exactly as with loose writes. A repository whose descriptor
-is version 1 (no packs) and a batch of a single object use the loose path.
+is version 1 (no packs) and a batch of a single object use the loose path:
+still staged until :func:`flush`, each file synced as before, but each object
+directory synced once per flush rather than once per file (0.74.1).
 """
 
 from __future__ import annotations
@@ -30,15 +32,21 @@ from opentine._canon import _fsync_dir, full_fsync
 from opentine.repository import _winretry
 from opentine.repository._config import STORAGE_VERSIONS, read_config, storage_version
 from opentine.repository._pack_index import MAX_PACK_OBJECTS
-from opentine.repository._paths import durable_directory, internal_path
+from opentine.repository._paths import DEFERRED_DIRS, durable_directory, internal_path
 
 _KEY = "_write_batch"
+_SEEN = "_write_batch_seen"
 _OFF = {"0", "off", "false", "no"}
 
 
 def staged(repo) -> dict[str, bytes] | None:
     """The active batch of *repo* (oid -> canonical bytes), or ``None``."""
     return getattr(repo, "__dict__", {}).get(_KEY)
+
+
+def seen(repo) -> set[str] | None:
+    """Oids of the active batch already found stored (verified and freshened)."""
+    return getattr(repo, "__dict__", {}).get(_SEEN)
 
 
 def _pack_version(repo) -> int | None:
@@ -68,15 +76,17 @@ def batched(repo):
     Nested batches join the outer one. An exception discards what was staged:
     nothing of a failed run reaches the disk.
     """
-    if staged(repo) is not None or _pack_version(repo) is None:
+    if staged(repo) is not None:
         yield
         return
     repo.__dict__[_KEY] = {}
+    repo.__dict__[_SEEN] = set()
     try:
         yield
         flush(repo)
     finally:
         repo.__dict__.pop(_KEY, None)
+        repo.__dict__.pop(_SEEN, None)
 
 
 def flush(repo) -> str | None:
@@ -90,8 +100,15 @@ def flush(repo) -> str | None:
     if len(items) == 1 or version is None or len(items) > MAX_PACK_OBJECTS:
         from opentine.repository._storage import write_loose
 
-        for oid, raw in items:
-            write_loose(repo, oid, raw)
+        directories: set[Path] = set()
+        token = DEFERRED_DIRS.set(directories)
+        try:
+            for oid, raw in items:
+                write_loose(repo, oid, raw)  # each file still fsynced before its rename
+        finally:
+            DEFERRED_DIRS.reset(token)
+        for directory in sorted(directories):  # once per fan-out, before any ref moves
+            _fsync_dir(directory)
         return None
     from opentine.repository._pack_v3 import build_pack_v3
     from opentine.repository._pack_write import build_pack
