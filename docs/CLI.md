@@ -1638,7 +1638,10 @@ spend under the budget cap and an admission policy that covers
 - `--require-admission POLICY` (0.75, repeatable) refuses unless the policy
   admitted RUN over its current input (`promote.not-admitted`);
   `--admission-param NAME=VALUE` sets a param of that input, as
-  `tine policy check --param`; see [POLICY.md](POLICY.md).
+  `tine policy check --param`, and `--admission-evals DIR`,
+  `--admission-holdout DIR` (both repeatable) and `--admission-budget SUBJECT`
+  supply its `--evals`, `--holdout` and `--budget`, so the gate rebuilds the
+  input the check signed; see [POLICY.md](POLICY.md).
 
 `--json` follows `tine-cli-promote-1`. Conventions, refusal codes and outputs:
 [EVALS-PROMOTION.md](EVALS-PROMOTION.md).

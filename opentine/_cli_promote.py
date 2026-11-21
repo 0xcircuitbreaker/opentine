@@ -34,6 +34,15 @@ def add_signed_promote_args(p: Any) -> None:
     p.add_argument("--admission-param", action="append", default=[], metavar="NAME=VALUE",
                    help="A policy param for the --require-admission input (as tine policy "
                    "check --param); repeatable")  # fmt: skip
+    p.add_argument("--admission-evals", action="append", default=[], metavar="DIR",
+                   help="An eval folder for the --require-admission input (as tine policy "
+                   "check --evals); repeatable")  # fmt: skip
+    p.add_argument("--admission-holdout", action="append", default=[], metavar="DIR",
+                   help="A sealed holdout for the --require-admission input (as tine policy "
+                   "check --holdout); repeatable")  # fmt: skip
+    p.add_argument("--admission-budget", metavar="SUBJECT",
+                   help="The budget subject of the --require-admission input (as tine policy "
+                   "check --budget)")  # fmt: skip
     p.add_argument("--loop", metavar="LOOP", help="Refuse when LOOP is stopped (tine loop stop)")
     p.add_argument("--state", metavar="DIR", help="Label state (default REPO/.tine/promotion)")
     p.add_argument("--out", metavar="DIR", help="Where decisions go (a FILE for --approve)")
@@ -93,8 +102,10 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
     from opentine._promote_admission import refusals
 
     if not_admitted := refusals(
-        Path(args.repo), args.target, args.require_admission, args.admission_param
-    ):
+        Path(args.repo), args.target, args.require_admission, args.admission_param,
+        evals=args.admission_evals, holdouts=args.admission_holdout,
+        budget=args.admission_budget,
+    ):  # fmt: skip
         raise PromotionRefused(not_admitted)  # before the gate can move the label
     return promotion.promote(key, policy, args.target, args.baseline,
                              baseline=Path(args.baseline_evals), evals=Path(args.evals),

@@ -13,6 +13,27 @@
   dots, which Windows drops from a path, still end a match), and
   skips a claim with a non-string location or digest instead of failing every
   call.
+- `tine trends --fail-on-regression` fails closed when a parent's lineage
+  record is missing: `lineage.parent-missing` now lists the variant in
+  `unchecked[]` (deleting a parent record skipped the paired comparison and
+  let a regression pass).
+- `tine promote --require-admission` rebuilds the input `tine policy check`
+  signed: new `--admission-evals DIR`, `--admission-holdout DIR` and
+  `--admission-budget SUBJECT` pass the check's `--evals`, `--holdout` and
+  `--budget` (before, the gate's input had no evals, holdouts or budget, so a
+  policy that reads them, such as `promote`, never counted an allow). The
+  policy input's `oversight` block now holds the decisions on the run's
+  `promotion:LABEL:RUN` items (it matched a decision's anchor blob against the
+  run id, so `k-of-n-approvals` never held).
+- The policy input counts an approval only where the oversight queue would:
+  a decision anchored on a blob other than its item's anchor is ignored, a
+  signer's later reject cancels their earlier approve, and when the check
+  passes a `label` param only approvals of a promotion to that label count.
+- Policy expressions: a long `a.b.b...` selection chain (about 1000
+  selections) is refused `policy.parse` (taller than 64), as in the TS
+  verifier; the Python height check recursed, hit the interpreter's limit and
+  recorded `policy.steps` in the signed admission. Shared vectors
+  `select-height-1000` and `select-height-1023` cover it.
 
 ## 0.75.0 — Dataset curation and AI-BOM export (2026-11-21)
 

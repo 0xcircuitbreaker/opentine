@@ -132,6 +132,7 @@
                   "lineage.cycle",
                   "lineage.evidence-missing",
                   "lineage.signer-untrusted",
+                  "lineage.parent-missing",
                   "trends.run-relabelled"
                 ]
               }
