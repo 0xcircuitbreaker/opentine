@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-dataset-licence-1.schema.json",
+  "title": "opentine-dataset/licence/1 claim",
+  "description": "A contributor's licence and consent annotation on a public run, signed by the key that signed the bundle's redacted-copy record. A claim convention on an existing attestation, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "run",
+    "spdx",
+    "relicensing_grant",
+    "contributor",
+    "annotated_at"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine-dataset/licence/1"
+    },
+    "run": {
+      "type": "string",
+      "pattern": "^run:sha256:[0-9a-f]{64}$"
+    },
+    "spdx": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9.+-]{0,63}$"
+    },
+    "relicensing_grant": {
+      "type": "boolean"
+    },
+    "contributor": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "annotated_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+    }
+  }
+}

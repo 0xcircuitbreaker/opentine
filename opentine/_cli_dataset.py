@@ -1,5 +1,7 @@
 """``tine dataset add|import|export|show``: eval datasets as JSON Lines (0.45).
 
+0.75 adds ``contrib-redact|check|withdraw`` (:mod:`opentine._cli_dataset_contrib`).
+
 0.60 adds sealed holdouts (``seal|unseal|exposure``, :mod:`opentine._cli_holdout`) and
 ``canary-add|canary-list|canary-check|contamination`` (:mod:`opentine._cli_canary`).
 """
@@ -27,6 +29,7 @@ def add_dataset_parser(sub: Any) -> None:
     add.add_argument("--repo", help="Resolve RUN in this v3 repository")
     add.add_argument("--id", dest="item_id", metavar="ID", help="Item id (default: from the run)")
     add.add_argument("--expected", metavar="TEXT", help="The reference answer for scorers")
+    add.add_argument("--tombstones", metavar="FILE", help="Refuse a run tombstoned here (0.75)")
     importer = verbs.add_parser("import", help="Read a JSONL file or a local HF dataset folder")
     importer.add_argument("source", metavar="SRC")
     exporter = verbs.add_parser("export", help="Write a dataset as JSONL or an HF folder")
@@ -47,6 +50,9 @@ def add_dataset_parser(sub: Any) -> None:
     from opentine._cli_canary import add_canary_verbs
 
     add_canary_verbs(verbs)  # 0.60: canaries and contamination
+    from opentine._cli_dataset_contrib import add_contrib_verbs
+
+    add_contrib_verbs(verbs)  # 0.75: contributor tooling for open run datasets
 
 
 def _load_run(name: str, repo: str | None) -> tuple[Any, str]:
@@ -75,6 +81,7 @@ def _add(args: argparse.Namespace) -> dict[str, Any]:
     path = Path(args.dataset)
     items = read_jsonl(path) if path.exists() else []
     run, name = _load_run(args.from_run, args.repo)
+    _refuse_withdrawn(args, name)
     item = run_item(run, name, item_id=args.item_id)
     if args.expected is not None:
         item["expected"] = args.expected
@@ -82,6 +89,20 @@ def _add(args: argparse.Namespace) -> dict[str, Any]:
         fail(f"{path} already holds an item {item['id']!r}; pass --id", USAGE)
     write_jsonl(path, [*items, item])
     return {"dataset": str(path), "item": item["id"], "run": name, "items": len(items) + 1}
+
+
+def _refuse_withdrawn(args: argparse.Namespace, name: str) -> None:
+    """0.75: a tombstoned run, or one with a verified withdrawal in --repo, is not added."""
+    from opentine import _dataset_withdraw as wd
+
+    if args.tombstones and wd.tombstoned(name, wd.read_tombstones(args.tombstones)):
+        fail(f"run {name} is withdrawn (tombstoned in {args.tombstones})", USAGE)
+    if args.repo:
+        from opentine.repo import Repo
+
+        rows = wd.withdrawals(Repo.open(Path(args.repo)))
+        if any(r["run"] == name and r["state"] == "verified" for r in rows):
+            fail(f"run {name} is withdrawn by its contributor", USAGE)
 
 
 def _import(args: argparse.Namespace) -> dict[str, Any]:
@@ -134,6 +155,11 @@ def cmd_dataset(args: argparse.Namespace) -> None:
     if verb in CANARY_VERBS:
         cmd_canary(args)
         return
+    from opentine._cli_dataset_contrib import VERBS as CONTRIB_VERBS
+    from opentine._cli_dataset_contrib import cmd_contrib
+
+    if verb in CONTRIB_VERBS:
+        return cmd_contrib(args)
     handler = {"add": _add, "import": _import, "export": _export, "show": _show}[verb]
     try:
         row = handler(args)

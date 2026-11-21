@@ -6988,4 +6988,62 @@ ROWS: tuple[tuple, ...] = (
             "dataset": "sha256:ab",
         },  # fmt: skip
     ),
+    (
+        "plain:dataset contrib-redact main --deny-list d.txt --licence CC-BY-4.0 --key k --out b",
+        "plain",
+        [
+            "dataset",
+            "contrib-redact",
+            "main",
+            "--deny-list",
+            "d.txt",
+            "--licence",
+            "CC-BY-4.0",
+            "--key",
+            "k",
+            "--out",
+            "b",
+        ],  # fmt: skip
+        "opentine._cli_dataset:cmd_dataset",
+        False,
+        {
+            "command": "dataset",
+            "dataset_command": "contrib-redact",
+            "run": "main",
+            "deny_list": "d.txt",
+            "licence": "CC-BY-4.0",
+            "relicensing_grant": False,
+            "key": "k",
+            "out": "b",
+        },  # fmt: skip
+    ),
+    (
+        "plain:dataset check b --allow MIT --tombstones t.json --json",
+        "plain",
+        ["dataset", "check", "b", "--allow", "MIT", "--tombstones", "t.json", "--json"],
+        "opentine._cli_dataset:cmd_dataset",
+        False,
+        {
+            "command": "dataset",
+            "dataset_command": "check",
+            "bundle": "b",
+            "allow": ["MIT"],
+            "tombstones": "t.json",
+            "json": True,
+        },  # fmt: skip
+    ),
+    (
+        "plain:dataset withdraw main --key k --reason privacy",
+        "plain",
+        ["dataset", "withdraw", "main", "--key", "k", "--reason", "privacy"],
+        "opentine._cli_dataset:cmd_dataset",
+        False,
+        {
+            "command": "dataset",
+            "dataset_command": "withdraw",
+            "run": "main",
+            "key": "k",
+            "reason": "privacy",
+        },  # fmt: skip
+    ),
 )

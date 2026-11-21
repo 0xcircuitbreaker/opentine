@@ -1,0 +1,340 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-dataset-contrib-1.schema.json",
+  "title": "tine dataset contrib-redact|check|withdraw --json",
+  "description": "Contributor tooling for open run datasets. `contrib-redact` writes a signed --redacted-public bundle of one run with the contributor's local deny-list applied and a signed licence annotation, and keeps it only when the leak scan of the unbundled copy finds zero deny-list hits (`ok` false, `out` null, exit 1 otherwise); nothing of the deny-list is reported. `check` refuses (exit 1) a bundle without a verified licence annotation by the key that signed its redacted-copy record, with an SPDX id outside the allow-list, a dirty file-level licence scan, or a tombstoned run. `withdraw` signs and holds a withdrawal claim and reports its tombstone.",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "out",
+        "sha256",
+        "source_run",
+        "public_run",
+        "objects",
+        "redacted",
+        "ruleset",
+        "totals",
+        "licence_record",
+        "leak_scan"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-dataset-contrib/1"
+        },
+        "command": {
+          "const": "dataset contrib-redact"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "out": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_run": {
+          "type": "string",
+          "pattern": "^run:sha256:[0-9a-f]{64}$"
+        },
+        "public_run": {
+          "type": "string",
+          "pattern": "^run:sha256:[0-9a-f]{64}$"
+        },
+        "objects": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "redacted": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ruleset": {
+          "type": "string"
+        },
+        "totals": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "licence_record": {
+          "type": "string"
+        },
+        "leak_scan": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "objects",
+            "hits"
+          ],
+          "properties": {
+            "objects": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "hits": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "bundle",
+        "contributor",
+        "public_run",
+        "record_state",
+        "licence",
+        "scan",
+        "allow",
+        "problems"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-dataset-contrib/1"
+        },
+        "command": {
+          "const": "dataset check"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "bundle": {
+          "type": "string"
+        },
+        "contributor": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "public_run": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "record_state": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "licence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "record",
+              "spdx",
+              "relicensing_grant",
+              "contributor",
+              "state"
+            ],
+            "properties": {
+              "record": {
+                "type": "string"
+              },
+              "spdx": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "relicensing_grant": {
+                "anyOf": [
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "contributor": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "state": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "scan": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "object",
+              "finding"
+            ],
+            "properties": {
+              "object": {
+                "type": "string"
+              },
+              "finding": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "allow": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "problems": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "record",
+        "run",
+        "reason",
+        "contributor",
+        "state",
+        "tombstone",
+        "tombstones"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-dataset-contrib/1"
+        },
+        "command": {
+          "const": "dataset withdraw"
+        },
+        "ok": {
+          "const": true
+        },
+        "record": {
+          "type": "string"
+        },
+        "run": {
+          "type": "string",
+          "pattern": "^run:sha256:[0-9a-f]{64}$"
+        },
+        "reason": {
+          "enum": [
+            "consent-withdrawn",
+            "privacy",
+            "licence",
+            "quality",
+            "other"
+          ]
+        },
+        "contributor": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "state": {
+          "type": "string"
+        },
+        "tombstone": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "digest",
+            "date",
+            "reason"
+          ],
+          "properties": {
+            "digest": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "date": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            "reason": {
+              "enum": [
+                "consent-withdrawn",
+                "privacy",
+                "licence",
+                "quality",
+                "other"
+              ]
+            }
+          }
+        },
+        "tombstones": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
