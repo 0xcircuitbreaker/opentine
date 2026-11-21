@@ -84,11 +84,18 @@ class _View:
 
 
 def _derived(
-    envelope: ObjectEnvelope, mapping: dict[str, str], login: str | None, counts: Counter[str]
+    envelope: ObjectEnvelope,
+    mapping: dict[str, str],
+    login: str | None,
+    counts: Counter[str],
+    deny: Any = None,
 ) -> ObjectEnvelope:
     if envelope.encoding == "raw" and envelope.schema != TREE_SCHEMA:
         body, found = _redact_publish.scrub_bytes(_stable(envelope.body), login=login)
         counts.update(found)
+        if deny is not None:
+            body, hits = deny.scrub_bytes(body)
+            counts.update({"contributor": hits} if hits else {})
         return ObjectEnvelope.create("blob", body, envelope.schema)
     if envelope.encoding == "raw":  # a tree: its entries are links
         import json
@@ -100,6 +107,9 @@ def _derived(
         for row in tree.get("entries", []) + tree.get("omitted", []):  # names can hold emails
             row["name"], found = _redact_publish.scrub_text(row["name"], login=login)
             counts.update(found)
+            if deny is not None:
+                row["name"], hits = deny.scrub_text(row["name"])
+                counts.update({"contributor": hits} if hits else {})
         body = encode_tree(tree["entries"], tree.get("omitted", []))  # re-sorted; refuses clashes
         return ObjectEnvelope.create("blob", body, envelope.schema)
     where = f"redacted copy {envelope.object_type!r}"
@@ -107,6 +117,9 @@ def _derived(
         guarded_redaction(envelope.payload(), where=where), login=login
     )
     counts.update(found)
+    if deny is not None:
+        payload, hits = deny.scrub_value(payload)
+        counts.update({"contributor": hits} if hits else {})
     payload = _rewrite(payload, mapping)
     return ObjectEnvelope.create(envelope.object_type, payload, envelope.schema)
 
@@ -118,12 +131,14 @@ def _count(counts: dict[str, dict[str, int]], oid: str, found: Counter[str]) -> 
 
 
 def derive(
-    repo: Any, run: str, counts: dict[str, dict[str, int]] | None = None
+    repo: Any, run: str, counts: dict[str, dict[str, int]] | None = None, *, deny: Any = None
 ) -> tuple[str, dict[str, bytes], set[str], int]:
     """``(public run, derived objects, boundary oids, objects changed)`` for *run*.
 
     *counts*, when given, is filled with ``{derived oid: {kind: n}}`` for each
     object the publication ruleset changed (kinds ``path``, ``email``, ``user``).
+    *deny*, a contributor deny-list (:mod:`opentine._contrib_denylist`), is
+    applied after it (kind ``contributor``, 0.75).
     """
     login = _redact_publish.login()
     if not run.startswith("run:") or not repo.has(run):
@@ -148,7 +163,7 @@ def derive(
             stack.extend((link, False) for link in links[oid] if link not in mapping)
             continue
         found: Counter[str] = Counter()
-        new = _derived(repo.get(oid), mapping, login, found)
+        new = _derived(repo.get(oid), mapping, login, found, deny)
         mapping[oid] = new.oid
         if counts is not None:
             _count(counts, new.oid, found)
