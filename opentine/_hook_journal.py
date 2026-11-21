@@ -25,6 +25,8 @@ import time
 from pathlib import Path
 from typing import IO, Any
 
+from opentine._json_shallow import loads as shallow_loads
+
 MAX_PAYLOAD_BYTES = 256 * 1024
 MAX_JOURNAL_BYTES = 8 * 1024 * 1024
 MAX_FIELD = 128
@@ -45,7 +47,7 @@ def parse_payload(raw: bytes) -> dict[str, str] | None:
     if len(raw) > MAX_PAYLOAD_BYTES:
         return None
     try:
-        payload = json.loads(raw.decode("utf-8"))
+        payload = shallow_loads(raw.decode("utf-8"))
     except (UnicodeDecodeError, ValueError, RecursionError):
         return None
     if not isinstance(payload, dict) or payload.get("hook_event_name") not in EVENTS:
@@ -96,7 +98,7 @@ def agent_types(repo_path: Path) -> dict[str, str]:
     found: dict[str, str] = {}
     for line in raw.splitlines():
         try:
-            item = json.loads(line)
+            item = shallow_loads(line)
         except (ValueError, RecursionError):
             continue
         if isinstance(item, dict):
