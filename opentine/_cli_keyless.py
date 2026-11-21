@@ -93,7 +93,8 @@ def _sign(args: argparse.Namespace) -> None:
              if getattr(args, f, None)]  # fmt: skip
     if stray or args.algorithm != "hmac-sha256":
         bad = ", ".join(f"--{f.replace('_', '-')}" for f in stray) or "--algorithm"
-        raise error(f"{bad} cannot be used with --keyless", USAGE, prefix="sign: ")
+        raise error(f"{bad} has no effect with --keyless: the key is ephemeral", 1,
+                    prefix="sign: ")  # fmt: skip
     path = _find_run(args.run_id)
     if not path:
         raise error(f"Run not found: {args.run_id}", prefix="sign: ")
@@ -172,7 +173,7 @@ def cmd_sign_any(args: argparse.Namespace) -> None:
     stray = [f for f in ("rekor", "fulcio_url", "output", "json") if getattr(args, f, None)]
     if stray:
         bad = ", ".join(f"--{f.replace('_', '-')}" for f in stray)
-        raise error(f"{bad} only apply with --keyless", USAGE, prefix="sign: ")
+        raise error(f"{bad} has no effect without --keyless", 1, prefix="sign: ")
     from opentine._cli_security import cmd_sign
 
     cmd_sign(args)

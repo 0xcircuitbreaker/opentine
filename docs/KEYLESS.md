@@ -27,7 +27,7 @@ $ tine sign RUN --keyless [--rekor URL] [--fulcio-url URL] [--output FILE] [--ov
 * The output is `RUN.sigstore.json` by default, written owner-readable only.
   An existing file is replaced only with `--overwrite`.
 * Without `--keyless`, `--rekor`, `--fulcio-url` and `--output` are refused
-  (exit 2). With `--keyless`, the key flags (`--key-env`, `--key-file`,
+  (exit 1, naming the flag). With `--keyless`, the key flags (`--key-env`, `--key-file`,
   `--ed25519-key-file`, `--key-id`, `--signer`, `--save`, `--algorithm`) are
   refused.
 

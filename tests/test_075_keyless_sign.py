@@ -255,8 +255,12 @@ def test_tine_verify_reads_the_same_bundle_with_its_existing_checks(ws, capsys):
 
 def test_mode_flags_are_refused_where_they_do_nothing(ws, capsys):
     _setup(ws)
-    assert _cli("sign", "run.tine", "--keyless", "--key-file", "k") == 2
-    assert _cli("sign", "run.tine", "--rekor", "https://rekor.test", "--key-env", "K") == 2
+    capsys.readouterr()
+    assert _cli("sign", "run.tine", "--keyless", "--key-file", "k") == 1
+    assert _cli("sign", "run.tine", "--rekor", "https://rekor.test", "--key-env", "K") == 1
+    err = capsys.readouterr().err
+    assert "--key-file has no effect with --keyless" in err
+    assert "--rekor has no effect without --keyless" in err
     monkeypatch = ws[1]
     monkeypatch.delenv("SIGSTORE_ID_TOKEN")
     assert _cli("sign", "run.tine", "--keyless", "--output", "x.json") == 1
