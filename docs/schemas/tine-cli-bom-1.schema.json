@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-bom-1.schema.json",
+  "title": "tine bom export --json",
+  "description": "The summary of an AI-BOM export of one lineage node: the format, the file written, its sha256 and size. The document is CycloneDX 1.6 or SPDX 3.0.1 JSON.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "command",
+    "schema",
+    "ok",
+    "format",
+    "variant",
+    "out",
+    "sha256",
+    "bytes"
+  ],
+  "properties": {
+    "command": {
+      "const": "bom export"
+    },
+    "schema": {
+      "const": "tine-cli-bom/1"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "format": {
+      "enum": [
+        "cyclonedx",
+        "spdx"
+      ]
+    },
+    "variant": {
+      "type": "string"
+    },
+    "out": {
+      "type": "string"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "bytes": {
+      "type": "integer",
+      "minimum": 0
+    }
+  }
+}

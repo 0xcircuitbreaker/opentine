@@ -18,6 +18,7 @@ from pathlib import Path
 import pytest
 
 from opentine import _jsonschema, _schemas, cli
+from opentine._lineage import variant_id
 from opentine.core import Run, RunStatus, StepKind
 from tests.monitor_fixture import SPEC, record_online, trajectories
 
@@ -109,6 +110,7 @@ EXPERIMENT = {  # 0.67: an experiment manifest draft with no result rows
 
 # The --json invocations the web reads; each is (argv, expected command or tag).
 INSPECT = Path(__file__).resolve().parent / "fixtures" / "inspect"  # 0.64
+BOM_VARIANT = variant_id({"code_tree": "sha256:" + "1" * 64})  # 0.78
 DRIVEN = (
     (("show", "run.tine", "--json"), "tine-cli-show-1"),
     (("verify", "run.tine", "--json"), "tine-cli-verify-1"),
@@ -396,6 +398,11 @@ DRIVEN = (
         "tine-cli-inspect-1",
     ),  # 0.64
     (("inspect", "verify", (INSPECT / "boolq.json").as_posix(), "--json"), "tine-cli-inspect-1"),
+    (
+        ("bom", "export", BOM_VARIANT, "--format", "cyclonedx", "--repo", "repo")
+        + ("--out", "bom.json", "--json"),
+        "tine-cli-bom-1",
+    ),  # 0.78: exports the root variant the pre-step records
 )
 
 
@@ -411,6 +418,10 @@ def test_every_driven_json_output_validates(monkeypatch, capsys, room, argv, exp
         for side in ("ea", "eb"):
             _tine(monkeypatch, capsys, "eval", "run", "repo/d.jsonl", "--scorer", "exact",
                   "--key", "purge.key", "--out", side, "--json")  # fmt: skip
+    if argv[0] == "bom":  # 0.78: a lineage node to export
+        _tine(monkeypatch, capsys, "lineage", "record", "--run", "run:sha256:" + "a" * 64,
+              "--key", "purge.key", "--code-tree", "sha256:" + "1" * 64, "--repo", "repo",
+              "--at", "2026-11-01T12:00:00Z", "--json")  # fmt: skip
     _code, out = _tine(monkeypatch, capsys, *argv)
     if expected is None:  # a usage error prints no JSON object at all
         assert not out.strip().startswith("{") or "error" in json.loads(out)

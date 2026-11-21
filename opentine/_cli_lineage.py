@@ -17,6 +17,7 @@ import sys
 from collections.abc import Callable
 from pathlib import Path
 
+from opentine._cli_bom import add_bom_parser, cmd_bom
 from opentine._cli_common import _terminal, console
 from opentine._cli_errors import USAGE, error
 from opentine._cli_trends import add_trends_parser, cmd_trends
@@ -86,6 +87,7 @@ def add_lineage_parser(subparsers: argparse._SubParsersAction) -> None:
     archive.add_argument("--signed", action="store_true", help="Only verified records")
     index.add_argument("--rebuild", action="store_true", help="Delete and rebuild the index")
     add_trends_parser(subparsers)  # 0.72: tine trends, over the same lineage folder
+    add_bom_parser(subparsers)  # 0.78: tine bom export, of one lineage node
 
 
 def _folder(args: argparse.Namespace) -> Path:
@@ -193,6 +195,7 @@ def cmd_lineage(args: argparse.Namespace) -> None:
 COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
     "lineage": cmd_lineage,
     "trends": cmd_trends,
+    "bom": cmd_bom,
 }
 
 __all__ = ["COMMANDS", "SCHEMA", "add_lineage_parser", "cmd_lineage"]
