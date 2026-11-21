@@ -37,7 +37,9 @@ A variant's `flags` are lineage codes:
   quarantined under 0.61;
 * `lineage.evidence-missing`, `lineage.signer-untrusted`: the metrics are
   withheld (no items);
-* `lineage.decision-mismatch`, `lineage.parent-missing`: reported as found.
+* `lineage.decision-mismatch`: reported as found;
+* `lineage.parent-missing`: a cited parent's record is absent, so no paired
+  comparison against it runs; the variant is listed in `unchecked[]`.
 
 A flagged variant's numbers are still printed, but it is never a generation's
 `best`.
@@ -79,8 +81,9 @@ records alone could fake:
   withheld.
 * **Hiding a regression by dropping evidence.** `unchecked[]` lists each
   variant whose regression status cannot be established: excluded records,
-  withheld metrics (`lineage.evidence-missing`, `lineage.signer-untrusted`)
-  and relabelled runs. `--fail-on-regression` exits 1 when it is not empty.
+  withheld metrics (`lineage.evidence-missing`, `lineage.signer-untrusted`),
+  missing parent records (`lineage.parent-missing`: deleting a parent's record
+  must not skip the comparison silently) and relabelled runs. `--fail-on-regression` exits 1 when it is not empty.
 * **Re-rooting.** `tine lineage record` refuses to re-sign an existing variant
   with a different claim (new parents or evals): records are append-only. A
   mutation run recorded as more than one variant gets the command-level flag

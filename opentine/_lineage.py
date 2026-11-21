@@ -29,6 +29,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from opentine import _json_shallow
 from opentine.kernel import canonical_json
 
 CONVENTION = "opentine.lineage.variant"
@@ -90,7 +91,7 @@ def _eval(folder: Path, store: Path, run: str) -> dict[str, str]:
 
 def _decision(path: Path, store: Path) -> tuple[dict[str, str], dict[str, Any]]:
     raw = Path(path).read_bytes()
-    claim = json.loads(raw).get("claim") or {}
+    claim = _json_shallow.loads(raw).get("claim") or {}
     digest = hashlib.sha256(raw).hexdigest()
     _write(store / "decisions" / f"{digest}.json", raw)
     return {"sha256": digest}, claim
@@ -157,7 +158,7 @@ def _unique(pairs: list) -> dict:
 
 def loads(raw: bytes | str) -> Any:
     text = raw.decode("utf-8") if isinstance(raw, bytes) else raw
-    return json.loads(text, object_pairs_hook=_unique)
+    return _json_shallow.loads(text, object_pairs_hook=_unique)
 
 
 def signed(payload: Any) -> bool:

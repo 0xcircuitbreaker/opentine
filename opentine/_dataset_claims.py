@@ -31,6 +31,10 @@ from typing import Any
 
 from opentine.kernel import canonical_json
 
+# Blank text is ASCII whitespace only, the same set as the TS verifier's BLANK:
+# str.strip and String.trim disagree on U+001C..U+001F, U+0085 and U+FEFF.
+BLANK = re.compile(r"[\t\n\v\f\r ]*")
+
 VERSION = "opentine.dataset-version/1"
 JUSTIFICATION = "opentine.dataset-justification/1"
 WITHDRAWAL = "opentine.dataset-withdrawal/1"
@@ -137,7 +141,7 @@ def check_version(claim: Any) -> list[str]:
         previous is not None and not (isinstance(previous, str) and ATT_RE.fullmatch(previous))
     ):
         return ["previous is null for version 1 and an attestation id after"]
-    if not isinstance(claim["selection"], str) or not claim["selection"].strip():
+    if not isinstance(claim["selection"], str) or BLANK.fullmatch(claim["selection"]):
         return ["selection is the expression that chose the candidates"]
     problems = _members(claim["members"])
     if problems:

@@ -51,6 +51,9 @@ kind and no new `tine verify` code is involved:
 
 `tine export --format intoto --keyless` keeps writing the leaf alone
 (`verificationMaterial.certificate`); both shapes verify with both commands.
+Both commands read the leaf the same way, and refuse (`fail:keyless-malformed`)
+a `verificationMaterial` that carries more than one of `certificate`,
+`x509CertificateChain` and `publicKey`.
 
 ## Verifying offline
 
@@ -71,7 +74,9 @@ Nothing is fetched. The checks run in this order and fail closed:
 3. **Chain.** The leaf must be a code-signing certificate and must chain,
    signature by signature, through the bundled intermediates to a self-signed
    certificate in `--fulcio-root`. A root carried in the bundle is never a
-   trust anchor (`fail:keyless-chain`).
+   trust anchor. Each issuer must be a CA allowed to sign certificates, and the
+   path is at most five certificates, leaf and root included
+   (`fail:keyless-chain`). `tine verify --fulcio-root` uses the same walk.
 4. **Window.** Every certificate on the path must be valid at the log's
    integrated time. If not, the result is `caveat:keyless-outside-window`. The
    signature is real, but it is **not trusted**.

@@ -12,6 +12,11 @@ same document and the same input digest::
      "evals": [{"eval", "dataset", "item", "scorer_name", "score", "threshold",
                 "passed", "signer", "roles", "pinned", "holdout"}],
      "holdouts": [NAME],                       # verified --holdout folders
+
+An eval is a ``holdout`` eval when its ``dataset`` digest equals the dataset
+digest a verified ``--holdout`` commitment records, signed by a pinned
+``dataset`` key that is not an ``optimizer`` key (0.76; before, the digest
+was compared with holdout names and never matched).
      "monitors": [{"monitor", "action", "score", "threshold", "enforced",
                    "mode", "signer", "roles"}],
      "oversight": {"decisions": [{"item", "decision", "signer", "roles"}],
@@ -76,7 +81,7 @@ def _roles(store: Path) -> tuple[str, dict[str, list[str]]]:
     return ("pinned" if found is not None else "unpinned"), by_key
 
 
-def _evals(store: Path, run: str, eval_dirs: list[str], who: Any, holdouts: list[str]) -> list:
+def _evals(store: Path, run: str, eval_dirs: list[str], who: Any, digests: set[str]) -> list:
     from opentine._query_build import eval_files
     from opentine._query_rows import verdict_lines
 
@@ -92,14 +97,15 @@ def _evals(store: Path, run: str, eval_dirs: list[str], who: Any, holdouts: list
                         "threshold": row["threshold"], "passed": bool(row["passed"]),
                         "signer": row["signer"], "roles": roles,
                         "pinned": bool({"scorer", "eval"} & set(roles)),
-                        "holdout": row["dataset"] in holdouts})  # fmt: skip
+                        "holdout": row["dataset"] in digests})  # fmt: skip
     return out
 
 
-def _holdouts(folders: list[str], by_key: dict[str, list[str]]) -> list[str]:
+def _holdouts(folders: list[str], by_key: dict[str, list[str]]) -> tuple[list[str], set[str]]:
+    """Names and recorded dataset digests of the verified, dataset-signed holdouts."""
     from opentine._holdout import load
 
-    names = set()
+    names, digests = set(), set()
     for folder in folders:
         try:
             found = load(Path(folder))
@@ -108,7 +114,9 @@ def _holdouts(folders: list[str], by_key: dict[str, list[str]]) -> list[str]:
         roles = by_key.get(found["signer"], [])
         if "dataset" in roles and "optimizer" not in roles:
             names.add(found["claim"].get("holdout"))
-    return sorted(n for n in names if isinstance(n, str))
+            digests.add(found["claim"].get("dataset"))
+    found = {d for d in digests if isinstance(d, str) and d.startswith("sha256:")}
+    return sorted(n for n in names if isinstance(n, str)), found
 
 
 def _budget(repo: Any, subject: str | None, now_ms: int) -> dict[str, Any] | None:
@@ -125,6 +133,27 @@ def _budget(repo: Any, subject: str | None, now_ms: int) -> dict[str, Any] | Non
             "decision": body["decision"], "over": sorted(body["over"]),
             "fail_codes": sorted({f["code"] for f in body["findings"]
                                   if f["level"] == "fail"})}  # fmt: skip
+
+
+def _about(row: dict[str, Any], run: str, label: Any) -> bool:
+    """*row* decides ``promotion:LABEL:RUN`` for *run* (and *label*, when bound),
+    and its anchor is that item's own anchor blob, as the oversight queue requires."""
+    from opentine._oversight import anchor_oid_of, parse_item
+
+    try:
+        item = parse_item(row.get("item"))
+    except (TypeError, ValueError):
+        return False
+    return (item.get("candidate") == run and row.get("anchor") == anchor_oid_of(row["item"])
+            and (not isinstance(label, str) or item.get("label") == label))  # fmt: skip
+
+
+def _latest(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Each signer's latest decision per item; at a tie the non-approval wins."""
+    last: dict[tuple[str, str], dict[str, Any]] = {}
+    for r in sorted(rows, key=lambda r: (str(r.get("decided_at")), r["decision"] != "approve")):
+        last[(r["item"], r["signer"])] = r
+    return list(last.values())
 
 
 def _integrity(root: Path, run: str) -> dict[str, Any]:
@@ -166,9 +195,11 @@ def build(repo: Any, root: Path, run: str, *, eval_dirs: list[str] | None = None
         return [r for r in tables.get(table, []) if r.get(field) == value and r.get("signed")
                 and who(r.get("signer")) is not None]  # fmt: skip
 
-    names = _holdouts(list(holdouts or []), by_key)
-    decisions = [r for r in mine("oversight_decisions", "anchor", run)]
-    approvers = sorted({r["signer"] for r in decisions if r["decision"] == "approve"
+    names, digests = _holdouts(list(holdouts or []), by_key)
+    label = (params or {}).get("label")
+    decisions = [r for r in tables.get("oversight_decisions", []) if r.get("signed")
+                 and who(r.get("signer")) is not None and _about(r, run, label)]  # fmt: skip
+    approvers = sorted({r["signer"] for r in _latest(decisions) if r["decision"] == "approve"
                         and "approver" in (who(r["signer"]) or [])})  # fmt: skip
     from opentine._query_build import _lineage_files
     from opentine._query_rows import lineage_rows
@@ -185,7 +216,7 @@ def build(repo: Any, root: Path, run: str, *, eval_dirs: list[str] | None = None
         "subject": {"run": run, "status": run_row.get("status"), "model": run_row.get("model"),
                     "steps": run_row.get("steps", 0)},
         "roles": status,
-        "evals": _evals(store, run, list(eval_dirs or []), who, names),
+        "evals": _evals(store, run, list(eval_dirs or []), who, digests),
         "holdouts": names,
         "monitors": [{k: r[k] for k in ("monitor", "action", "score", "threshold", "mode",
                                         "signer")} | {"enforced": bool(r["enforced"]),

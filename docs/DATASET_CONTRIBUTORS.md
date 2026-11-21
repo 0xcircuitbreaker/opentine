@@ -97,7 +97,10 @@ Refuses (exit 1, `ok: false`, each reason in `problems`) a bundle when:
   any letter case, notices across any run of whitespace, and UTF-16 text is
   read with its NUL bytes removed. Only a well-formed licence annotation is
   skipped; an attestation that merely names the convention is scanned;
-- with `--tombstones FILE`, its public or source run is tombstoned.
+- a ref names anything but the public run, or the pack holds a run object
+  other than the public run (a contributed bundle carries exactly one run);
+- with `--tombstones FILE`, its public or source run, or any other run object
+  in the pack, is tombstoned.
 
 `contrib-redact` and `withdraw` refuse a key that the owner-pinned trust
 bundle names as an optimizer key.

@@ -6,10 +6,15 @@ Each named policy (a standard name such as ``promote``, a ``./file``, or a
 ``opentine.policy-admission/1`` record by a pinned ``policy`` key (never one
 that also holds ``optimizer``) that allows it, and none that denies it, among the
 records over the run's *current* input: the gate assembles the input document
-``tine policy check`` would (the policy's params, overridden by
-``--admission-param NAME=VALUE``), takes its digest and counts only admissions
-naming that digest. A run denied earlier is admitted by an allow over new
-inputs; an allow over inputs that have since changed no longer counts.
+``tine policy check`` would, from the same arguments (the policy's params,
+overridden by ``--admission-param NAME=VALUE``; ``--admission-evals DIR``,
+``--admission-holdout DIR`` and ``--admission-budget SUBJECT`` as the check's
+``--evals``, ``--holdout`` and ``--budget``), takes its digest and counts only
+admissions naming that digest. The budget block carries no clock values (only
+``in_force``, ``decision``, ``over`` and ``fail_codes``), so it changes between
+check and gate only when the budget's state does; then the allow is stale.
+A run denied earlier is admitted by an allow over new inputs; an allow over
+inputs that have since changed no longer counts.
 Otherwise the promotion is refused ``promote.not-admitted``; a policy that
 cannot be read is refused ``promote.admission-policy`` (fails closed). The check
 runs before the label can move. Advisory rules never decide an admission (D12),
@@ -40,18 +45,28 @@ def _policy_doc(spec: str) -> tuple[str, dict[str, Any] | None]:
 
 
 def _current_input(repo: Any, root: Path, run: str, doc: dict[str, Any] | None,
-                   params: list[str]) -> str:  # fmt: skip
+                   params: list[str], assembly: dict[str, Any]) -> str:  # fmt: skip
     """The digest of the input ``tine policy check`` assembles for *run* now."""
     from opentine import _policy, _policy_input
     from opentine._cli_policy import _params
 
-    document = _policy_input.build(repo, root, run, params=_params(doc or {}, params))
+    document = _policy_input.build(repo, root, run, eval_dirs=list(assembly["evals"]),
+                                   holdouts=list(assembly["holdouts"]),
+                                   budget=assembly["budget"],
+                                   params=_params(doc or {}, params))  # fmt: skip
     return _policy.input_digest(document)
 
 
 def refusals(repo_path: Path | None, candidate: str, specs: list[str],
-             params: list[str] | None = None) -> list[dict[str, Any]]:  # fmt: skip
-    """``promote.*`` refusals for every named policy that has not admitted *candidate*."""
+             params: list[str] | None = None, *, evals: list[str] | None = None,
+             holdouts: list[str] | None = None,
+             budget: str | None = None) -> list[dict[str, Any]]:  # fmt: skip
+    """``promote.*`` refusals for every named policy that has not admitted *candidate*.
+
+    *evals*, *holdouts* and *budget* are ``tine policy check``'s ``--evals``,
+    ``--holdout`` and ``--budget``: the same values rebuild the same input.
+    """
+    assembly = {"evals": evals or [], "holdouts": holdouts or [], "budget": budget}
     from opentine._policy import PolicyFileError
     from opentine._policy_record import admitted
     from opentine.repository.ops import resolve_target
@@ -71,7 +86,7 @@ def refusals(repo_path: Path | None, candidate: str, specs: list[str],
     for spec in specs:
         try:
             digest, doc = _policy_doc(spec)
-            current = _current_input(repo, repo_path, run, doc, list(params or []))
+            current = _current_input(repo, repo_path, run, doc, list(params or []), assembly)
         except (PolicyFileError, ValueError) as exc:
             out.append({"code": "promote.admission-policy", "detail": f"{spec}: {exc}"})
             continue

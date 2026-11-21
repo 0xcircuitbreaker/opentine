@@ -1,5 +1,101 @@
 # Changelog
 
+## 0.76.0 — Security and integrity hardening (2026-11-21)
+
+- `tine mcp-proxy --organism-gate` no longer relays a frame it cannot parse
+  strictly. Before, one invalid UTF-8 byte in any field sent a `tools/call`
+  that loads a tagged artifact to the server unchecked. Such frames are now
+  refused with JSON-RPC error `-32003` (or dropped when no id is readable).
+- `tine custody gate` ignores a `model-organism` tag signed by a key that
+  pinned key roles deny the `runner`, `policy` and `curator` roles (an
+  optimizer key), matches locations and digests as whole tokens instead of
+  substrings (a one-letter location no longer blocks every tool call; trailing
+  dots, which Windows drops from a path, still end a match), and
+  skips a claim with a non-string location or digest instead of failing every
+  call.
+- `tine trends --fail-on-regression` fails closed when a parent's lineage
+  record is missing: `lineage.parent-missing` now lists the variant in
+  `unchecked[]` (deleting a parent record skipped the paired comparison and
+  let a regression pass).
+- `tine promote --require-admission` rebuilds the input `tine policy check`
+  signed: new `--admission-evals DIR`, `--admission-holdout DIR` and
+  `--admission-budget SUBJECT` pass the check's `--evals`, `--holdout` and
+  `--budget` (before, the gate's input had no evals, holdouts or budget, so a
+  policy that reads them, such as `promote`, never counted an allow). The
+  policy input's `oversight` block now holds the decisions on the run's
+  `promotion:LABEL:RUN` items (it matched a decision's anchor blob against the
+  run id, so `k-of-n-approvals` never held).
+- `holdout-signed` (and so the shipped `promote` policy) can now hold on real
+  records: a sealed holdout's signed commitment records its items' dataset
+  digest (`dataset`), and the policy input marks an eval as a holdout eval
+  when its verdicts' `dataset` equals the digest a verified holdout, signed by
+  a pinned `dataset` key, records. Before, the digest was compared with holdout
+  names, so the rule never held and `tine promote --require-admission promote`
+  could not admit. Commitments sealed before 0.76 carry no digest and match no
+  eval; reseal them with `--rotate-from`.
+- The policy input counts an approval only where the oversight queue would:
+  a decision anchored on a blob other than its item's anchor is ignored, a
+  signer's later reject cancels their earlier approve, and when the check
+  passes a `label` param only approvals of a promotion to that label count.
+- Policy expressions: a long `a.b.b...` selection chain (about 1000
+  selections) is refused `policy.parse` (taller than 64), as in the TS
+  verifier; the Python height check recursed, hit the interpreter's limit and
+  recorded `policy.steps` in the signed admission. Shared vectors
+  `select-height-1000` and `select-height-1023` cover it.
+- One run with a blob over 1 MiB no longer crashes the oversight queue or
+  `tine transcripts`. The search-index text reader hashes a blob of up to
+  64 MiB in full and keeps only its verified prefix; a larger or unreadable
+  blob is read as empty text. A run whose text cannot be read is left out of
+  the transcript corpus, and each oversight-queue source is isolated: a source
+  that fails is warned about and lists nothing, and the other sources still
+  list their items.
+- A deeply nested eval verdict line (`[[[[…`) no longer aborts `tine query
+  index`, `tine policy check` or the promote admission input: verdict lines
+  are parsed with the bounded-nesting reader and a line past 200 levels is
+  skipped as malformed. The same reader now parses `tine query --verify` eval
+  rows, lineage records and decisions, `--corpus` JSONL lines and the holds
+  file, which refuse such input with their usual malformed-input error.
+- Padding a run's prompt no longer hides it from similar-to-known-bad
+  oversight items. System and prompt text now share a 256 KiB part of the
+  1 MiB per-run search-index text budget, so the steps are still read after a
+  padded prompt, and a run's score against a flag's evidence run is the best
+  of its whole-run score and its evidence-length, half-overlapping word
+  windows (`opentine/_transcript_windows.py`). Text inserted between every
+  copied step still dilutes each window; that limit is documented in
+  docs/TRANSCRIPT_FLAGS.md.
+- Decoys that copy a flag's evidence can no longer push a real variant out
+  of the oversight queue. Every run at or above the 0.6 threshold is a
+  similar-to-known-bad hit (the nearest-50 cut is gone); past a work bound of
+  10,000 hits the best-scoring ones are kept and a `RuntimeWarning` reports
+  the truncation. The centring mean is fitted without the evidence runs and
+  runs whose plain cosine to them is at least 0.5, so a flood of copies does
+  not centre the flagged behaviour away. Decoys tuned to sit just under 0.5
+  still shift the mean; see docs/TRANSCRIPT_FLAGS.md.
+- `tine dataset check` refuses a contributed bundle whose refs name anything
+  but the signed record's public run, or whose pack holds another run object;
+  every run in the pack is checked against `--tombstones`. A withdrawn,
+  unredacted run could previously ride along under an extra ref.
+- `tine bom export --dataset` refuses a dataset version the repository marks
+  unverified now (a member tainted since curation, or a taint filter that
+  cannot be applied), as `tine dataset versions` and `materialize` already did.
+- The Python and TS dataset-version checks share one definition of a blank
+  `selection` (ASCII whitespace only); they disagreed on U+001C..U+001F,
+  U+0085 and U+FEFF. New shared vectors cover each.
+- `tine dataset curate` also leaves out a candidate that contains at least
+  half of one tainted run's distinct chunks, so padding a tainted copy with
+  new text no longer dilutes it below the near-duplicate threshold.
+- Keyless verification: `tine verify` and `tine keyless verify` now read the
+  signing certificate through one shared helper, and refuse a bundle whose
+  `verificationMaterial` carries more than one of `certificate`,
+  `x509CertificateChain` and `publicKey`. Before, the two commands could pick
+  different leaves from such a bundle and report different signers.
+- Keyless verification: `tine verify --fulcio-root` now walks the certificate
+  chain with the same helper as `tine keyless verify`: one depth limit (leaf
+  plus up to four certificates to the root), every issuer must be a CA allowed
+  to sign certificates, and bundled intermediates are used the same way.
+  Before, a chain with three intermediates passed one command and failed the
+  other, and `tine verify` accepted a non-CA issuer.
+
 ## 0.75.0 — Dataset curation and AI-BOM export (2026-11-21)
 
 - `tine dataset curate --select EXPR --out NAME --key KEY`: a signed dataset

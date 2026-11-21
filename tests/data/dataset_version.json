@@ -880,6 +880,328 @@
     "signer": "sha256:2ad2694ace04adb04f7c89e39411c7b6347fa2c6a5db0184316b7561cdf425b3",
     "target_id": "run:sha256:d789bc7dc7743415e6473e78386aef91e6a21b0a8a013ef8536f1188e5d0f7cb"
    }
+  },
+  {
+   "expect": {
+    "excluded": 0,
+    "members": 0,
+    "ok": false,
+    "problems": [
+     "selection is the expression that chose the candidates"
+    ],
+    "signature": "verified-tofu"
+   },
+   "id": "selection-ascii-blank",
+   "payload": {
+    "claim": {
+     "convention": "opentine.dataset-version/1",
+     "created_at": "2026-11-21T00:00:00Z",
+     "curator": "sha256:2ad2694ace04adb04f7c89e39411c7b6347fa2c6a5db0184316b7561cdf425b3",
+     "dedup": {
+      "candidates": 4,
+      "chunking": {
+       "avg": 256,
+       "max": 2048,
+       "min": 64,
+       "scheme": "fastcdc-gear49"
+      },
+      "dropped": [
+       {
+        "run": "run:sha256:ab3bb5f68a9b427f38a43d888f01482fbf864747fc4eec042a6745db7dedd7f1",
+        "same_as": "run:sha256:0f7c26f800b86fc4616704b2933bde91d136153f5006d9299305d59883bb5c73"
+       }
+      ]
+     },
+     "members": [
+      {
+       "content": "sha256:b70a14ee1e15d7aa94bd810ec06f4cb77a346e8f33aef6bfeae3d7c4442d7a93",
+       "run": "run:sha256:0f7c26f800b86fc4616704b2933bde91d136153f5006d9299305d59883bb5c73"
+      },
+      {
+       "content": "sha256:ec31682fde561917952ff78a7a8adeffd0febc372dd26871916c46c630381b45",
+       "run": "run:sha256:34e9aedefffddf04c3cf3f9e055ba714e9ebe21b828e6170eeb7b610123d9f7d"
+      },
+      {
+       "content": "sha256:844ecc08164e2eab27634a9adee1afa6599e589570e719784e080ce747fc0e45",
+       "run": "run:sha256:871d6d04daf1b5d7552371915fe884782deb2a90d581263c73638d133d8e30b3"
+      }
+     ],
+     "members_digest": "sha256:e8185fc1720730dbba5c049eb4d518ae94a66a41a0a0df03885df5c6a799f32d",
+     "name": "train",
+     "previous": null,
+     "selection": " \t\n\u000b\f\r",
+     "taint_filter": {
+      "excluded": [
+       "run:sha256:b5761296cb55333e5741ae405b52a28261371d58008c13a21d2951668992adc9"
+      ],
+      "included_tainted": [],
+      "justification": null,
+      "mode": "default",
+      "sources": [
+       "integrity-taint",
+       "monitor-verdict",
+       "oversight-reject",
+       "sabotage-task",
+       "transcript-flag"
+      ]
+     },
+     "version": 1,
+     "withdrawn": [
+      "run:sha256:df77df4c3289b689eb6194aec96d5d7cb0f0f4c5e128d745156ff396b34d6e1e"
+     ]
+    },
+    "evidence_ids": [],
+    "signature": {
+     "alg": "ed25519",
+     "public_key": "93db9f2ee0f7e39e942fb59441190bf20b9c43cfcc8a051a152499cf392b7a37",
+     "scheme": "tine-attest/2",
+     "signed_at": "2026-11-21T00:00:00Z",
+     "signer": "sha256:2ad2694ace04adb04f7c89e39411c7b6347fa2c6a5db0184316b7561cdf425b3",
+     "value": "ff8fa1e5fd6adcb6404f4e44c47a1ca049094ac0a405f8fdf98ec1f38a484dcbc1221d4178dc9b52d60ce9c9595774338f8e1a4d8ba29ebe6aaa2a6058561d0d"
+    },
+    "signer": "sha256:2ad2694ace04adb04f7c89e39411c7b6347fa2c6a5db0184316b7561cdf425b3",
+    "target_id": "run:sha256:d789bc7dc7743415e6473e78386aef91e6a21b0a8a013ef8536f1188e5d0f7cb"
+   }
+  },
+  {
+   "expect": {
+    "excluded": 1,
+    "members": 3,
+    "ok": true,
+    "problems": [],
+    "signature": "verified-tofu"
+   },
+   "id": "selection-info-separators",
+   "payload": {
+    "claim": {
+     "convention": "opentine.dataset-version/1",
+     "created_at": "2026-11-21T00:00:00Z",
+     "curator": "sha256:2ad2694ace04adb04f7c89e39411c7b6347fa2c6a5db0184316b7561cdf425b3",
+     "dedup": {
+      "candidates": 4,
+      "chunking": {
+       "avg": 256,
+       "max": 2048,
+       "min": 64,
+       "scheme": "fastcdc-gear49"
+      },
+      "dropped": [
+       {
+        "run": "run:sha256:ab3bb5f68a9b427f38a43d888f01482fbf864747fc4eec042a6745db7dedd7f1",
+        "same_as": "run:sha256:0f7c26f800b86fc4616704b2933bde91d136153f5006d9299305d59883bb5c73"
+       }
+      ]
+     },
+     "members": [
+      {
+       "content": "sha256:b70a14ee1e15d7aa94bd810ec06f4cb77a346e8f33aef6bfeae3d7c4442d7a93",
+       "run": "run:sha256:0f7c26f800b86fc4616704b2933bde91d136153f5006d9299305d59883bb5c73"
+      },
+      {
+       "content": "sha256:ec31682fde561917952ff78a7a8adeffd0febc372dd26871916c46c630381b45",
+       "run": "run:sha256:34e9aedefffddf04c3cf3f9e055ba714e9ebe21b828e6170eeb7b610123d9f7d"
+      },
+      {
+       "content": "sha256:844ecc08164e2eab27634a9adee1afa6599e589570e719784e080ce747fc0e45",
+       "run": "run:sha256:871d6d04daf1b5d7552371915fe884782deb2a90d581263c73638d133d8e30b3"
+      }
+     ],
+     "members_digest": "sha256:e8185fc1720730dbba5c049eb4d518ae94a66a41a0a0df03885df5c6a799f32d",
+     "name": "train",
+     "previous": null,
+     "selection": "\u001c\u001d\u001e\u001f",
+     "taint_filter": {
+      "excluded": [
+       "run:sha256:b5761296cb55333e5741ae405b52a28261371d58008c13a21d2951668992adc9"
+      ],
+      "included_tainted": [],
+      "justification": null,
+      "mode": "default",
+      "sources": [
+       "integrity-taint",
+       "monitor-verdict",
+       "oversight-reject",
+       "sabotage-task",
+       "transcript-flag"
+      ]
+     },
+     "version": 1,
+     "withdrawn": [
+      "run:sha256:df77df4c3289b689eb6194aec96d5d7cb0f0f4c5e128d745156ff396b34d6e1e"
+     ]
+    },
+    "evidence_ids": [],
+    "signature": {
+     "alg": "ed25519",
+     "public_key": "93db9f2ee0f7e39e942fb59441190bf20b9c43cfcc8a051a152499cf392b7a37",
+     "scheme": "tine-attest/2",
+     "signed_at": "2026-11-21T00:00:00Z",
+     "signer": "sha256:2ad2694ace04adb04f7c89e39411c7b6347fa2c6a5db0184316b7561cdf425b3",
+     "value": "cc3e71b9e8399ae9fcfbf3e78b0cda07d9f93dfbfe2759ae4e0de39536951fe8d808b222aa2bc08d6012bba72f89ad2f841c875699eff7bab4cd7af357dd3809"
+    },
+    "signer": "sha256:2ad2694ace04adb04f7c89e39411c7b6347fa2c6a5db0184316b7561cdf425b3",
+    "target_id": "run:sha256:d789bc7dc7743415e6473e78386aef91e6a21b0a8a013ef8536f1188e5d0f7cb"
+   }
+  },
+  {
+   "expect": {
+    "excluded": 1,
+    "members": 3,
+    "ok": true,
+    "problems": [],
+    "signature": "verified-tofu"
+   },
+   "id": "selection-next-line",
+   "payload": {
+    "claim": {
+     "convention": "opentine.dataset-version/1",
+     "created_at": "2026-11-21T00:00:00Z",
+     "curator": "sha256:2ad2694ace04adb04f7c89e39411c7b6347fa2c6a5db0184316b7561cdf425b3",
+     "dedup": {
+      "candidates": 4,
+      "chunking": {
+       "avg": 256,
+       "max": 2048,
+       "min": 64,
+       "scheme": "fastcdc-gear49"
+      },
+      "dropped": [
+       {
+        "run": "run:sha256:ab3bb5f68a9b427f38a43d888f01482fbf864747fc4eec042a6745db7dedd7f1",
+        "same_as": "run:sha256:0f7c26f800b86fc4616704b2933bde91d136153f5006d9299305d59883bb5c73"
+       }
+      ]
+     },
+     "members": [
+      {
+       "content": "sha256:b70a14ee1e15d7aa94bd810ec06f4cb77a346e8f33aef6bfeae3d7c4442d7a93",
+       "run": "run:sha256:0f7c26f800b86fc4616704b2933bde91d136153f5006d9299305d59883bb5c73"
+      },
+      {
+       "content": "sha256:ec31682fde561917952ff78a7a8adeffd0febc372dd26871916c46c630381b45",
+       "run": "run:sha256:34e9aedefffddf04c3cf3f9e055ba714e9ebe21b828e6170eeb7b610123d9f7d"
+      },
+      {
+       "content": "sha256:844ecc08164e2eab27634a9adee1afa6599e589570e719784e080ce747fc0e45",
+       "run": "run:sha256:871d6d04daf1b5d7552371915fe884782deb2a90d581263c73638d133d8e30b3"
+      }
+     ],
+     "members_digest": "sha256:e8185fc1720730dbba5c049eb4d518ae94a66a41a0a0df03885df5c6a799f32d",
+     "name": "train",
+     "previous": null,
+     "selection": "\u0085",
+     "taint_filter": {
+      "excluded": [
+       "run:sha256:b5761296cb55333e5741ae405b52a28261371d58008c13a21d2951668992adc9"
+      ],
+      "included_tainted": [],
+      "justification": null,
+      "mode": "default",
+      "sources": [
+       "integrity-taint",
+       "monitor-verdict",
+       "oversight-reject",
+       "sabotage-task",
+       "transcript-flag"
+      ]
+     },
+     "version": 1,
+     "withdrawn": [
+      "run:sha256:df77df4c3289b689eb6194aec96d5d7cb0f0f4c5e128d745156ff396b34d6e1e"
+     ]
+    },
+    "evidence_ids": [],
+    "signature": {
+     "alg": "ed25519",
+     "public_key": "93db9f2ee0f7e39e942fb59441190bf20b9c43cfcc8a051a152499cf392b7a37",
+     "scheme": "tine-attest/2",
+     "signed_at": "2026-11-21T00:00:00Z",
+     "signer": "sha256:2ad2694ace04adb04f7c89e39411c7b6347fa2c6a5db0184316b7561cdf425b3",
+     "value": "279b1423988a885c514a18a845e1324bed61b4dbbc2065208604f337b1148ccd548e5fcc7884bd0c30e38748d14a717f545045449791d448807eb9c8b4384007"
+    },
+    "signer": "sha256:2ad2694ace04adb04f7c89e39411c7b6347fa2c6a5db0184316b7561cdf425b3",
+    "target_id": "run:sha256:d789bc7dc7743415e6473e78386aef91e6a21b0a8a013ef8536f1188e5d0f7cb"
+   }
+  },
+  {
+   "expect": {
+    "excluded": 1,
+    "members": 3,
+    "ok": true,
+    "problems": [],
+    "signature": "verified-tofu"
+   },
+   "id": "selection-byte-order-mark",
+   "payload": {
+    "claim": {
+     "convention": "opentine.dataset-version/1",
+     "created_at": "2026-11-21T00:00:00Z",
+     "curator": "sha256:2ad2694ace04adb04f7c89e39411c7b6347fa2c6a5db0184316b7561cdf425b3",
+     "dedup": {
+      "candidates": 4,
+      "chunking": {
+       "avg": 256,
+       "max": 2048,
+       "min": 64,
+       "scheme": "fastcdc-gear49"
+      },
+      "dropped": [
+       {
+        "run": "run:sha256:ab3bb5f68a9b427f38a43d888f01482fbf864747fc4eec042a6745db7dedd7f1",
+        "same_as": "run:sha256:0f7c26f800b86fc4616704b2933bde91d136153f5006d9299305d59883bb5c73"
+       }
+      ]
+     },
+     "members": [
+      {
+       "content": "sha256:b70a14ee1e15d7aa94bd810ec06f4cb77a346e8f33aef6bfeae3d7c4442d7a93",
+       "run": "run:sha256:0f7c26f800b86fc4616704b2933bde91d136153f5006d9299305d59883bb5c73"
+      },
+      {
+       "content": "sha256:ec31682fde561917952ff78a7a8adeffd0febc372dd26871916c46c630381b45",
+       "run": "run:sha256:34e9aedefffddf04c3cf3f9e055ba714e9ebe21b828e6170eeb7b610123d9f7d"
+      },
+      {
+       "content": "sha256:844ecc08164e2eab27634a9adee1afa6599e589570e719784e080ce747fc0e45",
+       "run": "run:sha256:871d6d04daf1b5d7552371915fe884782deb2a90d581263c73638d133d8e30b3"
+      }
+     ],
+     "members_digest": "sha256:e8185fc1720730dbba5c049eb4d518ae94a66a41a0a0df03885df5c6a799f32d",
+     "name": "train",
+     "previous": null,
+     "selection": "\ufeff",
+     "taint_filter": {
+      "excluded": [
+       "run:sha256:b5761296cb55333e5741ae405b52a28261371d58008c13a21d2951668992adc9"
+      ],
+      "included_tainted": [],
+      "justification": null,
+      "mode": "default",
+      "sources": [
+       "integrity-taint",
+       "monitor-verdict",
+       "oversight-reject",
+       "sabotage-task",
+       "transcript-flag"
+      ]
+     },
+     "version": 1,
+     "withdrawn": [
+      "run:sha256:df77df4c3289b689eb6194aec96d5d7cb0f0f4c5e128d745156ff396b34d6e1e"
+     ]
+    },
+    "evidence_ids": [],
+    "signature": {
+     "alg": "ed25519",
+     "public_key": "93db9f2ee0f7e39e942fb59441190bf20b9c43cfcc8a051a152499cf392b7a37",
+     "scheme": "tine-attest/2",
+     "signed_at": "2026-11-21T00:00:00Z",
+     "signer": "sha256:2ad2694ace04adb04f7c89e39411c7b6347fa2c6a5db0184316b7561cdf425b3",
+     "value": "ec1f5efc70fbf942392c221f5f60d82fff7d0dde5439c2c55398f81affd16f3b4214a3df511bc065d2b7b5770dc1f50e79a0b92016e784e2f2de8c23c182e00b"
+    },
+    "signer": "sha256:2ad2694ace04adb04f7c89e39411c7b6347fa2c6a5db0184316b7561cdf425b3",
+    "target_id": "run:sha256:d789bc7dc7743415e6473e78386aef91e6a21b0a8a013ef8536f1188e5d0f7cb"
+   }
   }
  ],
  "convention": "opentine.dataset-version/1",

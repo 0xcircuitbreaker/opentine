@@ -21,10 +21,10 @@ makes the command exit 1.
 from __future__ import annotations
 
 import hashlib
-import json
 from pathlib import Path
 from typing import Any
 
+from opentine import _json_shallow
 from opentine import _query_containment as qc
 from opentine import _query_custody as qd
 from opentine import _query_datasets as qs
@@ -73,7 +73,7 @@ def _derive(repo: Any, oid: str, table: str | None, db: Any,
         raw = eval_source(store, source).read_bytes().split(b"\n")[line - 1].rstrip(b"\r")
         if "sha256:" + hashlib.sha256(raw).hexdigest() != oid:
             return None, "the verdict line changed"
-        return qr.eval_row(oid, source, line, json.loads(raw)), None
+        return qr.eval_row(oid, source, line, _json_shallow.loads(raw)), None
     if table in qe.FILE_TABLES:
         return qe.derive(store, table, oid, db, row)
     if table in qx.TABLES:

@@ -58,10 +58,15 @@ The commitment claim:
 
 ```json
 {"schema": "opentine.holdout.commitment/1", "holdout": "h1", "root": "<hex>",
- "items": 120, "generation": 1, "previous": null,
+ "dataset": "sha256:<hex>", "items": 120, "generation": 1, "previous": null,
  "previous_commitment_sha256": null,
  "budget": {"max_unseals": 3, "max_items": 50}}
 ```
+
+`dataset` (0.76) is the items' dataset digest, the same digest `tine eval`
+puts on each verdict. The policy input marks an eval as a holdout eval when its
+`dataset` equals it (see docs/POLICY.md). A commitment sealed before 0.76 has
+no `dataset` and matches no eval; reseal it (`--rotate-from`) to use it.
 
 ## Unsealing and access records
 

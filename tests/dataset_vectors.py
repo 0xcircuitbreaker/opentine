@@ -91,6 +91,11 @@ def _cases() -> list[tuple[str, dict[str, Any]]]:
         ("signer-names-another-key", _sign(good, CURATOR, _fp(OTHER))),
         ("curator-is-not-the-signer", _sign(good, OTHER)),
         ("unsigned", unsigned),
+        # Blank is ASCII whitespace only, on both sides (no Unicode separators).
+        ("selection-ascii-blank", _sign(_claim(selection=" \t\n\v\f\r"))),
+        ("selection-info-separators", _sign(_claim(selection="\x1c\x1d\x1e\x1f"))),
+        ("selection-next-line", _sign(_claim(selection="\x85"))),
+        ("selection-byte-order-mark", _sign(_claim(selection="\ufeff"))),
     ]
 
 

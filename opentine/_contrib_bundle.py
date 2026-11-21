@@ -14,8 +14,9 @@ contrib-redact`` keeps the bundle only when that count is zero.
 
 :func:`check` is ``tine dataset check``: the bundle must verify, carry an
 Ed25519-signed redacted-copy record, a verified licence annotation by that
-record's key with an allowed SPDX id, a clean file-level licence scan, and its
-public run must not be tombstoned.
+record's key with an allowed SPDX id, a clean file-level licence scan, refs
+naming only the public run, no other run object in the pack, and no
+tombstoned run.
 """
 
 from __future__ import annotations
@@ -162,7 +163,13 @@ def check(
     row["scan"] = _dataset_licence.scan(found, allow)
     if row["scan"]:
         problems.append(f"the file-level licence scan is dirty ({len(row['scan'])} findings)")
-    runs = (row["public_run"] or "", str(record.get("source_run") or ""))
+    public = row["public_run"] or ""
+    if set(checked.refs.values()) != {public}:
+        problems.append("the bundle carries refs other than the public run")
+    extra = sorted(oid for oid in found if oid.startswith("run:") and oid != public)
+    if extra:
+        problems.append(f"the pack carries runs other than the public run ({len(extra)})")
+    runs = (public, str(record.get("source_run") or ""), *extra)
     if tombstones and any(tombstoned(r, tombstones) for r in runs):
         problems.append("the public run is tombstoned (withdrawn)")
     return {**row, "ok": not problems, "problems": problems}
