@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-dataset-tombstones-1.schema.json",
+  "title": "opentine-dataset/tombstones/1 manifest",
+  "description": "Tombstones a dataset build honours: digest, date and reason category of each withdrawn run, never content. A file convention, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "tombstones"
+  ],
+  "properties": {
+    "format": {
+      "const": "opentine-dataset/tombstones/1"
+    },
+    "tombstones": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "digest",
+          "date",
+          "reason"
+        ],
+        "properties": {
+          "digest": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "date": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "reason": {
+            "enum": [
+              "consent-withdrawn",
+              "privacy",
+              "licence",
+              "quality",
+              "other"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

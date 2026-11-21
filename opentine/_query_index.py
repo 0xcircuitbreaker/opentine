@@ -48,6 +48,7 @@ _INDEXES = (
     "CREATE INDEX flag_runs_run ON transcript_flag_runs (run)",
     "CREATE INDEX uplift_records_suite ON uplift_records (suite)",
     "CREATE INDEX trend_points_generation ON trend_points (generation)",
+    "CREATE INDEX dataset_members_run ON dataset_members (run)",
 )  # fmt: skip
 _KEYS = {"runs": "PRIMARY KEY (oid)", "steps": "PRIMARY KEY (run, seq)",
          "monitor_verdicts": "PRIMARY KEY (oid)", "oversight_decisions": "PRIMARY KEY (oid)",
@@ -62,6 +63,9 @@ _KEYS = {"runs": "PRIMARY KEY (oid)", "steps": "PRIMARY KEY (run, seq)",
          "transcript_flag_runs": "PRIMARY KEY (oid, run)",
          "transcript_clusters": "PRIMARY KEY (oid)", "uplift_suites": "PRIMARY KEY (oid)",
          "uplift_records": "PRIMARY KEY (oid)", "trend_points": "PRIMARY KEY (oid)",
+         "dataset_versions": "PRIMARY KEY (oid)",
+         "dataset_members": "PRIMARY KEY (oid, run)",
+         "dataset_tombstones": "PRIMARY KEY (oid)",
          "policy_admissions": "PRIMARY KEY (oid)"}  # fmt: skip
 VIEWS = (
     "CREATE VIEW costs AS SELECT oid, run, model, provider, cost, input_tokens, output_tokens"

@@ -18,6 +18,7 @@ from pathlib import Path
 import pytest
 
 from opentine import _jsonschema, _schemas, cli
+from opentine._lineage import variant_id
 from opentine.core import Run, RunStatus, StepKind
 from tests.monitor_fixture import SPEC, record_online, trajectories
 
@@ -109,6 +110,7 @@ EXPERIMENT = {  # 0.67: an experiment manifest draft with no result rows
 
 # The --json invocations the web reads; each is (argv, expected command or tag).
 INSPECT = Path(__file__).resolve().parent / "fixtures" / "inspect"  # 0.64
+BOM_VARIANT = variant_id({"code_tree": "sha256:" + "1" * 64})  # 0.78
 DRIVEN = (
     (("show", "run.tine", "--json"), "tine-cli-show-1"),
     (("verify", "run.tine", "--json"), "tine-cli-verify-1"),
@@ -326,6 +328,22 @@ DRIVEN = (
     (("query", "SELECT oid FROM runs", "--repo", "repo", "--json"), "tine-cli-query-1"),  # 0.65
     (("query", "index", "--repo", "repo", "--json"), "tine-cli-query-1"),  # 0.65
     (("transcripts", "index", "--repo", "repo", "--json"), "tine-cli-transcripts-1"),  # 0.74
+    (("dataset", "versions", "--repo", "repo", "--json"), "tine-cli-dataset-curate-1"),  # 0.75
+    (
+        (
+            "dataset",
+            "withdraw",
+            "main",
+            "--key",
+            "purge.key",
+            "--reason",
+            "privacy",
+            "--repo",
+            "repo",
+            "--json",
+        ),
+        "tine-cli-dataset-contrib-1",
+    ),  # 0.78
     (
         ("keyless", "verify", "b.json", "--fulcio-root", "f.pem", "--rekor-key", "r.pem", "--json"),
         "tine-cli-keyless-1",
@@ -401,6 +419,11 @@ DRIVEN = (
         "tine-cli-inspect-1",
     ),  # 0.64
     (("inspect", "verify", (INSPECT / "boolq.json").as_posix(), "--json"), "tine-cli-inspect-1"),
+    (
+        ("bom", "export", BOM_VARIANT, "--format", "cyclonedx", "--repo", "repo")
+        + ("--out", "bom.json", "--json"),
+        "tine-cli-bom-1",
+    ),  # 0.78: exports the root variant the pre-step records
 )
 
 
@@ -416,6 +439,24 @@ def test_every_driven_json_output_validates(monkeypatch, capsys, room, argv, exp
         for side in ("ea", "eb"):
             _tine(monkeypatch, capsys, "eval", "run", "repo/d.jsonl", "--scorer", "exact",
                   "--key", "purge.key", "--out", side, "--json")  # fmt: skip
+    if argv[0] == "bom":  # 0.78: a lineage node to export
+        _tine(monkeypatch, capsys, "lineage", "record", "--run", "run:sha256:" + "a" * 64,
+              "--key", "purge.key", "--code-tree", "sha256:" + "1" * 64, "--repo", "repo",
+              "--at", "2026-11-01T12:00:00Z", "--json")  # fmt: skip
+    if argv[:2] == ("dataset", "withdraw"):  # 0.75: a pinned contributor annotated its run
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
+        from opentine._cli_dataset_contrib import _resolve
+        from opentine.repo import Repo
+        from tests.dataset_contrib_helpers import annotate, pin_contributor
+
+        monkeypatch.setenv("XDG_CONFIG_HOME", str(room / "xdg-config"))
+        monkeypatch.delenv("OPENTINE_TRUST_OWNER", raising=False)
+        monkeypatch.delenv("OPENTINE_TRUST_BUNDLE", raising=False)
+        repo = Repo.open(room / "repo")
+        key = Ed25519PrivateKey.from_private_bytes(b"\xab" * 32)
+        annotate(repo, _resolve(repo, "main")[1], key)
+        pin_contributor(repo, key)
     if argv[:2] == ("keyless", "verify"):  # 0.74: trust material, and a bundle with no cert
         from tests._sigstore_fakes import FakeFulcio, FakeLog
 

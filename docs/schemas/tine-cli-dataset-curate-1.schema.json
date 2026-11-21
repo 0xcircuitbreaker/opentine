@@ -1,0 +1,416 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-dataset-curate-1.schema.json",
+  "title": "tine dataset curate|justify|versions|verify-version|materialize --json",
+  "description": "Signed dataset versions curated from runs. `curate` selects runs, leaves out withdrawn and tainted runs (integrity taints, monitor verdicts, oversight rejections, sabotage task records, verified behaviour flags), dedups by content-defined chunks and signs the version; `--include-tainted` needs a justification signed by a pinned curator or policy key. `verify-version` checks one version offline and exits 1 when `ok` is false. `materialize` writes a verified version as eval items.",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "record",
+        "name",
+        "version",
+        "previous",
+        "selection",
+        "members",
+        "members_digest",
+        "dropped",
+        "excluded",
+        "included_tainted",
+        "mode",
+        "withdrawn",
+        "tombstones"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-dataset-curate/1"
+        },
+        "command": {
+          "const": "dataset curate"
+        },
+        "ok": {
+          "const": true
+        },
+        "record": {
+          "type": "string",
+          "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "previous": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "selection": {
+          "type": "string"
+        },
+        "members": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^run:sha256:[0-9a-f]{64}$"
+          }
+        },
+        "members_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "dropped": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "run",
+              "same_as"
+            ],
+            "properties": {
+              "run": {
+                "type": "string",
+                "pattern": "^run:sha256:[0-9a-f]{64}$"
+              },
+              "same_as": {
+                "type": "string",
+                "pattern": "^run:sha256:[0-9a-f]{64}$"
+              }
+            }
+          }
+        },
+        "excluded": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^run:sha256:[0-9a-f]{64}$"
+          }
+        },
+        "included_tainted": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^run:sha256:[0-9a-f]{64}$"
+          }
+        },
+        "mode": {
+          "enum": [
+            "default",
+            "include-tainted"
+          ]
+        },
+        "withdrawn": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^run:sha256:[0-9a-f]{64}$"
+          }
+        },
+        "tombstones": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "record",
+        "name",
+        "runs"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-dataset-curate/1"
+        },
+        "command": {
+          "const": "dataset justify"
+        },
+        "ok": {
+          "const": true
+        },
+        "record": {
+          "type": "string",
+          "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "runs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^run:sha256:[0-9a-f]{64}$"
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "record",
+        "name",
+        "version",
+        "out",
+        "items",
+        "digest",
+        "withdrawn"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-dataset-curate/1"
+        },
+        "command": {
+          "const": "dataset materialize"
+        },
+        "ok": {
+          "const": true
+        },
+        "record": {
+          "type": "string",
+          "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "out": {
+          "type": "string"
+        },
+        "items": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "digest": {
+          "type": "string"
+        },
+        "withdrawn": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^run:sha256:[0-9a-f]{64}$"
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "versions"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-dataset-curate/1"
+        },
+        "command": {
+          "const": "dataset versions"
+        },
+        "ok": {
+          "const": true
+        },
+        "versions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "record",
+              "hold",
+              "name",
+              "version",
+              "previous",
+              "selection",
+              "members",
+              "excluded",
+              "signature",
+              "curator",
+              "created_at",
+              "verification"
+            ],
+            "properties": {
+              "record": {
+                "type": "string",
+                "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+              },
+              "hold": {
+                "type": "string"
+              },
+              "name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "version": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "previous": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "selection": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "members": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "excluded": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "signature": {
+                "enum": [
+                  "verified-tofu",
+                  "unsigned",
+                  "signer-mismatch",
+                  "curator-mismatch",
+                  "bad-signature"
+                ]
+              },
+              "curator": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "created_at": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "verification": {
+                "type": "string",
+                "pattern": "^(verified|unverified: .+)$"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "record",
+        "ok",
+        "signature",
+        "problems",
+        "members",
+        "excluded"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-dataset-curate/1"
+        },
+        "command": {
+          "const": "dataset verify-version"
+        },
+        "record": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "signature": {
+          "enum": [
+            "verified-tofu",
+            "unsigned",
+            "signer-mismatch",
+            "curator-mismatch",
+            "bad-signature"
+          ]
+        },
+        "problems": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "members": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "excluded": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  ]
+}

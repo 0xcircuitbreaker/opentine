@@ -1,5 +1,112 @@
 # Changelog
 
+## 0.75.0 — Dataset curation and AI-BOM export (2026-11-21)
+
+- `tine dataset curate --select EXPR --out NAME --key KEY`: a signed dataset
+  version curated from runs (claim convention `opentine.dataset-version/1` on
+  an existing attestation; no object kind, no `tine verify` code). `EXPR` is
+  `all`, `failures:EVAL`, `passes:EVAL`, `eval:EVAL`, `model:GLOB` or
+  `run:RUN` terms joined by `and` (each optionally `not`); `failures of eval
+  EVAL` reads as `failures:EVAL`. Only signed eval verdicts count. See
+  docs/DATASETS.md.
+- Members are deduplicated by content-defined chunks (FastCDC over the
+  redacted transcript, fixed parameters recorded in the claim); duplicates are
+  listed with the member they repeat, and `members_digest` covers the list.
+- Taint filter on by default: runs with a held integrity taint, a non-`allow`
+  monitor verdict, an oversight rejection, an attempted sabotage side task or
+  a verified behaviour flag are left out and listed in
+  `taint_filter.excluded`. The filter reads only held records and fails
+  closed when one cannot be read.
+- `--include-tainted --justification ID` lets in only the tainted runs named
+  by an `opentine.dataset-justification/1` (`tine dataset justify`) signed by
+  a pinned `curator` or `policy` key for that dataset name; an optimizer key,
+  unpinned roles or a forged or other-dataset justification refuse. An
+  optimizer key may not curate.
+- Contributor withdrawals: a verified `tine dataset withdraw` claim (or an
+  `opentine.dataset-withdrawal/1` from the Python API) removes the run; later versions leave the run out and write
+  an `opentine.dataset-tombstone/1` when the previous version held it.
+- `tine dataset versions [NAME]` lists versions with their verification
+  (`verified` needs a pinned `curator` signer); `tine dataset verify-version
+  (ID | --file PAYLOAD.json)` checks one version offline. Every dataset record
+  is held (`dataset-record:`) and `tine hold release` refuses it.
+- The TS verifier checks dataset versions (`checkDatasetVersion`) and answers
+  the shared vectors in `tests/data/dataset_version.json` exactly as the
+  Python check does.
+- `tine query` indexes `dataset_versions` and `dataset_members`; `--verify`
+  marks a version row `verified` only for a pinned `curator` signer without
+  `optimizer`.
+- `tine dataset materialize ID --out D.jsonl` writes a verified version as eval
+  items for `tine eval` and `tine dataset seal` (holdouts); an unverified version
+  (including one with a member tainted since curation) is refused, and runs
+  withdrawn since curation are left out.
+- `tine query` adds `dataset_tombstones`, verified per row like versions.
+- `tine bom export` runs the full `verify-version` offline check on each
+  `--dataset`; a version claim asserts no licence, so dataset components carry
+  none. One `tine dataset withdraw` verb (the contributor one) serves both
+  curation and open-dataset tombstones.
+- Schemas `tine-cli-dataset-curate-1` and `opentine-dataset-version-1`.
+- `tine bom export LINEAGE_NODE --format cyclonedx|spdx [--out FILE]`: a
+  CycloneDX 1.6 ML-BOM or an SPDX 3.0.1 AI/Dataset profile document for one
+  lineage variant: the variant and its artifacts, its parent lineage, the
+  training and eval dataset versions (`--dataset training=FILE|eval=FILE`,
+  signed attestations) with their digests and taint filters, eval results and
+  the keys that signed them, and licences (`--licence`, and each dataset
+  version's). See docs/AIBOM.md.
+- The export refuses a node that fails `tine lineage check` (including the
+  integrity and memory-quarantine findings) and an unsigned or edited dataset
+  version; nothing is written. A dataset version must be an
+  `opentine.dataset-version/1` claim signed by a pinned `curator` key that is
+  not an `optimizer` key (refused when no trust bundle is pinned), its
+  `members_digest` must match its members, and it must record a taint filter.
+  Eval verdict rows that disagree on dataset or scorer, repeat a key or carry
+  NaN are refused. Output is byte-identical on rerun: times are
+  record signing times and identifiers are derived from digests.
+- The official CycloneDX 1.6 and SPDX 3.0.1 JSON schemas are vendored under
+  `tests/data/aibom/` and pinned by sha256; the tests validate both formats
+  against them. `--out FILE --json` prints `tine-cli-bom/1`.
+- `tine dataset contrib-redact RUN --deny-list FILE --licence SPDX --key K
+  --out BUNDLE`: contributor tooling for open run datasets. Runs the
+  redaction pass, applies a local contributor deny-list (names, emails,
+  hostnames, project names; matched across case, Unicode compatibility forms,
+  accents, zero-width characters and split forms), signs a `--redacted-public`
+  bundle with a licence annotation, then unbundles the copy and scans it: the
+  bundle is kept only on zero deny-list hits. The deny-list is never written
+  into the bundle, the record or the output. See docs/DATASET_CONTRIBUTORS.md.
+- Claim convention `opentine-dataset/licence/1` (SPDX id, allow-list check,
+  relicensing-grant opt-in, contributor key) on an attestation, and `tine
+  dataset check BUNDLE` refusing bundles without a valid annotation signed by
+  the bundle's contributor key, with an SPDX id outside a configurable
+  allow-list (`--allow`), or with a dirty file-level licence scan.
+- `tine dataset withdraw RUN --key K --reason CATEGORY` signs a held
+  `opentine-dataset/withdraw/1` claim (`tine hold release` refuses it);
+  `--tombstones FILE` records the run's tombstone (digest, date, reason
+  category, no content) in an `opentine-dataset/tombstones/1` manifest that
+  `tine dataset add --tombstones` and `tine dataset check --tombstones`
+  honour.
+- Contributor tooling hardening: the deny-list folds Cyrillic and Greek
+  look-alikes, allows up to four separators and scans private
+  `name:sha256:<hex>` prefixes; the licence scan reads UTF-16 text, any-case
+  tags and line-split notices and scans look-alike annotations; tombstone
+  manifests refuse duplicate keys and impossible dates; `contrib-redact` and
+  `withdraw` refuse a pinned optimizer key.
+- A taint justification is bound to one version: `tine dataset justify`
+  records `for_version` (the next version number of that dataset) and
+  `curate --include-tainted` refuses a justification for any other version, so
+  it cannot be replayed to let tainted runs into a later version.
+- Who may withdraw: a withdrawal (either convention) counts only when signed
+  by the run's contributor, a key that signed its licence annotation and is
+  pinned in the `runner` role, or by a pinned `curator` key as a takedown with
+  a reason category. Any other key is refused by `withdraw` and listed
+  `unverified`; a pinned optimizer key never counts. A stranger who annotates
+  a run first is not its contributor, and a later annotation does not cancel a
+  withdrawal already signed. A contributor who lost their key asks for a
+  curator takedown.
+- The tombstones manifest and `tine dataset verify-version --file` are read as
+  untrusted JSON: at most 8 MiB and 200 levels of nesting, no duplicate keys.
+- Schemas `tine-cli-dataset-contrib-1`, `opentine-dataset-licence-1`,
+  `opentine-dataset-withdraw-1`, `opentine-dataset-tombstones-1`. No new
+  object kind and no new `tine verify` code.
+
 ## 0.74.0 — Policy engine and keyless signing (2026-11-21)
 
 - `tine policy check POLICY --subject RUN [--json]`: evaluates a declarative

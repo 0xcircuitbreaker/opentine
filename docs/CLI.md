@@ -2260,6 +2260,30 @@ promote` (`promote.score-tainted`) and reported by `tine lineage check|why`
 The `dataset` verbs print `tine-cli-canary/1` and `scan` prints
 `tine-cli-integrity/1` with `--json`. See docs/INTEGRITY.md.
 
+## Curated dataset versions (0.75)
+
+| Command | What it does |
+| --- | --- |
+| `tine dataset curate --select EXPR --out NAME --key KEY [--evals DIR]... [--include-tainted --justification ID] [--at TIME] --repo PATH` | Signs an `opentine.dataset-version/1` attestation: the runs `EXPR` selects (`all`, `failures:EVAL`, `passes:EVAL`, `eval:EVAL`, `model:GLOB`, `run:RUN`, joined by `and`, each optionally `not`; `failures of eval EVAL` reads as `failures:EVAL`), minus withdrawn runs and runs the taint filter names, deduplicated by content-defined chunks. An optimizer key is refused. With `--include-tainted`, only the tainted runs a valid justification names come in |
+| `tine dataset justify NAME --run RUN... --reason TEXT --key KEY [--at TIME] --repo PATH` | Signs an `opentine.dataset-justification/1` for the next version of dataset `NAME` (it is never replayed for a later version); refused unless the key is a pinned `curator` or `policy` key and not an optimizer key |
+| `tine dataset versions [NAME] --repo PATH` | Lists the held versions with member and excluded counts and their verification (`verified` needs a pinned `curator` signer) |
+| `tine dataset verify-version (ID --repo PATH \| --file PAYLOAD.json)` | Checks one version offline (shape, members digest, taint filter, signature, signer and curator binding); exit 1 when `ok` is false |
+
+| `tine dataset materialize ID --out DATASET.jsonl --repo PATH` | Writes a `verified` version's members as eval items (prompt as `input`, last answer as `output`, the version and member content digest in `metadata`) for `tine eval`, `tine dataset show` and `tine dataset seal`; refuses an unverified version (fail closed) and leaves out runs withdrawn since curation |
+
+They print `tine-cli-dataset-curate/1` with `--json`. See docs/DATASETS.md.
+## Contributing runs to an open dataset (0.75)
+
+| Command | What it does |
+| --- | --- |
+| `tine dataset contrib-redact RUN --deny-list FILE --licence SPDX [--relicensing-grant] --key KEY --out BUNDLE [--allow SPDX]... [--pack-format F] [--at TIME] --repo PATH` | Writes a signed `--redacted-public` bundle of one run with the local deny-list applied (case, Unicode and split forms) and a signed `opentine-dataset/licence/1` annotation; unbundles the copy and scans it, and keeps the bundle only on zero deny-list hits (exit 1 otherwise). The deny-list is never written anywhere |
+| `tine dataset check BUNDLE [--allow SPDX]... [--pubkey PATH] [--tombstones FILE]` | Refuses (exit 1) a bundle without a verified licence annotation by the key that signed its redacted-copy record, with an SPDX id outside the allow-list, a dirty file-level licence scan, or a tombstoned run |
+| `tine dataset withdraw RUN --key KEY --reason consent-withdrawn\|privacy\|licence\|quality\|other [--tombstones FILE] [--at TIME] --repo PATH` | Signs and holds an `opentine-dataset/withdraw/1` claim (`tine hold release` refuses it); with `--tombstones` adds the run's tombstone (digest, date, reason) to that manifest |
+
+`tine dataset add --tombstones FILE` refuses a tombstoned run, and with
+`--repo` a run that has a verified withdrawal. These verbs print
+`tine-cli-dataset-contrib/1` with `--json`. See docs/DATASET_CONTRIBUTORS.md.
+
 ## Monitor backtests and collusion tests (0.63)
 
 | Command | What it does |
@@ -2288,7 +2312,7 @@ against a server that does not list it.
 ## Evals and datasets (0.45)
 
 ```text
-tine dataset add DATASET.jsonl --from-run RUN [--repo PATH] [--id ID] [--expected TEXT]
+tine dataset add DATASET.jsonl --from-run RUN [--repo PATH] [--id ID] [--expected TEXT] [--tombstones FILE]
 tine dataset import SRC --out DATASET.jsonl [--format jsonl|hf] [--split S]
                     [--id-field F] [--input-field F] [--expected-field F]
 tine dataset export DATASET.jsonl --out PATH [--format jsonl|hf] [--split S]
@@ -2430,3 +2454,13 @@ file) and `hooks/<agent>.json` (each hook file, redacted). Every member is
 re-scanned after redaction and nothing is written if a credential shape
 survives. Members carry a fixed mtime, so the same state gives the same bytes.
 Any other path keeps the single JSON document.
+
+## AI-BOM export (0.78)
+
+| Command | What it does |
+| --- | --- |
+| `tine bom export LINEAGE_NODE --format cyclonedx\|spdx [--out FILE] [--dataset ROLE=FILE]... [--licence EXPR] [--name NAME] [--promotion-policy TOML] [--dir DIR]` | Writes a CycloneDX 1.6 ML-BOM or an SPDX 3.0.1 AI/Dataset document for one lineage variant: its ancestry, training and eval dataset versions with digests and taint filters, eval results and signers, licences. Refuses a node that fails `tine lineage check`; output is byte-identical on rerun |
+
+`--dataset` takes `training=FILE` or `eval=FILE`, a signed dataset version
+attestation. Without `--out` the document goes to stdout; `--json` (with
+`--out`) prints `tine-cli-bom/1`. See docs/AIBOM.md.

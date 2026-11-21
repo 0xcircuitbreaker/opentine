@@ -4,8 +4,7 @@ Each function turns one stored object, lineage record or eval verdict into
 the index row it contributes, or ``None``. The index build and ``tine query
 --verify`` call the same functions, so a verified row is one the object still
 derives. Every row carries the ``oid`` it came from: the object id for
-repository objects, ``sha256:<hex>`` of the record bytes for lineage records
-and eval verdict lines (those live in files, not the object store).
+repository objects, ``sha256:<hex>`` of the record bytes for lineage records and eval lines.
 
 Nothing here judges trust beyond "the signature holds"; which roles a signer
 has comes from the owner-pinned key roles only (:mod:`opentine._query_verify`).
@@ -19,6 +18,7 @@ from typing import Any
 
 from opentine._query_containment import COLUMNS as _CONTAINMENT_COLUMNS
 from opentine._query_custody import COLUMNS as _CUSTODY_COLUMNS
+from opentine._query_datasets import COLUMNS as _DATASET_COLUMNS
 from opentine._query_experiments import COLUMNS as _EXPERIMENT_COLUMNS
 from opentine._query_merges import COLUMNS as _MERGE_COLUMNS
 from opentine._query_policy import COLUMNS as _POLICY_COLUMNS
@@ -49,6 +49,7 @@ COLUMNS.update(_CUSTODY_COLUMNS)  # 0.72: weight custody events and model-organi
 COLUMNS.update(_TRANSCRIPT_COLUMNS)  # 0.74: behaviour flags and transcript clusters
 COLUMNS.update(_POLICY_COLUMNS)  # 0.75: signed policy admissions
 COLUMNS.update(_UPLIFT_COLUMNS)  # 0.73: uplift suites and records, trend points
+COLUMNS.update(_DATASET_COLUMNS)  # 0.75: curated dataset versions and their members
 #: Columns a row derives from its run (or file), not from the object itself.
 CONTEXT = {"run", "seq", "source", "line"}
 
@@ -180,13 +181,14 @@ def object_rows(repo: Any, oid: str, read: Any = None) -> dict[str, list[dict[st
             return {"history_merges": [row]}
         from opentine._query_containment import attestation_rows
         from opentine._query_custody import attestation_rows as custody_rows
+        from opentine._query_datasets import attestation_rows as dataset_rows
         from opentine._query_policy import attestation_rows as policy_rows
         from opentine._query_transcripts import attestation_rows as flag_rows
         from opentine._query_uplift import attestation_rows as uplift_rows
 
         found = attestation_rows(oid, payload) or custody_rows(oid, payload)
         found = found or flag_rows(oid, payload) or uplift_rows(oid, payload)
-        return found or policy_rows(oid, payload)
+        return found or dataset_rows(oid, payload) or policy_rows(oid, payload)
     value = payload.get("value")
     if isinstance(value, dict) and value.get("convention") == "opentine.oversight-decision/1":
         row = oversight_row(oid, repo)

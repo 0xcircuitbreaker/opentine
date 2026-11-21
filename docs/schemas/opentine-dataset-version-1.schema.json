@@ -1,0 +1,186 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-dataset-version-1.schema.json",
+  "title": "opentine.dataset-version/1 claim",
+  "description": "One signed version of a curated dataset. A claim convention on an existing attestation, not an object kind (docs/DATASETS.md).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "name",
+    "version",
+    "previous",
+    "selection",
+    "members",
+    "members_digest",
+    "dedup",
+    "taint_filter",
+    "withdrawn",
+    "curator",
+    "created_at"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.dataset-version/1"
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "previous": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "selection": {
+      "type": "string"
+    },
+    "members": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "run",
+          "content"
+        ],
+        "properties": {
+          "run": {
+            "type": "string",
+            "pattern": "^run:sha256:[0-9a-f]{64}$"
+          },
+          "content": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        }
+      }
+    },
+    "members_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "dedup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "chunking",
+        "candidates",
+        "dropped"
+      ],
+      "properties": {
+        "chunking": {
+          "const": {
+            "scheme": "fastcdc-gear49",
+            "min": 64,
+            "avg": 256,
+            "max": 2048
+          }
+        },
+        "candidates": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "dropped": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "run",
+              "same_as"
+            ],
+            "properties": {
+              "run": {
+                "type": "string",
+                "pattern": "^run:sha256:[0-9a-f]{64}$"
+              },
+              "same_as": {
+                "type": "string",
+                "pattern": "^run:sha256:[0-9a-f]{64}$"
+              }
+            }
+          }
+        }
+      }
+    },
+    "taint_filter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "sources",
+        "excluded",
+        "included_tainted",
+        "justification"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "default",
+            "include-tainted"
+          ]
+        },
+        "sources": {
+          "const": [
+            "integrity-taint",
+            "monitor-verdict",
+            "oversight-reject",
+            "sabotage-task",
+            "transcript-flag"
+          ]
+        },
+        "excluded": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^run:sha256:[0-9a-f]{64}$"
+          }
+        },
+        "included_tainted": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^run:sha256:[0-9a-f]{64}$"
+          }
+        },
+        "justification": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "withdrawn": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^run:sha256:[0-9a-f]{64}$"
+      }
+    },
+    "curator": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "created_at": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    }
+  }
+}
