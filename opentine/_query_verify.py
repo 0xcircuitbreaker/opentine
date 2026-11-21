@@ -31,6 +31,7 @@ from opentine import _query_experiments as qx
 from opentine import _query_merges as qm
 from opentine import _query_research as qe
 from opentine import _query_rows as qr
+from opentine import _query_uplift as qu
 from opentine._query_build import eval_files, eval_source, remembered_dirs
 
 #: The pinned role a signer needs for a row of these tables to be ``verified``;
@@ -74,6 +75,10 @@ def _derive(repo: Any, oid: str, table: str | None, db: Any,
         return qe.derive(store, table, oid, db, row)
     if table in qx.TABLES:
         return qx.derive(store, remembered_dirs(store, "experiments"), table, oid, db, row)
+    if table == "trend_points":
+        from opentine._query_build import _lineage_files
+
+        return qu.derive(store, _lineage_files(store), oid)
     if table == "lineage_variants":
         (variant,) = db.execute("SELECT variant FROM lineage_variants WHERE oid = ?",
                                 (oid,)).fetchone()  # fmt: skip
@@ -104,9 +109,11 @@ def _table_of(db: Any, oid: str, row: dict[str, Any]) -> str | None:
     """The table holding *oid*; a manifest's result rows share its oid and add an ``id``."""
     results = ("experiment_results",) if "id" in row else ()
     items = ("elicit_items",) if "id" in row else ()
-    for table in ("evals", "lineage_variants", "monitor_verdicts", "oversight_decisions",
+    trend = ("trend_points",) if "generation" in row and "withheld" in row else ()
+    for table in ("evals", *trend, "lineage_variants", "monitor_verdicts", "oversight_decisions",
                   *results, "experiments", "reproductions", "sabotage_tasks", *items,
-                  "elicit_links", "history_merges", *qc.TABLES):  # fmt: skip
+                  "elicit_links", "history_merges", *qc.TABLES, *qd.ROLES_FOR,
+                  *qu.ROLES_FOR):  # fmt: skip
         if db.execute(f"SELECT 1 FROM {table} WHERE oid = ? LIMIT 1", (oid,)).fetchone():
             return table
     return None
@@ -145,7 +152,7 @@ def check(repo: Any, oid: str, row: dict[str, Any], db: Any,
     need = ROLE_FOR.get(table or "")
     if need and (need not in out["roles"] or "optimizer" in out["roles"]):
         return {**out, "status": "unverified", "reason": f"the signer holds no {need} role"}
-    roles = {**qe.ROLES_FOR, **qm.ROLES_FOR, **qc.ROLES_FOR, **qd.ROLES_FOR}.get(
+    roles = {**qe.ROLES_FOR, **qm.ROLES_FOR, **qc.ROLES_FOR, **qd.ROLES_FOR, **qu.ROLES_FOR}.get(
         "elicit_links" if table == "elicit_items" else table or ""
     )
     if roles and (not set(roles) & set(out["roles"]) or "optimizer" in out["roles"]):

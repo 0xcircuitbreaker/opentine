@@ -55,6 +55,13 @@ def room(monkeypatch, tmp_path: Path) -> Path:
     (tmp_path / "monitor.json").write_bytes(json.dumps(SPEC).encode("utf-8"))  # 0.63
     (tmp_path / "runs.jsonl").write_bytes(record_online(trajectories(20)))
     (tmp_path / "exp.json").write_bytes(json.dumps(EXPERIMENT).encode("utf-8"))  # 0.67
+    suite = {
+        "name": "s",
+        "version": "1",
+        "scoring": "binary",
+        "tasks": [{"id": "t", "minutes": "5"}],
+    }
+    (tmp_path / "suite.json").write_bytes(json.dumps(suite).encode("utf-8"))  # 0.73
     item = {"id": "q", "input": "1", "expected": "1", "output": "1", "run": "run:x"}  # 0.47
     (tmp_path / "repo" / "d.jsonl").write_text(json.dumps(item) + "\n", encoding="utf-8")
     (tmp_path / "evals.toml").write_text(
@@ -307,11 +314,13 @@ DRIVEN = (
     (("monitor", "stops", "--repo", "repo", "--json"), "tine-cli-monitor-1"),  # 0.63
     (("oversight", "queue", "--repo", "repo", "--json"), "tine-cli-oversight-1"),  # 0.64
     (("budget", "status", "loop:opt", "--repo", "repo", "--json"), "tine-cli-budget-1"),  # 0.69
+    (("trends", "--repo", "repo", "--json"), "tine-cli-trends-1"),  # 0.72
     (("containment", "check", "heads/main", "--repo", "repo", "--json"), "tine-cli-containment-1"),
     (("custody", "check", "ckpt", "--repo", "repo", "--json"), "tine-cli-custody-weights-1"),
     (("organism", "status", "--repo", "repo", "--json"), "tine-cli-organism-1"),  # 0.72
     (("auditor", "check", "--repo", "repo", "--json"), "tine-cli-auditor-1"),  # 0.65
     (("sabotage", "report", "--repo", "repo", "--json"), "tine-cli-sabotage-1"),  # 0.68
+    (("uplift", "suite", "suite.json", "--json"), "tine-cli-uplift-1"),  # 0.73
     (("query", "SELECT oid FROM runs", "--repo", "repo", "--json"), "tine-cli-query-1"),  # 0.65
     (("query", "index", "--repo", "repo", "--json"), "tine-cli-query-1"),  # 0.65
     (("experiment", "sign", "exp.json", "--key", "purge.key", "--json"), "tine-cli-experiment-1"),
