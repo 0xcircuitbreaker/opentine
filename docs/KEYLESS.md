@@ -51,6 +51,9 @@ kind and no new `tine verify` code is involved:
 
 `tine export --format intoto --keyless` keeps writing the leaf alone
 (`verificationMaterial.certificate`); both shapes verify with both commands.
+Both commands read the leaf the same way, and refuse (`fail:keyless-malformed`)
+a `verificationMaterial` that carries more than one of `certificate`,
+`x509CertificateChain` and `publicKey`.
 
 ## Verifying offline
 

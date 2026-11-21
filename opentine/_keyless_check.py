@@ -30,36 +30,12 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import ExtendedKeyUsageOID
 
+from opentine._keyless_chain import KeylessFail, certificates
 from opentine._keyless_identity import facts, pinned_by, tier
 from opentine.intoto import PAYLOAD_TYPE, _statement, pae
 from opentine.sigstore_bundle import check_entry, split
 
 _MAX_DEPTH = 5
-
-
-class KeylessFail(ValueError):
-    def __init__(self, code: str, reason: str) -> None:
-        super().__init__(reason)
-        self.code = code
-
-
-def _der(item: Any) -> x509.Certificate:
-    raw = item.get("rawBytes") if isinstance(item, dict) else None
-    try:
-        return x509.load_der_x509_certificate(base64.b64decode(str(raw), validate=True))
-    except (ValueError, binascii.Error) as exc:
-        raise KeylessFail("fail:keyless-malformed", f"certificate is malformed: {exc}") from None
-
-
-def certificates(material: dict) -> list[x509.Certificate]:
-    """Leaf first, then any bundled intermediates."""
-    if isinstance(material.get("x509CertificateChain"), dict):
-        items = material["x509CertificateChain"].get("certificates")
-        if isinstance(items, list) and items:
-            return [_der(i) for i in items]
-    if isinstance(material.get("certificate"), dict):
-        return [_der(material["certificate"])]
-    raise KeylessFail("fail:keyless-not-keyless", "bundle carries no signing certificate")
 
 
 def _is_ca(cert: x509.Certificate) -> bool:

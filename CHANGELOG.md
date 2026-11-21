@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — Security and integrity hardening
+
+- Keyless verification: `tine verify` and `tine keyless verify` now read the
+  signing certificate through one shared helper, and refuse a bundle whose
+  `verificationMaterial` carries more than one of `certificate`,
+  `x509CertificateChain` and `publicKey`. Before, the two commands could pick
+  different leaves from such a bundle and report different signers (OT-12).
+
 ## 0.75.0 — Dataset curation and AI-BOM export (2026-11-21)
 
 - `tine dataset curate --select EXPR --out NAME --key KEY`: a signed dataset

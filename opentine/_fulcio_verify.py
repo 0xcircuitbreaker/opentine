@@ -26,6 +26,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import ExtendedKeyUsageOID
 
+from opentine._keyless_chain import KeylessFail, certificates
 from opentine.intoto import PAYLOAD_TYPE, pae
 
 ISSUER_V2 = x509.ObjectIdentifier("1.3.6.1.4.1.57264.1.8")
@@ -44,18 +45,19 @@ def load_roots(pem: bytes) -> list[x509.Certificate]:
 
 
 def leaf_from_material(material: dict) -> x509.Certificate | None:
-    """The signing certificate in bundle ``verificationMaterial``, if it has one."""
-    if "certificate" in material:
-        raw = (material.get("certificate") or {}).get("rawBytes")
-    elif "x509CertificateChain" in material:
-        raw = ((material.get("x509CertificateChain") or {}).get("certificates") or [{}])[0]
-        raw = raw.get("rawBytes") if isinstance(raw, dict) else None
-    else:
-        return None
+    """The signing certificate in bundle ``verificationMaterial``, if it has one.
+
+    Shares :func:`opentine._keyless_chain.certificates` with ``tine keyless
+    verify``, so both commands read the same leaf and refuse a material that
+    carries more than one of ``certificate``, ``x509CertificateChain`` and
+    ``publicKey``.
+    """
     try:
-        return x509.load_der_x509_certificate(base64.b64decode(str(raw), validate=True))
-    except (ValueError, binascii.Error) as exc:
-        raise ValueError(f"bundle certificate is malformed: {exc}") from exc
+        return certificates(material)[0]
+    except KeylessFail as exc:
+        if exc.code == "fail:keyless-not-keyless":
+            return None
+        raise ValueError(f"bundle {exc}") from None
 
 
 def _der_utf8(raw: bytes) -> str:
