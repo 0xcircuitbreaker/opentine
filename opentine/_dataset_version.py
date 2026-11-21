@@ -52,8 +52,19 @@ def _refuse_optimizer(repo: Any, signer: str) -> None:
         raise PermissionError(f"refusing to sign: {why}")
 
 
+def _own(row: dict[str, Any], signer: str) -> bool:
+    """A version this same key signed (the chain when no curator role is pinned)."""
+    return row["signature"] == "verified-tofu" and row["curator"] == signer
+
+
 def versions(repo: Any, name: str | None = None) -> list[dict[str, Any]]:
     """Every held dataset version (of *name*), oldest first, with its verification."""
+    from opentine._dataset_taint import TaintFilterError, tainted
+
+    try:
+        taint: dict[str, Any] | None = tainted(repo)
+    except TaintFilterError:
+        taint = None
     out = []
     for target, row in records.held(repo, f"{HOLD}version:"):
         claim = row["claim"] or {}
@@ -69,6 +80,8 @@ def versions(repo: Any, name: str | None = None) -> list[dict[str, Any]]:
         else:
             ok, why = _roles(repo, row["signer"], ("curator",))
             state = "verified" if ok else f"unverified: {why}"
+            if ok:
+                state = _still_clean(payload["claim"], taint)
         out.append({"record": row["oid"], "hold": target, "name": claim.get("name"),
                     "version": claim.get("version"), "previous": claim.get("previous"),
                     "selection": claim.get("selection"), "members": check["members"],
@@ -78,13 +91,26 @@ def versions(repo: Any, name: str | None = None) -> list[dict[str, Any]]:
     return sorted(out, key=lambda r: (str(r["name"]), r["version"] or 0, r["record"]))
 
 
+def _still_clean(claim: dict[str, Any], taint: dict[str, Any] | None) -> str:
+    """``verified`` unless a member not justified at curation is tainted now."""
+    if taint is None:
+        return "unverified: the taint filter cannot be applied now"
+    allowed = set(claim["taint_filter"]["included_tainted"])
+    late = sorted(m["run"] for m in claim["members"] if m["run"] in taint
+                  and m["run"] not in allowed)  # fmt: skip
+    if late:
+        return f"unverified: {len(late)} member(s) tainted since curation, e.g. {late[0]}"
+    return "verified"
+
+
 def withdrawals(repo: Any) -> dict[str, str]:
     """``{run: withdrawal id}`` for every signed, well formed, held withdrawal."""
     out: dict[str, str] = {}
     for _, row in records.held(repo, f"{HOLD}withdrawal:"):
         claim = row["claim"]
         if (row["signed"] and not dc.check_record(claim) and claim["convention"] == dc.WITHDRAWAL
-                and claim["contributor"] == row["signer"]):  # fmt: skip
+                and claim["contributor"] == row["signer"]
+                and not _is_optimizer(repo, row["signer"])):  # fmt: skip
             out.setdefault(claim["run"], row["oid"])
     return out
 
@@ -122,8 +148,22 @@ def justify(repo: Any, name: str, runs: list[str], reason: str, key: Any, at: st
     return records.record(repo, target, claim, key, f"{HOLD}justification:{name}:{target}")
 
 
+def _is_optimizer(repo: Any, signer: str) -> bool:
+    """Whether *signer* is a pinned optimizer key (an unreadable policy counts as yes)."""
+    from opentine._key_roles import KeyRoleError
+    from opentine._key_roles_pin import resolve
+
+    try:
+        found = resolve(repo.path)
+    except KeyRoleError:
+        return True
+    return signer in (found["roles"] or {}).get("optimizer", [])
+
+
 def withdraw(repo: Any, run: str, reason: str, key: Any, at: str) -> str:
     signer = records.fingerprint(key)
+    if _is_optimizer(repo, signer):
+        raise PermissionError("refusing to withdraw: the signer is an optimizer key")
     claim = {"convention": dc.WITHDRAWAL, "run": run, "reason": reason, "contributor": signer,
              "at": at}  # fmt: skip
     problems = dc.check_record(claim)
@@ -138,6 +178,7 @@ def curate(repo: Any, name: str, selection: str, key: Any, at: str, *,
            eval_dirs: list[str] | None = None, include_tainted: bool = False,
            justification_id: str | None = None) -> dict[str, Any]:  # fmt: skip
     """Sign one version of *name*; ``{"record", "claim", "tombstones"}``."""
+    from opentine._dataset_near import copies
     from opentine._dataset_select import candidates, dedup
     from opentine._dataset_taint import tainted
 
@@ -151,11 +192,14 @@ def curate(repo: Any, name: str, selection: str, key: Any, at: str, *,
     chosen = candidates(repo, selection, eval_dirs)
     gone = withdrawals(repo)
     withdrawn = [r for r in chosen if r in gone]
-    taint = tainted(repo)
+    taint: dict[str, Any] = dict(tainted(repo))
+    for run in copies(repo, set(taint), [r for r in chosen if r not in gone]):
+        taint[run] = ["content-copy"]
     kept = [r for r in chosen if r not in gone and (r not in taint or r in allowed)]
     members, dropped = dedup(repo, kept)
     runs = {m["run"] for m in members}
-    prior = [v for v in versions(repo, name) if v["signature"] == "verified-tofu"]
+    prior = [v for v in versions(repo, name)
+             if v["verification"] == "verified" or _own(v, signer)]  # fmt: skip
     last = prior[-1] if prior else None
     number = (last["version"] + 1) if last else 1
     claim = {"convention": dc.VERSION, "name": name, "version": number,

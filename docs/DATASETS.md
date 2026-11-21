@@ -49,6 +49,12 @@ tine dataset curate --select 'failures:EVAL' --out train --key curator.key --rep
    a loop cannot un-taint its own trajectories by deleting a file. It fails
    closed: an unreadable holds file, or a held record that cannot be read,
    stops curation.
+
+   Taint follows content: a candidate whose FastCDC chunks (the dedup
+   parameters below) overlap the chunks of a tainted run by at least half of
+   its own chunks is left out too and listed in `excluded`, so a renamed or
+   lightly edited copy of a tainted trajectory does not get in. A
+   justification that names the copy lets it in like any tainted run.
 4. **Dedup.** Each remaining run's redacted transcript text (the text `tine
    transcripts` analyses, with the run's own id removed) is cut into FastCDC
    chunks with fixed parameters (`fastcdc-gear49`, min 64, average 256, max
@@ -57,7 +63,9 @@ tine dataset curate --select 'failures:EVAL' --out train --key curator.key --rep
    `dedup.dropped` with the member they repeat.
 5. **Sign.** The claim is signed onto a small anchor run and held by a
    `dataset-record:version:NAME:N` row. Version numbers follow the last held
-   version of the same name whose signature holds; `previous` names it.
+   version of the same name that is `verified` (or, with no pinned curator
+   role, that the same key signed); `previous` names it. A version another
+   key signed, an optimizer's included, never sets the next number.
 
 ### Including tainted runs
 
@@ -82,7 +90,9 @@ Roles come only from the owner-pinned trust bundle
 ([key roles](CLI.md)). An optimizer key may not curate, justify or write a
 tombstone, and an unreadable key-role policy refuses. A version is `verified`
 by `tine dataset versions` only when its offline check holds and its curator is
-a pinned `curator` key; with unpinned roles it is listed `unverified: ...`
+a pinned `curator` key, and no member that the version did not justify is
+tainted now (a flag or taint recorded after curation turns it `unverified: N
+member(s) tainted since curation`); with unpinned roles it is listed `unverified: ...`
 (advisory, D12).
 
 ## Claim conventions
@@ -130,8 +140,9 @@ signed onto the first run and held as `dataset-record:justification:NAME:RUN`.
 ### `opentine.dataset-withdrawal/1`
 
 `{"convention", "run", "reason", "contributor", "at"}`, signed onto the run and
-held as `dataset-record:withdrawal:RUN`. It counts when its signature holds and
-`contributor` is the key that signed. A withdrawal only ever removes a run.
+held as `dataset-record:withdrawal:RUN`. It counts when its signature holds,
+`contributor` is the key that signed, and that key is not a pinned `optimizer`
+key (`withdraw` refuses one). A withdrawal only ever removes a run.
 
 ### `opentine.dataset-tombstone/1`
 
