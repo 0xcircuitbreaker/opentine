@@ -18,7 +18,7 @@ from opentine._hash_tag import parse_oid
 from opentine.kernel import KernelError
 from opentine.repository._packs import MAX_OBJECT_BYTES, pack_set
 from opentine.repository._paths import install_verified, internal_path
-from opentine.repository._write_batch import staged
+from opentine.repository._write_batch import seen, staged
 
 #: Passes over the loose store and the packs when a check hits a transient error.
 #: A gc in another process publishes its pack, then deletes the loose copies and
@@ -156,11 +156,16 @@ def write_object(repo, oid: str, raw: bytes) -> bool:
     """
     batch = staged(repo)
     if batch is not None:
-        if oid in batch:
-            return False
+        verified = seen(repo)
+        if oid in batch or (verified is not None and oid in verified):
+            return False  # already staged, or checked and freshened this batch
         if not object_exists(repo, oid):
             batch[oid] = raw
             return True
+        written = write_loose(repo, oid, raw)
+        if verified is not None:
+            verified.add(oid)
+        return written
     return write_loose(repo, oid, raw)
 
 

@@ -8,6 +8,7 @@ import stat
 import tempfile
 import time
 from collections.abc import Iterator
+from contextvars import ContextVar
 from pathlib import Path
 
 from opentine._canon import _fsync_dir, full_fsync
@@ -126,6 +127,12 @@ def internal_files(root: Path, branch: str) -> Iterator[Path]:
             yield path
 
 
+#: While a loose write batch flushes, the directories :func:`atomic_bytes` and
+#: :func:`durable_directory` change are collected here instead of synced per
+#: file; the batch syncs each once, before its caller may move a ref.
+DEFERRED_DIRS: ContextVar[set[Path] | None] = ContextVar("deferred_dirs", default=None)
+
+
 def durable_directory(path: Path) -> None:
     """Create missing parents and fsync each directory that gains a child."""
     missing: list[Path] = []
@@ -137,7 +144,7 @@ def durable_directory(path: Path) -> None:
         # Private inside a repository, like its objects; a project directory
         # created above one (``tine init new/dir``) keeps the umask's mode.
         directory.mkdir(mode=0o700 if ".tine" in directory.parts else 0o777, exist_ok=True)
-        _fsync_dir(directory.parent)
+        _sync_dir(directory.parent)
 
 
 #: Structural directories a v3 repository keeps. git and tar drop them while
@@ -151,6 +158,13 @@ def ensure_layout(tine: Path) -> None:
     durable_directory(tine)
     for directory in LAYOUT_DIRS:
         durable_directory(internal_path(tine, *Path(directory).parts))
+
+
+def _sync_dir(directory: Path) -> None:
+    if (deferred := DEFERRED_DIRS.get()) is None:
+        _fsync_dir(directory)
+    else:
+        deferred.add(directory)
 
 
 def atomic_bytes(path: Path, data: bytes) -> None:
@@ -179,7 +193,7 @@ def atomic_bytes(path: Path, data: bytes) -> None:
             handle.flush()
             full_fsync(handle.fileno())
         _winretry.replace(temporary, path)  # Windows: a reader may hold the target
-        _fsync_dir(path.parent)
+        _sync_dir(path.parent)
     finally:
         try:
             os.unlink(temporary)
@@ -207,9 +221,16 @@ def install_verified(
         info = os.fstat(fd)
         if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
             raise KernelError(f"existing {label} is not a private regular file")
+        limit = read_limit or len(data)
+        if info.st_size > limit:  # the old over-read rejected it the same way
+            raise KernelError(f"existing {label} does not match verified incoming bytes")
         with os.fdopen(fd, "rb") as handle:
             fd = -1
-            existing = handle.read((read_limit or len(data)) + 1)
+            # Size the read from fstat: asking for ``limit`` (256 MiB for an
+            # object) per call made every already-stored write allocate it,
+            # which on Windows cost seconds per recorded event. The +1 still
+            # catches a file that grew after the fstat.
+            existing = handle.read(min(limit, info.st_size) + 1)
     finally:
         if fd >= 0:
             os.close(fd)
