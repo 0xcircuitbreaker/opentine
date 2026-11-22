@@ -317,6 +317,7 @@ DRIVEN = (
     (("oversight", "queue", "--repo", "repo", "--json"), "tine-cli-oversight-1"),  # 0.64
     (("budget", "status", "loop:opt", "--repo", "repo", "--json"), "tine-cli-budget-1"),  # 0.69
     (("trends", "--repo", "repo", "--json"), "tine-cli-trends-1"),  # 0.72
+    (("ingest", "verify", "rl", "--repo", "repo", "--json"), "tine-cli-ingest-1"),  # 0.77
     (("containment", "check", "heads/main", "--repo", "repo", "--json"), "tine-cli-containment-1"),
     (("custody", "check", "ckpt", "--repo", "repo", "--json"), "tine-cli-custody-weights-1"),
     (("organism", "status", "--repo", "repo", "--json"), "tine-cli-organism-1"),  # 0.72

@@ -54,7 +54,7 @@ Since 0.17 `log` and `show` also front the read-only verbs. The folded flag is
 rewritten to the old verb before parsing, so both spellings give the same output
 and exit code; a flag the old verb does not take is a usage error (exit 2), as
 are `--cost` with `--price`, `--at` without `--price`, and `log --search` with a
-`log` option (`--graph`, `--all`, `--oneline`, `--limit`, `--commit`, `--pr`, REF).
+`log` option (`--graph`, `--all`, `--oneline`, `--limit`, `--commit`, `--pr`, `-f`, REF).
 
 | Old spelling | New spelling |
 | --- | --- |
@@ -63,6 +63,9 @@ are `--cost` with `--price`, `--at` without `--price`, and `log --search` with a
 | `tine ls --tag T --model M ...` | `tine log --tag T --model M ...` (an `ls` filter implies `--legacy`) |
 | `tine cost RUN` | `tine show RUN --cost` |
 | `tine price RUN [--at DATE]` | `tine show RUN --price [--at DATE]` |
+
+`tine log -f [RUN|--all] [--json]` (0.77) follows new events as they become
+durable, each marked with its verification status ([LIVE.md](LIVE.md)).
 
 `tine log` without these flags is unchanged: it reads the v3 repository, while
 `--legacy` lists the legacy `.tine_runs` index that `tine ls` lists.
@@ -2137,6 +2140,18 @@ docs/UPLIFT.md.
 
 `--json` prints `tine-cli-budget/1`; ledger entries follow the claim
 convention `opentine.budget-ledger/1`. See docs/BUDGETS.md.
+
+## Batched streaming ingest (0.77)
+
+| Command | What it does |
+| --- | --- |
+| `tine ingest policy --stream NAME [--rate R] [--capture KIND]... [--drop KIND]... [--seed HEX] [--no-redact] --key KEY [--repo PATH]` | Signs and holds the stream's sampling policy (`opentine.ingest-policy/1`); it counts only when a pinned `policy`-role key that is not an optimizer key signed it |
+| `tine ingest --batch FILE\|- --stream NAME --key KEY [--policy ID] [--repo PATH]` | Samples one batch of JSON Lines events under the policy, signs it with counts captured and dropped, chains it to the previous batch and moves the held head after it is durable |
+| `tine ingest verify STREAM [--strict] [--repo PATH]` | Checks the chain (`seq`, `previous`, index range), the counts, every stored event against the policy and the policy's signer and role; exits 1 on a `fail:` finding |
+| `tine ingest serve --stream NAME --key KEY [--port N] [--max-bytes N] [--repo PATH]` | Loopback endpoint: `POST /v1/ingest` takes one batch per request |
+| `tine ingest packs --tenant T [--state DIR]` | Re-reads every pack of a `tine serve` pack store (`TINE_REMOTE_PACK_STORE`); exits 1 on a bad pack or object |
+
+`--json` prints `tine-cli-ingest/1`. See docs/INGEST.md.
 
 ## Containment evidence (0.69)
 

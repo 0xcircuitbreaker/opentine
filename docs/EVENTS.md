@@ -27,6 +27,9 @@ server process, or older than the buffer, gets an `event: reset` frame first:
 re-list refs, then carry on. At most four streams are open at once; a fifth
 gets `503` with `Retry-After`. Advertised as `caps.events_sse`.
 
+For the events of runs themselves (each step as it becomes durable, with its
+verification status) see `GET tail` and `tine log -f` in [LIVE.md](LIVE.md).
+
 ## `tine watch [REMOTE|REPO]`
 
 ```

@@ -118,6 +118,14 @@ gives it no age to check), and `admin reseal` refuses it. Numbers are in `docs/b
 Chunk names are plaintext SHA-256 digests, so someone who can list the bucket
 learns when two objects in a tenant share a chunk. The chunk bytes are sealed.
 
+## Packs on object storage (0.77)
+
+`TINE_REMOTE_PACK_STORE` (`s3://<bucket>[/<prefix>]` or `file://<dir>`) keeps a
+tenant's objects as packs instead of one key per object: each push and each
+ingest batch becomes one pack, written with one durability point. It cannot be
+combined with `TINE_REMOTE_OBJECT_STORE`, and it does not set Object Lock
+retention. Layout, upload rules and checks are in docs/INGEST.md.
+
 ## Testing against real services
 
 `tests/test_049_worm_integration.py` runs the same scenario (write, read, a

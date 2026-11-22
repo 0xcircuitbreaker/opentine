@@ -74,6 +74,14 @@ a glob over the flag label) names a verified behaviour flag, and a
 runs. Both are recomputed from the held flags and the run objects on every
 read; an unverified flag opens nothing (docs/TRANSCRIPT_FLAGS.md).
 
+An `ingest:ANNOTATION` item (0.77, route `source = "ingest"`) names an ingest
+batch that `tine ingest verify` fails: a gap, reorder or replay in the chain,
+counts that do not add up, a hidden drop, a policy switch, or a batch or
+policy signed by the wrong key. An `ingest:BLOB` item names a stream's anchor
+when the finding names no batch (no held policy, more than one held head).
+Every held stream is re-verified on every read; advisory findings open
+nothing (docs/INGEST.md).
+
 An item routed into several tiers must satisfy each of them.
 
 ### Pinning

@@ -29,6 +29,7 @@ export const OPERATIONS = {
   logConsistency: { method: "GET", path: "/v1/tenants/{tenant}/transparency/consistency", cap: null, status: "stable" },
   logReceipt: { method: "GET", path: "/v1/tenants/{tenant}/transparency/receipt", cap: null, status: "stable" },
   streamEvents: { method: "GET", path: "/v1/tenants/{tenant}/events", cap: "events_sse", status: "stable" },
+  tailEvents: { method: "GET", path: "/v1/tenants/{tenant}/tail", cap: "tail_sse", status: "stable" },
   listWebhooks: { method: "GET", path: "/v1/tenants/{tenant}/webhooks", cap: "webhooks", status: "stable" },
   addWebhook: { method: "POST", path: "/v1/tenants/{tenant}/webhooks", cap: "webhooks", status: "stable" },
   removeWebhook: { method: "DELETE", path: "/v1/tenants/{tenant}/webhooks/{webhook_id}", cap: "webhooks", status: "stable" },

@@ -103,6 +103,7 @@ NOT_KINDS = (
     "tine-assurance-1", "tine-blame-1", "tine-ci-gate-1", "tine-experts-1", "tine-help-1",
     "tine-list-page-1", "tine-redaction-rules-1", "tine-repo-show-1", "tine-search-results-1",
     "tine-share-1", "tine-verify-dataset-1", "tine-watch-1", "tine-graph-1",
+    "tine-tail-1",  # 0.77: live-tail rows (SSE data, tine log -f --json), not a kind
     "opentine-compliance-profile-1",
     "opentine-witness-network-1",  # 0.49: a pinned config, like --witness-vkey flags
     # 0.63: claim conventions carried on existing attestations / hook config, not kinds
@@ -142,6 +143,8 @@ NOT_KINDS = (
     "opentine-trends-1", "opentine-trends-task-lengths-1",
     # 0.78 (release 0.75.0): attestation claims (dataset licences, withdrawals), a manifest file
     "opentine-dataset-licence-1", "opentine-dataset-withdraw-1", "opentine-dataset-tombstones-1",
+    # 0.77: annotation values (ingest sampling policies and signed batches)
+    "opentine-ingest-policy-1", "opentine-ingest-batch-1",
 )  # fmt: skip
 DEFERRED_SCHEMAS: dict[str, str] = {}
 #: Backticked SPEC heading words that are not kinds (capabilities, commands, fields).

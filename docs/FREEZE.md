@@ -77,6 +77,7 @@ case.
 | Signed webhooks (`tine-webhook/1` header and body) | 8.13 |
 | Remote HTTP API v1 and its capabilities | 8.14, 8.15, 8.18, 8.19, 8.22 |
 | The agent hook protocol (`opentine-hook/1`) | 8.16 |
+| Live tail rows (`tine-tail/1`) on `GET tail` and `tine log -f --json`, cursor `c1.` (0.77): a message format, not an object kind; no new `tine verify` codes | [LIVE.md](LIVE.md) |
 
 ## File formats
 

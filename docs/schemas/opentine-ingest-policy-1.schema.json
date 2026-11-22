@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-ingest-policy-1.schema.json",
+  "title": "opentine.ingest-policy/1 annotation value",
+  "description": "A signed sampling policy for one ingest stream: what is captured or dropped, the rate and the seed. A claim convention on an existing annotation, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "stream",
+    "capture",
+    "drop",
+    "rate",
+    "seed_source",
+    "seed",
+    "redact",
+    "issued_at"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.ingest-policy/1"
+    },
+    "stream": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+    },
+    "capture": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 256
+    },
+    "drop": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 256
+    },
+    "rate": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "seed_source": {
+      "enum": [
+        "operator",
+        "random"
+      ]
+    },
+    "seed": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "redact": {
+      "type": "boolean"
+    },
+    "issued_at": {
+      "type": "string",
+      "description": "RFC 3339 UTC timestamp"
+    }
+  }
+}

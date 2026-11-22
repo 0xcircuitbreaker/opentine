@@ -5,7 +5,6 @@ the index row it contributes, or ``None``. The index build and ``tine query
 --verify`` call the same functions, so a verified row is one the object still
 derives. Every row carries the ``oid`` it came from: the object id for
 repository objects, ``sha256:<hex>`` of the record bytes for lineage records and eval lines.
-
 Nothing here judges trust beyond "the signature holds"; which roles a signer
 has comes from the owner-pinned key roles only (:mod:`opentine._query_verify`).
 """
@@ -22,6 +21,7 @@ from opentine._query_containment import COLUMNS as _CONTAINMENT_COLUMNS
 from opentine._query_custody import COLUMNS as _CUSTODY_COLUMNS
 from opentine._query_datasets import COLUMNS as _DATASET_COLUMNS
 from opentine._query_experiments import COLUMNS as _EXPERIMENT_COLUMNS
+from opentine._query_ingest import COLUMNS as _INGEST_COLUMNS
 from opentine._query_merges import COLUMNS as _MERGE_COLUMNS
 from opentine._query_policy import COLUMNS as _POLICY_COLUMNS
 from opentine._query_research import COLUMNS as _RESEARCH_COLUMNS
@@ -51,7 +51,7 @@ COLUMNS.update(_CUSTODY_COLUMNS)  # 0.72: weight custody events and model-organi
 COLUMNS.update(_TRANSCRIPT_COLUMNS)  # 0.74: behaviour flags and transcript clusters
 COLUMNS.update(_POLICY_COLUMNS)  # 0.75: signed policy admissions
 COLUMNS.update(_UPLIFT_COLUMNS)  # 0.73: uplift suites and records, trend points
-COLUMNS.update(_DATASET_COLUMNS)  # 0.75: curated dataset versions and their members
+COLUMNS.update({**_DATASET_COLUMNS, **_INGEST_COLUMNS})  # 0.75: datasets; 0.77: ingest
 #: Columns a row derives from its run (or file), not from the object itself.
 CONTEXT = {"run", "seq", "source", "line"}
 
@@ -195,9 +195,9 @@ def object_rows(repo: Any, oid: str, read: Any = None) -> dict[str, list[dict[st
     if isinstance(value, dict) and value.get("convention") == "opentine.oversight-decision/1":
         row = oversight_row(oid, repo)
         return {"oversight_decisions": [row]} if row else {}
-    from opentine._query_containment import ledger_rows
+    from opentine._query_ingest import annotation_rows
 
-    return ledger_rows(oid, payload)
+    return annotation_rows(oid, payload)
 
 
 def lineage_rows(files: dict[str, bytes]) -> dict[str, list[dict[str, Any]]]:

@@ -1,5 +1,66 @@
 # Changelog
 
+## 0.77.0 — Live tail and streaming ingest (2026-11-22)
+
+- `tine query` indexes ingest sampling policies (`ingest_policies`) and
+  batches (`ingest_batches`); `--verify` marks a policy row `verified` only for
+  a pinned `policy` signer and a batch row only for a pinned `runner` signer,
+  never an optimizer key. Every `fail` finding of `tine ingest verify` (a gap,
+  reorder, replay, hidden drop, policy switch or wrong signer) opens an
+  `ingest:` item in the oversight queue, recomputed on every read and routed
+  with `[[route]] source = "ingest"`; advisory findings open nothing.
+- `tine log -f [RUN|--all] [--json]` follows run events as they become
+  durable. An event is shown only once its ref points past it and its bytes
+  are readable; each row says whether it is `verified` (bytes hash to the id,
+  every linked object present), `unverified` (a linked object is not held
+  here) or `invalid`. `--lines N` shows the last N events first,
+  `--max-events N` stops after N rows. A ref that stops extending the run seen
+  before is announced by one `rewrite` row. `--json` prints
+  `tine-cli-log-follow/1` JSON Lines (schema published). Details in
+  docs/LIVE.md.
+- `tine serve` has `GET /v1/tenants/<t>/tail`, a Server-Sent Events stream of
+  the same `tine-tail/1` rows (advertised as `caps.tail_sse`). It is
+  authorized and tenant-scoped like `GET events` (tenant-wide `read_ref` and
+  `fetch`, so namespace-limited tokens are refused; the per-object read
+  policy applies; other tenants get the uniform 404; opening is audited). It also has: global
+  (32) and per-caller (4) stream limits (`503`/`429` with `Retry-After`), a
+  heartbeat, `Last-Event-ID` resume with an opaque cursor (`event: reset` for
+  one it cannot read), and backpressure. Nothing is queued per stream. A
+  client that lags too far behind or is slow to read a batch gets
+  `event: dropped` and resumes from its last id without loss.
+- The ref listing no longer fails with "repository walk encountered a
+  non-file" when a concurrent writer renames a temporary ref file away
+  while the refs are being listed.
+- New bench `scripts/bench/tail_latency.py`, with results in
+  docs/bench/0.77-tail.md.
+- Ingest review: batches need a pinned `runner` signer (never an optimizer key); verify recomputes the rate decision for every index so a kept event cannot be relabelled as dropped (`ingest.sampling-hidden`); a stream cannot move back to an older policy (`ingest.policy-switch`); event lines with duplicate keys or non-finite numbers are refused; `tine ingest serve` refuses browser and non-loopback `Host` requests and bounds slow and concurrent clients.
+- New `tine ingest` for large episode streams (docs/INGEST.md):
+  `tine ingest policy` signs and holds a stream's sampling policy
+  (`opentine.ingest-policy/1`: kinds captured and dropped, rate, seed and its
+  source, and whether captured events are scrubbed for credentials);
+  `tine ingest --batch FILE` samples one batch of JSON Lines events under it
+  and stores one signed batch (`opentine.ingest-batch/1`) with its counts
+  captured and dropped, the policy digest and a hash chain to the previous
+  batch, written with one durability point per batch; `tine ingest verify`
+  checks the chain, counts, every stored event against the policy, and the
+  policy's signer. A policy counts only when a key holding the `policy` role
+  in the owner-pinned trust bundle signed it, never an optimizer key, and
+  verification fails closed with no pinned bundle. Both records are claim
+  conventions on existing annotations, held and never released; no new object
+  kinds and no new `tine verify` codes.
+- `tine ingest serve` is a loopback endpoint (`POST /v1/ingest`, one batch per
+  request, appends serialized so the chain never forks).
+- `tine serve` can keep objects as packs on object storage
+  (`TINE_REMOTE_PACK_STORE=s3://bucket/prefix` or `file://dir`): each push is
+  one pack, uploaded atomically (multipart with per-part SHA-256 checksums and
+  an ETag check, `If-None-Match: *` so a name is never overwritten), read back
+  against its digest, and readable by push, pull, purge and
+  `tine ingest packs` (a re-read of every pack). S3 needs boto3, as the WORM
+  store does.
+- `scripts/bench/ingest_stream.py` measures sustained ingest rate, batch
+  commit latency and verify time; results in docs/bench/0.77-ingest.md.
+- `tine hold release` keeps its refusals in one table (same messages).
+
 ## 0.76.0 — Security and integrity hardening (2026-11-21)
 
 - `tine mcp-proxy --organism-gate` no longer relays a frame it cannot parse

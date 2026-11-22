@@ -40,6 +40,7 @@ _LOG_ONLY = (
     ("oneline", "--oneline"),
     ("commit", "--commit"),
     ("pr", "--pr"),
+    ("follow", "-f/--follow"),  # 0.77
 )
 
 

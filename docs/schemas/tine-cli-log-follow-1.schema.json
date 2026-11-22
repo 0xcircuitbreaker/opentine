@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-log-follow-1.schema.json",
+  "title": "tine log -f --json",
+  "description": "One JSON Lines record of `tine log -f --json`: a tine-tail/1 row.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "command",
+    "schema",
+    "row"
+  ],
+  "properties": {
+    "command": {
+      "const": "log"
+    },
+    "schema": {
+      "const": "tine-cli-log-follow/1"
+    },
+    "row": {
+      "$ref": "tine-tail-1.schema.json"
+    }
+  }
+}

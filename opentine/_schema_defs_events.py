@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from opentine._schema_defs import doc, open_, opt
+from opentine._schema_defs import closed, doc, open_, opt
 
 STR: dict[str, Any] = {"type": "string"}
 INT: dict[str, Any] = {"type": "integer", "minimum": 0}
@@ -14,6 +14,17 @@ KINDS = ["ref.updated", "run.created", "log.checkpoint", "op.logged"]
 EVENT = open_(["format", "id", "kind", "tenant", "time", "data"], {
     "format": {"const": "tine-event/1"}, "id": {"type": "string", "minLength": 1},
     "kind": {"enum": KINDS}, "tenant": opt(STR), "time": TIME, "data": {"type": "object"},
+})  # fmt: skip
+
+_NULL_STR = opt(STR)
+TAIL = closed(["format", "type", "ref", "run_id", "index", "event_id", "kind", "status",
+               "verified", "time_unix", "detail"], {
+    "format": {"const": "tine-tail/1"},
+    "type": {"enum": ["event", "rewrite", "reset", "dropped", "truncated"]},
+    "ref": _NULL_STR, "run_id": _NULL_STR, "index": opt(INT), "event_id": _NULL_STR,
+    "kind": _NULL_STR, "status": {"enum": [None, "verified", "unverified", "invalid"]},
+    "verified": {"type": "boolean"}, "time_unix": opt({"type": "number"}),
+    "detail": _NULL_STR,
 })  # fmt: skip
 
 SCHEMAS: dict[str, dict[str, Any]] = {
@@ -36,6 +47,19 @@ SCHEMAS: dict[str, dict[str, Any]] = {
             "command": {"const": "watch"}, "schema": {"const": "tine-watch/1"},
             "event": {"$ref": "tine-event-1.schema.json"}, "reset": {"const": True}},
             anyOf=[{"required": ["event"]}, {"required": ["reset"]}])),
+    "tine-tail-1": doc("tine-tail-1", "tine-tail/1",
+        "One live-tail row (0.77, docs/LIVE.md): the `data:` of an SSE frame on "
+        "`GET /v1/tenants/<t>/tail` and the `row` of `tine log -f --json`. `event` rows name "
+        "a durable event and its verification status (`verified` only when its bytes hash to "
+        "its id and every linked object is present); `rewrite` says a followed ref no longer "
+        "extends the run seen before; `reset` an unreadable resume point; `dropped` a slow "
+        "consumer cut off; `truncated` that more run refs exist than are followed. "
+        "A message format, not an object kind.", TAIL),
+    "tine-cli-log-follow-1": doc("tine-cli-log-follow-1", "tine log -f --json",
+        "One JSON Lines record of `tine log -f --json`: a tine-tail/1 row.",
+        closed(["command", "schema", "row"], {
+            "command": {"const": "log"}, "schema": {"const": "tine-cli-log-follow/1"},
+            "row": {"$ref": "tine-tail-1.schema.json"}})),
 }  # fmt: skip
 
 __all__ = ["SCHEMAS"]

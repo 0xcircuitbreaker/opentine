@@ -141,7 +141,7 @@ class EventHub:
 
 def capabilities(service: Any) -> dict[str, Any]:
     """The ``events_sse``, ``webhooks`` and ``vsa`` entries of ``GET /v1/capabilities``."""
-    caps: dict[str, Any] = {}
+    caps: dict[str, Any] = {"tail_sse": {"format": "tine-tail/1", "path": "tail"}}  # 0.77
     if getattr(service, "events", None) is not None:
         caps["events_sse"] = {"format": FORMAT, "kinds": list(KINDS), "path": "events"}
     hooks = getattr(service, "webhooks", None)

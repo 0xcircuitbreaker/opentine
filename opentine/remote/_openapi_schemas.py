@@ -49,6 +49,7 @@ SCHEMAS: dict[str, Any] = {
             "ref_txn": {"type": "boolean"},
             "resumable_upload": {"type": "boolean"},
             "events_sse": {"type": "object"},
+            "tail_sse": {"type": "object"},
             "webhooks": {"type": "object"},
             "object_read_http": {"type": "object"},
             "run_closure": {"type": "object"},
