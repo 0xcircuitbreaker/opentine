@@ -1,5 +1,34 @@
 # Changelog
 
+## Unreleased — Live tail and streaming ingest
+
+- New `tine ingest` for large episode streams (docs/INGEST.md):
+  `tine ingest policy` signs and holds a stream's sampling policy
+  (`opentine.ingest-policy/1`: kinds captured and dropped, rate, seed and its
+  source, and whether captured events are scrubbed for credentials);
+  `tine ingest --batch FILE` samples one batch of JSON Lines events under it
+  and stores one signed batch (`opentine.ingest-batch/1`) with its counts
+  captured and dropped, the policy digest and a hash chain to the previous
+  batch, written with one durability point per batch; `tine ingest verify`
+  checks the chain, counts, every stored event against the policy, and the
+  policy's signer. A policy counts only when a key holding the `policy` role
+  in the owner-pinned trust bundle signed it, never an optimizer key, and
+  verification fails closed with no pinned bundle. Both records are claim
+  conventions on existing annotations, held and never released; no new object
+  kinds and no new `tine verify` codes.
+- `tine ingest serve` is a loopback endpoint (`POST /v1/ingest`, one batch per
+  request, appends serialized so the chain never forks).
+- `tine serve` can keep objects as packs on object storage
+  (`TINE_REMOTE_PACK_STORE=s3://bucket/prefix` or `file://dir`): each push is
+  one pack, uploaded atomically (multipart with per-part SHA-256 checksums and
+  an ETag check, `If-None-Match: *` so a name is never overwritten), read back
+  against its digest, and readable by push, pull, purge and
+  `tine ingest packs` (a re-read of every pack). S3 needs boto3, as the WORM
+  store does.
+- `scripts/bench/ingest_stream.py` measures sustained ingest rate, batch
+  commit latency and verify time; results in docs/bench/0.77-ingest.md.
+- `tine hold release` keeps its refusals in one table (same messages).
+
 ## 0.76.0 — Security and integrity hardening (2026-11-21)
 
 - `tine mcp-proxy --organism-gate` no longer relays a frame it cannot parse

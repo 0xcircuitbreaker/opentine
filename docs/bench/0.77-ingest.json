@@ -1,0 +1,106 @@
+{
+  "direct": {
+    "batch": 10000,
+    "batch_ms": {
+      "max": 555.44,
+      "p50": 432.73,
+      "p99": 512.39
+    },
+    "batches": 200,
+    "captured": 2000000,
+    "dropped": 0,
+    "events": 2000000,
+    "events_per_s": 22605.5,
+    "hardware": {
+      "cpus": 4,
+      "machine": "x86_64",
+      "processor": "x86_64",
+      "python": "3.13.18",
+      "system": "Linux 6.18.44-fc-v726"
+    },
+    "path": "direct",
+    "rate": 1.0,
+    "redact": false,
+    "seconds": 88.474,
+    "verify_ok": true,
+    "verify_s": 79.684
+  },
+  "http": {
+    "batch": 10000,
+    "batch_ms": {
+      "max": 534.12,
+      "p50": 452.01,
+      "p99": 522.32
+    },
+    "batches": 100,
+    "captured": 1000000,
+    "dropped": 0,
+    "events": 1000000,
+    "events_per_s": 21784.3,
+    "hardware": {
+      "cpus": 4,
+      "machine": "x86_64",
+      "processor": "x86_64",
+      "python": "3.13.18",
+      "system": "Linux 6.18.44-fc-v726"
+    },
+    "path": "http",
+    "rate": 1.0,
+    "redact": false,
+    "seconds": 45.905,
+    "verify_ok": true,
+    "verify_s": 41.083
+  },
+  "redact": {
+    "batch": 10000,
+    "batch_ms": {
+      "max": 1757.54,
+      "p50": 1582.37,
+      "p99": 1715.35
+    },
+    "batches": 30,
+    "captured": 300000,
+    "dropped": 0,
+    "events": 300000,
+    "events_per_s": 6246.0,
+    "hardware": {
+      "cpus": 4,
+      "machine": "x86_64",
+      "processor": "x86_64",
+      "python": "3.13.18",
+      "system": "Linux 6.18.44-fc-v726"
+    },
+    "path": "direct",
+    "rate": 1.0,
+    "redact": true,
+    "seconds": 48.031,
+    "verify_ok": true,
+    "verify_s": 11.614
+  },
+  "sampled": {
+    "batch": 10000,
+    "batch_ms": {
+      "max": 233.41,
+      "p50": 142.6,
+      "p99": 219.99
+    },
+    "batches": 100,
+    "captured": 99586,
+    "dropped": 900414,
+    "events": 1000000,
+    "events_per_s": 64460.2,
+    "hardware": {
+      "cpus": 4,
+      "machine": "x86_64",
+      "processor": "x86_64",
+      "python": "3.13.18",
+      "system": "Linux 6.18.44-fc-v726"
+    },
+    "path": "direct",
+    "rate": 0.1,
+    "redact": false,
+    "seconds": 15.513,
+    "verify_ok": true,
+    "verify_s": 4.429
+  }
+}
