@@ -33,6 +33,20 @@
 - Guide docs/REFERENCE-LOOP.md ("Running a self-improving loop with
   OpenTine"). Tests run the loop with 2 to 5 steps and assert counts and
   recorded outcomes only.
+- `scripts/verify_everywhere.py` verifies every object of a repository, a
+  `tine bundle` or a folder of signed record files with the Python verifier,
+  a freshly built `tine-verify.pyz` and the TS verifier, and fails on any
+  disagreement, gap or record that does not verify. Its tests cover every
+  record kind the reference loop writes: lineage, holdout, monitor verdicts,
+  oversight decisions, admissions, budget, containment, promote and revert.
+- `.github/workflows/nightly-soak.yml` runs the test suite, verifier parity,
+  the format-reader fuzzer at ten times the per-PR scale and the storage
+  bench every night and on demand, uploads each job's results and writes
+  `soak-summary.json` and a run summary. `scripts/nightly_summary.py` takes
+  `--title`.
+- ROADMAP: the 1.0 criteria are re-evaluated at 0.80 (criterion, evidence,
+  status, audit status). Declaring the 1.0 track stays the owner's decision,
+  taken after the 7-day soak.
 
 ## 0.77.0 — Live tail and streaming ingest (2026-11-22)
 

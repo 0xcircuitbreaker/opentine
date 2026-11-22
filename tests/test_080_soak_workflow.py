@@ -65,3 +65,14 @@ def test_the_summary_is_titled_and_red_on_a_red_night(tmp_path):
         capture_output=True, check=False, timeout=120)  # fmt: skip
     assert done.returncode == 1
     assert md.read_bytes().decode("utf-8").startswith("## Nightly soak: RED")
+
+
+def test_the_roadmap_re_evaluates_all_seven_criteria_and_leaves_the_call_to_the_owner():
+    text = (ROOT / "docs" / "ROADMAP.md").read_bytes().decode("utf-8")
+    section = text.split("### 1.0 re-evaluation (0.80)", 1)[1].split("\n### ", 1)[0]
+    assert "| # | Criterion | Evidence | Status at 0.80 | Audit status |" in section
+    rows = [line for line in section.splitlines() if re.match(r"\| [1-7] \|", line)]
+    assert [row.split("|")[1].strip() for row in rows] == [str(n) for n in range(1, 8)]
+    assert all(row.count("|") == 6 for row in rows)
+    assert "go/no-go on declaring the 1.0 track is the owner's decision" in section
+    assert "nightly-soak.yml" in section and "verify_everywhere.py" in section
