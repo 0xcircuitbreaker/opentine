@@ -35,6 +35,8 @@ def text_line(item: dict[str, Any]) -> str:
     ref = _terminal(str(item["ref"]))
     if item["type"] == "rewrite":
         return f"-- {ref} was rewritten; following its new tip"
+    if item["type"] != "event":
+        return f"-- {_terminal(str(item['detail'] or item['type']))}"
     kind = _terminal(str(item["kind"] or "?"))
     label = _LABEL.get(str(item["status"]), "UNVERIFIED")
     return f"{_short_oid(item['event_id'])} {ref} #{item['index']} {kind} [{label}]"

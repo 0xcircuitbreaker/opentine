@@ -133,9 +133,7 @@ def test_a_cursor_resumes_exactly_where_it_stopped(tmp_path):
     _grow(repo, run, 2)
     resumed = Follower(repo, repo.list_refs, names=["heads/main"], resume=cursor)
     assert [r["index"] for r in resumed.poll()] == [3, 4]
-    assert decode_cursor(encode_cursor({"heads/x": (2, "event:sha256:" + "a" * 64)})) == {
-        "heads/x": (2, "a" * 12)
-    }
+    assert decode_cursor(encode_cursor({"heads/x": (2, "d" * 32)})) == {"heads/x": (2, "d" * 32)}
 
 
 @pytest.mark.parametrize(

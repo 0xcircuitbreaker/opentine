@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opentine.com/schemas/tine-tail-1.schema.json",
   "title": "tine-tail/1",
-  "description": "One live-tail row (0.77, docs/LIVE.md): the `data:` of an SSE frame on `GET /v1/tenants/<t>/tail` and the `row` of `tine log -f --json`. `event` rows name a durable event and its verification status (`verified` only when its bytes hash to its id and every linked object is present); `rewrite` says a followed ref no longer extends the run seen before; `reset` an unreadable resume point; `dropped` a slow consumer cut off. A message format, not an object kind.",
+  "description": "One live-tail row (0.77, docs/LIVE.md): the `data:` of an SSE frame on `GET /v1/tenants/<t>/tail` and the `row` of `tine log -f --json`. `event` rows name a durable event and its verification status (`verified` only when its bytes hash to its id and every linked object is present); `rewrite` says a followed ref no longer extends the run seen before; `reset` an unreadable resume point; `dropped` a slow consumer cut off; `truncated` that more run refs exist than are followed. A message format, not an object kind.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -27,7 +27,8 @@
         "event",
         "rewrite",
         "reset",
-        "dropped"
+        "dropped",
+        "truncated"
       ]
     },
     "ref": {

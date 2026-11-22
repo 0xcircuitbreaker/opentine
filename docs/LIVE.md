@@ -31,7 +31,12 @@ Other row types:
 
 - `rewrite`: a followed ref no longer extends the run the follower saw before
   (a rewind or a forced move). It is reported once, and following continues
-  from the new tip. The rewritten history is not replayed.
+  from the new tip. The rewritten history is not replayed. The follower
+  compares a digest of every event id up to its position, not only the last
+  one, so a rewrite that drops or replaces an earlier event is reported too,
+  including across a resume.
+- `truncated`: more run refs exist than are followed (`--all` follows at most
+  1024). Reported when the number left out changes.
 - `reset` (SSE only): the resume point could not be read. The stream starts at
   the present.
 - `dropped` (SSE only): the server cut off a slow consumer (see below).
@@ -53,7 +58,7 @@ tine log -f --all --json     # every run ref (heads/, experiments/, promotions/,
 
 `-f` does not combine with `--graph`, `--oneline` or `--search`. Ctrl-C
 stops it. With `--all`, at most 1024 refs are followed, the first in name
-order. A ref created while following is followed from its first event.
+order, and a `truncated` row says how many were left out. A ref created while following is followed from its first event.
 
 ## `GET /v1/tenants/<tenant>/tail` (Server-Sent Events)
 

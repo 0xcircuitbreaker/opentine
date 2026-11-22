@@ -24,6 +24,7 @@ is a short opaque string, so a client can resume where it stopped.
 from __future__ import annotations
 
 import base64
+import hashlib
 import zlib
 from collections.abc import Callable
 from typing import Any
@@ -92,8 +93,15 @@ def _run_events(repo: Any, oid: str) -> list[str] | None:
     return events
 
 
+def prefix_digest(events: list[str], count: int) -> str | None:
+    """A digest of the first *count* event ids: any change before the position shows up."""
+    if not count:
+        return None
+    return hashlib.sha256("\n".join(events[:count]).encode()).hexdigest()[:32]
+
+
 def encode_cursor(positions: dict[str, tuple[int, str | None]]) -> str:
-    data = {name: [count, (last or "")[-12:]] for name, (count, last) in sorted(positions.items())}
+    data = {name: [count, last or ""] for name, (count, last) in sorted(positions.items())}
     packed = zlib.compress(canonical_json(data), 9)
     return _CURSOR_PREFIX + base64.urlsafe_b64encode(packed).decode().rstrip("=")
 
@@ -144,6 +152,7 @@ class Follower:
     ):
         self.repo, self._refs, self._names = repo, refs, names
         self._allow = allow
+        self._cut, self._cut_said = 0, 0
         self._pos: dict[str, tuple[str | None, int, str | None]] = {}
         if resume is not None:
             for name, (count, tail) in decode_cursor(resume).items():
@@ -152,7 +161,7 @@ class Follower:
         for name, oid in self._selected().items():
             events = _run_events(repo, oid) or []
             count = max(0, len(events) - max(0, backlog))
-            self._pos[name] = (None, count, events[count - 1] if count else None)
+            self._pos[name] = (None, count, prefix_digest(events, count))
 
     def _selected(self) -> dict[str, str]:
         listing = self._refs()
@@ -161,6 +170,7 @@ class Follower:
         else:
             chosen = {n: o for n, o in listing.items() if n.startswith(RUN_SPACES)}
         picked = sorted(n for n, o in chosen.items() if isinstance(o, str) and o.startswith("run:"))
+        self._cut = max(0, len(picked) - MAX_REFS)
         return {name: chosen[name] for name in picked[:MAX_REFS]}
 
     def cursor(self) -> str:
@@ -169,7 +179,13 @@ class Follower:
     def poll(self, limit: int = 1000) -> list[dict[str, Any]]:
         """Up to *limit* new rows, oldest first per ref; refs in name order."""
         rows: list[dict[str, Any]] = []
-        for name, oid in self._selected().items():
+        selected = self._selected()
+        if self._cut != self._cut_said:
+            self._cut_said = self._cut
+            if self._cut:
+                detail = f"{self._cut} run refs beyond the first {MAX_REFS} are not followed"
+                rows.append(row("truncated", detail=detail))
+        for name, oid in selected.items():
             if len(rows) >= limit:
                 break
             seen, count, last = self._pos.get(name, (None, 0, None))
@@ -178,9 +194,7 @@ class Follower:
             events = _run_events(self.repo, oid)
             if events is None:
                 continue  # the run is not readable yet: the next poll retries
-            if count and (
-                count > len(events) or not (events[count - 1] or "").endswith(last or "")
-            ):
+            if count and (count > len(events) or prefix_digest(events, count) != last):
                 rows.append(row("rewrite", ref=name, run_id=oid, index=len(events)))
                 count = len(events)
             done = True
@@ -212,7 +226,7 @@ class Follower:
                     )
                 )
                 count += 1
-            last = events[count - 1] if count else None
+            last = prefix_digest(events, count)
             self._pos[name] = (oid if done else None, count, last)
         return rows
 

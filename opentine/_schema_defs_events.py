@@ -20,7 +20,7 @@ _NULL_STR = opt(STR)
 TAIL = closed(["format", "type", "ref", "run_id", "index", "event_id", "kind", "status",
                "verified", "time_unix", "detail"], {
     "format": {"const": "tine-tail/1"},
-    "type": {"enum": ["event", "rewrite", "reset", "dropped"]},
+    "type": {"enum": ["event", "rewrite", "reset", "dropped", "truncated"]},
     "ref": _NULL_STR, "run_id": _NULL_STR, "index": opt(INT), "event_id": _NULL_STR,
     "kind": _NULL_STR, "status": {"enum": [None, "verified", "unverified", "invalid"]},
     "verified": {"type": "boolean"}, "time_unix": opt({"type": "number"}),
@@ -53,7 +53,8 @@ SCHEMAS: dict[str, dict[str, Any]] = {
         "a durable event and its verification status (`verified` only when its bytes hash to "
         "its id and every linked object is present); `rewrite` says a followed ref no longer "
         "extends the run seen before; `reset` an unreadable resume point; `dropped` a slow "
-        "consumer cut off. A message format, not an object kind.", TAIL),
+        "consumer cut off; `truncated` that more run refs exist than are followed. "
+        "A message format, not an object kind.", TAIL),
     "tine-cli-log-follow-1": doc("tine-cli-log-follow-1", "tine log -f --json",
         "One JSON Lines record of `tine log -f --json`: a tine-tail/1 row.",
         closed(["command", "schema", "row"], {
