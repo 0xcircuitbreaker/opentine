@@ -28,6 +28,28 @@ MODE_ENV = "TINE_REMOTE_RETENTION_MODE"
 DAYS_ENV = "TINE_REMOTE_RETENTION_DAYS"
 ENDPOINT_ENV = "TINE_REMOTE_S3_ENDPOINT"
 AZURE_ENV = "AZURE_STORAGE_CONNECTION_STRING"
+PACK_ENV = "TINE_REMOTE_PACK_STORE"  # 0.77: s3://<bucket>[/<prefix>] or file://<dir>
+
+
+def packed_store_from_env(state: Path, keys: Any, env: Mapping[str, str]) -> Any:
+    """A ``PackedObjectStore`` (:mod:`opentine.remote._packed_store`) from the environment."""
+    from opentine.remote._pack_blobs import FilesystemPackBlobs, S3PackBlobs
+    from opentine.remote._packed_store import PackedObjectStore
+
+    url = env[PACK_ENV].strip()
+    scheme, sep, rest = url.partition("://")
+    if scheme == "file" and sep and rest:
+        from urllib.request import url2pathname
+
+        blobs: Any = FilesystemPackBlobs(Path(url2pathname(rest.removeprefix("localhost"))))
+    elif scheme == "s3" and sep and rest.split("/", 1)[0]:
+        bucket, _, prefix = rest.partition("/")
+        endpoint = (env.get(ENDPOINT_ENV) or "").strip()
+        blobs = S3PackBlobs(bucket, prefix=prefix,
+                            **({"endpoint_url": endpoint} if endpoint else {}))  # fmt: skip
+    else:
+        raise ValueError(f"{PACK_ENV} must be s3://<bucket>[/prefix] or file://<directory>")
+    return PackedObjectStore(blobs, keys, holds_root=state / "objects")
 
 
 def policy_from_env(env: Mapping[str, str]) -> WormPolicy:
@@ -62,6 +84,10 @@ def object_store_from_env(
     """A ``WormObjectStore`` when ``TINE_REMOTE_OBJECT_STORE`` names one, else None."""
     env = os.environ if env is None else env
     url = (env.get(STORE_ENV) or "").strip()
+    if (env.get(PACK_ENV) or "").strip():
+        if url:
+            raise ValueError(f"set {STORE_ENV} or {PACK_ENV}, not both")
+        return packed_store_from_env(state, keys, env)
     if not url:
         return None
     from opentine.remote._worm_store import WormObjectStore

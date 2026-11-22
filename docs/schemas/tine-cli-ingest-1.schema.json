@@ -1,0 +1,385 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-ingest-1.schema.json",
+  "title": "tine ingest ... --json",
+  "description": "Batched streaming ingest. `ingest policy` signs and holds a sampling policy; `ingest --batch` samples, signs and chains one batch; `ingest verify` checks the chain, counts and policy; `ingest packs` re-reads a tine serve pack store.",
+  "anyOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "batch"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-ingest/1"
+        },
+        "command": {
+          "const": "ingest --batch"
+        },
+        "batch": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "convention",
+            "stream",
+            "seq",
+            "previous",
+            "policy",
+            "policy_digest",
+            "first_index",
+            "next_index",
+            "received",
+            "captured",
+            "dropped",
+            "dropped_by",
+            "input_sha256",
+            "at"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+            },
+            "convention": {
+              "const": "opentine.ingest-batch/1"
+            },
+            "stream": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+            },
+            "seq": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "previous": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "policy": {
+              "type": "string",
+              "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+            },
+            "policy_digest": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "first_index": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "next_index": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "received": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "captured": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "dropped": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "dropped_by": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "rate"
+              ],
+              "properties": {
+                "kind": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "rate": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "input_sha256": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "at": {
+              "type": "string",
+              "description": "RFC 3339 UTC timestamp"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "policy"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-ingest/1"
+        },
+        "command": {
+          "const": "ingest policy"
+        },
+        "policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "digest",
+            "convention",
+            "stream",
+            "capture",
+            "drop",
+            "rate",
+            "seed_source",
+            "seed",
+            "redact",
+            "issued_at"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "convention": {
+              "const": "opentine.ingest-policy/1"
+            },
+            "stream": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+            },
+            "capture": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 256
+            },
+            "drop": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 256
+            },
+            "rate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "seed_source": {
+              "enum": [
+                "operator",
+                "random"
+              ]
+            },
+            "seed": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "redact": {
+              "type": "boolean"
+            },
+            "issued_at": {
+              "type": "string",
+              "description": "RFC 3339 UTC timestamp"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "report"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-ingest/1"
+        },
+        "command": {
+          "const": "ingest verify"
+        },
+        "report": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "stream",
+            "head",
+            "batches",
+            "received",
+            "captured",
+            "dropped",
+            "policies",
+            "roles",
+            "ok",
+            "findings"
+          ],
+          "properties": {
+            "stream": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+            },
+            "head": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "batches": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "received": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "captured": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "dropped": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "policies": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+              }
+            },
+            "roles": {
+              "enum": [
+                "pinned",
+                "unpinned",
+                "absent"
+              ]
+            },
+            "ok": {
+              "type": "boolean"
+            },
+            "findings": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "level",
+                  "code",
+                  "batch",
+                  "message"
+                ],
+                "properties": {
+                  "level": {
+                    "enum": [
+                      "fail",
+                      "advisory"
+                    ]
+                  },
+                  "code": {
+                    "type": "string"
+                  },
+                  "batch": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "message": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "packs"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-ingest/1"
+        },
+        "command": {
+          "const": "ingest packs"
+        },
+        "packs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "tenant",
+              "packs",
+              "objects",
+              "bad"
+            ],
+            "properties": {
+              "tenant": {
+                "type": "string"
+              },
+              "packs": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "objects": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "bad": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

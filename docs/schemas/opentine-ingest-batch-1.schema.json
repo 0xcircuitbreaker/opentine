@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-ingest-batch-1.schema.json",
+  "title": "opentine.ingest-batch/1 annotation value",
+  "description": "One signed ingest batch: counts captured and dropped, the policy digest, the chain link to the previous batch and the captured events. A claim convention on an existing annotation, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "stream",
+    "seq",
+    "previous",
+    "policy",
+    "policy_digest",
+    "first_index",
+    "next_index",
+    "received",
+    "captured",
+    "dropped",
+    "dropped_by",
+    "input_sha256",
+    "at",
+    "events"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.ingest-batch/1"
+    },
+    "stream": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+    },
+    "seq": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "previous": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "policy": {
+      "type": "string",
+      "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+    },
+    "policy_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "first_index": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "next_index": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "received": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "captured": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "dropped": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "dropped_by": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "rate"
+      ],
+      "properties": {
+        "kind": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rate": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "input_sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "at": {
+      "type": "string",
+      "description": "RFC 3339 UTC timestamp"
+    },
+    "events": {
+      "type": "string",
+      "description": "JSON Lines: {\"e\": EVENT, \"i\": INDEX, \"k\": KIND}"
+    }
+  }
+}

@@ -35,8 +35,14 @@ def install_objects(
         objects.put(tenant, oid, raw)
         index.record_object(tenant, oid, len(raw), targets[oid])
 
-    for oid, raw in order:
-        write(oid, raw)
+    many = getattr(objects, "put_many", None)
+    if callable(many):  # 0.77: a pack store writes the whole install as one pack
+        many(tenant, order)
+        for oid, raw in order:
+            index.record_object(tenant, oid, len(raw), targets[oid])
+    else:
+        for oid, raw in order:
+            write(oid, raw)
     fence_install(objects, index, tenant, order, linked, write)
 
 

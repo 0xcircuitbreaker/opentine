@@ -79,6 +79,28 @@ DATASET_RECORD = "dataset-record:"
 DATASET_WITHDRAW = "dataset-withdraw:"
 #: 0.74: rows that keep a signed policy admission record (opentine._policy_record): never released.
 POLICY_ADMISSION = "policy-admission:"
+#: 0.77: rows that keep an ingest stream's sampling policies and its newest batch
+#: (opentine._ingest_holds): released never; batches chain to the held head.
+INGEST_POLICY = "ingest-policy:"
+INGEST_HEAD = "ingest-head:"
+_NEVER_RELEASED = (
+    ((MEMORY_QUARANTINE,), "a memory quarantine"),
+    ((MONITOR_VERDICT, MONITOR_STOP), "a monitor verdict or stop token"),
+    ((OVERSIGHT_DECISION,), "an oversight decision"),
+    ((AUDIT_GAME,), "an audit-game record"),
+    ((SABOTAGE_TASK,), "a sabotage task record"),
+    ((HISTORY_MERGE,), "a history-merge record"),
+    ((BUDGET_LEDGER, BUDGET_FLAG), "a budget-ledger entry"),
+    ((CONTAINMENT,), "a containment record"),
+    ((WEIGHT_CUSTODY, WEIGHT_CUSTODY_REFUSED), "a weight custody record"),
+    ((ORGANISM,), "a model-organism record"),
+    ((TRANSCRIPT_FLAG,), "a transcript behaviour flag"),
+    ((UPLIFT,), "an uplift record"),
+    ((DATASET_RECORD,), "a dataset record"),
+    ((DATASET_WITHDRAW,), "a dataset withdrawal"),
+    ((POLICY_ADMISSION,), "a policy admission record"),
+    ((INGEST_POLICY, INGEST_HEAD), "an ingest policy or batch"),
+)
 MAX_HOLDS_BYTES = 4 * 1024 * 1024
 
 
@@ -178,36 +200,9 @@ def release(repo, target: str) -> list[dict[str, str]]:
         if any(r["target"].startswith((HOLDOUT_ACCESS, CANARY_HOLD)) for r in gone):
             raise HoldError(f"{target} keeps a holdout access record or canary registration: "
                             "it is never released")  # fmt: skip
-        if any(r["target"].startswith(MEMORY_QUARANTINE) for r in gone):
-            raise HoldError(f"{target} keeps a memory quarantine: it is never released")
-        if any(r["target"].startswith((MONITOR_VERDICT, MONITOR_STOP)) for r in gone):
-            raise HoldError(f"{target} keeps a monitor verdict or stop token: it is never released")
-        if any(r["target"].startswith(OVERSIGHT_DECISION) for r in gone):
-            raise HoldError(f"{target} keeps an oversight decision: it is never released")
-        if any(r["target"].startswith(AUDIT_GAME) for r in gone):
-            raise HoldError(f"{target} keeps an audit-game record: it is never released")
-        if any(r["target"].startswith(SABOTAGE_TASK) for r in gone):
-            raise HoldError(f"{target} keeps a sabotage task record: it is never released")
-        if any(r["target"].startswith(HISTORY_MERGE) for r in gone):
-            raise HoldError(f"{target} keeps a history-merge record: it is never released")
-        if any(r["target"].startswith((BUDGET_LEDGER, BUDGET_FLAG)) for r in gone):
-            raise HoldError(f"{target} keeps a budget-ledger entry: it is never released")
-        if any(r["target"].startswith(CONTAINMENT) for r in gone):
-            raise HoldError(f"{target} keeps a containment record: it is never released")
-        if any(r["target"].startswith((WEIGHT_CUSTODY, WEIGHT_CUSTODY_REFUSED)) for r in gone):
-            raise HoldError(f"{target} keeps a weight custody record: it is never released")
-        if any(r["target"].startswith(ORGANISM) for r in gone):
-            raise HoldError(f"{target} keeps a model-organism record: it is never released")
-        if any(r["target"].startswith(TRANSCRIPT_FLAG) for r in gone):
-            raise HoldError(f"{target} keeps a transcript behaviour flag: it is never released")
-        if any(r["target"].startswith(UPLIFT) for r in gone):
-            raise HoldError(f"{target} keeps an uplift record: it is never released")
-        if any(r["target"].startswith(DATASET_RECORD) for r in gone):
-            raise HoldError(f"{target} keeps a dataset record: it is never released")
-        if any(r["target"].startswith(DATASET_WITHDRAW) for r in gone):
-            raise HoldError(f"{target} keeps a dataset withdrawal: it is never released")
-        if any(r["target"].startswith(POLICY_ADMISSION) for r in gone):
-            raise HoldError(f"{target} keeps a policy admission record: it is never released")
+        for prefixes, what in _NEVER_RELEASED:
+            if any(r["target"].startswith(prefixes) for r in gone):
+                raise HoldError(f"{target} keeps {what}: it is never released")
         return [r for r in rows if r not in gone]
 
     edit_holds(holds_path(repo), change)
