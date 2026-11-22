@@ -76,3 +76,13 @@ def test_the_roadmap_re_evaluates_all_seven_criteria_and_leaves_the_call_to_the_
     assert all(row.count("|") == 6 for row in rows)
     assert "go/no-go on declaring the 1.0 track is the owner's decision" in section
     assert "nightly-soak.yml" in section and "verify_everywhere.py" in section
+
+
+def test_a_failing_check_piped_into_tee_still_fails_its_step():
+    # GitHub's implicit shell is ``bash -e`` without pipefail, so ``check | tee``
+    # would be green whatever the check said. Only an explicit ``shell: bash``
+    # (``bash --noprofile --norc -eo pipefail``) makes the pipe carry the failure.
+    text = _text()
+    piped = [m for m in re.findall(r"run: \|\n((?:          .*\n)+)", text) if " | " in m]
+    assert piped
+    assert "defaults:\n  run:\n    shell: bash\n" in text

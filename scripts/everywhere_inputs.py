@@ -27,13 +27,42 @@ def _case(cid: str, op: str, raw: bytes, args: dict[str, Any]) -> Case:
                 intent="verify_everywhere", input={"bytes": raw}, args=args)  # fmt: skip
 
 
-def _signed(raw: bytes) -> bool:
-    try:
-        value = _json_shallow.loads(raw)
-    except ValueError:
-        return False
+def _pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    out: dict[str, Any] = {}
+    for name, value in pairs:
+        if name in out:
+            raise ValueError(f"duplicate key {name!r}")
+        out[name] = value
+    return out
+
+
+def _constant(literal: str) -> Any:
+    raise ValueError(f"non-finite number {literal}")
+
+
+def _strict(raw: bytes) -> Any:
+    """Parse a record strictly: no duplicate keys, NaN, Infinity or overflowing floats."""
+
+    def _finite(text: str) -> float:
+        value = float(text)
+        if value in (float("inf"), float("-inf")):
+            raise ValueError(f"non-finite number {text}")
+        return value
+
+    return _json_shallow.loads(raw.decode("utf-8"), object_pairs_hook=_pairs,
+                               parse_constant=_constant, parse_float=_finite)  # fmt: skip
+
+
+def _block_ok(value: Any) -> bool:
     block = value.get("signature") if isinstance(value, dict) else None
     return isinstance(block, dict) and str(block.get("scheme", "")).startswith("tine-attest/")
+
+
+def _signed(raw: bytes) -> bool:
+    try:
+        return _block_ok(_json_shallow.loads(raw))
+    except ValueError:
+        return False
 
 
 def repo_cases(tine_dir: Path) -> list[Case]:
@@ -57,15 +86,29 @@ def repo_cases(tine_dir: Path) -> list[Case]:
     return cases
 
 
-def file_cases(folder: Path) -> list[Case]:
-    """``sig.verify`` for every signed ``*.json`` record under *folder* (or *folder* itself)."""
+def file_cases(folder: Path, problems: list[str] | None = None) -> list[Case]:
+    """``sig.verify`` for every signed ``*.json`` record under *folder* (or *folder* itself).
+
+    Fail closed: a file that does not parse strictly (duplicate keys, NaN,
+    Infinity, bad JSON) is reported ``unreadable``, and one that looks like a
+    record (a ``claim`` or a ``signature`` key) without a ``tine-attest`` block
+    is reported ``unsigned``, rather than silently leaving the check.
+    """
+    problems = [] if problems is None else problems
     paths = [folder] if folder.is_file() else sorted(folder.rglob("*.json"))
     cases = []
     for path in paths:
         raw = path.read_bytes()
-        if _signed(raw):
-            name = path.relative_to(folder).as_posix() if folder.is_dir() else path.name
+        name = path.relative_to(folder).as_posix() if folder.is_dir() else path.name
+        try:
+            value = _strict(raw)
+        except (ValueError, UnicodeDecodeError, RecursionError) as exc:
+            problems.append(f"unreadable record: file:{name} ({exc})")
+            continue
+        if _block_ok(value):
             cases.append(_case(f"file:{name}#sig", "sig.verify", raw, {"trust_embedded": True}))
+        elif isinstance(value, dict) and ("claim" in value or "signature" in value):
+            problems.append(f"unsigned record: file:{name}")
     return cases
 
 

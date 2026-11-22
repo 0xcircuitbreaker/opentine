@@ -113,3 +113,50 @@ def test_a_missing_target_is_a_usage_error(tool, tmp_path):
     with pytest.raises(SystemExit) as raised:
         tool.main([str(tmp_path / "nowhere")])
     assert raised.value.code == 2
+
+
+def _strip(path: Path, how: str) -> None:
+    data = json.loads(path.read_bytes())
+    if how == "null":
+        data["signature"] = None
+    elif how == "drop":
+        del data["signature"]
+    else:
+        data["signature"]["scheme"] = "none"
+    path.write_bytes(json.dumps(data, sort_keys=True).encode("utf-8"))
+
+
+@pytest.mark.parametrize("how", ["null", "drop", "scheme"])
+def test_a_record_with_its_signature_stripped_is_not_skipped(room, tool, capsys, how):
+    _strip(room["records"] / "promote" / "promote.json", how)
+    code, report = _report(tool, capsys, str(room["records"]))
+    assert code == 1
+    assert any("promote/promote.json" in p and "unsigned" in p for p in report["problems"])
+
+
+@pytest.mark.parametrize("body", [b'{"claim": {}, "claim": {}}', b'{"a": NaN}', b"{not json"])
+def test_an_unreadable_record_file_is_not_skipped(room, tool, capsys, body):
+    (room["records"] / "promote" / "promote.json").write_bytes(body)
+    code, report = _report(tool, capsys, str(room["records"]))
+    assert code == 1
+    assert any("promote/promote.json" in p and "unreadable" in p for p in report["problems"])
+
+
+def test_a_target_with_nothing_to_verify_fails_closed(tool, capsys, tmp_path):
+    (tmp_path / "empty").mkdir()
+    code, report = _report(tool, capsys, str(tmp_path / "empty"))
+    assert code == 1
+    assert report["problems"] == ["nothing to verify"]
+
+
+def test_two_different_records_under_one_case_id_are_a_problem(room, tool, tmp_path):
+    cases = tool.file_cases(room["records"])
+    other = tmp_path / "other" / "promote"
+    other.mkdir(parents=True)
+    src = room["records"] / "promote"
+    (other / "promote.json").write_bytes((src / "revert.json").read_bytes())
+    cases += tool.file_cases(tmp_path / "other")
+    report = tool.compare(cases, pyz=None, scratch=tmp_path)
+    assert any(p.startswith("duplicate case id") for p in report["problems"])
+    same = tool.compare(cases[:1] + cases[:1], scratch=tmp_path)
+    assert same["ok"] and same["cases"] == 1

@@ -22,6 +22,11 @@ concurrency:
 permissions:
   contents: read
 
+# Explicit bash runs with -eo pipefail, so `check | tee` fails when the check fails.
+defaults:
+  run:
+    shell: bash
+
 jobs:
   suite:
     name: Test suite (${{ matrix.os }})

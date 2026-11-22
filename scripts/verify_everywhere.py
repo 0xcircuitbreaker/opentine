@@ -120,6 +120,7 @@ def compare(cases: list[Case], *, require_ts: bool = False, allow_invalid: bool 
     """Every verifier's answer to every case; ``pyz`` replaces the built archive (tests)."""
     groups = _alias_groups()
     records, problems = [], []
+    cases, problems = _unique(cases)
     for case in cases:
         record, crashed = _record(case)
         records.append(record)
@@ -140,6 +141,20 @@ def compare(cases: list[Case], *, require_ts: bool = False, allow_invalid: bool 
     return {"schema": SCHEMA, "ok": not found, "cases": len(cases), "ts": ts is not None,
             "verifiers": ["python", "pyz", *(["ts"] if ts is not None else [])],
             "problems": found}  # fmt: skip
+
+
+def _unique(cases: list[Case]) -> tuple[list[Case], list[str]]:
+    """Drop repeats of one input; two different inputs under one id would share a TS row."""
+    seen: dict[str, bytes] = {}
+    kept, problems = [], []
+    for case in cases:
+        raw = case.input["bytes"]
+        if case.id not in seen:
+            seen[case.id] = raw
+            kept.append(case)
+        elif seen[case.id] != raw:
+            problems.append(f"duplicate case id with different input: {case.id}")
+    return kept, problems
 
 
 class _given:
@@ -174,7 +189,7 @@ def main(argv: list[str] | None = None) -> int:
             elif target.is_file() and target.read_bytes()[:11] == b"TINEBUNDLE1":
                 cases += bundle_cases(target, Path(tmp), problems, TS_PARITY.with_name("cli.js"))
             elif target.exists():
-                cases += file_cases(target)
+                cases += file_cases(target, problems)
             else:
                 parser.error(f"{target} does not exist")
         try:
@@ -183,6 +198,8 @@ def main(argv: list[str] | None = None) -> int:
             print(f"verify_everywhere: {exc}", file=sys.stderr)
             return 2
     report["problems"] = problems + report["problems"]
+    if not report["cases"] and not report["problems"]:
+        report["problems"] = ["nothing to verify"]  # a gate that checked nothing is not green
     report["ok"] = not report["problems"]
     if args.json:
         sys.stdout.buffer.write(json.dumps(report, indent=2, sort_keys=True).encode() + b"\n")

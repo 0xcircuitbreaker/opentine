@@ -39,6 +39,10 @@
   disagreement, gap or record that does not verify. Its tests cover every
   record kind the reference loop writes: lineage, holdout, monitor verdicts,
   oversight decisions, admissions, budget, containment, promote and revert.
+  It fails closed: a record file with its signature stripped (`unsigned`),
+  one that does not parse strictly (duplicate keys, NaN, Infinity:
+  `unreadable`), two different inputs under one case id, and a run with
+  nothing to verify are all problems, not skips.
 - `.github/workflows/nightly-soak.yml` runs the test suite, verifier parity,
   the format-reader fuzzer at ten times the per-PR scale and the storage
   bench every night and on demand, uploads each job's results and writes
