@@ -51,6 +51,14 @@
 - ROADMAP: the 1.0 criteria are re-evaluated at 0.80 (criterion, evidence,
   status, audit status). Declaring the 1.0 track stays the owner's decision,
   taken after the 7-day soak.
+- One entry point: `uv run python examples/self_improving_loop.py WORKDIR --verify`
+  runs the loop and then `scripts/verify_everywhere.py` over the run's
+  repository and signed record folders (`--require-ts` makes the TS verifier
+  mandatory). A signed `tine-sig/3` budget policy, which only the Python
+  verifier implements, is verified there and named as Python only instead of
+  being reported unsigned. The new `reference-loop` CI job runs the stub loop
+  with `--verify --require-ts`; `tests/test_080_acceptance.py` checks the
+  acceptance criteria end to end.
 
 ## 0.77.0 — Live tail and streaming ingest (2026-11-22)
 

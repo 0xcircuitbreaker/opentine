@@ -2,6 +2,7 @@
 
     python examples/self_improving_loop.py WORKDIR [--steps 8] [--model stub|anthropic]
                                            [--no-seeded-faults] [--cap-usd 10]
+                                           [--verify] [--require-ts]
 
 A small loop improves a toy solver one variant at a time. Each step records the
 mutation run, its spend and sandbox policy, monitor verdicts, signed visible,
@@ -15,6 +16,9 @@ regression at step 4 (promoted, then reverted by the canary).
 The default model is a deterministic stub: no network and no key. ``--model
 anthropic`` asks a real model (bring your own key: ``ANTHROPIC_API_KEY`` and the
 optional ``anthropic`` package; ``OPENTINE_LOOP_MODEL`` picks the model).
+``--verify`` then checks every object and signed record the run wrote with the
+Python verifier, a freshly built ``tine-verify.pyz`` and, when built, the TS
+verifier (``--require-ts`` makes TS mandatory), via ``scripts/verify_everywhere.py``.
 See docs/REFERENCE-LOOP.md.
 """
 
@@ -31,6 +35,19 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from reference_loop.loop import run_loop  # noqa: E402
 from reference_loop.models import AnthropicModel, StubModel  # noqa: E402
 
+RECORD_DIRS = ("approvals", "evals", "integrity", "policy", "promotion", "sandbox")
+
+
+def verify(work: Path, *, require_ts: bool) -> int:
+    """Every object of the run's repository and every signed record, by every verifier."""
+    scripts = Path(__file__).resolve().parents[1] / "scripts"
+    sys.path.insert(0, str(scripts))
+    from verify_everywhere import main as verify_everywhere
+
+    targets = [(work / "repo").as_posix()]
+    targets += [(work / name).as_posix() for name in RECORD_DIRS if (work / name).is_dir()]
+    return verify_everywhere(targets + (["--require-ts"] if require_ts else []))
+
 
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
@@ -40,6 +57,9 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--no-seeded-faults", action="store_true",
                         help="Stub only: no seeded reward hack or regression")  # fmt: skip
     parser.add_argument("--cap-usd", type=float, default=10.0, help="Budget cap (USD)")
+    parser.add_argument("--verify", action="store_true",
+                        help="Verify every produced object with python, pyz and TS")  # fmt: skip
+    parser.add_argument("--require-ts", action="store_true", help="With --verify: TS is required")
     args = parser.parse_args(argv)
     work = Path(args.workdir or tempfile.mkdtemp(prefix="reference-loop-"))
     if args.model == "anthropic":
@@ -65,7 +85,7 @@ def main(argv: list[str]) -> int:
     )
     print(f"report: {(work / 'report.json').as_posix()}")
     print(json.dumps({"champion": report["champion"]["variant"]}))
-    return 0
+    return verify(work, require_ts=args.require_ts) if args.verify else 0
 
 
 if __name__ == "__main__":

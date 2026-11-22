@@ -181,6 +181,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     cases: list[Case] = []
     problems: list[str] = []
+    python_only: list[str] = []
     with tempfile.TemporaryDirectory() as tmp:
         for target in args.targets:
             tine = tine_dir(target)
@@ -189,7 +190,7 @@ def main(argv: list[str] | None = None) -> int:
             elif target.is_file() and target.read_bytes()[:11] == b"TINEBUNDLE1":
                 cases += bundle_cases(target, Path(tmp), problems, TS_PARITY.with_name("cli.js"))
             elif target.exists():
-                cases += file_cases(target, problems)
+                cases += file_cases(target, problems, python_only)
             else:
                 parser.error(f"{target} does not exist")
         try:
@@ -198,7 +199,8 @@ def main(argv: list[str] | None = None) -> int:
             print(f"verify_everywhere: {exc}", file=sys.stderr)
             return 2
     report["problems"] = problems + report["problems"]
-    if not report["cases"] and not report["problems"]:
+    report["python_only"] = python_only
+    if not report["cases"] and not python_only and not report["problems"]:
         report["problems"] = ["nothing to verify"]  # a gate that checked nothing is not green
     report["ok"] = not report["problems"]
     if args.json:
@@ -208,7 +210,9 @@ def main(argv: list[str] | None = None) -> int:
             print(line, file=sys.stderr)
         verdict = "ok" if report["ok"] else "FAIL"
         who, count = ", ".join(report["verifiers"]), len(report["problems"])
-        print(f"verify_everywhere: {verdict}: {report['cases']} case(s), {who}, {count} problem(s)")
+        extra = f", {len(python_only)} policy document(s) python only" if python_only else ""
+        print(f"verify_everywhere: {verdict}: {report['cases']} case(s), {who}, {count} problem(s)"
+              f"{extra}")  # fmt: skip
     return 0 if report["ok"] else 1
 
 

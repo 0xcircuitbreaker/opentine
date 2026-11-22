@@ -9,9 +9,16 @@ promotion and revert, the uplift trend and the dataset taint filter. Nothing in
 it adds an object kind or a `tine verify` code; every record is an existing
 claim convention.
 
+The single entry point, from a checkout:
+
+```text
+uv run python examples/self_improving_loop.py WORKDIR --verify
+```
+
 ```text
 python examples/self_improving_loop.py WORKDIR [--steps 8] [--model stub|anthropic]
                                        [--no-seeded-faults] [--cap-usd 10]
+                                       [--verify] [--require-ts]
 ```
 
 The default model is a deterministic stub: no network and no key. With the
@@ -147,6 +154,20 @@ grant powers only from the owner-signed bundle.
   evaluated variant, under budget, chain intact);
 - `lineage_check_exit`: `tine lineage check` per variant;
 - `fsck_ok`: every stored object re-hashes.
+
+## Verifying everything it wrote
+
+`--verify` runs `scripts/verify_everywhere.py` over the run's repository
+(`WORKDIR/repo`) and its signed record folders (`approvals`, `evals`,
+`integrity`, `policy`, `promotion`, `sandbox`). Every object is decoded and
+link-checked, and every signed record is verified, by the Python verifier, a
+freshly built `tine-verify.pyz` and, when `ts/verifier` is built (`npm ci &&
+npm run build`), the TS verifier; any disagreement, unsigned or unreadable
+record, or record that does not verify exits 1. The signed budget policy is a
+`tine-sig/3` policy document that only the Python verifier implements; it is
+checked there and named as Python only. `--require-ts` fails when the TS build
+is missing. The `reference-loop` CI job runs the stub loop with `--verify
+--require-ts` on every push.
 
 ## Running with a real model
 
