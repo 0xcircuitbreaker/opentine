@@ -27,7 +27,7 @@ ROOT = Path(__file__).resolve().parents[1]
 EXAMPLES = ROOT / "examples"
 
 #: Offline examples that take their working directory as ``argv[1]``.
-WORKDIR_EXAMPLES = ("otel_interop.py", "v3_repository.py")
+WORKDIR_EXAMPLES = ("otel_interop.py", "self_improving_loop.py", "v3_repository.py")
 
 #: Offline examples that write into the current directory instead.
 CWD_EXAMPLES = ("forked_debug.py", "harness_comparison.py")
@@ -87,6 +87,15 @@ def test_otel_interop_example_round_trips_a_foreign_trace(tmp_path, capsys):
     assert len(document["resourceSpans"][0]["scopeSpans"][0]["spans"]) == 3
     assert (work / "imported.tine").is_file()
     assert Repo.open(work / "repo").fsck().ok
+
+
+def test_self_improving_loop_example_runs_on_the_stub_model(tmp_path, capsys):
+    work = tmp_path / "loop"
+    _execute("self_improving_loop.py", str(work), "--steps", "2")
+    out = capsys.readouterr().out
+    assert "step 1: kept" in out and "step 2: refused [reward-hack]" in out
+    report = json.loads((work / "report.json").read_bytes())
+    assert [row["step"] for row in report["steps"]] == [1, 2]
 
 
 def test_forked_debug_example_writes_a_loadable_fork(tmp_path, monkeypatch, capsys):
