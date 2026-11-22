@@ -119,10 +119,14 @@ def internal_files(root: Path, branch: str) -> Iterator[Path]:
         for name in names:
             path = internal_path(root, *(base / name).relative_to(root).parts)
             if not path.is_dir():
+                if not os.path.lexists(path):
+                    continue  # removed since the listing (a concurrent writer): not there
                 raise KernelError("repository walk encountered a non-directory")
         for name in files:
             path = internal_path(root, *(base / name).relative_to(root).parts)
             if not path.is_file():
+                if not os.path.lexists(path):
+                    continue  # a temporary file renamed away since the listing (0.77)
                 raise KernelError("repository walk encountered a non-file")
             yield path
 
