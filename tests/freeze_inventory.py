@@ -103,6 +103,7 @@ NOT_KINDS = (
     "tine-assurance-1", "tine-blame-1", "tine-ci-gate-1", "tine-experts-1", "tine-help-1",
     "tine-list-page-1", "tine-redaction-rules-1", "tine-repo-show-1", "tine-search-results-1",
     "tine-share-1", "tine-verify-dataset-1", "tine-watch-1", "tine-graph-1",
+    "tine-tail-1",  # 0.77: live-tail rows (SSE data, tine log -f --json), not a kind
     "opentine-compliance-profile-1",
     "opentine-witness-network-1",  # 0.49: a pinned config, like --witness-vkey flags
     # 0.63: claim conventions carried on existing attestations / hook config, not kinds

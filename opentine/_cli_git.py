@@ -23,6 +23,7 @@ from opentine._cli_git_refs import (
 )
 from opentine._cli_git_rewrite import cmd_cherry_pick, cmd_rebase
 from opentine._cli_git_sync import cmd_pull
+from opentine._cli_log_follow import add_follow_args
 from opentine._cli_remote_login import add_login_parser
 from opentine._repo_cli_keys import add_key_args
 
@@ -130,6 +131,7 @@ def add_git_parsers(sub: argparse._SubParsersAction) -> None:
     log.add_argument("--limit", type=int, default=None)
     log.add_argument("--commit", metavar="SHA", help="Runs behind a git commit (tine git log)")
     log.add_argument("--pr", type=int, metavar="N", help="Runs behind a GitHub PR (tine git log)")
+    add_follow_args(log)  # 0.77: tine log -f
     _common(log)
 
     rebase = sub.add_parser("rebase", help="Fork a run onto a different model")

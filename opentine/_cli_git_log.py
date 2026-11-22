@@ -112,6 +112,11 @@ def cmd_log(args: argparse.Namespace, console) -> None:
         args.git_command = "log"
         cmd_git(args)
         return
+    if getattr(args, "follow", False):
+        from opentine._cli_log_follow import follow
+
+        follow(args, console)
+        return
     repo = Repo.open(args.repo)
     graph = args.graph or args.all or args.oneline
     if not graph:
