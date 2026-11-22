@@ -1,0 +1,214 @@
+name: Nightly soak
+
+# 0.80: the soak behind the 1.0 re-evaluation (docs/ROADMAP.md, "1.0
+# re-evaluation"). Every night it runs the whole test suite, three-way
+# verifier parity (the pinned vectors and every object of a loop fixture
+# repository, scripts/verify_everywhere.py), the format-reader fuzzer at ten
+# times the per-PR scale and the storage bench. Each job writes its results
+# under results/; the summary job turns them into soak-summary.json (an
+# artifact) and the run summary, and is red on a red night. Seven consecutive
+# green nights is the soak the 1.0 decision reads; the decision itself is the
+# owner's.
+
+on:
+  schedule:
+    - cron: "41 4 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: nightly-soak-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  suite:
+    name: Test suite (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    strategy:
+      matrix:
+        os: [ubuntu-24.04, windows-latest]
+      fail-fast: false
+    env:
+      UV_PYTHON: "3.13"
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with:
+          version: "0.11.12"
+
+      - name: Install dependencies
+        shell: bash  # $UV_PYTHON is not expanded by PowerShell on Windows
+        run: |
+          uv python install "$UV_PYTHON"
+          uv sync --locked --all-extras
+
+      - name: Run the suite
+        shell: bash
+        run: >-
+          uv run --locked pytest -n auto -m "not live and not live_harness and not serial"
+          --durations=20 --junitxml "results/suite-${{ matrix.os }}.xml"
+
+      - name: Run the serial tests
+        shell: bash
+        run: >-
+          uv run --locked pytest -p no:xdist -m "serial"
+          --junitxml "results/suite-serial-${{ matrix.os }}.xml"
+
+      - name: Keep results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: soak-suite-${{ matrix.os }}
+          path: results
+          if-no-files-found: ignore
+
+  parity:
+    name: Verifier parity (python, pyz, TS)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with:
+          version: "0.11.12"
+
+      - name: Install dependencies
+        run: uv sync --locked --all-extras
+
+      - name: Set up Node 20
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "20"
+
+      - name: Build the TS verifier
+        working-directory: ts/verifier
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build
+
+      - name: Pinned vectors, every refusal's reason code
+        run: |
+          mkdir -p results
+          uv run --locked python scripts/check_parity.py --require-ts --reasons | tee results/parity.txt
+
+      - name: Every object of a loop fixture repository
+        run: |
+          uv run --locked python -c "from pathlib import Path; from tests.verify_everywhere_fixture import build; build(Path('soak-fixture'))"
+          uv run --locked python scripts/verify_everywhere.py soak-fixture/repo soak-fixture/records \
+            --require-ts --json > results/verify-everywhere.json
+
+      - name: Keep results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: soak-parity
+          path: results
+          if-no-files-found: ignore
+
+  fuzz:
+    name: Fuzz format readers (200,000 inputs per target)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with:
+          version: "0.11.12"
+
+      - name: Install dependencies
+        run: uv sync --locked --all-extras
+
+      - name: Fuzz every format reader
+        run: |
+          mkdir -p results
+          uv run --locked python scripts/fuzz.py --iterations 200000 --seed "$GITHUB_RUN_ID" \
+            --report-every 300 | tee results/fuzz.txt
+
+      - name: Keep results and crash inputs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: soak-fuzz
+          path: |
+            results
+            fuzz-crashes
+          if-no-files-found: ignore
+
+  bench:
+    name: Storage bench
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      OMP_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with:
+          version: "0.11.12"
+
+      - name: Install dependencies
+        run: uv sync --locked --all-extras
+
+      - name: Bench
+        run: |
+          mkdir -p results
+          uv run --locked python scripts/bench/run_bench.py --runs 40 --out results/bench.json
+
+      - name: Keep results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: soak-bench
+          path: results
+          if-no-files-found: ignore
+
+  summary:
+    name: Summary
+    needs: [suite, parity, fuzz, bench]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+
+      - name: Collect results
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          pattern: soak-*
+          path: results
+
+      - name: Summarise
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: >-
+          python3 scripts/nightly_summary.py results --needs "$NEEDS_JSON"
+          --out soak-summary.json --markdown "$GITHUB_STEP_SUMMARY" --title "Nightly soak"
+
+      - name: Keep the summary
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: nightly-soak-summary
+          path: soak-summary.json
+          if-no-files-found: ignore

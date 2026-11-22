@@ -60,8 +60,8 @@ def summarise(results: Path, needs: dict[str, Any]) -> dict[str, Any]:
     return {"ok": ok, "jobs": jobs, "files": files}
 
 
-def markdown(summary: dict[str, Any]) -> str:
-    title = f"## Nightly stress: {'green' if summary['ok'] else 'RED'}"
+def markdown(summary: dict[str, Any], name: str = "Nightly stress") -> str:
+    title = f"## {name}: {'green' if summary['ok'] else 'RED'}"
     lines = [title, "", "| Job | Result |", "|---|---|"]
     lines += [f"| {name} | {result} |" for name, result in summary["jobs"].items()]
     lines += ["", "| Results file | OK | Detail |", "|---|---|---|"]
@@ -77,6 +77,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--needs", default="{}", help="toJSON(needs) from the workflow")
     parser.add_argument("--out", help="Write the JSON summary here")
     parser.add_argument("--markdown", help="Append a Markdown table here (GITHUB_STEP_SUMMARY)")
+    parser.add_argument("--title", default="Nightly stress", help="The Markdown heading (0.80)")
     args = parser.parse_args(argv)
     summary = summarise(Path(args.results), json.loads(args.needs))
     text = json.dumps(summary, indent=2, sort_keys=True)
@@ -85,7 +86,7 @@ def main(argv: list[str] | None = None) -> int:
         Path(args.out).write_text(text + "\n", "utf-8")
     if args.markdown:
         with open(args.markdown, "a", encoding="utf-8") as handle:
-            handle.write(markdown(summary))
+            handle.write(markdown(summary, args.title))
     return 0 if summary["ok"] else 1
 
 
