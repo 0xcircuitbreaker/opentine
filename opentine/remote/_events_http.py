@@ -140,6 +140,10 @@ def extra_routes(app: Any, identity, tenant: str, resource: str, method: str, en
         return audit_routes(app, identity, tenant, resource, environ, sr)
     if resource == "events" and method == "GET":
         return events_route(app, identity, tenant, environ, sr)
+    if resource == "tail" and method == "GET":  # 0.77: live tail (``_tail_http``)
+        from opentine.remote._tail_http import tail_route
+
+        return tail_route(app, identity, tenant, environ, sr)
     if resource == "webhooks" or resource.startswith("webhooks/"):
         return webhook_routes(app, identity, tenant, resource, method, environ, sr)
     if resource.startswith("tombstones/"):  # 0.46: tine purge (``_tombstone_http``)

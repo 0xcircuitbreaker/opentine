@@ -50,6 +50,12 @@ _PARAM_DOCS = {
 _PAGE = [("cursor", "Opaque cursor from next_cursor."), ("limit", "Page size, 1-500.")]
 _QUERY = {
     "streamEvents": [("last_event_id", "Resume after this event id (or Last-Event-ID).")],
+    "tailEvents": [
+        ("ref", "Run ref to follow (default heads/main)."),
+        ("all", "1: follow every run ref."),
+        ("lines", "Events already there to send first, 0-1000."),
+        ("last_event_id", "Resume from this cursor (or Last-Event-ID)."),
+    ],
     "logConsistency": [("old", "Older tree size."), ("new", "Newer tree size.")],
     "logReceipt": [("name", "Ref name."), ("new", "The oid the ref moved to.")],
     "listRuns": _PAGE,

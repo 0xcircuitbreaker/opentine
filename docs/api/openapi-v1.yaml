@@ -101,6 +101,8 @@ components:
           type: "object"
         social_export:
           type: "object"
+        tail_sse:
+          type: "object"
         tenancy:
           type: "object"
         tenant_import:
@@ -6975,6 +6977,84 @@ paths:
         - "protocol"
       x-opentine-cap: "social_export"
       x-opentine-permission: "read_ref"
+      x-opentine-status: "stable"
+  "/v1/tenants/{tenant}/tail":
+    get:
+      operationId: "tailEvents"
+      parameters:
+        - description: "Tenant name."
+          in: "path"
+          name: "tenant"
+          required: true
+          schema:
+            type: "string"
+        - description: "Run ref to follow (default heads/main)."
+          in: "query"
+          name: "ref"
+          required: false
+          schema:
+            type: "string"
+        - description: "1: follow every run ref."
+          in: "query"
+          name: "all"
+          required: false
+          schema:
+            type: "string"
+        - description: "Events already there to send first, 0-1000."
+          in: "query"
+          name: "lines"
+          required: false
+          schema:
+            type: "string"
+        - description: "Resume from this cursor (or Last-Event-ID)."
+          in: "query"
+          name: "last_event_id"
+          required: false
+          schema:
+            type: "string"
+      responses:
+        "200":
+          content:
+            "text/event-stream":
+              schema:
+                format: "binary"
+                type: "string"
+          description: "OK"
+        "401":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Authentication failed"
+        "403":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Forbidden"
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Not found (uniform: also when not visible to the caller)"
+        "429":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Quota or throttle exceeded; honour Retry-After"
+        "503":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Error"
+          description: "Busy; retry later"
+      summary: "tine-tail/1 Server-Sent Events of run events (0.77)"
+      tags:
+        - "protocol"
+      x-opentine-cap: "tail_sse"
+      x-opentine-permission: "fetch"
       x-opentine-status: "stable"
   "/v1/tenants/{tenant}/tokens":
     get:
