@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Live tail and streaming ingest
+## 0.77.0 — Live tail and streaming ingest (2026-11-22)
 
 - `tine query` indexes ingest sampling policies (`ingest_policies`) and
   batches (`ingest_batches`); `--verify` marks a policy row `verified` only for
