@@ -27,8 +27,9 @@ RUNNER = Ed25519PrivateKey.from_private_bytes(b"\x32" * 32)
 def repo(tmp_path):
     repo = Repo.init(tmp_path / "r")
     fpr = key_fingerprint(POLICY.public_key().public_bytes_raw())
+    run = key_fingerprint(RUNNER.public_key().public_bytes_raw())
     (repo.path / "key-roles.toml").write_bytes(
-        f'version = 1\n[roles]\npolicy = ["{fpr}"]\n'.encode()
+        f'version = 1\n[roles]\npolicy = ["{fpr}"]\nrunner = ["{run}"]\n'.encode()
     )
     pin_roles(repo.path)
     doc = _ingest_policy.build("ep", capture=[], drop=[], rate=0.5, seed="cd" * 32,

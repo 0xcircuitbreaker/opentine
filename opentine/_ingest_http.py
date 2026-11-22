@@ -20,6 +20,16 @@ from opentine._ingest_policy import IngestError
 
 LOOPBACK = frozenset({"127.0.0.1", "localhost"})
 ROUTE = "/v1/ingest"
+MAX_CLIENTS = 8  # connections served at once; the rest are answered 503
+TIMEOUT_S = 30.0  # a client that stops sending is dropped
+
+
+def _local_host(value: str | None) -> bool:
+    """A ``Host`` header naming loopback: a rebound DNS name never reaches the key."""
+    if not value:
+        return False
+    host = value.rsplit(":", 1)[0] if value.count(":") == 1 else value
+    return host in LOOPBACK
 
 
 class IngestHandler(BaseHTTPRequestHandler):
@@ -36,7 +46,35 @@ class IngestHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    def setup(self) -> None:
+        self.timeout = self.server.timeout_s
+        super().setup()
+
+    def _refused(self) -> bool:
+        """Browsers (an ``Origin``) and foreign ``Host`` names are refused: 403."""
+        if self.headers.get("Origin") is not None or not _local_host(self.headers.get("Host")):
+            self.close_connection = True
+            self._answer(403, {"error": "loopback clients only"})
+            return True
+        return False
+
+    def handle(self) -> None:
+        if not self.server.slots.acquire(blocking=False):
+            self.close_connection = True
+            self.raw_requestline = self.rfile.readline(65537)
+            if self.raw_requestline and self.parse_request():
+                self._answer(503, {"error": "too many clients"})
+            return
+        try:
+            super().handle()
+        except TimeoutError:
+            self.close_connection = True
+        finally:
+            self.server.slots.release()
+
     def do_GET(self) -> None:  # noqa: N802
+        if self._refused():
+            return
         if self.path != ROUTE:
             self._answer(404, {"error": "not found"})
             return
@@ -46,6 +84,8 @@ class IngestHandler(BaseHTTPRequestHandler):
         self._answer(200, {"stream": self.server.stream, "head": head})
 
     def do_POST(self) -> None:  # noqa: N802
+        if self._refused():
+            return
         if self.path != ROUTE:
             self._answer(404, {"error": "not found"})
             return
@@ -78,6 +118,8 @@ class IngestServer(ThreadingHTTPServer):
         self.repo, self.stream, self.key = repo, stream, key
         self.clock_ms, self.max_bytes = clock_ms, max_bytes
         self.lock = threading.Lock()
+        self.slots = threading.BoundedSemaphore(MAX_CLIENTS)
+        self.timeout_s = TIMEOUT_S
 
     def append(self, data: bytes) -> dict[str, Any]:
         from opentine._ingest_batch import append

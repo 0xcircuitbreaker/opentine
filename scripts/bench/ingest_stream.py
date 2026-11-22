@@ -61,12 +61,13 @@ def _pin_policy_key(repo, key, root: Path) -> None:
     owner = Ed25519PrivateKey.from_private_bytes(b"\x42" * 32)
     fpr = key_fingerprint(key.public_key().public_bytes_raw())
     (repo.path / "key-roles.toml").write_bytes(
-        f'version = 1\n[roles]\npolicy = ["{fpr}"]\n'.encode()
+        f'version = 1\n[roles]\npolicy = ["{fpr}"]\nrunner = ["{fpr}"]\n'.encode()
     )
     payload = {"trust_bundle": 1, "serial": 1,
                "issued_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
                "trust_policy": {"pin": ["sha256:" + "0" * 64]},
-               "key_roles": {"version": 1, "roles": {"policy": [fpr]}}}  # fmt: skip
+               "key_roles": {"version": 1,
+                             "roles": {"policy": [fpr], "runner": [fpr]}}}  # fmt: skip
     signed = _trust_bundle.sign(payload, owner, "bench.example/trust")
     (repo.path / "trust-bundle.note").write_bytes(signed)
     config = root / "xdg" / "opentine"

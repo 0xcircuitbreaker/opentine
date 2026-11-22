@@ -15,7 +15,7 @@ from __future__ import annotations
 from typing import Any
 
 from opentine import _ingest_holds, _ingest_policy
-from opentine._ingest_batch import CONVENTION
+from opentine._ingest_batch import CONVENTION, MAX_EVENTS
 from opentine._ingest_policy import IngestError
 
 _CLAIM_INTS = ("seq", "first_index", "next_index", "received", "captured", "dropped")
@@ -65,6 +65,26 @@ def _check_policy(repo: Any, oid: Any, stream: str, roles: dict[str, Any], held:
     return memo[oid]
 
 
+def _hidden(policy: dict[str, Any], claim: dict[str, Any], stored: set[int],
+            by: dict[str, Any]) -> list[tuple[str, str]]:  # fmt: skip
+    """Indexes the rate keeps but nothing stores must be kind drops, and no more."""
+    failing = missing = 0
+    for index in range(claim["first_index"], claim["next_index"]):
+        if policy["rate"] < 1 and _ingest_policy.fraction(
+            policy["seed"], policy["stream"], index
+        ) >= policy["rate"]:  # fmt: skip
+            failing += 1
+        elif index not in stored:
+            missing += 1
+    kinds = by.get("kind") if type(by.get("kind")) is int else 0
+    rate = by.get("rate") if type(by.get("rate")) is int else 0
+    no_filter = policy["capture"] == ["*"] and not policy["drop"]
+    if rate > failing or kinds < missing or (no_filter and (missing or kinds)):
+        return [("ingest.sampling-hidden", f"{missing} index(es) the policy keeps are not "
+                 f"stored; {rate} rate drops claimed, {failing} possible")]  # fmt: skip
+    return []
+
+
 def _check_batch(anchor: str, row: dict[str, Any], prior: dict[str, Any] | None,
                  policy: dict[str, Any] | None) -> list[dict[str, Any]]:  # fmt: skip
     oid, claim = row["id"], row["claim"]
@@ -103,7 +123,9 @@ def _check_batch(anchor: str, row: dict[str, Any], prior: dict[str, Any] | None,
             isinstance(i, bool) or not isinstance(i, int)
             or not claim["first_index"] <= i < claim["next_index"] for i in indexes):  # fmt: skip
             bad.append(("ingest.events-order", "event indexes are not increasing in range"))
-        elif policy is not None and any(
+        elif policy is not None and claim["received"] <= MAX_EVENTS and counts_ok:
+            bad.extend(_hidden(policy, claim, set(indexes), by))
+        if policy is not None and any(
             not isinstance(e.get("k"), str) or _ingest_policy.decide(policy, e["i"], e["k"])
             for e in events):  # fmt: skip
             bad.append(("ingest.sampling", "a stored event is one the policy drops"))
@@ -146,6 +168,14 @@ def verify(repo: Any, stream: str) -> dict[str, Any]:
                                                 held, memo)  # fmt: skip
         findings.extend({**f, "batch": oid} for f in policy_findings)
         found = _check_batch(anchor, row, prior, policy)
+        code = _ingest_policy.judge_writer(row["signer"], roles) if row["signed"] else None
+        if code:
+            found.append(_finding("fail", code, oid, "the batch signer may not write batches"))
+        named = row["claim"].get("policy")
+        issued = str(policy["issued_at"]) if policy else ""
+        if prior and named != prior.get("policy") and issued <= prior.get("issued", ""):
+            message = "the batch uses a policy older than its predecessor's"
+            found.append(_finding("fail", "ingest.policy-switch", oid, message))
         findings.extend(found)
         sha = row["claim"].get("input_sha256")
         if isinstance(sha, str) and sha in digests and row["claim"].get("received"):
@@ -157,7 +187,13 @@ def verify(repo: Any, stream: str) -> dict[str, Any]:
             total[name] += value if type(value) is int else 0
         claim = row["claim"]
         malformed = any(f["code"] == "ingest.batch-malformed" for f in found)
-        prior = None if malformed else {"claim": {k: claim.get(k) for k in ("seq", "next_index")}}
+        if malformed:
+            prior = None
+        else:
+            keep = prior is None or named == prior["policy"] or issued > prior["issued"]
+            prior = {"claim": {k: claim.get(k) for k in ("seq", "next_index")},
+                     "policy": named if keep else prior["policy"],
+                     "issued": issued if keep else prior["issued"]}  # fmt: skip
     if not held:
         findings.append(_finding("fail", "ingest.policy-missing", None, "no held policy"))
     fails = [f for f in findings if f["level"] == "fail"]

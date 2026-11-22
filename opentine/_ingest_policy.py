@@ -45,6 +45,7 @@ SEED_SOURCES = ("operator", "random")
 STREAM = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}$")
 KIND = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/-]{0,63}$")
 SEED = re.compile(r"^[0-9a-f]{64}$")
+ISSUED = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$")
 MAX_KINDS = 256
 _KEYS = {"convention", "stream", "capture", "drop", "rate", "seed_source", "seed", "redact",
          "issued_at"}  # fmt: skip
@@ -86,8 +87,8 @@ def claim(doc: Any) -> dict[str, Any]:
         raise IngestError("seed is 64 lowercase hex digits")
     if not isinstance(doc.get("redact"), bool):
         raise IngestError("redact is true or false")
-    if not isinstance(doc.get("issued_at"), str):
-        raise IngestError("issued_at is an RFC 3339 time")
+    if not isinstance(doc.get("issued_at"), str) or not ISSUED.fullmatch(doc["issued_at"]):
+        raise IngestError("issued_at is a UTC time YYYY-MM-DDTHH:MM:SSZ")
     return {"convention": CONVENTION, "stream": stream_name(doc.get("stream")),
             "capture": _kinds("capture", doc.get("capture"), star=True),
             "drop": _kinds("drop", doc.get("drop", []), star=False), "rate": float(rate),
@@ -170,5 +171,20 @@ def judge(signer: str | None, roles: dict[str, Any]) -> str | None:
     return None
 
 
+def judge_writer(signer: str | None, roles: dict[str, Any]) -> str | None:
+    """``None`` when *signer* may write batches: a pinned ``runner`` key, never an optimizer."""
+    if signer is None:
+        return "ingest.batch-unsigned"
+    if roles.get("status") != "pinned":
+        return "ingest.policy-unpinned"
+    held = roles.get("roles") or {}
+    if signer in held.get("optimizer", []):
+        return "ingest.batch-optimizer-key"
+    if signer not in held.get("runner", []):
+        return "ingest.batch-role"
+    return None
+
+
 __all__ = ["CONVENTION", "IngestError", "SEED_SOURCES", "anchor", "build", "claim", "decide",
-           "anchor_id", "digest", "fraction", "judge", "record", "stream_name"]  # fmt: skip
+           "anchor_id", "digest", "fraction", "judge", "judge_writer", "record",
+           "stream_name"]  # fmt: skip

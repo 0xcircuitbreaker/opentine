@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from datetime import UTC, datetime
 from typing import Any
 
@@ -44,6 +45,24 @@ MAX_EVENTS = 1_000_000
 MAX_LINE_BYTES = 1 << 20
 _LINE = json.JSONEncoder(sort_keys=True, separators=(",", ":"), ensure_ascii=False,
                          allow_nan=False)  # fmt: skip
+
+
+def _pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    out = dict(pairs)
+    if len(out) != len(pairs):
+        raise ValueError("duplicate key")
+    return out
+
+
+def _finite(text: str) -> float:
+    value = float(text)
+    if not math.isfinite(value):
+        raise ValueError(f"{text} is not a finite number")
+    return value
+
+
+def _constant(text: str) -> Any:
+    raise ValueError(f"{text} is not JSON")
 
 
 def parse(data: bytes) -> list[tuple[str, Any]]:
@@ -60,7 +79,12 @@ def parse(data: bytes) -> list[tuple[str, Any]]:
         if len(out) >= MAX_EVENTS:
             raise IngestError(f"a batch holds at most {MAX_EVENTS} events")
         try:
-            event = _json_shallow.loads(line.decode("utf-8"))
+            event = _json_shallow.loads(
+                line.decode("utf-8"),
+                object_pairs_hook=_pairs,
+                parse_float=_finite,
+                parse_constant=_constant,
+            )
         except (UnicodeDecodeError, ValueError, RecursionError) as exc:
             raise IngestError(f"line {number} is not a JSON object: {exc}") from exc
         if not isinstance(event, dict):
@@ -83,6 +107,18 @@ def current_policy(repo: Any, stream: str) -> dict[str, Any]:
     return max(rows, key=lambda r: (str(r["claim"].get("issued_at")), r["id"]))
 
 
+def _refuse_optimizer(repo: Any, key: Any) -> None:
+    from opentine._key_roles_pin import resolve
+    from opentine._signing_pins import key_fingerprint
+
+    roles = resolve(repo.path)
+    signer = key_fingerprint(key.public_key().public_bytes_raw())
+    if roles.get("status") == "pinned" and signer in (roles.get("roles") or {}).get(
+        "optimizer", []
+    ):
+        raise IngestError("an optimizer key may not sign ingest batches")
+
+
 def append(repo: Any, stream: str, data: bytes, key: Any, *, at_ms: int,
            policy_id: str | None = None) -> dict[str, Any]:  # fmt: skip
     """Sample, store, sign and chain one batch; its summary (``id`` and the claim)."""
@@ -99,11 +135,17 @@ def append(repo: Any, stream: str, data: bytes, key: Any, *, at_ms: int,
         if policy_id not in _ingest_holds.policies(repo, stream):
             raise IngestError(f"{policy_id} is not a held policy of stream {stream}")
     policy = _ingest_policy.claim(policy_row["claim"])
+    _refuse_optimizer(repo, key)
     previous = _ingest_holds.head(repo, stream)
     prior = _ingest_holds.read(repo, previous, CONVENTION) if previous else None
     if previous and prior is None:
         raise IngestError(f"stream {stream} head {previous} is unreadable")
     first = prior["claim"]["next_index"] if prior else 0
+    if prior and prior["claim"].get("policy") != policy_row["id"]:
+        before = _ingest_holds.read(repo, prior["claim"].get("policy"), _ingest_policy.CONVENTION)
+        if before and str(before["claim"].get("issued_at")) >= policy["issued_at"]:
+            raise IngestError(f"{policy_row['id']} is older than the policy stream {stream} "
+                              "already uses")  # fmt: skip
     lines: list[bytes] = []
     dropped_by = {"kind": 0, "rate": 0}
     for offset, (kind, event) in enumerate(events):

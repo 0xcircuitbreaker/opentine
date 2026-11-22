@@ -96,6 +96,10 @@ chain, so deleting a ref or file hides nothing.
 | `ingest.events-malformed` | fail | `events` is not JSON Lines of objects |
 | `ingest.events-order` | fail | stored indexes are not increasing inside the batch's range |
 | `ingest.sampling` | fail | a stored event is one the policy drops |
+| `ingest.sampling-hidden` | fail | an index the policy keeps is not stored and is not covered by the claimed kind drops, or more rate drops are claimed than the seed allows (with `capture: ["*"]` and no `drop`, every kept index must be stored) |
+| `ingest.policy-switch` | fail | a batch names a policy issued no later than the one its predecessor used (policy shopping) |
+| `ingest.batch-role` | fail | the batch signer does not hold the pinned `runner` role |
+| `ingest.batch-optimizer-key` | fail | an optimizer key signed the batch |
 | `ingest.policy-digest` | fail | the batch names another policy digest |
 | `ingest.policy-missing` | fail | no held policy, or the named policy is unreadable |
 | `ingest.policy-malformed` | fail | the policy claim is not valid |
@@ -184,3 +188,18 @@ uv run python scripts/bench/ingest_stream.py --seconds 3600 --batch 10000 --no-r
 ```
 
 Recorded results are in docs/bench/0.77-ingest.md.
+
+## Review hardening
+
+* Batches must be signed by a key holding the pinned `runner` role and no
+  `optimizer` role; `append` refuses an optimizer key outright.
+* `issued_at` is `YYYY-MM-DDTHH:MM:SSZ`; a stream never moves back to an older
+  policy, so a writer cannot pick, batch by batch, the seed that drops an episode.
+* Event lines with duplicate keys, `NaN`, `Infinity` or numbers that overflow
+  to infinity are refused.
+* `tine ingest serve` answers 403 to a request with an `Origin` header or a
+  `Host` that is not loopback (DNS rebinding), drops a client that stops sending
+  after 30 s, and serves at most 8 connections at once (others get 503).
+* Not detectable: a rollback of the held head to an earlier batch by someone who
+  can edit the holds file. Record the head id (`tine ingest verify --json`)
+  somewhere the loop cannot write, and compare.

@@ -2,6 +2,7 @@
 
 ## Unreleased — Live tail and streaming ingest
 
+- Ingest review: batches need a pinned `runner` signer (never an optimizer key); verify recomputes the rate decision for every index so a kept event cannot be relabelled as dropped (`ingest.sampling-hidden`); a stream cannot move back to an older policy (`ingest.policy-switch`); event lines with duplicate keys or non-finite numbers are refused; `tine ingest serve` refuses browser and non-loopback `Host` requests and bounds slow and concurrent clients.
 - New `tine ingest` for large episode streams (docs/INGEST.md):
   `tine ingest policy` signs and holds a stream's sampling policy
   (`opentine.ingest-policy/1`: kinds captured and dropped, rate, seed and its
