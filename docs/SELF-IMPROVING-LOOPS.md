@@ -19,6 +19,7 @@ OpenTine covers each with one release. This guide shows how they fit.
 | 0.57 promotion | Did the candidate beat the baseline, under the policy? | [EVALS-PROMOTION.md](EVALS-PROMOTION.md) |
 | 0.58 lineage | Where did this variant come from, and which evals justify it? | [LINEAGE.md](LINEAGE.md) |
 | 0.60 integrity | Was the score produced honestly? | this page |
+| 0.80 reference loop | What does a loop with every record wired look like? | [REFERENCE-LOOP.md](REFERENCE-LOOP.md) |
 
 ## The loop, record by record
 

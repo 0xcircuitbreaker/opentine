@@ -227,6 +227,30 @@ upload different bytes under the same version.
   the criterion asks only that it be published, so it counts as met; maintainer
   and counsel review of its wording is still advisable before 1.0.
 
+## The nightly soak and the cross-verifier check (0.80)
+
+- **`.github/workflows/nightly-soak.yml`** runs at 04:41 UTC and on demand: the
+  test suite on Linux and Windows, three-way parity on the pinned vectors and
+  on a loop fixture repository, the format-reader fuzzer at 200,000 inputs per
+  target and the storage bench. Every job uploads its results (`soak-*`
+  artifacts); the summary job writes `soak-summary.json` (artifact
+  `nightly-soak-summary`) and the run summary with
+  `scripts/nightly_summary.py --title "Nightly soak"`, and is red on a red
+  night. The 1.0 re-evaluation (ROADMAP §12, "1.0 re-evaluation (0.80)") reads
+  seven consecutive green scheduled nights after the 0.80 tag.
+- **`scripts/verify_everywhere.py TARGET...`** checks a repository, a `tine
+  bundle` file or a folder of signed record files with the Python reference, a
+  freshly built `tine-verify.pyz` and the TS verifier (`npm ci && npm run
+  build` in `ts/verifier`; `--require-ts` makes a missing build exit 2). Every
+  object is decoded under its own oid and its links checked against the store;
+  every signed record (`attestation` or `annotation` objects, `*.json` record
+  files with a `tine-attest` block) is verified under its embedded key. Any
+  disagreement, gap or record that does not verify exits 1
+  (`--allow-invalid` reports disagreements only). `--json` prints one
+  `opentine-verify-everywhere/1` report: `ok`, `cases`, `verifiers` and
+  `problems`. Run it on a loop's repository and record folder before
+  publishing them.
+
 ## The 72-hour fuzz run (0.53, criterion 1)
 
 `scripts/fuzz.py` fuzzes every reader that takes untrusted bytes, one target

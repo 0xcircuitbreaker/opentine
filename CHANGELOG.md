@@ -1,5 +1,65 @@
 # Changelog
 
+## 0.80.0 — Reference self-improving loop (2026-11-22)
+
+- New example `examples/self_improving_loop.py` (package
+  `examples/reference_loop/`): a small archive-style self-improving loop over a
+  toy solver in which every step goes through existing records and gates:
+  signed lineage of each variant, the signed protected list and integrity
+  check, a sealed holdout unsealed once per candidate (0.76 dataset-digest
+  matching), rule-monitor verdicts, 2-of-3 oversight approvals, the signed
+  budget ledger and cap, containment records, `tine policy check promote` and
+  `tine promote --require-admission promote`, a canary that reverts a
+  regression, held uplift records with `tine trends` and `tine uplift
+  horizon`, and `tine dataset curate` with the taint filter. No object kind,
+  `tine verify` code or command is added.
+- The owner, policy, runner, eval, dataset, curator, monitor, promoter and
+  approver keys are separate from the loop's `optimizer` key; their roles are
+  signed into a trust bundle created by the example and pinned outside the
+  repository (the example never touches the user's own trust config).
+- The default model is a deterministic stub (no network, no key). It seeds a
+  reward hack (hard-coded visible answers plus a grader rewrite): the monitor
+  flags it, integrity taints it, an approver rejects it, admission denies it,
+  it is never promoted and its run is left out of the curated dataset. It also
+  seeds a hidden regression that is promoted and then reverted by the canary.
+- The example's variants run with an empty environment under an audit hook
+  that refuses file, process, network and import operations; plaintext holdout
+  copies are deleted after sealing and after each unseal. A canary that cannot
+  run reverts the promotion, `--spent` comes from the ledger total (an
+  unreadable ledger stops the loop), an integrity check that did not run fails
+  closed, and failed variants keep their uplift records.
+  `--model anthropic` uses a real model with your own key (optional
+  `anthropic` package); that test is `live` and skipped without a key.
+- Guide docs/REFERENCE-LOOP.md ("Running a self-improving loop with
+  OpenTine"). Tests run the loop with 2 to 5 steps and assert counts and
+  recorded outcomes only.
+- `scripts/verify_everywhere.py` verifies every object of a repository, a
+  `tine bundle` or a folder of signed record files with the Python verifier,
+  a freshly built `tine-verify.pyz` and the TS verifier, and fails on any
+  disagreement, gap or record that does not verify. Its tests cover every
+  record kind the reference loop writes: lineage, holdout, monitor verdicts,
+  oversight decisions, admissions, budget, containment, promote and revert.
+  It fails closed: a record file with its signature stripped (`unsigned`),
+  one that does not parse strictly (duplicate keys, NaN, Infinity:
+  `unreadable`), two different inputs under one case id, and a run with
+  nothing to verify are all problems, not skips.
+- `.github/workflows/nightly-soak.yml` runs the test suite, verifier parity,
+  the format-reader fuzzer at ten times the per-PR scale and the storage
+  bench every night and on demand, uploads each job's results and writes
+  `soak-summary.json` and a run summary. `scripts/nightly_summary.py` takes
+  `--title`.
+- ROADMAP: the 1.0 criteria are re-evaluated at 0.80 (criterion, evidence,
+  status, audit status). Declaring the 1.0 track stays the owner's decision,
+  taken after the 7-day soak.
+- One entry point: `uv run python examples/self_improving_loop.py WORKDIR --verify`
+  runs the loop and then `scripts/verify_everywhere.py` over the run's
+  repository and signed record folders (`--require-ts` makes the TS verifier
+  mandatory). A signed `tine-sig/3` budget policy, which only the Python
+  verifier implements, is verified there and named as Python only instead of
+  being reported unsigned. The new `reference-loop` CI job runs the stub loop
+  with `--verify --require-ts`; `tests/test_080_acceptance.py` checks the
+  acceptance criteria end to end.
+
 ## 0.77.0 — Live tail and streaming ingest (2026-11-22)
 
 - `tine query` indexes ingest sampling policies (`ingest_policies`) and

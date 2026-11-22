@@ -1086,6 +1086,24 @@ Starting 2026-11-16 with one core team and the audit engaged by 2026-12-15: 0.51
 
 The streak is only required to be unbroken at the 0.59 cut; a feature release may reset it without being blocked.
 
+### 1.0 re-evaluation (0.80)
+
+The 1.0 candidate is re-evaluated at 0.80, after the reference self-improving loop. This table records the evidence in the repository at the 0.80 cut and what each criterion still waits for. **The go/no-go on declaring the 1.0 track is the owner's decision (D14: declare the 1.0 track after the 0.80 soak, or continue the 0.8x line), taken after the 7-day soak; nothing in this table declares it.** "Met" below means the repository's own evidence says so; a criterion whose evidence lives in CI history is "to be read at decision time", because a document cannot know tonight's result.
+
+| # | Criterion | Evidence | Status at 0.80 | Audit status |
+|---|---|---|---|---|
+| 1 | All P0 and P1 items closed; third-party audit done | §5 security register; [AUDIT-SCOPE.md](security/AUDIT-SCOPE.md); 72 h fuzz runs ([RELEASING.md](RELEASING.md), "The 72-hour fuzz run") | **Not met.** The audit report is not published; AUDIT-SCOPE.md still reads "Scoped, not engaged" | Not engaged; no finding drops received. Drop 1 and drop 2 fixes (Lane D) wait for the auditor |
+| 2 | Formats frozen; Python, TS and pyz pass the same vectors | [FREEZE.md](FREEZE.md); `scripts/check_parity.py --require-ts --reasons` (ci.yml `parity`); 0.80 `scripts/verify_everywhere.py`: every object and signed record of a repository, bundle or record folder, three verifiers, any disagreement fails | **Met in the repository**, held since 0.53; 0.80 adds the check on real loop data (ci.yml `reference-loop` runs the stub loop with `--verify --require-ts`; lineage, holdout, monitor verdicts, oversight decisions, admissions, budget, containment, promote/revert) | In scope (parsers, verifiers); not yet audited |
+| 3 | 0.34 peer compatibility job green for every release | ci.yml `peer-compat-034`; `KNOWN_GAPS` may only shrink ([DEPRECATION.md](DEPRECATION.md)) | Job wired on every build; **to be read at decision time** from the release runs | Not applicable |
+| 4 | pyz air-gap-tested on Linux, macOS and Windows | ci.yml audit-kit air-gap job (0.49); `scripts/audit_kit_offline.py` | Job wired on every OS; **to be read at decision time** | In scope (pyz); not yet audited |
+| 5 | Nightly stress green for 30 days | `nightly-stress.yml`; `scripts/stress_streak.py`; [docs/bench/nightly-streak.json](bench/nightly-streak.json); 0.80 `nightly-soak.yml` (suite on Linux and Windows, parity, 200,000-input fuzz per target, bench; `soak-summary.json`) | **Not met in the committed streak file** (streak 0, `met: false`); read the live streak with `stress_streak.py --need 30` at decision time | Not applicable |
+| 6 | Compression bench regressed no more than 5% since 0.40 | `bench.yml` criterion-6 gate (`scripts/bench/gate.py`) on every main commit; the soak's nightly bench run | Gate wired; **to be read at decision time** from the release commit's bench run | Not applicable |
+| 7 | Deprecation policy published | [DEPRECATION.md](DEPRECATION.md) | **Met** (published); maintainer and counsel review of the wording still advisable | Not applicable |
+
+**Soak.** The 0.80 tag precedes the 7-day soak: `nightly-soak.yml` must be green for seven consecutive scheduled nights on the default branch (each night's `nightly-soak-summary` artifact is the record) before D14 is taken. A red night restarts the count; a fix ships as a 0.80.x patch.
+
+**Reading.** Criteria 1 and 5 are open on the repository's evidence, and criterion 1 depends on the audit, which no release can close. Unless the owner decides otherwise, that points to continuing the 0.8x line until audit drop 2 is closed (the D14 default), with criteria 2 to 7 held green in the meantime.
+
 ### Owner decisions, 2026-11-13
 
 | # | Decision |
