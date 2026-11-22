@@ -54,7 +54,7 @@ Since 0.17 `log` and `show` also front the read-only verbs. The folded flag is
 rewritten to the old verb before parsing, so both spellings give the same output
 and exit code; a flag the old verb does not take is a usage error (exit 2), as
 are `--cost` with `--price`, `--at` without `--price`, and `log --search` with a
-`log` option (`--graph`, `--all`, `--oneline`, `--limit`, `--commit`, `--pr`, REF).
+`log` option (`--graph`, `--all`, `--oneline`, `--limit`, `--commit`, `--pr`, `-f`, REF).
 
 | Old spelling | New spelling |
 | --- | --- |
@@ -63,6 +63,9 @@ are `--cost` with `--price`, `--at` without `--price`, and `log --search` with a
 | `tine ls --tag T --model M ...` | `tine log --tag T --model M ...` (an `ls` filter implies `--legacy`) |
 | `tine cost RUN` | `tine show RUN --cost` |
 | `tine price RUN [--at DATE]` | `tine show RUN --price [--at DATE]` |
+
+`tine log -f [RUN|--all] [--json]` (0.77) follows new events as they become
+durable, each marked with its verification status ([LIVE.md](LIVE.md)).
 
 `tine log` without these flags is unchanged: it reads the v3 repository, while
 `--legacy` lists the legacy `.tine_runs` index that `tine ls` lists.

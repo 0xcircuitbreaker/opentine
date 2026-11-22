@@ -1,5 +1,32 @@
 # Changelog
 
+## Unreleased — Live tail and streaming ingest
+
+- `tine log -f [RUN|--all] [--json]` follows run events as they become
+  durable. An event is shown only once its ref points past it and its bytes
+  are readable; each row says whether it is `verified` (bytes hash to the id,
+  every linked object present), `unverified` (a linked object is not held
+  here) or `invalid`. `--lines N` shows the last N events first,
+  `--max-events N` stops after N rows. A ref that stops extending the run seen
+  before is announced by one `rewrite` row. `--json` prints
+  `tine-cli-log-follow/1` JSON Lines (schema published). Details in
+  docs/LIVE.md.
+- `tine serve` has `GET /v1/tenants/<t>/tail`, a Server-Sent Events stream of
+  the same `tine-tail/1` rows (advertised as `caps.tail_sse`). It is
+  authorized and tenant-scoped like `GET events` (tenant-wide `read_ref` and
+  `fetch`, so namespace-limited tokens are refused; the per-object read
+  policy applies; other tenants get the uniform 404; opening is audited). It also has: global
+  (32) and per-caller (4) stream limits (`503`/`429` with `Retry-After`), a
+  heartbeat, `Last-Event-ID` resume with an opaque cursor (`event: reset` for
+  one it cannot read), and backpressure. Nothing is queued per stream. A
+  client that lags too far behind or is slow to read a batch gets
+  `event: dropped` and resumes from its last id without loss.
+- The ref listing no longer fails with "repository walk encountered a
+  non-file" when a concurrent writer renames a temporary ref file away
+  while the refs are being listed.
+- New bench `scripts/bench/tail_latency.py`, with results in
+  docs/bench/0.77-tail.md.
+
 ## 0.76.0 — Security and integrity hardening (2026-11-21)
 
 - `tine mcp-proxy --organism-gate` no longer relays a frame it cannot parse

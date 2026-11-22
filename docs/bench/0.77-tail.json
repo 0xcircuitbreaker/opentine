@@ -1,0 +1,40 @@
+{
+  "cli": {
+    "achieved_rate": 74.2,
+    "batch": 50,
+    "events_seen": 8751,
+    "interval": 0.05,
+    "machine": {
+      "cpu": "x86_64",
+      "python": "3.13.18",
+      "system": "Linux-6.18.44-fc-v726-x86_64-with-glibc2.39"
+    },
+    "max": 0.1291,
+    "mode": "cli",
+    "p50": 0.0796,
+    "p95": 0.1166,
+    "p99": 0.1277,
+    "seconds": 120.0,
+    "target_rate": 200.0,
+    "under_1s": true
+  },
+  "sse": {
+    "achieved_rate": 55.0,
+    "batch": 50,
+    "events_seen": 6501,
+    "interval": 0.05,
+    "machine": {
+      "cpu": "x86_64",
+      "python": "3.13.18",
+      "system": "Linux-6.18.44-fc-v726-x86_64-with-glibc2.39"
+    },
+    "max": 0.0573,
+    "mode": "sse",
+    "p50": 0.0279,
+    "p95": 0.0447,
+    "p99": 0.0508,
+    "seconds": 120.0,
+    "target_rate": 200.0,
+    "under_1s": true
+  }
+}
