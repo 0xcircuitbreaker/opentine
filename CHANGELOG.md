@@ -2,6 +2,13 @@
 
 ## Unreleased — Live tail and streaming ingest
 
+- `tine query` indexes ingest sampling policies (`ingest_policies`) and
+  batches (`ingest_batches`); `--verify` marks a policy row `verified` only for
+  a pinned `policy` signer and a batch row only for a pinned `runner` signer,
+  never an optimizer key. Every `fail` finding of `tine ingest verify` (a gap,
+  reorder, replay, hidden drop, policy switch or wrong signer) opens an
+  `ingest:` item in the oversight queue, recomputed on every read and routed
+  with `[[route]] source = "ingest"`; advisory findings open nothing.
 - `tine log -f [RUN|--all] [--json]` follows run events as they become
   durable. An event is shown only once its ref points past it and its bytes
   are readable; each row says whether it is `verified` (bytes hash to the id,

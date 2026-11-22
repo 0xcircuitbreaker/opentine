@@ -119,6 +119,18 @@ right number of events was dropped by rate is the writer's signed count.
 The walk reads the chain once backwards for ids and once forwards to check,
 so a long stream never sits in memory whole.
 
+## In `tine query` and the oversight queue
+
+`tine query` indexes every policy as an `ingest_policies` row and every batch
+as an `ingest_batches` row (docs/QUERY.md); `--verify` re-derives each row
+from its annotation and marks it `verified` only for a pinned `policy` (or
+`runner`) signer without `optimizer`. Captured events stay inside their batch
+record; they are not `steps` rows.
+
+Every `fail` finding of `tine ingest verify` opens an `ingest:` item in the
+oversight queue (docs/OVERSIGHT.md), recomputed on every read; route it with
+`[[route]] source = "ingest"`.
+
 ## The loopback endpoint
 
 `tine ingest serve --stream NAME --key KEY` listens on 127.0.0.1 only.

@@ -65,6 +65,9 @@ def parse_item(item: str) -> dict[str, Any]:
     elif source == "custody" and rest.startswith(("attestation:sha256:", "blob:sha256:")):
         # 0.72: a custody gap (an event attestation) or a refused tagged load (an access blob)
         return {"source": source, "label": None, "candidate": None, "oid": rest}
+    elif source == "ingest" and rest.startswith(("annotation:sha256:", "blob:sha256:")):
+        # 0.77: a failing ingest batch, or the anchor of a stream that fails as a whole
+        return {"source": source, "label": None, "candidate": None, "oid": rest}
     elif source == "transcript":  # 0.74: a behaviour flag, or a run like a flagged one
         if rest.startswith("attestation:sha256:"):
             return {"source": source, "label": None, "candidate": None, "oid": rest}
@@ -74,7 +77,7 @@ def parse_item(item: str) -> dict[str, Any]:
     raise ValueError(f"{item!r} is not an oversight item (promotion:LABEL:RUN, monitor:"
                      "ATTESTATION, integrity:|containment:|organism:ATTESTATION, "
                      "budget:ANNOTATION, custody:ATTESTATION|BLOB, transcript:ATTESTATION "
-                     "or transcript:LABEL:RUN)")  # fmt: skip
+                     "or transcript:LABEL:RUN, ingest:ANNOTATION|BLOB)")  # fmt: skip
 
 
 def anchor_bytes(item: str) -> bytes:

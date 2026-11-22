@@ -13,6 +13,7 @@ that send items into tiers::
     source = "promotion"         # promotion | integrity | monitor | eval | budget | containment
                                  # | organism (0.72: untagging a model organism)
                                  # | transcript (0.74: behaviour flags, runs like them)
+                                 # | ingest (0.77: stream gaps, policy violations)
     label = "prod*"              # promotion, eval, transcript: a label glob (default *)
     tier = "high"
     [[route]]
@@ -48,7 +49,7 @@ FILE_NAME = "oversight.toml"
 PIN_NAME = "oversight.sig.json"
 POLICY = "opentine.oversight-policy/1"
 SOURCES = ("promotion", "integrity", "monitor", "eval", "budget", "containment", "organism",
-           "custody", "transcript")  # fmt: skip
+           "custody", "transcript", "ingest")  # fmt: skip
 EVAL_METRICS = ("pass_rate", "mean_score")
 BANNED_ROLES = ("optimizer", "monitor", "scorer")
 MONITOR_ACTIONS = ("flag", "defer", "block")
@@ -81,7 +82,7 @@ def _route(row: Any, tiers: dict[str, Any]) -> dict[str, Any]:
         raise OversightError(f"a route is a table of {', '.join(sorted(_ROUTE_KEYS))}")
     if row.get("source") not in SOURCES or row.get("tier") not in tiers:
         raise OversightError("a route names a source (promotion, integrity, monitor, eval, "
-                             "budget, containment, organism, custody, transcript) and a "
+                             "budget, containment, organism, custody, transcript, ingest) and a "
                              "declared tier")  # fmt: skip
     out = {"source": row["source"], "tier": row["tier"], "label": str(row.get("label", "*"))}
     if row["source"] == "eval":
