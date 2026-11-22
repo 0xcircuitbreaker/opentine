@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Reference self-improving loop
+## 0.80.0 — Reference self-improving loop (2026-11-22)
 
 - New example `examples/self_improving_loop.py` (package
   `examples/reference_loop/`): a small archive-style self-improving loop over a
