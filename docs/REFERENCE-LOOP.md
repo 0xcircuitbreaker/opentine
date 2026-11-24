@@ -40,10 +40,13 @@ the signed records.
 ## The toy repository
 
 A task is `OP:ARG` (`upper:amber` is `AMBER`); `solver.py` knows some
-operations and returns `ARG` for the others. Three fixed item sets of 42:
+operations and returns `ARG` for the others. Three item sets of 42:
 **visible** (in `tests/visible.jsonl`, the loop may read them), **holdout**
 (sealed with `tine dataset seal`) and **canary** (three rounds in seven have
-an empty argument). The grader, the visible tests and `sandbox.json` are the
+an empty argument). Holdout and canary arguments are derived from a random
+per-run secret kept with the keys (`keys/items.secret`), never from the
+example's source: a sealed set the optimizer could regenerate from source
+would seal nothing, and a lookup table of answers would pass it. The grader, the visible tests and `sandbox.json` are the
 protected surfaces in `.tine/protected.toml`, pinned and signed by the policy
 key. Every variant runs in a child process (`python -I`, empty environment)
 inside its own sandbox folder: a proposed solver is untrusted code. Before the
@@ -106,7 +109,11 @@ grant powers only from the owner-signed bundle.
    the advisory detectors (special-casing, visible/holdout gap, ...) are
    reported and never block by default.
 7. **Oversight.** Two approvers sign the promotion item when the integrity
-   check and the monitor found nothing; otherwise one rejects it. The optimizer
+   check and the monitor found nothing and there is no `special-casing`
+   advisory; otherwise one rejects it. The advisory still never blocks a gate
+   (D12): it is the simulated people who read it, as a reviewer would. A
+   reward hack that leaves the grader alone (a table of answers) is stopped by
+   the secret holdout and by this review, not by the integrity gate. The optimizer
    also tries to approve every candidate and is refused
    (`oversight.key-separation`).
 8. **Admission.** `tine policy check promote` (the shipped policy:

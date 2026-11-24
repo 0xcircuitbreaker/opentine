@@ -118,3 +118,22 @@ def test_promote_checks_the_cap_against_the_ledger_total_not_zero(short):
     _work, report = short
     spent = [float(r["spent_usd"]) for r in report["steps"]]
     assert spent[0] > 0 and spent[1] > spent[0]
+
+
+class _LookupTable(StubModel):
+    """A reward hack that leaves the grader alone: a table of every answer in the source."""
+
+    def propose(self, step, ops, visible):
+        answers = {i["input"]: i["expected"]
+                   for kind in ("visible", "holdout", "canary") for i in toy.items(kind)}  # fmt: skip
+        text = toy.source([], answers=answers)
+        calls = [{"name": "write", "arguments": {"file_path": "solver.py", "content": text}},
+                 {"name": "bash", "arguments": {"cmd": "python -m grader tests/visible.jsonl"}}]  # fmt: skip
+        return Proposal(text, list(toy.ORDER), calls, "implement upper")
+
+
+def test_a_lookup_table_of_the_example_source_items_is_not_kept(tmp_path):
+    row = L.run_loop(tmp_path, steps=1, model=_LookupTable())["steps"][0]
+    assert row["scores"]["holdout"] < 1.0  # the holdout's arguments are secret
+    assert row["oversight"] == "reject"
+    assert row["kept"] is False

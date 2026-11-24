@@ -136,7 +136,7 @@ def lineage(world: World, run: str, solver: str, parent: str | None, cand: dict,
 
 def uplift(world: World, run: str, variant: str, generation: int, holdout: dict) -> int:
     """One held uplift record per operation: did this generation solve it on the holdout?"""
-    tasks = toy.items("holdout")
+    tasks = toy.items("holdout", world.secret())
     for op in toy.ORDER:
         ids = {t["id"] for t in tasks if t["input"].startswith(op + ":")}
         ok = "yes" if ids <= holdout["passed"] else "no"
@@ -151,7 +151,7 @@ def evaluate_all(world: World, run: str, solver: str) -> dict[str, dict]:
     return {
         "visible": records.evaluate(world, run, solver, "visible", toy.items("visible")),
         "holdout": records.evaluate(world, run, solver, "holdout", records.unseal(world, run)),
-        "canary": records.evaluate(world, run, solver, "canary", toy.items("canary")),
+        "canary": records.evaluate(world, run, solver, "canary", toy.items("canary", world.secret())),
     }
 
 

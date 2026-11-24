@@ -68,6 +68,10 @@ class World:
     def path(self, *parts: str) -> Path:
         return self.work.joinpath(*parts)
 
+    def secret(self) -> bytes:
+        """The item secret: holdout and canary arguments derive from it."""
+        return bytes.fromhex(Path(self.files["items_secret"]).read_text(encoding="utf-8"))
+
 
 def _write(path: Path, text: str) -> str:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -155,7 +159,7 @@ def budget(world: World, cap_usd: float) -> None:
 
 
 def holdout(world: World, max_unseals: int) -> None:
-    items = toy.items("holdout")
+    items = toy.items("holdout", world.secret())
     src = _write(world.path("data", "holdout.jsonl"),
                  "".join(json.dumps(i, sort_keys=True) + "\n" for i in items))  # fmt: skip
     world.files["holdout"] = (world.root / ".tine" / "holdouts" / "h1").as_posix()
@@ -183,6 +187,8 @@ def build(work: Path) -> World:
 
     world = World(Path(work))
     make_keys(world)
+    world.files["items_secret"] = _write(world.path("keys", "items.secret"), os.urandom(16).hex())
+    os.chmod(world.files["items_secret"], 0o600)
     Repo.init(world.root)
     toy.write_repo(world.root)
     return world
