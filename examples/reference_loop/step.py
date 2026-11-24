@@ -148,10 +148,11 @@ def uplift(world: World, run: str, variant: str, generation: int, holdout: dict)
 
 
 def evaluate_all(world: World, run: str, solver: str) -> dict[str, dict]:
+    canary = toy.items("canary", world.secret())
     return {
         "visible": records.evaluate(world, run, solver, "visible", toy.items("visible")),
         "holdout": records.evaluate(world, run, solver, "holdout", records.unseal(world, run)),
-        "canary": records.evaluate(world, run, solver, "canary", toy.items("canary", world.secret())),
+        "canary": records.evaluate(world, run, solver, "canary", canary),
     }
 
 
