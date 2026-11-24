@@ -186,7 +186,7 @@ def main(argv: list[str] | None = None) -> int:
         for target in args.targets:
             tine = tine_dir(target)
             if tine is not None:
-                cases += repo_cases(tine)
+                cases += repo_cases(tine, problems)
             elif target.is_file() and target.read_bytes()[:11] == b"TINEBUNDLE1":
                 cases += bundle_cases(target, Path(tmp), problems, TS_PARITY.with_name("cli.js"))
             elif target.exists():
