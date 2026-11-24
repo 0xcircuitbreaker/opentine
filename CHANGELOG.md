@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Audit hardening for 0.77-0.80
+## 0.80.1 — Audit hardening for 0.77-0.80 (2026-11-24)
 
 - `tine log -f --all` and the SSE tail no longer replay a run's whole history
   when a new ref (a tag, branch or pulled `remotes/` ref) appears pointing at
