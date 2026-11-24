@@ -11,8 +11,10 @@ The index is written after the body, so a listed index whose body is not
 there yet (a listing race, or a compaction deleting it) is skipped and looked
 for again on the next miss. A body is checked against its name's SHA-256 when
 it is read, and every object against its id, so a wrong index or a swapped
-body fails closed. Names are never overwritten. ``delete`` rewrites the
-object's pack without it (a new name), then removes the old index and body.
+body fails closed. Names are never overwritten. ``delete`` rewrites every
+pack holding the object without it (a new name), then removes the old index
+and body; two replicas racing on one put can store an object twice, and no
+copy may survive a purge.
 Push, pull, the purge graph and :meth:`fsck` read through the same index.
 """
 
@@ -51,11 +53,14 @@ class PackedObjectStore:
     def _name(self, tenant: str, digest: str, suffix: str) -> str:
         return f"{valid_tenant(tenant)}/packs/{digest}.{suffix}"
 
+    def _index(self, tenant: str, digest: str) -> tuple[list, dict[str, tuple[int, int, int]]]:
+        sealed = self.blobs.get(self._name(tenant, digest, "tidx"))
+        plain = unseal(self.keys, INDEX, tenant, digest, sealed)
+        return _parse_index(plain[8:], digest, int.from_bytes(plain[:8], "big"))
+
     def _load(self, tenant: str, digest: str) -> bool:
         try:
-            sealed = self.blobs.get(self._name(tenant, digest, "tidx"))
-            plain = unseal(self.keys, INDEX, tenant, digest, sealed)
-            blocks, entries = _parse_index(plain[8:], digest, int.from_bytes(plain[:8], "big"))
+            blocks, entries = self._index(tenant, digest)
         except Exception:  # noqa: BLE001 - missing or unreadable: skipped, fsck reports it
             return False
         if not self.blobs.exists(self._name(tenant, digest, "tpk")):
@@ -183,22 +188,40 @@ class PackedObjectStore:
         return self.root is not None and has(self.root, tenant, oid)
 
     def delete(self, tenant: str, oid: str) -> None:
+        """Rewrite *every* pack holding *oid* without it: a put race between replicas
+        can store an object twice, and a copy left behind would come back on restart."""
         with self._lock:
             if oid in self.held(tenant):
                 raise PermissionError(f"{oid} is held")
-            place = self._locate(tenant, oid)
-            if place is None:
+            found = False
+            for digest in sorted(self._listed(tenant)):
+                try:
+                    blocks, entries = self._index(tenant, digest)
+                except Exception:  # noqa: BLE001 - unreadable: fsck reports it
+                    continue
+                if oid in entries:
+                    found = True
+                    self._drop(tenant, oid, digest, blocks, entries)
+            if not found:
                 raise FileNotFoundError(oid)
-            digest = place[0]
-            keep = [(o, self.get(tenant, o)) for o, p in sorted(self._where[tenant].items())
-                    if p[0] == digest and o != oid]  # fmt: skip
-            self._where[tenant] = {o: p for o, p in self._where[tenant].items() if p[0] != digest}
-            if keep:
-                self.put_many(tenant, keep)  # durable under its new name before the old goes
-            self.blobs.delete(self._name(tenant, digest, "tidx"))
-            self.blobs.delete(self._name(tenant, digest, "tpk"))
-            self._blocks[tenant].pop(digest, None)
-            self._bodies.pop((tenant, digest), None)
+
+    def _drop(self, tenant: str, oid: str, digest: str, blocks: list, entries: dict) -> None:
+        body = self._body(tenant, digest)
+        keep = []
+        for other, (number, start, length) in sorted(entries.items()):
+            if other != oid:
+                offset, stored_length, size = blocks[number]
+                block = _codec.unwrap(body[offset : offset + stored_length], limit=size)
+                ObjectEnvelope.decode(block[start : start + length], other)
+                keep.append((other, block[start : start + length]))
+        where = self._where.get(tenant, {})
+        self._where[tenant] = {o: p for o, p in where.items() if p[0] != digest and o != oid}
+        if keep:
+            self.put_many(tenant, keep)  # durable under its new name before the old goes
+        self.blobs.delete(self._name(tenant, digest, "tidx"))
+        self.blobs.delete(self._name(tenant, digest, "tpk"))
+        self._blocks.get(tenant, {}).pop(digest, None)
+        self._bodies.pop((tenant, digest), None)
 
     def fsck(self, tenant: str) -> dict[str, Any]:
         """Re-read every pack and object of *tenant*: ``{"packs", "objects", "bad"}``."""

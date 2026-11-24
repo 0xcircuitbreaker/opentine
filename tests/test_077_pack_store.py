@@ -200,3 +200,19 @@ def test_live_s3_bucket_round_trip():  # pragma: no cover - owner-run against re
     finally:
         for name in list(blobs.names("")):
             blobs.delete(name)
+
+
+def test_delete_removes_every_copy_so_a_purged_object_stays_gone(blobs, tmp_path):
+    a = PackedObjectStore(blobs, KEYS, holds_root=tmp_path / "a")
+    b = PackedObjectStore(blobs, KEYS, holds_root=tmp_path / "b")
+    (x, raw_x), (y, raw_y) = _blobs(2, b"dup")
+    a.put_many("acme", [(x, raw_x), (y, raw_y)])
+    b.has = lambda tenant, oid: False  # type: ignore[method-assign]  # B checked before A wrote
+    b.put_many("acme", [(x, raw_x)])
+    assert len([n for n in blobs.names("acme/packs/") if n.endswith(".tidx")]) == 2
+    a.delete("acme", x)
+    assert not a.has("acme", x)
+    fresh = PackedObjectStore(blobs, KEYS)  # a restarted replica
+    assert not fresh.has("acme", x)
+    assert fresh.get("acme", y) == raw_y
+    assert fresh.fsck("acme")["bad"] == []
