@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import threading
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 
@@ -21,7 +22,56 @@ from opentine._ingest_policy import IngestError
 LOOPBACK = frozenset({"127.0.0.1", "localhost"})
 ROUTE = "/v1/ingest"
 MAX_CLIENTS = 8  # connections served at once; the rest are answered 503
-TIMEOUT_S = 30.0  # a client that stops sending is dropped
+TIMEOUT_S = 30.0  # a client that stops sending, or sends too slowly, is dropped
+CHUNK = 64 * 1024
+
+
+class _DeadlineReader:
+    """The connection's reads, refused once the request's whole-request deadline passed.
+
+    The socket timeout bounds each ``recv`` only; a client dripping one byte at a
+    time would otherwise hold a slot forever (slowloris). Reads go in chunks and
+    the deadline is checked before each one.
+    """
+
+    def __init__(self, raw: Any, handler: IngestHandler) -> None:
+        self._raw, self._handler = raw, handler
+
+    def _check(self) -> None:
+        if self._handler.server.monotonic() > self._handler.deadline:
+            raise TimeoutError("the request took too long")
+
+    def read(self, size: int = -1) -> bytes:
+        if size is None or size < 0:
+            raise ValueError("unbounded read")
+        parts: list[bytes] = []
+        while size > 0:
+            self._check()
+            chunk = self._raw.read1(min(size, CHUNK))
+            if not chunk:
+                break
+            parts.append(chunk)
+            size -= len(chunk)
+        return b"".join(parts)
+
+    def readline(self, limit: int = -1) -> bytes:
+        parts: list[bytes] = []
+        while limit < 0 or limit > 0:
+            self._check()
+            ahead = self._raw.peek(1)
+            if not ahead:
+                break
+            take = ahead.find(b"\n") + 1 or len(ahead)
+            if limit > 0:
+                take = min(take, limit)
+                limit -= take
+            parts.append(self._raw.read(take))
+            if parts[-1].endswith(b"\n"):
+                break
+        return b"".join(parts)
+
+    def close(self) -> None:
+        self._raw.close()
 
 
 def _local_host(value: str | None) -> bool:
@@ -34,6 +84,7 @@ def _local_host(value: str | None) -> bool:
 
 class IngestHandler(BaseHTTPRequestHandler):
     server: IngestServer
+    deadline = 0.0
 
     def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
         return  # quiet: the CLI prints its own lines
@@ -49,6 +100,15 @@ class IngestHandler(BaseHTTPRequestHandler):
     def setup(self) -> None:
         self.timeout = self.server.timeout_s
         super().setup()
+        self._restart_deadline()
+        self.rfile = _DeadlineReader(self.rfile, self)  # type: ignore[assignment]
+
+    def _restart_deadline(self) -> None:
+        self.deadline = self.server.monotonic() + self.server.timeout_s
+
+    def handle_one_request(self) -> None:
+        self._restart_deadline()  # each request (and each keep-alive wait) gets the whole budget
+        super().handle_one_request()
 
     def _refused(self) -> bool:
         """Browsers (an ``Origin``) and foreign ``Host`` names are refused: 403."""
@@ -120,6 +180,7 @@ class IngestServer(ThreadingHTTPServer):
         self.lock = threading.Lock()
         self.slots = threading.BoundedSemaphore(MAX_CLIENTS)
         self.timeout_s = TIMEOUT_S
+        self.monotonic = time.monotonic  # injectable: tests never wait on the wall clock
 
     def append(self, data: bytes) -> dict[str, Any]:
         from opentine._ingest_batch import append
@@ -135,8 +196,6 @@ class IngestServer(ThreadingHTTPServer):
 def start(repo: Any, stream: str, key: Any, *, host: str = "127.0.0.1", port: int = 0,
           clock_ms: Any = None, max_bytes: int = 64 * 1024 * 1024) -> IngestServer:  # fmt: skip
     """A running endpoint on its own thread; ``server.stop()`` closes it."""
-    import time
-
     clock = clock_ms or (lambda: int(time.time() * 1000))
     server = IngestServer((host, port), repo, stream, key, clock, max_bytes)
     threading.Thread(target=server.serve_forever, daemon=True).start()
