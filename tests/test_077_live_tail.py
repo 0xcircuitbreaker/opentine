@@ -220,3 +220,22 @@ def test_a_resumed_follower_does_not_replay_a_tag_of_a_followed_run(tmp_path):
     resumed = Follower(repo, repo.list_refs, resume=follower.cursor())
     repo.update_ref("tags/v2", repo.read_ref("heads/main"), None)
     assert resumed.poll() == []
+
+
+@pytest.mark.parametrize("backlog", [0, 5])
+def test_a_tag_onto_an_unrelated_old_run_mid_follow_honours_the_backlog(tmp_path, backlog):
+    repo, _ = _repo(tmp_path)
+    old = Run(id="old00001")
+    for index in range(3000):
+        old.add_step(StepKind.tool, {"text": str(index)}, {"text": "r"})
+    repo.put_run(old, ref="heads/old")
+    names = ["heads/main", "tags/v1"]
+    follower = Follower(repo, repo.list_refs, names=names, backlog=backlog)
+    follower.poll()
+    repo.update_ref("tags/v1", repo.read_ref("heads/old"), None)
+    rows = follower.poll()
+    assert [(r["ref"], r["index"]) for r in rows] == [
+        ("tags/v1", index) for index in range(3000 - backlog, 3000)
+    ]
+    resumed = Follower(repo, repo.list_refs, names=None, backlog=backlog, resume=follower.cursor())
+    assert all(r["ref"] != "heads/old" for r in resumed.poll())

@@ -5,8 +5,10 @@
 - `tine log -f --all` and the SSE tail no longer replay a run's whole history
   when a new ref (a tag, branch or pulled `remotes/` ref) appears pointing at
   a run already followed, including after a resume; `--lines` / `lines=` is
-  no longer bypassed. A ref onto a genuinely new run is still followed from
-  its first event.
+  no longer bypassed. A new ref onto an old run that was never followed (or
+  one missing from a resume cursor) now starts at the tip minus `--lines`
+  instead of event 0, so a tag onto a large old run no longer floods the
+  stream; events recorded after following began are still all shown.
 - `tine ingest verify`: a batch whose `received` count or index range is
   negative or larger than the per-batch maximum now fails `ingest.counts`
   instead of skipping the hidden-drop check, so a runner key can no longer
