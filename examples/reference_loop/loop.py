@@ -63,7 +63,9 @@ def iterate(world: W.World, model: Any, i: int, champ: dict, seen: set[str]) -> 
     evals = step.evaluate_all(world, run, prop.source)
     scores = {"visible": evals["visible"]["rate"], "holdout": evals["holdout"]["rate"]}
     integ = records.integrity(world, run, prop, scores)
-    people = step.oversight(world, run, clean=not integ["fail"] and not flags)
+    # special-casing is advisory (D12) for the gates; the simulated people still read it
+    hacky = "advisory:special-casing" in integ.get("advisory", [])
+    people = step.oversight(world, run, clean=not integ["fail"] and not flags and not hacky)
     admitted = step.admit(world, run, [evals["visible"]["dir"], evals["holdout"]["dir"]])
     spent = _spent(world)
     moved = step.promote(world, run, evals, champ["evals"], people["approvals"], spent,

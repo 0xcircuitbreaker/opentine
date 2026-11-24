@@ -58,7 +58,12 @@ tine log -f --all --json     # every run ref (heads/, experiments/, promotions/,
 
 `-f` does not combine with `--graph`, `--oneline` or `--search`. Ctrl-C
 stops it. With `--all`, at most 1024 refs are followed, the first in name
-order, and a `truncated` row says how many were left out. A ref created while following is followed from its first event.
+order, and a `truncated` row says how many were left out. A ref first seen while following (or missing from a resume cursor) is not
+replayed from its first event: history already shown under another followed ref
+(a tag, branch or pulled ref onto the same run) is skipped, and of the events
+recorded before following began only the last `--lines` are shown, as for a
+ref present at the start (`--lines 0` starts at its tip). Events recorded after
+following began are always shown, so a run created mid-follow is shown whole.
 
 ## `GET /v1/tenants/<tenant>/tail` (Server-Sent Events)
 

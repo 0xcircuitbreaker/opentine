@@ -5,8 +5,11 @@ solver (``solver.py``) knows a set of operations; an unknown one returns
 ``ARG`` unchanged. Three item sets are fixed and deterministic:
 
 * ``visible``: the tasks the loop may see (``tests/visible.jsonl``);
-* ``holdout``: other arguments, sealed with ``tine dataset seal``;
-* ``canary``: three rounds in seven have an empty argument; checked after promotion.
+* ``holdout``: hidden arguments, sealed with ``tine dataset seal``;
+* ``canary``: hidden arguments, three rounds in seven empty; checked after promotion.
+
+Holdout and canary arguments come from a per-run random seed held in memory,
+not from this source: a sealed set the optimizer can regenerate seals nothing.
 
 Variants run in a child process (``python -I``, empty environment) inside
 their own sandbox folder, never in the loop's process: a proposed solver is
@@ -19,6 +22,7 @@ released holdout or anything else on disk.
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
 import os
 import subprocess
@@ -70,14 +74,26 @@ def _item(prefix: str, n: int, op: str, arg: str) -> dict[str, str]:
     return {"id": f"{prefix}-{n:03d}", "input": f"{op}:{arg}", "expected": OPS[op][1](arg)}
 
 
-def items(kind: str) -> list[dict[str, str]]:
-    """The fixed ``visible``, ``holdout`` or ``canary`` items (42 each)."""
+def _seeded_word(seed: bytes, kind: str, n: int) -> str:
+    """Six letters from *seed*: an argument no one can know without the seed."""
+    mac = hmac.new(seed, f"{kind}:{n}".encode(), hashlib.sha256).digest()
+    return "".join(chr(ord("a") + b % 26) for b in mac[:6])
+
+
+def items(kind: str, seed: bytes | None = None) -> list[dict[str, str]]:
+    """The ``visible``, ``holdout`` or ``canary`` items (42 each).
+
+    With *seed* (the loop always passes one), holdout and canary arguments come
+    from it, so an optimizer that reads this source cannot list their answers.
+    """
     out = []
     for n in range(42):
         op = ORDER[n % len(ORDER)]
         word = WORDS[n // len(ORDER) + (7 if kind == "holdout" else 0)]
         if kind == "canary":
             word = "" if (n // len(ORDER)) % 2 else WORDS[(n * 5) % len(WORDS)][::-1]
+        if seed is not None and kind != "visible" and word:
+            word = _seeded_word(seed, kind, n)
         out.append(_item(kind, n, op, word))
     return out
 

@@ -160,3 +160,15 @@ def test_two_different_records_under_one_case_id_are_a_problem(room, tool, tmp_p
     assert any(p.startswith("duplicate case id") for p in report["problems"])
     same = tool.compare(cases[:1] + cases[:1], scratch=tmp_path)
     assert same["ok"] and same["cases"] == 1
+
+
+def test_a_repository_attestation_with_a_foreign_signature_block_is_not_skipped(room, tool, capsys):
+    from opentine.repository._attest import attest
+
+    claim = {"convention": "opentine.policy-admission/1", "decision": "allow"}
+    forged = attest(room["repo"], room["runs"][1], claim, signer="sha256:" + "0" * 64,
+                    signature={"scheme": "tine-atest/1", "alg": "ed25519", "sig": "AAAA",
+                               "signer": "x"})  # fmt: skip
+    code, report = _report(tool, capsys, str(room["repo"].path))
+    assert code == 1
+    assert f"unsigned record: {forged}" in report["problems"]

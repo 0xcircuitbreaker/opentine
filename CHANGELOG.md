@@ -1,5 +1,36 @@
 # Changelog
 
+## 0.80.1 — Audit hardening for 0.77-0.80 (2026-11-24)
+
+- `tine log -f --all` and the SSE tail no longer replay a run's whole history
+  when a new ref (a tag, branch or pulled `remotes/` ref) appears pointing at
+  a run already followed, including after a resume; `--lines` / `lines=` is
+  no longer bypassed. A new ref onto an old run that was never followed (or
+  one missing from a resume cursor) now starts at the tip minus `--lines`
+  instead of event 0, so a tag onto a large old run no longer floods the
+  stream; events recorded after following began are still all shown.
+- `tine ingest verify`: a batch whose `received` count or index range is
+  negative or larger than the per-batch maximum now fails `ingest.counts`
+  instead of skipping the hidden-drop check, so a runner key can no longer
+  drop every event by claiming an oversized batch.
+- `tine ingest serve`: each request has a whole-request deadline (the
+  existing timeout) on top of the per-read socket timeout, so clients that
+  drip header or body bytes no longer hold every slot (slowloris); the slot
+  is released when the deadline passes.
+- Pack store (`TINE_REMOTE_PACK_STORE`): `delete` / purge now rewrites every
+  pack that holds the object. A put race between replicas could store an
+  object in two packs, and the second copy came back after a restart.
+- Reference loop example: holdout and canary arguments are derived from a
+  per-run secret kept with the keys, not from the example source, and the
+  simulated approvers reject a candidate carrying the `special-casing`
+  advisory (still advisory for the gates, D12). A pure lookup-table reward
+  hack that leaves the grader alone is no longer promoted.
+  `docs/REFERENCE-LOOP.md` says what protects against it.
+- `scripts/verify_everywhere.py`: a repository attestation or annotation whose
+  body does not parse strictly, or carries a non-`tine-attest` signature
+  block, is reported `unsigned record` instead of being skipped, as for
+  record files.
+
 ## 0.80.0 — Reference self-improving loop (2026-11-22)
 
 - New example `examples/self_improving_loop.py` (package

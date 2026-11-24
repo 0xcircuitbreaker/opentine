@@ -25,11 +25,13 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import time
 import zlib
 from collections.abc import Callable
 from typing import Any
 
 from opentine import _json_shallow
+from opentine._tail_start import late_start
 from opentine.kernel import KernelError, ObjectEnvelope, canonical_json, validate_links
 
 FORMAT = "tine-tail/1"
@@ -151,7 +153,7 @@ class Follower:
         allow: Callable[[str], bool] | None = None,
     ):
         self.repo, self._refs, self._names = repo, refs, names
-        self._allow = allow
+        self._allow, self._backlog, self._since = allow, max(0, backlog), time.time()
         self._cut, self._cut_said = 0, 0
         self._pos: dict[str, tuple[str | None, int, str | None]] = {}
         if resume is not None:
@@ -160,7 +162,7 @@ class Follower:
             return
         for name, oid in self._selected().items():
             events = _run_events(repo, oid) or []
-            count = max(0, len(events) - max(0, backlog))
+            count = max(0, len(events) - self._backlog)
             self._pos[name] = (None, count, prefix_digest(events, count))
 
     def _selected(self) -> dict[str, str]:
@@ -172,6 +174,14 @@ class Follower:
         picked = sorted(n for n, o in chosen.items() if isinstance(o, str) and o.startswith("run:"))
         self._cut = max(0, len(picked) - MAX_REFS)
         return {name: chosen[name] for name in picked[:MAX_REFS]}
+
+    def _known_prefix(self, events: list[str]) -> int:
+        """The longest prefix of a newly listed ref's run already followed under another ref."""
+        best = 0
+        for count, last in {(c, t) for _, c, t in self._pos.values() if c}:
+            if count > best and count <= len(events) and prefix_digest(events, count) == last:
+                best = count
+        return best
 
     def cursor(self) -> str:
         return encode_cursor({n: (count, last) for n, (_, count, last) in self._pos.items()})
@@ -194,6 +204,10 @@ class Follower:
             events = _run_events(self.repo, oid)
             if events is None:
                 continue  # the run is not readable yet: the next poll retries
+            if name not in self._pos:
+                start = late_start(self.repo, events, self._since, self._backlog)
+                count = max(self._known_prefix(events), start)
+                last = prefix_digest(events, count)
             if count and (count > len(events) or prefix_digest(events, count) != last):
                 rows.append(row("rewrite", ref=name, run_id=oid, index=len(events)))
                 count = len(events)

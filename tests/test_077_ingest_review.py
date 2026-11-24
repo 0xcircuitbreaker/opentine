@@ -87,6 +87,18 @@ def test_switching_back_to_an_older_policy_mid_stream_is_detected(repo):
     assert "ingest.policy-switch" in _codes(_ingest_verify.verify(repo, "rl"))
 
 
+def test_a_batch_claiming_more_than_max_events_fails_closed(repo):
+    _policy(repo, rate=1.0)
+    row = _ingest_batch.append(repo, "rl", _events(5), _key("runner"), at_ms=T0)
+    n = _ingest_batch.MAX_EVENTS + 1
+    forged = _resign(repo, row["id"], "runner", events="", captured=0, received=n, dropped=n,
+                     next_index=n, dropped_by={"kind": n, "rate": 0})  # fmt: skip
+    _set_head(repo, forged)
+    report = _ingest_verify.verify(repo, "rl")
+    assert not report["ok"]
+    assert "ingest.counts" in _codes(report)
+
+
 def test_issued_at_must_be_a_utc_time():
     with pytest.raises(IngestError):
         _ingest_policy.build("rl", capture=[], drop=[], rate=1, seed=SEED, issued_at="9999")
@@ -133,6 +145,40 @@ def test_slow_clients_are_bounded(repo):
     server = _ingest_http.start(repo, "rl", _key("runner"), clock_ms=lambda: T0)
     try:
         assert server.timeout_s is not None and server.timeout_s > 0
+        assert server.slots._value == _ingest_http.MAX_CLIENTS  # noqa: SLF001
+    finally:
+        server.stop()
+
+
+def test_a_client_dripping_its_body_is_dropped_at_the_request_deadline(repo):
+    import socket
+    import threading
+
+    _policy(repo)
+    server = _ingest_http.start(repo, "rl", _key("runner"), clock_ms=lambda: T0)
+    now = [0.0]
+    server.monotonic = lambda: now[0]
+    server.timeout_s = 3600.0  # the per-read socket timeout never fires: only the deadline can
+    port = server.server_address[1]
+    try:
+        with socket.create_connection(("127.0.0.1", port), timeout=60) as sock:
+            sock.sendall(f"POST /v1/ingest HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\n"
+                         "Content-Length: 100000\r\n\r\nx".encode())  # fmt: skip
+            # The header was read under the deadline; the server now waits on the body.
+            got = threading.Event()
+            for _ in range(10_000):
+                if server.slots._value < _ingest_http.MAX_CLIENTS:  # noqa: SLF001
+                    got.set()
+                    break
+                threading.Event().wait(0.01)
+            assert got.is_set()
+            now[0] = server.timeout_s + 1  # the whole-request budget is spent
+            sock.sendall(b"y")  # one more drip: the next read sees the deadline
+            assert sock.recv(4096) == b""
+        for _ in range(10_000):
+            if server.slots._value == _ingest_http.MAX_CLIENTS:  # noqa: SLF001
+                break
+            threading.Event().wait(0.01)
         assert server.slots._value == _ingest_http.MAX_CLIENTS  # noqa: SLF001
     finally:
         server.stop()

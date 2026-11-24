@@ -56,6 +56,7 @@ class World:
     owner_vkey: str = ""
     clock: Clock = field(default_factory=Clock)
     files: dict[str, str] = field(default_factory=dict)
+    seed_bytes: bytes = field(default_factory=lambda: os.urandom(16), repr=False)
 
     @property
     def root(self) -> Path:
@@ -67,6 +68,14 @@ class World:
 
     def path(self, *parts: str) -> Path:
         return self.work.joinpath(*parts)
+
+    def item_seed(self) -> bytes:
+        """The item seed: holdout and canary arguments derive from it.
+
+        It lives only in this process's memory and is never written to disk, so
+        neither a variant nor anything reading the work directory can learn it.
+        """
+        return self.seed_bytes
 
 
 def _write(path: Path, text: str) -> str:
@@ -155,7 +164,7 @@ def budget(world: World, cap_usd: float) -> None:
 
 
 def holdout(world: World, max_unseals: int) -> None:
-    items = toy.items("holdout")
+    items = toy.items("holdout", world.item_seed())
     src = _write(world.path("data", "holdout.jsonl"),
                  "".join(json.dumps(i, sort_keys=True) + "\n" for i in items))  # fmt: skip
     world.files["holdout"] = (world.root / ".tine" / "holdouts" / "h1").as_posix()

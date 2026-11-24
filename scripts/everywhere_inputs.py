@@ -84,9 +84,16 @@ def _is_policy(value: Any) -> bool:
     return isinstance(block, dict) and str(block.get("scheme", "")).startswith("tine-sig/")
 
 
-def repo_cases(tine_dir: Path) -> list[Case]:
-    """``envelope.decode`` + ``links.extract`` for every object, ``sig.verify`` for signed ones."""
+def repo_cases(tine_dir: Path, problems: list[str] | None = None) -> list[Case]:
+    """``envelope.decode`` + ``links.extract`` for every object, ``sig.verify`` for signed ones.
+
+    Fail closed, as :func:`file_cases`: an attestation or annotation whose body
+    does not parse strictly, or carries a ``signature`` that is not a
+    ``tine-attest`` block, is reported ``unsigned`` rather than skipped.
+    """
     from opentine.repository import Repo
+
+    problems = [] if problems is None else problems
 
     repo = Repo(tine_dir)
     oids = sorted(repo.iter_oids())
@@ -100,8 +107,17 @@ def repo_cases(tine_dir: Path) -> list[Case]:
         cases.append(_case(f"{oid}#links", "links.extract", raw,
                            {"present": links} if links is not None else everything))  # fmt: skip
         body = raw.split(b"\n", 1)[1] if b"\n" in raw else b""
-        if oid.split(":", 1)[0] in SIGNED and _signed(body):
+        if oid.split(":", 1)[0] not in SIGNED:
+            continue
+        if _signed(body):
             cases.append(_case(f"{oid}#sig", "sig.verify", body, {"trust_embedded": True}))
+            continue
+        try:
+            value = _strict(body)
+        except ValueError:
+            value = None
+        if not isinstance(value, dict) or value.get("signature") is not None:
+            problems.append(f"unsigned record: {oid}")
     return cases
 
 
@@ -162,7 +178,7 @@ def bundle_cases(path: Path, scratch: Path, problems: list[str], cli: Path) -> l
         return []
     repo = Repo.init(scratch / "unbundled")
     _bundle.unbundle(repo, data, "bundle")
-    return repo_cases(repo.path)
+    return repo_cases(repo.path, problems)
 
 
 def tine_dir(path: Path) -> Path | None:
