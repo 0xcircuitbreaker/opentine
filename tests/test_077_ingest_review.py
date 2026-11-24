@@ -173,8 +173,14 @@ def test_a_client_dripping_its_body_is_dropped_at_the_request_deadline(repo):
                 threading.Event().wait(0.01)
             assert got.is_set()
             now[0] = server.timeout_s + 1  # the whole-request budget is spent
-            sock.sendall(b"y")  # one more drip: the next read sees the deadline
-            assert sock.recv(4096) == b""
+            # One more drip: the next read sees the deadline and the server drops us.
+            # Closing with unread bytes may reset the connection (macOS) instead of
+            # a clean EOF; both mean the client was dropped.
+            try:
+                sock.sendall(b"y")
+                assert sock.recv(4096) == b""
+            except (ConnectionResetError, BrokenPipeError):
+                pass
         for _ in range(10_000):
             if server.slots._value == _ingest_http.MAX_CLIENTS:  # noqa: SLF001
                 break
