@@ -158,6 +158,7 @@ def test_a_client_dripping_its_body_is_dropped_at_the_request_deadline(repo):
     server = _ingest_http.start(repo, "rl", _key("runner"), clock_ms=lambda: T0)
     now = [0.0]
     server.monotonic = lambda: now[0]
+    server.timeout_s = 3600.0  # the per-read socket timeout never fires: only the deadline can
     port = server.server_address[1]
     try:
         with socket.create_connection(("127.0.0.1", port), timeout=60) as sock:
