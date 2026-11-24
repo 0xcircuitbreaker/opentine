@@ -56,6 +56,7 @@ class World:
     owner_vkey: str = ""
     clock: Clock = field(default_factory=Clock)
     files: dict[str, str] = field(default_factory=dict)
+    item_secret: bytes = field(default_factory=lambda: os.urandom(16), repr=False)
 
     @property
     def root(self) -> Path:
@@ -69,8 +70,12 @@ class World:
         return self.work.joinpath(*parts)
 
     def secret(self) -> bytes:
-        """The item secret: holdout and canary arguments derive from it."""
-        return bytes.fromhex(Path(self.files["items_secret"]).read_text(encoding="utf-8"))
+        """The item secret: holdout and canary arguments derive from it.
+
+        It lives only in this process's memory and is never written to disk, so
+        neither a variant nor anything reading the work directory can learn it.
+        """
+        return self.item_secret
 
 
 def _write(path: Path, text: str) -> str:
@@ -187,8 +192,6 @@ def build(work: Path) -> World:
 
     world = World(Path(work))
     make_keys(world)
-    world.files["items_secret"] = _write(world.path("keys", "items.secret"), os.urandom(16).hex())
-    os.chmod(world.files["items_secret"], 0o600)
     Repo.init(world.root)
     toy.write_repo(world.root)
     return world

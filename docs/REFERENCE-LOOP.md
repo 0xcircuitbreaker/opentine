@@ -44,7 +44,7 @@ operations and returns `ARG` for the others. Three item sets of 42:
 **visible** (in `tests/visible.jsonl`, the loop may read them), **holdout**
 (sealed with `tine dataset seal`) and **canary** (three rounds in seven have
 an empty argument). Holdout and canary arguments are derived from a random
-per-run secret kept with the keys (`keys/items.secret`), never from the
+per-run secret held only in the loop's memory (never written to disk), never from the
 example's source: a sealed set the optimizer could regenerate from source
 would seal nothing, and a lookup table of answers would pass it. The grader, the visible tests and `sandbox.json` are the
 protected surfaces in `.tine/protected.toml`, pinned and signed by the policy
