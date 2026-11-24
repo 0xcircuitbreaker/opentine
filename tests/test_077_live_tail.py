@@ -200,3 +200,23 @@ def test_listing_refs_skips_a_file_renamed_away_by_a_concurrent_writer(tmp_path,
 
     monkeypatch.setattr(_paths.os, "walk", walk)
     assert repo.list_refs()["heads/main"] == repo.read_ref("heads/main")
+
+
+def test_a_new_ref_onto_an_already_followed_run_does_not_replay_its_history(tmp_path):
+    repo, run = _repo(tmp_path, steps=5)
+    follower = Follower(repo, repo.list_refs, backlog=0)
+    assert follower.poll() == []
+    repo.update_ref("tags/v1", repo.read_ref("heads/main"), None)
+    assert follower.poll() == []
+    _grow(repo, run, 1)
+    rows = follower.poll()
+    assert [(r["ref"], r["index"]) for r in rows] == [("heads/main", len(_events(repo)) - 1)]
+
+
+def test_a_resumed_follower_does_not_replay_a_tag_of_a_followed_run(tmp_path):
+    repo, _ = _repo(tmp_path, steps=4)
+    follower = Follower(repo, repo.list_refs, names=None, backlog=0)
+    follower.poll()
+    resumed = Follower(repo, repo.list_refs, resume=follower.cursor())
+    repo.update_ref("tags/v2", repo.read_ref("heads/main"), None)
+    assert resumed.poll() == []

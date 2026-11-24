@@ -173,6 +173,18 @@ class Follower:
         self._cut = max(0, len(picked) - MAX_REFS)
         return {name: chosen[name] for name in picked[:MAX_REFS]}
 
+    def _known_prefix(self, events: list[str]) -> int:
+        """How much of a newly listed ref's run is history already followed under another ref.
+
+        A tag, branch or pulled ref onto a run this follower already shows is not new:
+        it starts after the longest followed prefix instead of replaying it.
+        """
+        best = 0
+        for count, last in {(c, t) for _, c, t in self._pos.values() if c}:
+            if count > best and count <= len(events) and prefix_digest(events, count) == last:
+                best = count
+        return best
+
     def cursor(self) -> str:
         return encode_cursor({n: (count, last) for n, (_, count, last) in self._pos.items()})
 
@@ -194,6 +206,9 @@ class Follower:
             events = _run_events(self.repo, oid)
             if events is None:
                 continue  # the run is not readable yet: the next poll retries
+            if name not in self._pos:
+                count = self._known_prefix(events)
+                last = prefix_digest(events, count)
             if count and (count > len(events) or prefix_digest(events, count) != last):
                 rows.append(row("rewrite", ref=name, run_id=oid, index=len(events)))
                 count = len(events)
