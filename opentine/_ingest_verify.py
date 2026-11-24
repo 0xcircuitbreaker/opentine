@@ -106,6 +106,9 @@ def _check_batch(anchor: str, row: dict[str, Any], prior: dict[str, Any] | None,
     counts_ok = (claim["captured"] + claim["dropped"] == claim["received"]
                  and claim["next_index"] - claim["first_index"] == claim["received"]
                  and by_sum == claim["dropped"])  # fmt: skip
+    span = claim["next_index"] - claim["first_index"]
+    if not (0 <= claim["received"] <= MAX_EVENTS and 0 <= span <= MAX_EVENTS):
+        counts_ok = False  # no append() batch is this large: fail closed, never skip _hidden
     if not counts_ok:
         bad.append(("ingest.counts", "captured + dropped, the index range or dropped_by "
                     "do not add up"))  # fmt: skip
@@ -123,7 +126,7 @@ def _check_batch(anchor: str, row: dict[str, Any], prior: dict[str, Any] | None,
             isinstance(i, bool) or not isinstance(i, int)
             or not claim["first_index"] <= i < claim["next_index"] for i in indexes):  # fmt: skip
             bad.append(("ingest.events-order", "event indexes are not increasing in range"))
-        elif policy is not None and claim["received"] <= MAX_EVENTS and counts_ok:
+        elif policy is not None and counts_ok:
             bad.extend(_hidden(policy, claim, set(indexes), by))
         if policy is not None and any(
             not isinstance(e.get("k"), str) or _ingest_policy.decide(policy, e["i"], e["k"])
