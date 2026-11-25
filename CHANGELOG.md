@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — HEC packs (opt-in)
+## 0.81.0 — HEC packs (opt-in) (2026-11-25)
 
 - TINEPACK6, a transfer pack using Hash-Elision Coding (HEC): object ids are
   not carried but recomputed from the rebuilt bytes, links and repeated
