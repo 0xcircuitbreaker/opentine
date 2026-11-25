@@ -37,7 +37,7 @@ def test_a_redacted_public_bundle_never_silently_drops_the_asked_pack_format(tmp
     assert b"TINEPACK5\0" in data
 
 
-_LOCAL = re.compile(rb"/tmp/claude|scratchpad|/home/user|venv0\d")
+_LOCAL = re.compile(rb"/tmp/[A-Za-z0-9_.-]+/|/home/[a-z]|scratch[p]ad|venv\d|\.venv/")
 
 
 @pytest.mark.parametrize("chunk", range(4))
