@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Monitor collusion protocols and interpretability custody
+## 0.83.0 — Monitor collusion protocols and interpretability custody (2026-11-25)
 
 - `tine monitor protocol-sign` signs a collusion-testing protocol manifest
   (`opentine.collusion-protocol/1`, a signed file convention): paraphrase and
