@@ -183,6 +183,8 @@ def public_bundle(repo: Any, ref: str, run: str, key: Any, *, algorithm: str,
     from opentine.repository import _pack5, _tombstones
     from opentine.repository._pack5 import V5
 
+    if pack_format not in ("TINEPACK3", V5):  # the signed record names these pack bytes
+        raise ValueError(f"redacted public bundles carry TINEPACK3 or {V5}, not {pack_format}")
     public, objects, boundary, changed = derive(repo, run, counts)
     pack = create_pack(_View(objects, boundary), sorted(objects))
     record = {

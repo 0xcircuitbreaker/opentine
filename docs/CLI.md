@@ -1301,7 +1301,7 @@ tine purge OID --reason TEXT (--key-file K | --ed25519-key-file K) [--key-id ID]
            [--actor NAME] [--json] [--repo R]
 tine purge --list [--key-file K | --pubkey K.pub] [--json] [--repo R]
 tine bundle create FILE REF --redacted-public (--key-file K | --ed25519-key-file K)
-                  [--key-id ID] [--pack-format TINEPACK3|TINEPACK5|TINEPACK6] [--repo R]
+                  [--key-id ID] [--pack-format TINEPACK3|TINEPACK5] [--repo R]
 tine bundle verify FILE [--key-file K | --pubkey K.pub]
 ```
 
@@ -1318,6 +1318,9 @@ deleted, and the derived search index is deleted (rebuild it with `tine
 repo-search --rebuild-index`). The oid joins the shallow boundary list, so
 `tine fsck` stays ok and lists it under `content_unavailable`. `--json` follows
 `tine-cli-purge-1`; an unknown blob exits 3.
+
+A `--redacted-public` bundle is TINEPACK3 or TINEPACK5 only: its signed
+record names the pack's bytes, and `--pack-format TINEPACK6` is refused.
 
 `tine purge --list` prints every tombstone with `content: unavailable` (or
 `present`, for one imported beside a copy still held) and its trust:
