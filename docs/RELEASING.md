@@ -255,8 +255,9 @@ upload different bytes under the same version.
 
 `scripts/fuzz.py` fuzzes every reader that takes untrusted bytes, one target
 each: `otlp-spans` and `otlp-logs` (OTLP protobuf ingest), `tine` (`.tine`
-v4/v5, plain or TINEZ1, then `verify_integrity`), `pack` (TINEPACK3/4/5 wire
-packs), `localpack` (storage-v3 `.tidx`/`.tpk` with codec-3 dictionaries) and
+v4/v5, plain or TINEZ1, then `verify_integrity`), `pack` (TINEPACK3-6 wire
+packs), `hec` (HEC1 bodies, 0.81: refusals must carry a published reason code,
+accepted tables must survive a re-encode), `localpack` (storage-v3 `.tidx`/`.tpk` with codec-3 dictionaries) and
 `dsse` (the in-toto run attestation and `replay/v1` DSSE verifiers). Seeds are
 the conformance vectors (`docs/conformance/vectors`), the `.tine` fixtures,
 TINEPACK4/5 re-spellings of the vector packs and the triaged regressions. The

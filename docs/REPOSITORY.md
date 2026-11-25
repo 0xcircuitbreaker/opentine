@@ -805,6 +805,13 @@ Peers pick the transfer format from each other's `pack_formats`:
   in recording order, as one zstd long-distance frame (window 2^27, level 9)
   flushed into 4 MiB blocks that are read in order. Readers refuse a larger
   window.
+- **0.81+ peers that opted in** get `TINEPACK6` (Hash-Elision Coding, SPEC 2.8)
+  when both ends set `OPENTINE_TINEPACK6=1`: no object id is carried, links and
+  repeated strings are back-references, binary and sealed blobs ride as plain
+  zstd. Every 0.81+ install reads it; the TS verifier refuses it. Python
+  encode is 10-20x slower than TINEPACK5, hence opt-in
+  (`docs/bench/0.81-tinepack6.md`, `scripts/bench/tinepack6.py`). Not yet:
+  thin packs, native decoders, HEC local packs, TINEPACK6 as a default.
 - **0.34–0.36 peers** get `TINEPACK4`.
 - **0.11 and older peers** get `TINEPACK3`.
 
@@ -854,7 +861,9 @@ Since 0.15, runs can be shared with no opentine server.
   `remotes/*`; a bare name means `heads/NAME`.
   The pack is `TINEPACK3`, which every release reads. With `--pack-format TINEPACK5`
   (0.37+) it is TINEPACK5 with run deltas and slim events. That pack is much
-  smaller, but only 0.37 and newer can read it.
+  smaller, but only 0.37 and newer can read it. `--pack-format TINEPACK6`
+  (0.81+, opt-in) writes a TINEPACK6, smaller still on text runs; only 0.81+
+  Python readers open it, and the TS and browser verifiers refuse it.
 - `tine share bundle verify FILE` checks it without a repository: size caps, both
   digests, canonical manifest, every ref name through `normalize_ref` (no `..`,
   absolute, upper-case, control characters or `remotes/*`), every ref target

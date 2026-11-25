@@ -1319,6 +1319,9 @@ repo-search --rebuild-index`). The oid joins the shallow boundary list, so
 `tine fsck` stays ok and lists it under `content_unavailable`. `--json` follows
 `tine-cli-purge-1`; an unknown blob exits 3.
 
+A `--redacted-public` bundle is TINEPACK3 or TINEPACK5 only: its signed
+record names the pack's bytes, and `--pack-format TINEPACK6` is refused.
+
 `tine purge --list` prints every tombstone with `content: unavailable` (or
 `present`, for one imported beside a copy still held) and its trust:
 `verified` under `--key-file`/`--pubkey`, `verified-tofu` for an Ed25519

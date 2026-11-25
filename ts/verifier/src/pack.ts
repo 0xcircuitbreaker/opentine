@@ -29,6 +29,8 @@ const ascii = (text: string) => Uint8Array.from(Buffer.from(text, "latin1"));
 export const MAGIC3 = ascii("TINEPACK3\0");
 export const MAGIC4 = ascii("TINEPACK4\0");
 export const MAGIC5 = ascii("TINEPACK5\0");
+/** `TINEPACK6` (0.81, HEC): recognised and refused until a TS/WASM HEC decoder exists. */
+export const MAGIC6 = ascii("TINEPACK6\0");
 export const MAX_PACK_BYTES = 256 * 1024 * 1024;
 export const MAX_PACK_BODY_BYTES = 256 * 1024 * 1024;
 /** `_traversal.MAX_TRAVERSAL_OBJECTS`. */
@@ -372,6 +374,7 @@ export function inspectPack(data: Uint8Array, maxBody = MAX_PACK_BODY_BYTES, max
   if (data.length > maxPack) fail("pack exceeds maximum transfer size", "pack.oversized");
   if (startsWith(data, MAGIC4)) return inspectV4(data, maxBody);
   if (startsWith(data, MAGIC5)) return inspectV5(data, maxBody);
+  if (startsWith(data, MAGIC6)) fail("unsupported pack format TINEPACK6", "pack.version-unsupported");
   return inspectV3(data, maxBody);
 }
 

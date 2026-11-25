@@ -1125,7 +1125,119 @@ block 1+ = the objects' stored bytes in pack order, cut every 4 MiB
 - **Pack id.** The pack id is `"sha256:" + hex(bytes[10:42])`.
 
 A bundle's pack is TINEPACK3 unless `tine bundle create --pack-format
-TINEPACK5` is asked for. Only 0.37+ reads such a bundle.
+TINEPACK5` is asked for. Only 0.37+ reads such a bundle. `--pack-format
+TINEPACK6` (0.81+) is opt-in likewise.
+
+### TINEPACK6 (0.81+, opt-in)
+
+TINEPACK6 carries objects with Hash-Elision Coding (HEC): a body is stored as
+literal bytes with holes the reader recomputes (the id of an earlier object,
+a value derived from the object itself, a copy of an earlier literal unit),
+and no object id is carried, so decoding is verification. A write-up of the
+method is forthcoming. Only 0.81+ reads it. An install lists `TINEPACK6` in
+`pack_formats` only with `OPENTINE_TINEPACK6=1`, and it is sent only when both
+ends list it; every 0.81+ install reads it whatever it lists. The frame
+(frozen, E4):
+
+```text
+b"TINEPACK6\0" | sha256(payload) | payload
+payload = uvarint(len(header)) | header | hec | plain block 0 | plain block 1 | ...
+header  = canonical JSON {"grammar": "opentine-1", "hec": "HEC1", "hec_bytes": N,
+                          "plain_blocks": [[stored, raw], ...], "shallow": [...], "version": 1}
+hec     = one self-contained HEC1 pack of hec_bytes bytes
+plain block 0  = canonical JSON {"objects": [size, ...]}
+plain block 1+ = the plain objects' canonical bytes, cut every 4 MiB
+```
+
+- **Header.** Exactly these keys, canonical, `version` 1, `hec` `"HEC1"`,
+  `grammar` `"opentine-1"`; anything else is refused. The plain blocks form
+  one zstd long-mode frame, written and read exactly as TINEPACK5's blocks
+  (window cap 2^27, each block inflates to exactly its `raw` size); there are
+  none when no object is plain.
+- **Checks before anything inflates.** Checksum; header; `hec_bytes` and the
+  plain frames cover the payload exactly; the plain `raw` sizes and the HEC1
+  declared output together stay within the reader's output budget.
+- **Ids.** Every id is recomputed from the rebuilt canonical bytes; the union
+  of the HEC1 objects and the plain objects MUST be unique and disjoint from
+  `shallow`, and every object is checked as for every other pack format.
+- **Budgets (local policy, not wire).** CLI readers (fetch, pull, bundle):
+  `MAX_PACK_BODY_BYTES` (256 MiB) per pack. `tine serve` push receive: 64 MiB
+  per pack and at most 2 decodes at once. The unit cap (`max_unit_bytes`) is
+  the output budget. A decode, accepted or refused, peaks at about 4x its
+  output budget in memory (streams up to 2x, objects, units), however small
+  the pack.
+- **Malleable bytes.** Many byte strings decode to the same objects. Pack
+  bytes are never a cache key and never signed; the pack id
+  (`"sha256:" + hex(bytes[10:42])`) is a transport id only.
+- **Writer.** The writer tries every object in HEC, binary and sealed
+  (`TINEAES*`) blobs in the plain section with the rest in HEC, and every
+  object plain, and keeps the smallest, so a TINEPACK6 is not larger than the
+  plain zstd form of its objects by more than its frame.
+
+#### HEC1 (normative)
+
+```text
+"HEC1" | uv(len(grammar)) | grammar | 16 streams in this order, each:
+    codec(1) | uv(raw_len) | [uv(comp_len) if codec != 0] | bytes
+streams: head type nholes litlen gap code arg rel abs lit0 lit1 lit2 lit3 unit opaque aux
+codec:   0 stored, 1 zstd (frame without its 4-byte magic, content size present,
+         no dictionary), 2 zlib
+```
+
+`uv` is unsigned LEB128, canonical (no overlong form) and below 2^63. `head`
+holds `uv(n_obj) uv(total_out) uv(n_types)` then each type descriptor as
+`uv(len) bytes`. Per object: `type` (type index, in first-use order),
+`nholes`, `litlen` (literal byte count). Per hole: `gap` (literal bytes before
+it) and one `code` byte: 0 new unit (`arg`: length; bytes from `unit`),
+1 unit reference (`arg`: distance back), 2 unit prefix (`arg`: distance,
+length), 3 unit extension (`arg`: distance, added length; bytes from `unit`),
+4 + k grammar field k. Literal bytes come from `lit0`.
+
+Grammar `opentine-1`: an object is `header NL body`; the type descriptor is the
+header, which MUST be the canonical OpenTine header of a known kind with schema
+1 <= s < 2^53 (`blob` exactly when `raw`). Field 0: link, relative (`rel`:
+v = 0 is the most recent object nothing links to yet, else object i - v),
+rendered as the full typed oid. Field 1: `legacy_step_id`, self-derived (at
+most one per object): sha256 of the step payload as 0.5x computed it, from
+the event, its earlier input/output blobs and its parents' ids. Field
+2: 32 raw bytes from `opaque`, rendered as 64 lowercase hex. The object id is
+`type ":sha256:" hex(sha256(type NUL schema NUL body))`.
+
+Check order: the first failing step decides the reason code.
+
+1. Magic and grammar name (`header`).
+2. Frame headers only, nothing inflated: running sum of declared `raw_len`
+   over the stream budget (`budget`, default 2 x output budget + 64 KiB);
+   framing (`truncated`, `trailing`); head `raw_len` over
+   `27 + max_types x (max_type_desc + 2)` (`budget`); aux over its cap (`limit`).
+3. The head alone is inflated: `n_obj` over the object cap (`limit`);
+   `total_out` over the caller's output budget (`budget`); `n_types` over its
+   cap or over `n_obj` (`limit`); `n_obj > total_out + n_types` (`budget`);
+   the other streams' summed `raw_len` over `2 x total_out + 3 x n_obj + 64 KiB`
+   (`budget`).
+4. Every other stream is inflated, capped at its `raw_len`: a zstd frame must
+   be exactly the given bytes, declare `raw_len` as its content size, ask for a
+   window of at most 2^27 and no dictionary (`backend`).
+5. One forward pass, no recursion: a non-empty `aux` (`trailing`); descriptors
+   (`grammar`, duplicate or unused `header`); every reference points strictly
+   backwards and every hole emits at least one byte (`bad-ref`); unknown or
+   disallowed field codes (`bad-code`); derivation failures (`derive`);
+   derive/hash work over `8 x total_out + 1 MiB` or unit bytes over cap
+   (`limit`); output beyond `total_out` the moment it happens, or short at the
+   end (`size-mismatch`); a repeated id (`duplicate`); every stream consumed
+   exactly (`trailing`); the decoded id set equal to the caller's want-set when
+   one is given (`want-mismatch`).
+
+Nothing is returned unless every step passes. Reason codes (frozen): `header`,
+`budget`, `limit`, `truncated`, `trailing`, `bad-varint`, `backend`,
+`grammar`, `bad-ref`, `bad-code`, `derive`, `duplicate`, `size-mismatch`,
+`want-mismatch`. They are transport-level (a refused pack writes nothing); no
+`tine verify` code is added. Vectors: `tests/vectors/tinepack6`.
+
+Not yet: thin packs against a receiver's held objects (`HECS`), a Rust or
+TS/WASM decoder (the TS verifier refuses TINEPACK6 with
+`unsupported pack format TINEPACK6`), HEC local packs from `tine gc`, an
+archival tier, and TINEPACK6 as a default anywhere.
 
 ### Local packs
 

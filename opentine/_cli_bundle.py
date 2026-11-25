@@ -82,9 +82,11 @@ def add_bundle_parsers(sub: argparse._SubParsersAction) -> None:
     create.add_argument("--all", action="store_true", help="Every local ref except remotes/*")
     create.add_argument(
         "--pack-format",
-        choices=("TINEPACK3", "TINEPACK5"),
+        choices=("TINEPACK3", "TINEPACK5", "TINEPACK6"),
         default="TINEPACK3",
-        help="TINEPACK5 is far smaller but needs opentine 0.37+ to read (default: TINEPACK3)",
+        help="TINEPACK5 is far smaller but needs opentine 0.37+ to read; TINEPACK6 "
+        "(HEC, opt-in) needs opentine 0.81+ and is refused by the TS verifier "
+        "(default: TINEPACK3)",
     )
     create.add_argument(
         "--transparency",

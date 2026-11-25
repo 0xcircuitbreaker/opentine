@@ -72,6 +72,7 @@ case.
 | Signature blocks: the five-key header, HMAC-SHA256, Ed25519, ML-DSA-65 and the composite | 4.1, 4.2, 4.6, 9.6 |
 | DSSE / in-toto statements (`replay/v1`, admission VSAs, keyless bundles) | 8.8, 8.12, 8.17 |
 | Transfer packs: TINEPACK3, and TINEPACK4 toward a peer that advertises it | 2.8 |
+| TINEPACK6 frame, HEC1 body (`opentine-1` grammar) and its decode reason codes (0.81, E4, opt-in) | 2.8 |
 | Transparency log: C2SP tlog-tiles, signed-note checkpoints, `cosignature/v1` | 8.10, 8.11 |
 | RFC 3161 timestamp tokens and the `sig:sha256:` binding | 8.6, 8.12.1 |
 | Signed webhooks (`tine-webhook/1` header and body) | 8.13 |
@@ -98,6 +99,19 @@ Not frozen: derived indexes. `.tine/query/index.sqlite` (`tine query`, 0.65)
 and `.tine/lineage/index/lineage.sqlite` are caches rebuilt from the formats
 above; their tables may change in any release, and they add no object kind
 and no `tine verify` code (docs/QUERY.md).
+
+## 0.81: TINEPACK6 (E4, granted 2026-11-18)
+
+One wire format was added: TINEPACK6 (SPEC 2.8), a Hash-Elision Coding
+transfer pack, its frame, the HEC1 body for grammar `opentine-1` and the
+fourteen decode reason codes as normative text, with decode vectors in
+`tests/vectors/tinepack6`. It is opt-in everywhere: listed in `pack_formats`
+only with `OPENTINE_TINEPACK6=1`, written into bundles only with
+`tine bundle create --pack-format TINEPACK6` (a new value of an existing flag;
+the default stays TINEPACK3). No object kind, signed document, `docs/schemas`
+schema or `tine verify` code was added; pack-decode reasons are transport
+level. The TS verifier refuses TINEPACK6 with `pack.version-unsupported`, an
+existing code. Thin packs (`HECS`, E5) are not part of this addition.
 
 ## 0.52: scoped tokens, CI OIDC exchange and quotas
 

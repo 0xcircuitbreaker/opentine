@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.81.0 — HEC packs (opt-in) (2026-11-25)
+
+- TINEPACK6, a transfer pack using Hash-Elision Coding (HEC): object ids are
+  not carried but recomputed from the rebuilt bytes, links and repeated
+  strings become back-references, so decoding is verification. On the
+  generated bench corpus of recorded runs it is 3.35x smaller than TINEPACK5
+  (`docs/bench/0.81-tinepack6.md`). Binary and sealed blobs go to a plain zstd
+  section; the writer keeps the smallest of all-HEC, split and all-plain, so a
+  TINEPACK6 is not larger than the plain zstd form by more than its frame.
+- Opt-in only: an install lists `TINEPACK6` in `pack_formats` with
+  `OPENTINE_TINEPACK6=1`, and it is sent only when both ends list it; every
+  install from this release reads it. `tine bundle create --pack-format
+  TINEPACK6` writes it into a bundle; bundles still default to TINEPACK3.
+- Decoding is all-or-nothing under an output budget checked before anything
+  is allocated (256 MiB per pack on the CLI, 64 MiB and at most 2 concurrent
+  decodes on `tine serve`); refusals name one of fourteen reason codes
+  (SPEC 2.8, "TINEPACK6"). The engine is pure Python (`opentine._hec`) with
+  the `opentine-1` grammar; decode vectors in `tests/vectors/tinepack6`.
+- The TS verifier and the browser build refuse a TINEPACK6 pack or bundle
+  with `unsupported pack format TINEPACK6` (`pack.version-unsupported`)
+  instead of misparsing it.
+- CI: a `fuzz-hec` job fuzzes HEC1 bodies (with a re-encode differential) and
+  wire packs; `scripts/fuzz_hec.py` runs atheris locally when installed.
+- Not yet: thin packs, Rust or TS/WASM decoders, HEC local packs from
+  `tine gc`, an archival tier, TINEPACK6 as a default. A write-up of the
+  method is forthcoming.
+
 ## 0.80.1 — Audit hardening for 0.77-0.80 (2026-11-24)
 
 - `tine log -f --all` and the SSE tail no longer replay a run's whole history
