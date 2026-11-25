@@ -34,12 +34,18 @@ _SPACE = re.compile(r"\s+")
 
 
 def _rewrite(value: Any, fn) -> Any:
+    """*fn* over a string input or the top-level string values of an input object.
+
+    Shallow on purpose: trajectories are caller data, so nothing here recurses.
+    """
     if isinstance(value, str):
         return fn(value)
     if isinstance(value, dict):
-        return {k: _rewrite(v, fn) for k, v in value.items()}
-    if isinstance(value, list):
-        return [_rewrite(v, fn) for v in value]
+        out = dict(value)
+        for key, item in value.items():
+            if isinstance(item, str):
+                out[key] = fn(item)
+        return out
     return value
 
 
