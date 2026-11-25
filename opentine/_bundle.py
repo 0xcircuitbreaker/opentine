@@ -31,7 +31,7 @@ from opentine._bundle_extra import namespace, tracking_ref
 from opentine._cli_git_sync import is_ancestor
 from opentine.kernel import KernelError, _parse_int, canonical_json, parse_oid, validate_json_shape
 from opentine.repo import Repo
-from opentine.repository import _pack5
+from opentine.repository import _pack5, _pack6_build
 from opentine.repository._pack4 import V3
 from opentine.repository._pack5 import V5
 from opentine.repository._pack_fit import fitted_pack
@@ -89,10 +89,10 @@ def create_refs(
     """Bundle exactly the ``ref name -> object id`` mapping *chosen*.
 
     The pack is ``TINEPACK3``, which every reader since 0.11 opens, unless
-    *pack_format* asks for ``TINEPACK5`` (0.37+ readers only).
+    *pack_format* asks for ``TINEPACK5`` (0.37+) or ``TINEPACK6`` (0.81+, opt-in).
     """
-    if pack_format not in (V3, V5):
-        raise ValueError(f"bundles carry {V3} or {V5}, not {pack_format!r}")
+    if pack_format not in (V3, V5, V6 := _pack6_build.V6):
+        raise ValueError(f"bundles carry {V3}, {V5} or {V6}, not {pack_format!r}")
     pack, carried = fitted_pack(repo, sorted(set(chosen.values())), [])
     extra = {
         "signatures": _bundle_sigs.collect(repo, carried),  # tine-sig/3 sidecars travel too
@@ -104,6 +104,8 @@ def create_refs(
         extra["transparency"] = receipts_for(repo.path, chosen)
     if pack_format == V5:
         pack = _pack5.from_v3(pack, slim=True)  # written once, kept: smallest form
+    elif pack_format == V6:
+        pack = _pack6_build.from_v3(pack)
     return assemble(pack, chosen, extra)
 
 

@@ -2,7 +2,7 @@
 
 ``seeds(target, root)`` reads ``docs/conformance/vectors`` (and the ``.tine``
 fixtures under ``tests/fixtures``) in a checkout at *root*, adds seeds built
-here (TINEPACK4/5 re-spellings of the vector packs, v5 and TINEZ1 forms of the
+here (TINEPACK4/5/6 re-spellings of the vector packs, v5 and TINEZ1 forms of the
 v4 artifacts, a freshly signed DSSE envelope) and the triaged regression
 inputs in ``tests/fuzz_regressions/<target>/``. Every seed is a tuple of parts.
 """
@@ -98,7 +98,9 @@ def _pack(root: Path) -> list[Parts]:
             continue
         out.append((_pack4.from_v3(raw, "zlib"),))
         if _pack5.available():
-            out.append((_pack5.from_v3(raw),))
+            from opentine.repository import _pack6_build
+
+            out += [(_pack5.from_v3(raw),), (_pack6_build.from_v3(raw),)]
     return out
 
 
@@ -158,6 +160,7 @@ def _replay_envelope(key: Any) -> dict[str, Any]:
 
 
 INSPECT = "tests/fixtures/inspect"  # 0.64: the committed Inspect log fixtures
+HEC_SEEDS = "tests/vectors/tinepack6/packs"  # 0.81: the HEC1 decode vectors
 
 
 def regressions(target: str, root: Path) -> list[Parts]:
@@ -175,6 +178,7 @@ def seeds(target: str, root: Path) -> list[Parts]:
         "pack": lambda: _pack(root),
         "localpack": lambda: _localpack(root),
         "dsse": lambda: _dsse(root),
+        "hec": lambda: [(p.read_bytes(),) for p in sorted((root / HEC_SEEDS).glob("*.hec"))],
         "inspect": lambda: [
             (p.read_bytes(),)
             for p in sorted((root / INSPECT).glob("*.*"))

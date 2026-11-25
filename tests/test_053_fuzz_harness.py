@@ -32,7 +32,8 @@ def _script():
 
 def test_the_targets_cover_every_reader_criterion_1_names():
     assert set(TARGETS) == {
-        "otlp-spans", "otlp-logs", "tine", "pack", "localpack", "dsse", "inspect"}  # fmt: skip
+        "otlp-spans", "otlp-logs", "tine", "pack", "localpack", "dsse", "inspect",
+        "hec"}  # fmt: skip
 
 
 @pytest.mark.parametrize("target", SCRIPT_TARGETS)
@@ -52,7 +53,7 @@ def test_the_corpus_reaches_every_pack_format_and_v5():
     from opentine.repository import _pack5
 
     if _pack5.available():
-        assert b"TINEPACK5\0" in packs
+        assert {b"TINEPACK5\0", b"TINEPACK6\0"} <= packs
     tine = b"".join(parts[0] for parts in _fuzz_corpus.seeds("tine", ROOT))
     assert b"tine-artifact/4" in tine and b"tine-artifact/5" in tine
     dicts = [parts[2] for parts in _fuzz_corpus.seeds("localpack", ROOT)]

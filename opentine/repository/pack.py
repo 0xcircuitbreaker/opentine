@@ -1,8 +1,4 @@
-"""Deterministic compressed v3 packs and missing-object negotiation.
-
-Readers also accept ``TINEPACK4`` (``_pack4``) and ``TINEPACK5`` (``_pack5``),
-sent to peers that advertise them (``_pack_peer``).
-"""
+"""Deterministic v3 packs and negotiation; also reads TINEPACK4-6 (``_pack4``-``_pack6``)."""
 
 from __future__ import annotations
 
@@ -21,7 +17,7 @@ from opentine.kernel import (
     validate_json_shape,
     validate_links,
 )
-from opentine.repository import _pack4, _pack5
+from opentine.repository import _pack4, _pack5, _pack6
 from opentine.repository._pack_walk import include_associations, walk
 from opentine.repository._semantic_view import semantic_view
 from opentine.repository._tips import MAX_TIPS, checked_ids, met_tips
@@ -169,6 +165,7 @@ def inspect_pack(
     *,
     max_body: int = MAX_PACK_BODY_BYTES,
     max_pack: int = MAX_PACK_BYTES,
+    serve: bool = False,
 ) -> tuple[str, list[tuple[str, bytes]], list[str]]:
     if len(data) > max_pack:
         raise KernelError("pack exceeds maximum transfer size")
@@ -176,6 +173,8 @@ def inspect_pack(
         return _pack4.inspect(data, max_body=max_body, max_objects=MAX_PACK_OBJECTS)
     if data.startswith(_pack5.MAGIC5):
         return _pack5.inspect(data, max_body=max_body, max_objects=MAX_PACK_OBJECTS)
+    if data.startswith(_pack6.MAGIC6):
+        return _pack6.inspect(data, max_body=max_body, max_objects=MAX_PACK_OBJECTS, serve=serve)
     if not data.startswith(MAGIC) or len(data) < len(MAGIC) + 32:
         raise KernelError("invalid pack header")
     expected = data[len(MAGIC) : len(MAGIC) + 32]

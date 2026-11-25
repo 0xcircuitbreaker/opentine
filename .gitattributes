@@ -19,3 +19,6 @@
 # store LF and reintroduce the worktree/object-db skew) and teach the
 # inventory test about the exception.
 * text=auto eol=lf
+
+# TINEPACK6 decode vectors are verbatim pack bytes: never EOL-converted.
+tests/vectors/tinepack6/packs/*.hec binary

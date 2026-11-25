@@ -8,7 +8,9 @@ anything else a crash. A target's input is a tuple of byte strings:
 * ``tine`` -- one ``.tine`` v4 or v5 artifact, plain or TINEZ1-wrapped
   (``read_v4``), then ``verify_integrity`` on the parsed document, which must
   answer a result and never raise.
-* ``pack`` -- one wire pack, TINEPACK3, 4 or 5 (``inspect_pack``).
+* ``pack`` -- one wire pack, TINEPACK3, 4, 5 or 6 (``inspect_pack``).
+* ``hec`` -- one HEC1 body (``opentine._fuzz_hec``, 0.81): refusals must carry a
+  published reason code; accepted tables are re-encoded and decoded again.
 * ``localpack`` -- a storage-v3 local pack: ``(.tidx, .tpk, dicts JSON)``,
   where the JSON maps a ``dicts/`` name to base64 dictionary bytes (codec 3);
   every listed object is read back.
@@ -150,6 +152,12 @@ def _signed(envelope: object, public: object) -> bool:
     return False
 
 
+def _hec(parts: tuple[bytes, ...]) -> None:
+    from opentine import _fuzz_hec
+
+    _fuzz_hec.run_one(parts[0])
+
+
 def _inspect(parts: tuple[bytes, ...]) -> None:
     from opentine._inspect_log import parse_log
 
@@ -164,6 +172,7 @@ TARGETS: dict[str, Target] = {
     "localpack": Target(_localpack, parts=3),
     "dsse": Target(_dsse),
     "inspect": Target(_inspect),
+    "hec": Target(_hec, refusals=()),
 }
 
 __all__ = ["DSSE_SEED_KEY", "TARGETS", "Target"]

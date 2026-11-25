@@ -1301,7 +1301,7 @@ tine purge OID --reason TEXT (--key-file K | --ed25519-key-file K) [--key-id ID]
            [--actor NAME] [--json] [--repo R]
 tine purge --list [--key-file K | --pubkey K.pub] [--json] [--repo R]
 tine bundle create FILE REF --redacted-public (--key-file K | --ed25519-key-file K)
-                  [--key-id ID] [--pack-format TINEPACK3|TINEPACK5] [--repo R]
+                  [--key-id ID] [--pack-format TINEPACK3|TINEPACK5|TINEPACK6] [--repo R]
 tine bundle verify FILE [--key-file K | --pubkey K.pub]
 ```
 

@@ -167,7 +167,7 @@ class RemoteService:
 
     def install_pack(self, identity: Identity, tenant: str, data: bytes) -> tuple[str, int]:
         self._authorize_scoped(identity, "upload", tenant)
-        pack_id, packed, shallow = inspect_pack(data)
+        pack_id, packed, shallow = inspect_pack(data, serve=True)
         unresolved = [oid for oid in shallow if not self._resolves(tenant, oid)]
         if unresolved:
             raise ValueError("remote upload has unresolved shallow boundaries")

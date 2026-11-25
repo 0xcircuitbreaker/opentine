@@ -1,0 +1,47 @@
+{
+  "machine": "x86_64",
+  "mixed": {
+    "decode_mb_s": {
+      "tinepack5": 51.3,
+      "tinepack6": 47.0
+    },
+    "encode_mb_s": {
+      "tinepack5": 148.7,
+      "tinepack6": 6.5
+    },
+    "objects": 3404,
+    "raw_bytes": 19738993,
+    "tinepack5": 5051349,
+    "tinepack5_slim": 5038478,
+    "tinepack6": 4957526,
+    "tinepack6_candidates": {
+      "hec": 4979724,
+      "plain": 5050086,
+      "split": 4957526
+    },
+    "v5_over_v6": 1.02
+  },
+  "python": "3.13.18",
+  "runs": 40,
+  "steps": 30,
+  "text": {
+    "decode_mb_s": {
+      "tinepack5": 41.6,
+      "tinepack6": 38.3
+    },
+    "encode_mb_s": {
+      "tinepack5": 157.6,
+      "tinepack6": 13.1
+    },
+    "objects": 3329,
+    "raw_bytes": 14820493,
+    "tinepack5": 130180,
+    "tinepack5_slim": 117255,
+    "tinepack6": 38823,
+    "tinepack6_candidates": {
+      "hec": 38823,
+      "plain": 128925
+    },
+    "v5_over_v6": 3.35
+  }
+}
