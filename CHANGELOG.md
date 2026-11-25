@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — HEC audit round 2
+
+- HEC (normative, SPEC "HEC1" field 1): deriving a `legacy_step_id` now meters
+  the parsed JSON it builds, not just the bytes it hashes. Each structural
+  token of every body a derivation reads costs 64 bytes against a fixed 64 MiB
+  cap, checked before the body is parsed. A 1 KB pack whose blob is a long list
+  of empty lists (about 42x its size once parsed) is refused (`limit`) before
+  `json.loads` runs; writers leave such an id literal.
+
 ## 0.81.1 — Audit hardening for HEC packs (2026-11-25)
 
 - HEC: deriving an event's `legacy_step_id` no longer builds the whole

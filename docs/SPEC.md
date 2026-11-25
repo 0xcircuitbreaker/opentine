@@ -1199,7 +1199,11 @@ header, which MUST be the canonical OpenTine header of a known kind with schema
 v = 0 is the most recent object nothing links to yet, else object i - v),
 rendered as the full typed oid. Field 1: `legacy_step_id`, self-derived (at
 most one per object): sha256 of the step payload as 0.5x computed it, from
-the event, its earlier input/output blobs and its parents' ids. Field
+the event, its earlier input/output blobs and its parents' ids. One
+derivation may parse at most 1 048 576 structural JSON tokens (`[ { , : ] }`,
+counted over every body it reads, each costed at 64 bytes against a 64 MiB
+cap); past that it is refused (`limit`) before any body is parsed, and a writer
+leaves such a `legacy_step_id` literal. Field
 2: 32 raw bytes from `opaque`, rendered as 64 lowercase hex. The object id is
 `type ":sha256:" hex(sha256(type NUL schema NUL body))`.
 
