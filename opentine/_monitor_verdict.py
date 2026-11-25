@@ -4,7 +4,7 @@ A monitor verdict is an **attestation** (the existing object kind) whose claim
 records one decision an inline monitor made about one proposed action::
 
     {"convention": "opentine.monitor-verdict/1",
-     "monitor": {"id", "kind": "rule|command|http", "model_digest"},
+     "monitor": {"id", "kind": "rule|command|http|probe", "model_digest"},
      "input_digest": "sha256:<hex>",        # the redacted action, see input_digest()
      "reasoning": {"state": "captured|redacted|unavailable", "digest"},
      "tool", "session", "score", "threshold",
@@ -31,7 +31,7 @@ CONVENTION = "opentine.monitor-verdict/1"
 ACTIONS = ("allow", "flag", "resample", "defer", "block")
 REASONING = ("captured", "redacted", "unavailable")
 DECIDED_BY = ("monitor", "deadline", "error", "stop-token", "alternate")
-KINDS = ("rule", "command", "http")
+KINDS = ("rule", "command", "http", "probe")
 MODES = ("advisory", "gate")
 ROLES = ("original", "resample", "trusted")
 _FIELDS = ("convention", "monitor", "input_digest", "reasoning", "tool", "session", "score",
@@ -76,7 +76,7 @@ def check_claim(claim: Any) -> list[str]:
         return problems
     monitor, reasoning = claim["monitor"], claim["reasoning"]
     if not isinstance(monitor, dict) or monitor.get("kind") not in KINDS or not monitor.get("id"):
-        problems.append("monitor needs an id and a kind (rule, command, http)")
+        problems.append("monitor needs an id and a kind (rule, command, http, probe)")
     if not isinstance(reasoning, dict) or reasoning.get("state") not in REASONING:
         problems.append("reasoning.state is captured, redacted or unavailable")
     elif (reasoning["state"] == "unavailable") != (reasoning.get("digest") is None):

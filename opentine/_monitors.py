@@ -16,6 +16,8 @@ is what each verdict records: ``{"id", "kind", "model_digest"}``.
 * ``command``: a local model run as ``command = [ARGV...]``; the request is
   JSON on stdin, the reply JSON on stdout. ``model_digest`` is declared.
 * ``http``: a remote API; the request is POSTed as JSON to ``url``.
+* ``probe`` (0.83): a linear probe on activations, keyed to a checkpoint digest
+  and a signed calibration (:mod:`opentine._probe_monitor`, docs/INTERPRETABILITY.md).
 
 The configuration file (``--monitor FILE``, TOML) is documented in
 docs/MONITORS.md; :func:`load` reads it.
@@ -126,6 +128,23 @@ class HttpMonitor:
             return _reply(reply.read(MAX_REPLY + 1))
 
 
+def _probe(ident: str, section: dict[str, Any]) -> Monitor:
+    """0.83: an interpretability-backed monitor (:mod:`opentine._probe_monitor`)."""
+    from opentine._probe_monitor import ProbeError, ProbeMonitor
+
+    wanted = ("probe", "probe_file", "checkpoint_digest", "calibration")
+    if any(not isinstance(section.get(k), str) for k in wanted):
+        raise MonitorError(f"a probe monitor needs {', '.join(wanted)} (strings) and layer")
+    try:
+        data = Path(section["probe_file"]).read_bytes()
+        return ProbeMonitor(ident, data, probe=section["probe"],
+                            checkpoint=section["checkpoint_digest"], layer=section.get("layer"),
+                            threshold=section.get("threshold", 0.5),
+                            calibration=section["calibration"])  # fmt: skip
+    except (OSError, ProbeError) as exc:
+        raise MonitorError(f"probe monitor: {exc}") from exc
+
+
 def build(section: dict[str, Any], timeout: float = 60.0) -> Monitor:
     """A monitor from the ``[monitor]`` table."""
     kind, ident = section.get("kind"), section.get("id")
@@ -138,6 +157,8 @@ def build(section: dict[str, Any], timeout: float = 60.0) -> Monitor:
         return RuleMonitor(ident, section.get("rules", []))
     if kind == "command":
         return CommandMonitor(ident, section.get("command"), model, timeout)
+    if kind == "probe":
+        return _probe(ident, section)
     return HttpMonitor(ident, section.get("url"), model, timeout)
 
 
@@ -165,6 +186,8 @@ def parse(document: Any) -> dict[str, Any]:
         raise MonitorError("fail_closed is a boolean; action is flag, resample, defer or block")
     if not isinstance(config["threshold"], (int, float)) or not 0 <= config["threshold"] <= 1:
         raise MonitorError("monitor.threshold is between 0 and 1")
+    if section.get("kind") == "probe" and config["mode"] == "gate" and not config["fail_closed"]:
+        raise MonitorError("a probe monitor in gate mode fails closed (fail_closed = true)")
     config["monitor"] = build(section)
     return config
 

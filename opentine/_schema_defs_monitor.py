@@ -60,7 +60,9 @@ VERDICT_CLAIM = closed(
      "fail_closed", "trajectories", "chosen", "stop", "decided_at"], {
         "convention": {"const": "opentine.monitor-verdict/1"},
         "monitor": closed(["id", "kind", "model_digest"], {
-            "id": STR, "kind": {"enum": ["rule", "command", "http"]}, "model_digest": opt(STR)}),
+            "id": STR, "kind": {"enum": ["rule", "command", "http", "probe"]},
+            "model_digest": opt(STR), "probe": _DIGEST, "checkpoint": _DIGEST, "layer": INT,
+            "threshold": NUM, "calibration": opt(STR)}),  # 0.83: the probe class
         "input_digest": _DIGEST,
         "reasoning": closed(["state", "digest"], {
             "state": {"enum": ["captured", "redacted", "unavailable"]}, "digest": opt(_DIGEST)}),
