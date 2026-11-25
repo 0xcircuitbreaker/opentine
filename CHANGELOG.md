@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Audit hardening for HEC packs
+## 0.81.1 — Audit hardening for HEC packs (2026-11-25)
 
 - HEC: deriving an event's `legacy_step_id` no longer builds the whole
   `ensure_ascii` canonical payload before charging it. The payload is hashed in
