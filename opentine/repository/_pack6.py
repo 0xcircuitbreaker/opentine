@@ -43,7 +43,7 @@ MAGIC6 = b"TINEPACK6\0"
 V6 = "TINEPACK6"
 GRAMMAR = "opentine-1"
 _KEYS = {"grammar", "hec", "hec_bytes", "plain_blocks", "shallow", "version"}
-#: Output budget of a pack decoded by ``tine serve`` (plan: 64 MiB per pack).
+#: Output budget of a pack decoded by ``tine serve`` (64 MiB per pack).
 SERVE_MAX_OUTPUT = 64 * 1024 * 1024
 #: Decodes ``tine serve`` runs at once; more wait (accepted packs cost ~3x budget).
 SERVE_DECODES = 2
