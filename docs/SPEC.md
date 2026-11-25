@@ -1162,8 +1162,10 @@ plain block 1+ = the plain objects' canonical bytes, cut every 4 MiB
   `shallow`, and every object is checked as for every other pack format.
 - **Budgets (local policy, not wire).** CLI readers (fetch, pull, bundle):
   `MAX_PACK_BODY_BYTES` (256 MiB) per pack. `tine serve` push receive: 64 MiB
-  per pack and at most 2 decodes at once. An accepted pack costs about 3x its
-  output in memory; a refused one does not grow with what it declares.
+  per pack and at most 2 decodes at once. The unit cap (`max_unit_bytes`) is
+  the output budget. A decode, accepted or refused, peaks at about 4x its
+  output budget in memory (streams up to 2x, objects, units), however small
+  the pack.
 - **Malleable bytes.** Many byte strings decode to the same objects. Pack
   bytes are never a cache key and never signed; the pack id
   (`"sha256:" + hex(bytes[10:42])`) is a transport id only.

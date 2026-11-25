@@ -45,7 +45,7 @@ GRAMMAR = "opentine-1"
 _KEYS = {"grammar", "hec", "hec_bytes", "plain_blocks", "shallow", "version"}
 #: Output budget of a pack decoded by ``tine serve`` (64 MiB per pack).
 SERVE_MAX_OUTPUT = 64 * 1024 * 1024
-#: Decodes ``tine serve`` runs at once; more wait (accepted packs cost ~3x budget).
+#: Decodes ``tine serve`` runs at once; more wait (a decode peaks near 4x its budget).
 SERVE_DECODES = 2
 _SERVE_SLOTS = threading.BoundedSemaphore(SERVE_DECODES)
 #: Opt-in switch: an install advertises (and so is sent) TINEPACK6 only with it set.
@@ -115,7 +115,12 @@ def _manifest(raw: bytes) -> list[int]:
 
 
 def _decode_hec(data: bytes, budget: int, max_objects: int) -> list[tuple[str, bytes]]:
-    limits = _hec.Limits(max_output_bytes=budget, max_objects=max_objects)
+    # Unit bookkeeping is charged length + 32 per unit; tie its cap to the budget so many
+    # tiny units cannot hold several times the budget in object overhead (the engine
+    # default, 256 MiB, is far above a serve budget).
+    limits = _hec.Limits(
+        max_output_bytes=budget, max_objects=max_objects, max_unit_bytes=max(budget, 1 << 20)
+    )
     try:
         decoded = _hec.decode(data, _hec.OPENTINE, _hec.ANY, limits)
     except _hec.HecError as exc:
