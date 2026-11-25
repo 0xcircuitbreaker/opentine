@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — HEC audit round 2
+## 0.81.2 — HEC audit round 2 (2026-11-25)
 
 - HEC (normative, SPEC "HEC1" field 1): deriving a `legacy_step_id` now meters
   the parsed JSON it builds, not just the bytes it hashes. Each structural
