@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased — Audit hardening for HEC packs
+
+- HEC: deriving an event's `legacy_step_id` no longer builds the whole
+  `ensure_ascii` canonical payload before charging it. The payload is hashed in
+  small pieces, each charged to the hashed-bytes budget first, so a small pack
+  whose blob expands about 6x (non-BMP text, named as both input and output) is
+  refused before the expansion exists. A blob named twice is parsed once, and
+  strict body checks decode and compare in pieces. A 6 KB push that peaked near
+  977 MiB under `tine serve` now stays under 4x the decode budget.
+
 ## 0.81.0 — HEC packs (opt-in) (2026-11-25)
 
 - TINEPACK6, a transfer pack using Hash-Elision Coding (HEC): object ids are

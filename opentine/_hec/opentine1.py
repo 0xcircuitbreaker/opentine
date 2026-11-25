@@ -74,15 +74,20 @@ def _legacy_of(obj, ctx) -> str:
     return v
 
 
-def _blob(ev: dict, key: str, ctx) -> dict:
+def _blob(ev: dict, key: str, ctx, seen: dict | None = None) -> dict:
     o = ctx.lookup(ev[key].encode()) if isinstance(ev.get(key), str) else None
     if o is None:
         raise HecError("derive", f"{key} is not an earlier object")
-    return sj.load(o.body, ctx, blob=True)
+    if seen is not None and id(o) in seen:  # input and output name one blob: parse it once
+        return seen[id(o)]
+    v = sj.load(o.body, ctx, blob=True)
+    if seen is not None:
+        seen[id(o)] = v
+    return v
 
 
-def _inputs(ev: dict, ctx) -> dict:
-    inputs = _blob(ev, "input_blob", ctx)
+def _inputs(ev: dict, ctx, seen: dict) -> dict:
+    inputs = _blob(ev, "input_blob", ctx, seen)
     parts = ev.get("input_parts")
     if parts is None:
         return inputs
@@ -112,23 +117,25 @@ def _legacy_step_id(ctx) -> bytes:
             if o is None:
                 raise HecError("derive", "parent is not an earlier object")
             parents.append(_legacy_of(o, ctx))
-        inputs = _inputs(ev, ctx)
+        seen: dict = {}
+        inputs = _inputs(ev, ctx, seen)
         payload = {
             "error": ev.get("error") or {},
             "inputs": inputs,
             "kind": ev["kind"],
             "model_info": ev.get("model", ""),
-            "outputs": _blob(ev, "output_blob", ctx) or {},
+            "outputs": _blob(ev, "output_blob", ctx, seen) or {},
             "parent_ids": parents,
             "tool_info": ev.get("tool") or {},
         }
-        data = sj.canonical_v2(payload)
+        # hashed in pieces, each charged first: the budget refuses before the
+        # ensure_ascii expansion (up to 6x a body, twice) is ever materialized
+        digest = sj.hash_v2(payload, ctx)
     except HecError:
         raise
     except Exception as exc:  # any shape the derivation cannot read is a refusal
         raise HecError("derive", f"legacy_step_id: {exc!r}") from None
-    ctx.charge(len(data))
-    return hashlib.sha256(data).hexdigest().encode()
+    return digest.encode()
 
 
 class OpenTineGrammar:
