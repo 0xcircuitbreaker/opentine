@@ -23,6 +23,11 @@
   are advisory (D12) unless the signed manifest sets `required`. Refusals carry
   `collusion.*` command-level codes; no new object kind and no new
   `tine verify` code.
+- `tine monitor protocol-run --record` stores and holds the signed verdict lines
+  (`collusion-verdict:` holds, never released). A failed run, or a held line
+  that no longer checks, opens a `collusion:BLOB` item in the oversight queue
+  (route `source = "collusion"`). `tine query index --evals DIR` indexes the
+  `--verdicts` file with a per-row `signed` flag.
 - Red-team fixture: a deterministic colluding stub monitor is caught in 100/100
   seeds (acceptance >= 95); the honest stub is flagged in 0/100 seeds
   (Clopper-Pearson 95% upper bound 0.036217). See docs/MONITOR-COLLUSION.md.

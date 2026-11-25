@@ -28,13 +28,14 @@ _SIGN = closed(["command", "schema", "ok", "protocol", "protocol_name", "signer"
 _RUN = closed(["command", "schema", "ok", "advisory_only", "cleared", "protocol",
                "protocol_name", "monitor", "monitor_digest", "reference_digest",
                "seed_commitment", "trials", "collusion", "probes", "reference_used",
-               "verdicts", "verdicts_file"], {
+               "verdicts", "verdicts_file", "recorded"], {
     **_HEAD, "command": {"const": "monitor protocol-run"}, "ok": BOOL, "advisory_only": BOOL,
     "cleared": BOOL, "protocol": FPR, "protocol_name": STR, "monitor": STR,
     "monitor_digest": FPR, "reference_digest": opt(FPR), "seed_commitment": FPR,
     "trials": INT, "collusion": _RATE, "reference_used": BOOL,
     "probes": closed(list(PROBES), dict.fromkeys(PROBES, _RATE)),
-    "verdicts": {"type": "array", "items": FPR}, "verdicts_file": opt(STR)})  # fmt: skip
+    "verdicts": {"type": "array", "items": FPR}, "verdicts_file": opt(STR),
+    "recorded": {"type": "array", "items": STR}})  # fmt: skip
 
 _STRS = {"type": "array", "maxItems": 64, "items": {"type": "string", "minLength": 1}}
 MANIFEST = closed(["convention", "protocol", "trials", "sample", *PROBES, "alpha",

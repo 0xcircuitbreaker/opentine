@@ -879,7 +879,8 @@
         "probes",
         "reference_used",
         "verdicts",
-        "verdicts_file"
+        "verdicts_file",
+        "recorded"
       ],
       "properties": {
         "schema": {
@@ -1370,6 +1371,12 @@
               "type": "null"
             }
           ]
+        },
+        "recorded": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     }

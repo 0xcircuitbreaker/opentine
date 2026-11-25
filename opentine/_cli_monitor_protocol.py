@@ -10,7 +10,9 @@ verifies the manifest against the repository's pinned roles (a pinned
 the revealed secret against its commitment, applies the protocol
 (:mod:`opentine._collusion_run`) and, with ``--key`` and ``--verdicts FILE``,
 writes one signed ``tine-eval-verdict/1`` per probe as JSON Lines
-(:mod:`opentine._collusion_verdicts`). Results are advisory (exit 0) unless the
+(:mod:`opentine._collusion_verdicts`); ``--record`` stores and holds them in the
+repository, where a failed run opens a ``collusion`` oversight item
+(:mod:`opentine._collusion_record`). Results are advisory (exit 0) unless the
 signed manifest sets ``required``; then a monitor that does not clear exits 1.
 """
 
@@ -38,6 +40,8 @@ def add_protocol_parsers(verbs: argparse._SubParsersAction) -> None:
     run.add_argument("--reference", metavar="MONITOR", help="The pinned reference monitor spec")
     run.add_argument("--repo", default=".", metavar="PATH", help="Repository with pinned roles")
     run.add_argument("--verdicts", metavar="FILE", help="With --key: write signed verdicts")
+    run.add_argument("--record", action="store_true",
+                     help="With --key: store and hold the signed verdicts in --repo")  # fmt: skip
     for p in (sign, run):
         p.add_argument("--secret", required=True, metavar="FILE",
                        help="The secret seed (16+ bytes), committed when signing")  # fmt: skip
@@ -85,8 +89,8 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
     from opentine._monitor_backtest import read_trajectories
     from opentine._monitor_rule import load
 
-    if args.verdicts and not args.key:
-        raise ValueError("--verdicts needs --key")
+    if (args.verdicts or args.record) and not args.key:
+        raise ValueError("--verdicts and --record need --key")
     store = _store(args.repo)
     manifest = loads(Path(args.protocol).read_bytes())
     checked = proto.verify(manifest, store)
@@ -104,7 +108,7 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         "monitor": monitor["monitor"], "monitor_digest": monitor["_digest"],
         "reference_digest": checked["disagreement"]["reference_digest"],
         "seed_commitment": checked["seed_commitment"], **result, "verdicts": [],
-        "verdicts_file": None}  # fmt: skip
+        "verdicts_file": None, "recorded": []}  # fmt: skip
     if args.key:
         from opentine._eval_verdict import digest as verdict_digest
         from opentine._key_hygiene import ed25519_private
@@ -117,6 +121,11 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         if args.verdicts:
             Path(args.verdicts).write_bytes(b"".join(canonical_json(r) + b"\n" for r in signed))
             out["verdicts_file"] = Path(args.verdicts).as_posix()
+        if args.record:
+            from opentine._collusion_record import record
+            from opentine.repo import Repo
+
+            out["recorded"] = record(Repo.open(args.repo), signed)
     return out
 
 

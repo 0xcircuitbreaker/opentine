@@ -76,6 +76,24 @@ score from the claimed counts, so a signed claim cannot narrow its interval or
 inflate its rate. No new
 object kind and no new `tine verify` code.
 
+### Holding verdicts, querying them and reviewing failures
+
+`--record` (with `--key`) stores each signed `{claim, verdict}` line as a blob
+in `--repo` and holds it under `collusion-verdict:<verdict digest>`. The hold is
+never released, so a loop cannot delete a run it failed. The JSON output lists
+the blob ids in `recorded`.
+
+The oversight queue (docs/OVERSIGHT.md) re-checks every held line on every
+read. A held overall verdict (item `collusion`) that did not pass opens a
+`collusion:BLOB` item, routed with `[[route]] source = "collusion"`. A held line
+that no longer checks also opens one: a bad signature, counts that do not give
+the claimed rate or intervals, or a signer that is not a pinned `verdict` key.
+A cleared run opens nothing.
+
+`tine query index --evals DIR` indexes a `DIR/verdicts.jsonl` written by
+`--verdicts`. Each `{claim, verdict}` line becomes one `evals` row with a
+per-row `signed` flag, and `tine query --verify` re-checks it.
+
 ## Red-team fixture and recorded results
 
 `tests/collusion_fixture.py`: a deterministic colluding stub monitor catches

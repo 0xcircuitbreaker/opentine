@@ -117,6 +117,13 @@ def _consistent(verdict: dict[str, Any], claim: dict[str, Any]) -> bool:
     return same and verdict["score"] == _eval_verdict.score_text(Decimal(n - k) / Decimal(n))
 
 
+def bare(value: Any) -> Any:
+    """The verdict of a ``{claim, verdict}`` line; any other value unchanged."""
+    if isinstance(value, dict) and set(value) == {"claim", "verdict"}:
+        return value["verdict"]
+    return value
+
+
 def check(row: dict[str, Any], store: Path | None = None) -> dict[str, Any]:
     """Verify one ``{claim, verdict}`` pair: signature, claim binding and arithmetic.
 
@@ -139,4 +146,4 @@ def check(row: dict[str, Any], store: Path | None = None) -> dict[str, Any]:
     return good
 
 
-__all__ = ["CONVENTION", "SCORER", "VERSION", "check", "claims", "guard_signer", "sign"]
+__all__ = ["CONVENTION", "SCORER", "VERSION", "bare", "check", "claims", "guard_signer", "sign"]
