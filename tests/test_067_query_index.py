@@ -40,6 +40,7 @@ def test_the_index_holds_every_table_and_every_row_names_its_oid(capsys, room):
                               "history_merges": 0, "sandbox_policies": 0,
                               "containment_findings": 0, "budget_ledger": 0,
                               "weight_custody": 0, "organism_records": 0,
+                              "interp_artifacts": 0, "probe_calibrations": 0,
                               "transcript_flags": 0, "transcript_flag_runs": 0,
                               "transcript_clusters": 3, "uplift_suites": 0,
                               "uplift_records": 0, "trend_points": 0,

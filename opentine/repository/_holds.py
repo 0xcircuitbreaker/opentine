@@ -83,6 +83,9 @@ POLICY_ADMISSION = "policy-admission:"
 #: (opentine._ingest_holds): released never; batches chain to the held head.
 INGEST_POLICY = "ingest-policy:"
 INGEST_HEAD = "ingest-head:"
+#: 0.83: rows that keep an interpretability artifact record, its blob or a probe calibration
+#: (opentine._interp_custody, opentine._probe_monitor): released never.
+INTERP_CUSTODY = "custody:interp"
 _NEVER_RELEASED = (
     ((MEMORY_QUARANTINE,), "a memory quarantine"),
     ((MONITOR_VERDICT, MONITOR_STOP), "a monitor verdict or stop token"),
@@ -100,6 +103,7 @@ _NEVER_RELEASED = (
     ((DATASET_WITHDRAW,), "a dataset withdrawal"),
     ((POLICY_ADMISSION,), "a policy admission record"),
     ((INGEST_POLICY, INGEST_HEAD), "an ingest policy or batch"),
+    ((INTERP_CUSTODY,), "an interpretability custody record"),
 )
 MAX_HOLDS_BYTES = 4 * 1024 * 1024
 
