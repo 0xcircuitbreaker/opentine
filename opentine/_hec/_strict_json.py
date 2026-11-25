@@ -7,6 +7,8 @@ the v3 canonical JSON (SPEC 0.2) of what it parses to, or derivation is refused
 
 from __future__ import annotations
 
+import codecs
+import hashlib
 import json
 import math
 import re
@@ -19,6 +21,8 @@ EVENT_TOKENS = 200_000  # kernel.validate_json_shape default (events)
 _TOK_MIN, _TOK_MAX = 200_000, 16_000_000  # _artifact_io.compact_token_budget (blobs)
 INT_MAX = 9_007_199_254_740_991
 _JSON_TOK = re.compile(rb'[\[{\]},:"\\\x00]')
+_ESC = json.encoder.encode_basestring_ascii
+_SLICE = 1 << 14  # chars per escaped string piece (at most 12 bytes each)
 
 
 def shape_ok(body: bytes, max_tokens: int) -> bool:
@@ -76,24 +80,50 @@ def _number(v) -> str:
     return "{}e{:+d}".format(coef.rstrip("0").rstrip("."), int(exp))
 
 
-def _v3(v, depth: int = 0) -> str:
-    """``kernel.canonical_json`` (SPEC 0.2), as text."""
+def _v3(v, depth: int = 0):
+    """``kernel.canonical_json`` (SPEC 0.2), as text pieces (no whole copy of a body)."""
     if v is None or isinstance(v, bool):
-        return "null" if v is None else "true" if v else "false"
-    if isinstance(v, str):
-        return json.dumps(v, ensure_ascii=False, separators=(",", ":"))
-    if isinstance(v, (int, float)):
-        return _number(v)
-    if depth >= MAX_JSON_DEPTH:
+        yield "null" if v is None else "true" if v else "false"
+    elif isinstance(v, str):
+        yield '"'
+        for i in range(0, len(v), _SLICE):
+            yield json.dumps(v[i : i + _SLICE], ensure_ascii=False)[1:-1]
+        yield '"'
+    elif isinstance(v, (int, float)):
+        yield _number(v)
+    elif depth >= MAX_JSON_DEPTH:
         raise ValueError("too deep")
-    parts = []
-    if isinstance(v, list):
-        for x in v:
-            parts.append(_v3(x, depth + 1))
-        return "[" + ",".join(parts) + "]"
-    for k in sorted(v, key=lambda k: k.encode("utf-16be")):
-        parts.append(json.dumps(k, ensure_ascii=False) + ":" + _v3(v[k], depth + 1))
-    return "{" + ",".join(parts) + "}"
+    elif isinstance(v, list):
+        yield "["
+        for n, x in enumerate(v):
+            if n:
+                yield ","
+            yield from _v3(x, depth + 1)
+        yield "]"
+    else:
+        yield "{"
+        for n, k in enumerate(sorted(v, key=lambda k: k.encode("utf-16be"))):
+            yield ("," if n else "") + json.dumps(k, ensure_ascii=False) + ":"
+            yield from _v3(v[k], depth + 1)
+        yield "}"
+
+
+def _is_v3(v, body: bytes) -> bool:
+    view, at = memoryview(body), 0
+    for piece in _v3(v):
+        b = piece.encode("utf-8")
+        if view[at : at + len(b)] != b:
+            return False
+        at += len(b)
+    return at == len(body)
+
+
+def _utf8(body: bytes) -> str:
+    """``body.decode()`` in pieces: a whole-body decode of astral text peaks near 5x it."""
+    d, view = codecs.getincrementaldecoder("utf-8")("strict"), memoryview(body)
+    parts = [d.decode(view[i : i + (1 << 16)]) for i in range(0, len(body), 1 << 16)]
+    parts.append(d.decode(b"", final=True))
+    return "".join(parts)
 
 
 def load(body: bytes, ctx, blob: bool = False) -> dict:
@@ -103,8 +133,8 @@ def load(body: bytes, ctx, blob: bool = False) -> dict:
     if not shape_ok(body, budget):
         raise HecError("derive", "JSON nested too deeply or too many tokens")
     try:
-        v = json.loads(body.decode("utf-8"), parse_int=_parse_int)
-        if _v3(v).encode("utf-8") != body:
+        v = json.loads(_utf8(body), parse_int=_parse_int)
+        if not _is_v3(v, body):
             raise ValueError("not canonical")
     except (ValueError, RecursionError, UnicodeError) as exc:
         raise HecError("derive", f"not canonical JSON: {exc}") from None
@@ -116,3 +146,39 @@ def load(body: bytes, ctx, blob: bool = False) -> dict:
 def canonical_v2(o) -> bytes:
     """``_canon._canonical_bytes`` over plain parsed JSON (SPEC 0.3)."""
     return json.dumps(o, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+
+
+def _v2_chunks(v):
+    """``canonical_v2`` as small pieces, so no expanded string ever exists whole."""
+    if isinstance(v, str):
+        yield '"'
+        for i in range(0, len(v), _SLICE):
+            yield _ESC(v[i : i + _SLICE])[1:-1]
+        yield '"'
+    elif isinstance(v, dict):
+        yield "{"
+        for n, k in enumerate(sorted(v)):
+            if n:
+                yield ","
+            yield from _v2_chunks(k)
+            yield ":"
+            yield from _v2_chunks(v[k])
+        yield "}"
+    elif isinstance(v, list):
+        yield "["
+        for n, x in enumerate(v):
+            if n:
+                yield ","
+            yield from _v2_chunks(x)
+        yield "]"
+    else:
+        yield json.dumps(v, allow_nan=False)  # null/true/false/int/float: one token
+
+
+def hash_v2(o, ctx) -> str:
+    """sha256 of ``canonical_v2(o)``, charging each piece before hashing it."""
+    h = hashlib.sha256()
+    for piece in _v2_chunks(o):
+        ctx.charge(len(piece))
+        h.update(piece.encode("ascii"))
+    return h.hexdigest()
