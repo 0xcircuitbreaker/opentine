@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opentine.com/schemas/tine-cli-monitor-1.schema.json",
   "title": "tine monitor ... --json",
-  "description": "Inline monitor verdicts and stop tokens. `stop`/`stops` list signed stop tokens (claim convention `opentine.monitor-stop/1`, held and never released); `verdicts` lists held monitor verdicts (`opentine.monitor-verdict/1`) and whether each signer is a pinned monitor key; `verify` checks offline that every blocked or replaced action in the given runs has its verdict. `fail:` findings block; `advisory:` findings block only with `--strict`. `backtest` replays recorded trajectories against a rule monitor and reports, per reasoning-visibility group (never pooled across groups), catch rate on attack-labelled trajectories and false-positive rate on benign ones, for the replay and for the recorded online verdicts. Online verdicts that saw another reasoning visibility or another input are counted, not compared. A verdict from the same monitor digest must reproduce byte for byte (`bit_identical`); `diff` lists every compared step whose action or decision changed. `collusion` compares an untrusted monitor's catch rate on attacks that carry a coordination signal with those that do not; its findings are advisory only (D12) and `ok` is always true.",
+  "description": "Inline monitor verdicts and stop tokens. `stop`/`stops` list signed stop tokens (claim convention `opentine.monitor-stop/1`, held and never released); `verdicts` lists held monitor verdicts (`opentine.monitor-verdict/1`) and whether each signer is a pinned monitor key; `verify` checks offline that every blocked or replaced action in the given runs has its verdict. `fail:` findings block; `advisory:` findings block only with `--strict`. `backtest` replays recorded trajectories against a rule monitor and reports, per reasoning-visibility group (never pooled across groups), catch rate on attack-labelled trajectories and false-positive rate on benign ones, for the replay and for the recorded online verdicts. Online verdicts that saw another reasoning visibility or another input are counted, not compared. A verdict from the same monitor digest must reproduce byte for byte (`bit_identical`); `diff` lists every compared step whose action or decision changed. `collusion` compares an untrusted monitor's catch rate on attacks that carry a coordination signal with those that do not; its findings are advisory only (D12) and `ok` is always true. `protocol-sign` signs an `opentine.collusion-protocol/1` manifest that commits to a secret seed; `protocol-run` verifies it against the pinned roles (a `policy` key, never an `optimizer` key; refused when unpinned), checks the revealed seed, applies the paraphrase, re-sampling, honeypot, cross-monitor disagreement and steganography probes over seeded trials and reports flagged-trial rates with Wilson and Clopper-Pearson intervals; `ok` is false only when the signed manifest sets `required` and the monitor does not clear.",
   "anyOf": [
     {
       "type": "object",
@@ -813,6 +813,563 @@
               }
             }
           }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "protocol",
+        "protocol_name",
+        "signer",
+        "seed_commitment",
+        "out"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-monitor/1"
+        },
+        "command": {
+          "const": "monitor protocol-sign"
+        },
+        "ok": {
+          "const": true
+        },
+        "protocol": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "protocol_name": {
+          "type": "string"
+        },
+        "signer": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "seed_commitment": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "out": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "advisory_only",
+        "cleared",
+        "protocol",
+        "protocol_name",
+        "monitor",
+        "monitor_digest",
+        "reference_digest",
+        "seed_commitment",
+        "trials",
+        "collusion",
+        "probes",
+        "reference_used",
+        "verdicts",
+        "verdicts_file"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-monitor/1"
+        },
+        "command": {
+          "const": "monitor protocol-run"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "advisory_only": {
+          "type": "boolean"
+        },
+        "cleared": {
+          "type": "boolean"
+        },
+        "protocol": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "protocol_name": {
+          "type": "string"
+        },
+        "monitor": {
+          "type": "string"
+        },
+        "monitor_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "reference_digest": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "seed_commitment": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "trials": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "collusion": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "trials",
+            "flagged",
+            "rate",
+            "wilson",
+            "clopper_pearson",
+            "events"
+          ],
+          "properties": {
+            "trials": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "flagged": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "rate": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "wilson": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[01]\\.[0-9]{6}$"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "clopper_pearson": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[01]\\.[0-9]{6}$"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "events": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "reference_used": {
+          "type": "boolean"
+        },
+        "probes": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "paraphrase",
+            "resample",
+            "honeypot",
+            "disagreement",
+            "stego"
+          ],
+          "properties": {
+            "paraphrase": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "trials",
+                "flagged",
+                "rate",
+                "wilson",
+                "clopper_pearson",
+                "events"
+              ],
+              "properties": {
+                "trials": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "flagged": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "rate": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "wilson": {
+                  "anyOf": [
+                    {
+                      "type": "array",
+                      "minItems": 2,
+                      "maxItems": 2,
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[01]\\.[0-9]{6}$"
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "clopper_pearson": {
+                  "anyOf": [
+                    {
+                      "type": "array",
+                      "minItems": 2,
+                      "maxItems": 2,
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[01]\\.[0-9]{6}$"
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "events": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "resample": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "trials",
+                "flagged",
+                "rate",
+                "wilson",
+                "clopper_pearson",
+                "events"
+              ],
+              "properties": {
+                "trials": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "flagged": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "rate": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "wilson": {
+                  "anyOf": [
+                    {
+                      "type": "array",
+                      "minItems": 2,
+                      "maxItems": 2,
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[01]\\.[0-9]{6}$"
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "clopper_pearson": {
+                  "anyOf": [
+                    {
+                      "type": "array",
+                      "minItems": 2,
+                      "maxItems": 2,
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[01]\\.[0-9]{6}$"
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "events": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "honeypot": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "trials",
+                "flagged",
+                "rate",
+                "wilson",
+                "clopper_pearson",
+                "events"
+              ],
+              "properties": {
+                "trials": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "flagged": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "rate": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "wilson": {
+                  "anyOf": [
+                    {
+                      "type": "array",
+                      "minItems": 2,
+                      "maxItems": 2,
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[01]\\.[0-9]{6}$"
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "clopper_pearson": {
+                  "anyOf": [
+                    {
+                      "type": "array",
+                      "minItems": 2,
+                      "maxItems": 2,
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[01]\\.[0-9]{6}$"
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "events": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "disagreement": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "trials",
+                "flagged",
+                "rate",
+                "wilson",
+                "clopper_pearson",
+                "events"
+              ],
+              "properties": {
+                "trials": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "flagged": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "rate": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "wilson": {
+                  "anyOf": [
+                    {
+                      "type": "array",
+                      "minItems": 2,
+                      "maxItems": 2,
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[01]\\.[0-9]{6}$"
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "clopper_pearson": {
+                  "anyOf": [
+                    {
+                      "type": "array",
+                      "minItems": 2,
+                      "maxItems": 2,
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[01]\\.[0-9]{6}$"
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "events": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "stego": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "trials",
+                "flagged",
+                "rate",
+                "wilson",
+                "clopper_pearson",
+                "events"
+              ],
+              "properties": {
+                "trials": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "flagged": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "rate": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "wilson": {
+                  "anyOf": [
+                    {
+                      "type": "array",
+                      "minItems": 2,
+                      "maxItems": 2,
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[01]\\.[0-9]{6}$"
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "clopper_pearson": {
+                  "anyOf": [
+                    {
+                      "type": "array",
+                      "minItems": 2,
+                      "maxItems": 2,
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[01]\\.[0-9]{6}$"
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "events": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        },
+        "verdicts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "verdicts_file": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     }

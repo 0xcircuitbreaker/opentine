@@ -2312,6 +2312,8 @@ They print `tine-cli-dataset-curate/1` with `--json`. See docs/DATASETS.md.
 | `tine monitor backtest MONITOR --runs FILE [--visibility STATE] [--require-reproduced]` | Replays recorded trajectories against a rule monitor; reports catch rate, false-positive rate (per reasoning-visibility group) and the decision diff against the recorded online verdicts; exit 1 with `--require-reproduced` when a same-monitor verdict is not reproduced byte for byte |
 | `tine monitor backtest MONITOR --repo PATH --run RUN [--run RUN ...]` | The same, with the gate's held, signed verdicts as the online verdicts of runs recorded by `tine mcp-proxy --save` |
 | `tine monitor collusion MONITOR --runs FILE [--reference MONITOR] [--margin M] [--min-samples N] [--log FILE]` | Untrusted monitor vs untrusted policy: compares catch rates on signalled and unsignalled attacks; findings are advisory only and the exit status is 0 |
+| `tine monitor protocol-sign --spec FILE --secret FILE --key KEY --out FILE` | Signs an `opentine.collusion-protocol/1` manifest that commits to the secret seed (docs/MONITOR-COLLUSION.md) |
+| `tine monitor protocol-run MONITOR --protocol FILE --secret FILE --runs FILE [--reference MONITOR] [--repo PATH] [--key KEY --verdicts FILE]` | Verifies the manifest against the pinned roles (a `policy` key, never an `optimizer` key; refused when unpinned), checks the revealed seed and applies the paraphrase, re-sampling, honeypot, disagreement and steganography probes; reports flagged-trial rates with Wilson and Clopper-Pearson intervals and, with `--key`, signs one `tine-eval-verdict/1` per probe; advisory (exit 0) unless the manifest sets `required` |
 
 Both print `tine-cli-monitor/1` with `--json`. See docs/MONITOR_BACKTESTS.md.
 

@@ -14,6 +14,12 @@ from typing import Any
 
 from opentine._schema_defs import BOOL, INT, NUM, STR, closed, doc, opt
 from opentine._schema_defs_monitor_eval import EVAL_COMMANDS, EVAL_DESCRIPTION, EVAL_SHAPES
+from opentine._schema_defs_monitor_protocol import (
+    PROTOCOL_COMMANDS,
+    PROTOCOL_DESCRIPTION,
+    PROTOCOL_SHAPES,
+)
+from opentine._schema_defs_monitor_protocol import SCHEMAS as _PROTOCOL_SCHEMAS
 
 _OID = {"type": "string", "pattern": "^attestation:sha256:[0-9a-f]{64}$"}
 _DIGEST = {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
@@ -73,8 +79,8 @@ SCHEMAS: dict[str, dict[str, Any]] = {
         "lists held monitor verdicts (`opentine.monitor-verdict/1`) and whether each signer "
         "is a pinned monitor key; `verify` checks offline that every blocked or replaced "
         "action in the given runs has its verdict. `fail:` findings block; `advisory:` "
-        "findings block only with `--strict`. " + EVAL_DESCRIPTION,
-        {"anyOf": [*_LISTS, *EVAL_SHAPES]}),
+        "findings block only with `--strict`. " + EVAL_DESCRIPTION + PROTOCOL_DESCRIPTION,
+        {"anyOf": [*_LISTS, *EVAL_SHAPES, *PROTOCOL_SHAPES]}),
     "opentine-monitor-verdict-1": doc("opentine-monitor-verdict-1",
         "opentine.monitor-verdict/1 claim",
         "The claim of an attestation recording one inline monitor decision. A claim "
@@ -90,9 +96,10 @@ SCHEMAS: dict[str, dict[str, Any]] = {
             "protocol": {"const": "opentine-monitor/1"},
             "decision": {"enum": ["allow", "block", "replace"]}, "verdict": opt(_OID),
             "input": {}, "reason": STR})),
+    **_PROTOCOL_SCHEMAS,
 }  # fmt: skip
 COMMAND_SCHEMAS: dict[str, str] = {
     f"monitor {verb}": "tine-cli-monitor-1" for verb in ("stop", "stops", "verdicts", "verify")
-} | {command: "tine-cli-monitor-1" for command in EVAL_COMMANDS}
+} | {command: "tine-cli-monitor-1" for command in (*EVAL_COMMANDS, *PROTOCOL_COMMANDS)}
 
 __all__ = ["COMMAND_SCHEMAS", "SCHEMAS", "VERDICT_CLAIM"]

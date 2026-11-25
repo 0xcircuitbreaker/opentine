@@ -1,5 +1,27 @@
 # Changelog
 
+## Unreleased — Monitor collusion protocols and interpretability custody
+
+- `tine monitor protocol-sign` signs a collusion-testing protocol manifest
+  (`opentine.collusion-protocol/1`, a signed file convention): paraphrase and
+  re-sampling of the monitored output, honeypot insertion at a stated rate,
+  cross-monitor disagreement against a pinned reference monitor, and
+  steganography probes, with a secret seed committed before the run
+  (commit-then-reveal).
+- `tine monitor protocol-run` verifies the manifest (signer bound to the
+  signing key, a pinned `policy` key from the owner-signed trust bundle, never
+  an `optimizer` key; refused when roles are unpinned), checks the revealed
+  seed, applies the probes over seeded trials and reports flagged-trial rates
+  with Wilson and Clopper-Pearson intervals. With `--key` it signs one
+  `tine-eval-verdict/1` per probe whose `item_digest` binds an
+  `opentine.collusion-verdict/1` claim; an optimizer key is refused. Results
+  are advisory (D12) unless the signed manifest sets `required`. Refusals carry
+  `collusion.*` command-level codes; no new object kind and no new
+  `tine verify` code.
+- Red-team fixture: a deterministic colluding stub monitor is caught in 100/100
+  seeds (acceptance >= 95); the honest stub is flagged in 0/100 seeds
+  (Clopper-Pearson 95% upper bound 0.036217). See docs/MONITOR-COLLUSION.md.
+
 ## 0.81.1 — Audit hardening for HEC packs (2026-11-25)
 
 - HEC: deriving an event's `legacy_step_id` no longer builds the whole
