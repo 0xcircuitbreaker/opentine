@@ -21,6 +21,11 @@
   19, and skips HEC candidates past 64 MiB, bounding the CPU a fetch spends in
   one of the two shared install/fetch slots (measured about 12x TINEPACK5's at
   level 19).
+- HEC (normative clarification, SPEC "HEC1"): a root-closure want-set follows
+  elided links only, so it refuses a valid pack that is not in dependency
+  order (`want-mismatch`, fail-closed). This was the engine's behavior; the
+  spec said any table order was valid without that exception. TINEPACK6 is
+  unaffected (it decodes every object, and writers use dependency order).
 
 ## 0.81.1 — Audit hardening for HEC packs (2026-11-25)
 

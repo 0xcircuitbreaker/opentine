@@ -62,3 +62,20 @@ def test_parsed_bytes_are_charged_per_structural_token():
     ctx.mem = sj.PARSE_MAX - 4 * sj.TOKEN_COST
     with pytest.raises(_hec.HecError):
         sj.load(canonical_json({"a": list(range(200))}), ctx, blob=True)
+
+
+@pytest.mark.skipif(not _backend.zstd_available(), reason="zstd not installed")
+def test_closure_accepts_only_a_dependency_ordered_pack():
+    # Normative (SPEC "HEC1"): Closure edges are elided links only; a link to a later
+    # object is literal, so a valid reverse-order pack is refused under Closure.
+    a = canonical_json({"x": "leaf object body"})
+    b = canonical_json({"ref": _oid(a)})
+    rows = [(BLOB, a), (BLOB, b)]
+    ids = {o.encode() for o in (_oid(a), _oid(b))}
+    root = _hec.Closure([_oid(b).encode()])
+    assert len(_hec.decode(_hec.encode(rows, _hec.OPENTINE), _hec.OPENTINE, root).objects) == 2
+    rev = _hec.encode(rows[::-1], _hec.OPENTINE)
+    assert len(_hec.decode(rev, _hec.OPENTINE, ids).objects) == 2
+    with pytest.raises(_hec.HecError) as err:
+        _hec.decode(rev, _hec.OPENTINE, root)
+    assert err.value.code == "want-mismatch"

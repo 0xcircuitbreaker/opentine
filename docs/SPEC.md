@@ -1236,7 +1236,11 @@ Check order: the first failing step decides the reason code.
    (`limit`); output beyond `total_out` the moment it happens, or short at the
    end (`size-mismatch`); a repeated id (`duplicate`); every stream consumed
    exactly (`trailing`); the decoded id set equal to the caller's want-set when
-   one is given (`want-mismatch`).
+   one is given (`want-mismatch`). A decoder that takes a root closure instead
+   follows elided links only: a pack not in dependency order (a link to a later
+   object stays literal) is refused under it (`want-mismatch`), though valid
+   under an exact want-set. TINEPACK6 decodes with neither (every object is
+   checked as for every pack), and writers emit dependency order.
 
 Nothing is returned unless every step passes. Reason codes (frozen): `header`,
 `budget`, `limit`, `truncated`, `trailing`, `bad-varint`, `backend`,
