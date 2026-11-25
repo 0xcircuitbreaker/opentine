@@ -164,7 +164,12 @@ def tagged(repo: Any, row: dict[str, Any]) -> list[str]:
     """Why *row* is under model-organism custody (empty: it is not)."""
     from opentine._organism_registry import RegistryUnreadable, registry
 
-    why = ["record tag"] if "model-organism" in (row.get("tags") or []) else []
+    # Any held record of these bytes, or any artifact keyed to the same checkpoint,
+    # carrying the tag counts: a second untagged record or a re-encoded copy does
+    # not launder custody.
+    rows = [r for r in artifacts(repo) if row["digest"] == r["digest"]
+            or r["checkpoint"] == row["checkpoint"]]  # fmt: skip
+    why = ["record tag"] if any("model-organism" in (r.get("tags") or []) for r in rows) else []
     try:
         known = registry(repo)
     except (RegistryUnreadable, OSError, ValueError) as exc:

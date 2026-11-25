@@ -26,6 +26,10 @@
 - Red-team fixture: a deterministic colluding stub monitor is caught in 100/100
   seeds (acceptance >= 95); the honest stub is flagged in 0/100 seeds
   (Clopper-Pearson 95% upper bound 0.036217). See docs/MONITOR-COLLUSION.md.
+- A probe monitor is checked against its calibration when a gate starts and by
+  `tine interp score`: a swapped probe, threshold, layer or checkpoint, or an
+  unverified calibration, fails closed. Custody tags apply across every record of
+  an artifact's bytes and every artifact keyed to the same checkpoint.
 - Interpretability artifact custody: `tine interp store|list|export` keeps
   attribution graphs, SAE feature dashboards and probe weights as held,
   content-addressed blobs keyed to a checkpoint digest, with a signed

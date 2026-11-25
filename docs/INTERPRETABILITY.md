@@ -43,7 +43,9 @@ only for a `runner` key in the owner-pinned trust bundle that is not an
 
 An artifact is under model-organism custody when:
 
-- its record carries the `model-organism` tag (`--tag model-organism`), or
+- any held record of its bytes, or of any artifact keyed to the same checkpoint,
+  carries the `model-organism` tag (`--tag model-organism`), so a second untagged
+  record or a re-encoded or derived copy on that checkpoint stays under custody, or
 - its own digest or its checkpoint's digest is tagged by `tine organism tag`, or
 - the organism registry cannot be read (fail closed).
 
@@ -53,7 +55,9 @@ to the artifact or to its checkpoint. Without one the read is refused with
 `custody.denied` (exit 6) and nothing is written. Every read of a tagged
 artifact, allowed or refused, is stored and held as an
 `opentine.organism-access/1` entry, listed by `tine organism status`. Tagging the
-checkpoint covers every artifact computed from it.
+checkpoint covers every artifact computed from it. Custody covers the
+`tine interp` commands; a copy stored under a different checkpoint digest is a
+different claim and is covered only when that digest is tagged.
 
 Bytes are checked against their recorded digest on every read; a mismatch
 fails with the existing `digest.mismatch` code (exit 4).
@@ -92,6 +96,17 @@ any checkpoint other than `checkpoint_digest` are refused with the existing
 `digest.mismatch` code, so the gate records `decided_by = "error"` and, failing
 closed, blocks. Every verdict's `monitor` field records `probe`, `checkpoint`,
 `layer`, `threshold` and `calibration`.
+
+The gate checks a probe monitor against its calibration when it starts. A probe,
+threshold, layer or checkpoint changed after calibration, or a calibration not
+verified for a pinned `monitor` or `policy` key, makes every score an error, so
+a gate blocks (it must fail closed) and an advisory monitor only records it.
+`tine interp score` refuses the same way.
+
+The activations must be put in the request by a trusted harness that reads the
+model. The gate cannot tell activations a harness measured from activations the
+agent wrote into its own request, so an agent that controls `params._meta`
+controls what the probe sees.
 
 ### Calibration evidence
 

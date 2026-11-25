@@ -97,7 +97,6 @@ def _activations(request: dict[str, Any], params: dict[str, Any]) -> None:
         request["activations"] = found.get("activations")
 
 
-#: 0.83: the ``params._meta`` key a harness puts a probe monitor's activations under.
 ACTIVATIONS = "opentine/activations"
 
 
@@ -113,6 +112,7 @@ class Gate:
             raise MonitorError("gate mode records every blocked action: give a repository "
                                "and a monitor key")  # fmt: skip
         self.config, self.monitor = config, config["monitor"]
+        getattr(self.monitor, "bind", lambda _repo: None)(repo)  # 0.83: probe vs calibration
         self.repo, self.key, self.session, self.agent = repo, key, session, agent
         self.clock, self.wall, self.runner = clock, wall, runner
         if alternate is None and config.get("alternate"):

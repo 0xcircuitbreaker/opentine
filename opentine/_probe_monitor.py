@@ -107,8 +107,16 @@ class ProbeMonitor:
         self.identity = {"id": ident, "kind": "probe", "model_digest": probe, "probe": probe,
                          "checkpoint": checkpoint, "layer": layer, "threshold": self.threshold,
                          "calibration": calibration}  # fmt: skip
+        self.findings: list[dict[str, str]] | None = None
+
+    def bind(self, repo: Any) -> None:
+        """Check against the held calibration; :meth:`score` refuses while a finding stands."""
+        self.findings = check(repo, self.identity) if repo is not None else None
 
     def score(self, request: dict[str, Any]) -> dict[str, Any]:
+        if self.findings:
+            raise ProbeError("the probe does not match its calibration: "
+                             + ", ".join(f["code"] for f in self.findings))  # fmt: skip
         got = request.get("checkpoint_digest")
         if got != self.checkpoint:
             raise ProbeMismatch(f"{ic.MISMATCH}: activations come from {got!r}, the probe was "

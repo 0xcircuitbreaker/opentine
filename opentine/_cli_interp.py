@@ -157,6 +157,7 @@ def _score(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[st
     from opentine import _json_shallow
 
     monitor = _monitor(args)
+    monitor.bind(repo)
     request = _json_shallow.loads(_read(args.request))
     if not isinstance(request, dict):
         raise ValueError("the request is a JSON object")
