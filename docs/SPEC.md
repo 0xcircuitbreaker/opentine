@@ -1161,8 +1161,11 @@ plain block 1+ = the plain objects' canonical bytes, cut every 4 MiB
   of the HEC1 objects and the plain objects MUST be unique and disjoint from
   `shallow`, and every object is checked as for every other pack format.
 - **Budgets (local policy, not wire).** CLI readers (fetch, pull, bundle):
-  `MAX_PACK_BODY_BYTES` (256 MiB) per pack. `tine serve` push receive: 64 MiB
-  per pack and at most 2 decodes at once. The unit cap (`max_unit_bytes`) is
+  `MAX_PACK_BODY_BYTES` (256 MiB) per pack. `tine serve` push receive: the
+  plain section gets the same budget as a TINEPACK5 (it is the same stream),
+  the HEC1 section at most 64 MiB, and at most 2 decodes run at once. Plain
+  block 0 is refused before it inflates when its `raw` size exceeds
+  `14 + max_objects x (digits(plain total) + 1)`. The unit cap (`max_unit_bytes`) is
   the output budget. A decode, accepted or refused, peaks at about 4x its
   output budget in memory (streams up to 2x, objects, units), however small
   the pack.
@@ -1172,7 +1175,10 @@ plain block 1+ = the plain objects' canonical bytes, cut every 4 MiB
 - **Writer.** The writer tries every object in HEC, binary and sealed
   (`TINEAES*`) blobs in the plain section with the rest in HEC, and every
   object plain, and keeps the smallest, so a TINEPACK6 is not larger than the
-  plain zstd form of its objects by more than its frame.
+  plain zstd form of its objects by more than its frame. A candidate whose
+  HEC1 section would hold more than 64 MiB of objects is not tried, so every
+  TINEPACK6 a writer produces is within the `tine serve` HEC1 budget. A server
+  building a fetch response encodes HEC1 at zstd level 9 (clients: 19).
 
 #### HEC1 (normative)
 

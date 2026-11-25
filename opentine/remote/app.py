@@ -218,7 +218,7 @@ class RemoteApp(UploadRoutes):
                     request.get("pack_formats"), request.get("pack_codecs")
                 )
                 peer = request.get(_pack_peer.PEER_VERSION)
-                data = _pack_peer.convert(data, fmt, codec, peer_version=peer)
+                data = _pack_peer.convert(data, fmt, codec, peer_version=peer, serve=True)
             # Additive: newer clients report runs whose associations did not fit.
             headers = [(OMITTED_HEADER, str(len(omitted)))] if omitted else []
             headers.append((_pack4.FORMAT_HEADER, fmt))

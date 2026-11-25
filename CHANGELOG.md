@@ -8,6 +8,19 @@
   cap, checked before the body is parsed. A 1 KB pack whose blob is a long list
   of empty lists (about 42x its size once parsed) is refused (`limit`) before
   `json.loads` runs; writers leave such an id literal.
+- TINEPACK6: plain block 0 (the size list) is capped by what `max_objects`
+  sizes can take before it is inflated. A 1.6 KB pack whose manifest inflated
+  to 16 MiB of small ints made `tine serve` peak near 400 MiB; it is now
+  refused without inflating anything.
+- TINEPACK6 under `tine serve`: the plain section is read under the same
+  budget as TINEPACK5 (it is the same zstd stream); only the HEC1 section keeps
+  the 64 MiB serve budget. The writer never puts more than 64 MiB of objects in
+  HEC1, so an opted-in push of 64-256 MiB that TINEPACK5 accepts is accepted as
+  TINEPACK6 too.
+- TINEPACK6 fetch responses: a server encodes HEC1 at zstd level 9 instead of
+  19, and skips HEC candidates past 64 MiB, bounding the CPU a fetch spends in
+  one of the two shared install/fetch slots (measured about 12x TINEPACK5's at
+  level 19).
 
 ## 0.81.1 — Audit hardening for HEC packs (2026-11-25)
 
