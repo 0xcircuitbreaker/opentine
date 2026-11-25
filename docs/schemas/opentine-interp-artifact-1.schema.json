@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-interp-artifact-1.schema.json",
+  "title": "opentine.interp-artifact/1 claim",
+  "description": "An attribution graph, SAE feature dashboard or probe weights stored as a held blob keyed to a checkpoint digest. A claim convention on an existing attestation, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "kind",
+    "digest",
+    "blob",
+    "size",
+    "checkpoint",
+    "layer",
+    "name",
+    "tags",
+    "recorded_at"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.interp-artifact/1"
+    },
+    "kind": {
+      "enum": [
+        "attribution-graph",
+        "sae-dashboard",
+        "probe-weights"
+      ]
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "blob": {
+      "type": "string",
+      "pattern": "^blob:sha256:[0-9a-f]{64}$"
+    },
+    "size": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "checkpoint": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "layer": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "name": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "model-organism"
+        ]
+      }
+    },
+    "recorded_at": {
+      "type": "string"
+    }
+  }
+}

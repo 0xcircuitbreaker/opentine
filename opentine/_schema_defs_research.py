@@ -1,5 +1,6 @@
 """Schemas for the query, experiment, elicitation, sabotage, history-merge, budget,
-containment, weight custody, model-organism, uplift, trends, transcript-analysis and ingest areas.
+containment, weight custody, model-organism, interpretability, uplift, trends,
+transcript-analysis and ingest areas.
 
 Collected by :mod:`opentine._schemas`.
 """
@@ -26,6 +27,8 @@ from opentine._schema_defs_experiment import COMMAND_SCHEMAS as _EXPERIMENT_COMM
 from opentine._schema_defs_experiment import SCHEMAS as _EXPERIMENT
 from opentine._schema_defs_ingest import COMMAND_SCHEMAS as _INGEST_COMMANDS
 from opentine._schema_defs_ingest import SCHEMAS as _INGEST
+from opentine._schema_defs_interp import COMMAND_SCHEMAS as _INTERP_COMMANDS
+from opentine._schema_defs_interp import SCHEMAS as _INTERP
 from opentine._schema_defs_keyless import COMMAND_SCHEMAS as _KEYLESS_COMMANDS
 from opentine._schema_defs_keyless import SCHEMAS as _KEYLESS
 from opentine._schema_defs_merge_history import COMMAND_SCHEMAS as _MH_COMMANDS
@@ -55,6 +58,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     **_CONTAINMENT,
     **_CUSTODY,
     **_ORGANISM,
+    **_INTERP,
     **_UPLIFT,
     **_TRENDS,
     **_TRANSCRIPTS,
@@ -75,6 +79,7 @@ COMMAND_SCHEMAS: dict[str, str] = {
     **_CONTAINMENT_COMMANDS,
     **_CUSTODY_COMMANDS,
     **_ORGANISM_COMMANDS,
+    **_INTERP_COMMANDS,
     **_UPLIFT_COMMANDS,
     **_TRENDS_COMMANDS,
     **_TRANSCRIPTS_COMMANDS,

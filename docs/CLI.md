@@ -2194,6 +2194,20 @@ convention `opentine.weight-custody/1`. See docs/CUSTODY.md.
 All commands take `--repo PATH`; `--json` prints `tine-cli-organism/1`. See
 docs/MODEL_ORGANISMS.md.
 
+## Interpretability custody and probe monitors (0.83)
+
+| Command | What it does |
+| --- | --- |
+| `tine interp store FILE --kind attribution-graph\|sae-dashboard\|probe-weights --checkpoint DIGEST [--layer N] [--name NAME] [--tag model-organism] --key KEY` | Stores the bytes as a held, content-addressed blob and signs and holds an `opentine.interp-artifact/1` record keyed to the checkpoint digest (probe weights need `--layer`) |
+| `tine interp list [--checkpoint DIGEST]` | The records, their verification (a pinned `runner` without `optimizer`) and why each is under custody |
+| `tine interp export DIGEST --out PATH [--run RUN]` | Writes the bytes after checking them against their digest (`digest.mismatch`, exit 4); a tagged artifact needs a `tine organism approve` record binding the run to it or its checkpoint (`custody.denied`, exit 6); every read of a tagged artifact is logged and held |
+| `tine interp calibrate DIGEST --threshold T --samples FILE --key KEY [--run RUN]` | Scores labelled samples with the probe and signs and holds `opentine.probe-calibration/1` evidence (a pinned `monitor` or `policy` key) |
+| `tine interp check CONFIG` | Compares a `kind = "probe"` monitor configuration with its calibration; exits 1 on `probe.swapped`, `probe.threshold-changed`, `probe.layer-changed`, `digest.mismatch`, `probe.calibration-missing` or `probe.calibration-unverified` |
+| `tine interp score CONFIG --request FILE` | Scores one `{"checkpoint_digest", "activations"}` request; activations from another checkpoint exit 4 with `digest.mismatch` |
+
+All commands take `--repo PATH`; `--json` prints `tine-cli-interp/1`. See
+docs/INTERPRETABILITY.md.
+
 ## Transcript search (0.74)
 
 | Command | What it does |

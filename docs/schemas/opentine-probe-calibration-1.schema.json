@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-probe-calibration-1.schema.json",
+  "title": "opentine.probe-calibration/1 claim",
+  "description": "Calibration evidence binding a probe, checkpoint, layer and threshold. A claim convention on an existing attestation, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "probe",
+    "checkpoint",
+    "layer",
+    "threshold",
+    "n",
+    "positives",
+    "negatives",
+    "true_positives",
+    "false_positives",
+    "tpr",
+    "fpr",
+    "samples_digest",
+    "calibrated_at"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.probe-calibration/1"
+    },
+    "probe": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "checkpoint": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "layer": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "threshold": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "n": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "positives": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "negatives": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "true_positives": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "false_positives": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "tpr": {
+      "anyOf": [
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "fpr": {
+      "anyOf": [
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "samples_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "calibrated_at": {
+      "type": "string"
+    }
+  }
+}

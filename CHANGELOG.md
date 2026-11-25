@@ -26,6 +26,26 @@
 - Red-team fixture: a deterministic colluding stub monitor is caught in 100/100
   seeds (acceptance >= 95); the honest stub is flagged in 0/100 seeds
   (Clopper-Pearson 95% upper bound 0.036217). See docs/MONITOR-COLLUSION.md.
+- Interpretability artifact custody: `tine interp store|list|export` keeps
+  attribution graphs, SAE feature dashboards and probe weights as held,
+  content-addressed blobs keyed to a checkpoint digest, with a signed
+  `opentine.interp-artifact/1` record (a claim on an existing attestation).
+  The 0.72 custody rules apply: an artifact tagged `model-organism`, or whose
+  own or checkpoint digest is a tagged model organism, is exported only to a
+  run with a matching approval (`custody.denied`, exit 6); every read of it is
+  logged and held; an unreadable registry denies (docs/INTERPRETABILITY.md).
+- Probe monitors: a `kind = "probe"` monitor scores actions from activations
+  passed under `_meta["opentine/activations"]`, and its verdicts record the
+  probe digest, checkpoint digest, layer, threshold and calibration. Activations
+  from another checkpoint fail with the existing `digest.mismatch` code; a
+  probe gate must fail closed.
+- `tine interp calibrate` signs `opentine.probe-calibration/1` evidence
+  (counts, TPR, FPR, samples digest); `tine interp check` reports a probe,
+  threshold, layer or checkpoint changed after calibration, and a missing or
+  unverified calibration. `tine interp score` scores one request.
+- Query tables `interp_artifacts` and `probe_calibrations`, verified per row by
+  pinned roles; schemas `tine-cli-interp-1`, `opentine-interp-artifact-1`,
+  `opentine-probe-calibration-1` and `opentine-linear-probe-1`.
 
 ## 0.81.1 — Audit hardening for HEC packs (2026-11-25)
 

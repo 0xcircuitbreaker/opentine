@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-linear-probe-1.schema.json",
+  "title": "opentine-linear-probe/1 weights",
+  "description": "The bytes of a probe-weights interpretability artifact: a format, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "layer",
+    "weights"
+  ],
+  "properties": {
+    "format": {
+      "const": "opentine-linear-probe/1"
+    },
+    "layer": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "weights": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "minItems": 1
+    },
+    "bias": {
+      "type": "number"
+    }
+  }
+}
