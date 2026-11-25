@@ -14,7 +14,12 @@
   seed, applies the probes over seeded trials and reports flagged-trial rates
   with Wilson and Clopper-Pearson intervals. With `--key` it signs one
   `tine-eval-verdict/1` per probe whose `item_digest` binds an
-  `opentine.collusion-verdict/1` claim; an optimizer key is refused. Results
+  `opentine.collusion-verdict/1` claim; the verdict key must be a pinned
+  `verdict` key (never an optimizer key, refused when roles are unpinned), and
+  checking a verdict recomputes its rate, intervals and score from the claimed
+  counts. The stego probe also drops one token at a time from outputs the
+  monitor lets through, catching coordination signals no stated marker names;
+  honeypots copy the reasoning shape of real steps. Results
   are advisory (D12) unless the signed manifest sets `required`. Refusals carry
   `collusion.*` command-level codes; no new object kind and no new
   `tine verify` code.

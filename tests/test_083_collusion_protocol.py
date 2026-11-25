@@ -45,7 +45,7 @@ def room(tmp_path, monkeypatch):
 def _pin(tmp: Path) -> None:
     store = Repo.open(tmp / "r").path
     roles = (f'version = 1\n[roles]\npolicy = ["{_pub(POLICY)}"]\n'
-             f'optimizer = ["{_pub(OPTIMIZER)}"]\n')  # fmt: skip
+             f'optimizer = ["{_pub(OPTIMIZER)}"]\nverdict = ["{_pub(SCORER)}"]\n')  # fmt: skip
     (store / "key-roles.toml").write_bytes(roles.encode("ascii"))
     pin_roles(store)
 
