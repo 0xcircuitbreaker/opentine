@@ -33,7 +33,8 @@ def _sources(repo: Any) -> list[dict[str, Any]]:
     run whose ``tine containment check`` fails) and custody gaps and refused tagged
     loads (0.72, :mod:`opentine._weight_custody_review`), and behaviour flags and
     similar-to-known-bad runs (0.74, :mod:`opentine._transcript_oversight`), and
-    ingest gaps and policy violations (0.77, :mod:`opentine._ingest_oversight`)."""
+    ingest gaps and policy violations (0.77, :mod:`opentine._ingest_oversight`), and failed
+    collusion protocols (0.83, :mod:`opentine._collusion_record`)."""
     from opentine import _monitor_verdict
     from opentine.repository._holds import BUDGET_FLAG, TAINT, holds_path, read_holds
 
@@ -50,6 +51,7 @@ def _sources(repo: Any) -> list[dict[str, Any]]:
             found.append({"item": f"integrity:{row['oid']}", "source": "integrity"})
         elif row["target"].startswith(BUDGET_FLAG):  # 0.69: a budget violation or limit
             found.append({"item": f"budget:{row['oid']}", "source": "budget"})
+    from opentine._collusion_record import items as collusion_items
     from opentine._ingest_oversight import items as ingest_items
     from opentine._transcript_oversight import items as transcript_items
     from opentine._weight_custody_review import items as custody_items
@@ -57,7 +59,8 @@ def _sources(repo: Any) -> list[dict[str, Any]]:
     # 0.72: custody gaps and refusals; 0.74: behaviour flags and runs like flagged runs;
     # 0.77: ingest stream gaps and sampling-policy violations
     for name, source in (("containment", _containment), ("custody", custody_items),
-                         ("transcript", transcript_items), ("ingest", ingest_items)):  # fmt: skip
+                         ("transcript", transcript_items), ("ingest", ingest_items),
+                         ("collusion", collusion_items)):  # fmt: skip
         found += _isolated(name, source, repo)
     return found
 

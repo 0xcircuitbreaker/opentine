@@ -46,10 +46,36 @@
           "enum": [
             "rule",
             "command",
-            "http"
+            "http",
+            "probe"
           ]
         },
         "model_digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "probe": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "checkpoint": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "layer": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "threshold": {
+          "type": "number"
+        },
+        "calibration": {
           "anyOf": [
             {
               "type": "string"

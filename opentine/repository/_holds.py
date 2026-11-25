@@ -70,8 +70,7 @@ ORGANISM = "organism:"
 #: 0.74: rows that keep a signed behaviour flag on transcripts (opentine._transcript_flags):
 #: released never, so a loop cannot delete the record that flagged it.
 TRANSCRIPT_FLAG = "transcript-flag:"
-#: 0.73: rows that keep an uplift suite or record (opentine._uplift): released
-#: never, so a loop cannot delete a result it dislikes.
+#: 0.73: rows that keep an uplift suite or record (opentine._uplift): released never.
 UPLIFT = "uplift:"
 #: 0.75: rows that keep a dataset record (opentine._dataset_version) or a signed withdrawal
 #: (opentine._dataset_withdraw): released never, so a loop cannot rewrite its training data.
@@ -83,6 +82,10 @@ POLICY_ADMISSION = "policy-admission:"
 #: (opentine._ingest_holds): released never; batches chain to the held head.
 INGEST_POLICY = "ingest-policy:"
 INGEST_HEAD = "ingest-head:"
+#: 0.83: interpretability records and probe calibrations (opentine._interp_custody): never released.
+INTERP_CUSTODY = "custody:interp"
+#: 0.83: a signed collusion-protocol verdict (opentine._collusion_record): never released.
+COLLUSION_VERDICT = "collusion-verdict:"
 _NEVER_RELEASED = (
     ((MEMORY_QUARANTINE,), "a memory quarantine"),
     ((MONITOR_VERDICT, MONITOR_STOP), "a monitor verdict or stop token"),
@@ -100,6 +103,8 @@ _NEVER_RELEASED = (
     ((DATASET_WITHDRAW,), "a dataset withdrawal"),
     ((POLICY_ADMISSION,), "a policy admission record"),
     ((INGEST_POLICY, INGEST_HEAD), "an ingest policy or batch"),
+    ((INTERP_CUSTODY,), "an interpretability custody record"),
+    ((COLLUSION_VERDICT,), "a collusion-protocol verdict"),
 )
 MAX_HOLDS_BYTES = 4 * 1024 * 1024
 

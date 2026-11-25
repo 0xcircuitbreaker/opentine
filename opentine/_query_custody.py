@@ -5,7 +5,8 @@
   place in the hash chain, the location and digest (weights are never stored);
 * ``organism_records``: one row per ``opentine.organism-tag/1``,
   ``opentine.organism-approval/1`` or ``opentine.organism-untag/1`` attestation
-  (:mod:`opentine._organism`).
+  (:mod:`opentine._organism`);
+* ``interp_artifacts`` and ``probe_calibrations`` (0.83): :mod:`opentine._query_interp`.
 
 ``signed`` is 1 only when the Ed25519 signature verifies *and* the payload's
 ``signer`` names the key that signed. Under ``--verify`` a custody row is
@@ -19,14 +20,18 @@ from __future__ import annotations
 
 from typing import Any
 
+from opentine._query_interp import COLUMNS as _INTERP_COLUMNS
+from opentine._query_interp import ROLES_FOR as _INTERP_ROLES
+
 COLUMNS: dict[str, tuple[str, ...]] = {
     "weight_custody": ("oid", "target", "signer", "signed", "artifact", "event", "seq", "prev",
                        "location", "digest", "size", "run", "tags", "recorded_at"),
     "organism_records": ("oid", "target", "signer", "signed", "record", "artifact", "run",
                          "at"),
 }  # fmt: skip
+COLUMNS.update(_INTERP_COLUMNS)  # 0.83: interpretability artifacts and probe calibrations
 ROLES_FOR = {"weight_custody": ("runner", "policy"),
-             "organism_records": ("policy", "curator", "approver")}  # fmt: skip
+             "organism_records": ("policy", "curator", "approver"), **_INTERP_ROLES}  # fmt: skip
 _ORGANISM = {"opentine.organism-tag/1": ("tag", "tagged_at"),
              "opentine.organism-approval/1": ("approval", "approved_at"),
              "opentine.organism-untag/1": ("untag", "untagged_at")}  # fmt: skip
@@ -47,7 +52,9 @@ def attestation_rows(oid: str, payload: dict[str, Any]) -> dict[str, list[dict[s
     claim = payload.get("claim")
     convention = claim.get("convention") if isinstance(claim, dict) else None
     if convention != CONVENTION and convention not in _ORGANISM:
-        return {}
+        from opentine._query_interp import attestation_rows as interp_rows
+
+        return interp_rows(oid, payload)
     head = {"oid": oid, "target": _text(payload.get("target_id")),
             "signer": _text(payload.get("signer")), "signed": _signed(payload)}  # fmt: skip
     if convention in _ORGANISM:

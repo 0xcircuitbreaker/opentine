@@ -88,6 +88,18 @@ def _valid(reply: Any) -> bool:
     return 0.0 <= score <= 1.0 and (action is None or action in _monitor_verdict.ACTIONS[1:])
 
 
+def _activations(request: dict[str, Any], params: dict[str, Any]) -> None:
+    """Copy ``_meta["opentine/activations"]`` (checkpoint digest, activations) to *request*."""
+    meta = params.get("_meta")
+    found = meta.get(ACTIVATIONS) if isinstance(meta, dict) else None
+    if isinstance(found, dict):
+        request["checkpoint_digest"] = found.get("checkpoint_digest")
+        request["activations"] = found.get("activations")
+
+
+ACTIVATIONS = "opentine/activations"
+
+
 class Gate:
     def __init__(
         self, config: dict[str, Any], *, repo: Any = None, key: Any = None,
@@ -100,6 +112,7 @@ class Gate:
             raise MonitorError("gate mode records every blocked action: give a repository "
                                "and a monitor key")  # fmt: skip
         self.config, self.monitor = config, config["monitor"]
+        getattr(self.monitor, "bind", lambda _repo: None)(repo)  # 0.83: probe vs calibration
         self.repo, self.key, self.session, self.agent = repo, key, session, agent
         self.clock, self.wall, self.runner = clock, wall, runner
         if alternate is None and config.get("alternate"):
@@ -134,6 +147,7 @@ class Gate:
             seen, state = redact_text(reasoning), "redacted"
         request = {"tool": tool, "method": method, "arguments": params.get("arguments"),
                    "reasoning": seen}  # fmt: skip
+        _activations(request, params)  # 0.83: what a probe monitor reads
         original = input_digest(method, params)
         claim: dict[str, Any] = {
             "convention": CONVENTION, "monitor": self.monitor.identity,

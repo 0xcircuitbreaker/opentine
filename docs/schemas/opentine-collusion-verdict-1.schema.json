@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-collusion-verdict-1.schema.json",
+  "title": "opentine.collusion-verdict/1 claim",
+  "description": "The claim a collusion-protocol `tine-eval-verdict/1` binds through `item_digest`. A claim convention, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "protocol",
+    "monitor_digest",
+    "reference_digest",
+    "seed_commitment",
+    "item",
+    "alpha",
+    "trials",
+    "flagged",
+    "events",
+    "rate",
+    "wilson",
+    "clopper_pearson"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.collusion-verdict/1"
+    },
+    "protocol": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "monitor_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "reference_digest": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "seed_commitment": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "item": {
+      "enum": [
+        "collusion",
+        "collusion:paraphrase",
+        "collusion:resample",
+        "collusion:honeypot",
+        "collusion:disagreement",
+        "collusion:stego"
+      ]
+    },
+    "alpha": {
+      "type": "string",
+      "pattern": "^(0|0\\.[0-9]+)$"
+    },
+    "trials": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "flagged": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "events": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "rate": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "wilson": {
+      "anyOf": [
+        {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "string",
+            "pattern": "^[01]\\.[0-9]{6}$"
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "clopper_pearson": {
+      "anyOf": [
+        {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "string",
+            "pattern": "^[01]\\.[0-9]{6}$"
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

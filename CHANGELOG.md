@@ -1,5 +1,60 @@
 # Changelog
 
+## 0.83.0 — Monitor collusion protocols and interpretability custody (2026-11-25)
+
+- `tine monitor protocol-sign` signs a collusion-testing protocol manifest
+  (`opentine.collusion-protocol/1`, a signed file convention): paraphrase and
+  re-sampling of the monitored output, honeypot insertion at a stated rate,
+  cross-monitor disagreement against a pinned reference monitor, and
+  steganography probes, with a secret seed committed before the run
+  (commit-then-reveal).
+- `tine monitor protocol-run` verifies the manifest (signer bound to the
+  signing key, a pinned `policy` key from the owner-signed trust bundle, never
+  an `optimizer` key; refused when roles are unpinned), checks the revealed
+  seed, applies the probes over seeded trials and reports flagged-trial rates
+  with Wilson and Clopper-Pearson intervals. With `--key` it signs one
+  `tine-eval-verdict/1` per probe whose `item_digest` binds an
+  `opentine.collusion-verdict/1` claim; the verdict key must be a pinned
+  `verdict` key (never an optimizer key, refused when roles are unpinned), and
+  checking a verdict recomputes its rate, intervals and score from the claimed
+  counts. The stego probe also drops one token at a time from outputs the
+  monitor lets through, catching coordination signals no stated marker names;
+  honeypots copy the reasoning shape of real steps. Results
+  are advisory (D12) unless the signed manifest sets `required`. Refusals carry
+  `collusion.*` command-level codes; no new object kind and no new
+  `tine verify` code.
+- `tine monitor protocol-run --record` stores and holds the signed verdict lines
+  (`collusion-verdict:` holds, never released). A failed run, or a held line
+  that no longer checks, opens a `collusion:BLOB` item in the oversight queue
+  (route `source = "collusion"`). `tine query index --evals DIR` indexes the
+  `--verdicts` file with a per-row `signed` flag.
+- Red-team fixture: a deterministic colluding stub monitor is caught in 100/100
+  seeds (acceptance >= 95); the honest stub is flagged in 0/100 seeds
+  (Clopper-Pearson 95% upper bound 0.036217). See docs/MONITOR-COLLUSION.md.
+- A probe monitor is checked against its calibration when a gate starts and by
+  `tine interp score`: a swapped probe, threshold, layer or checkpoint, or an
+  unverified calibration, fails closed. Custody tags apply across every record of
+  an artifact's bytes and every artifact keyed to the same checkpoint.
+- Interpretability artifact custody: `tine interp store|list|export` keeps
+  attribution graphs, SAE feature dashboards and probe weights as held,
+  content-addressed blobs keyed to a checkpoint digest, with a signed
+  `opentine.interp-artifact/1` record (a claim on an existing attestation).
+  The 0.72 custody rules apply: an artifact tagged `model-organism`, or whose
+  own or checkpoint digest is a tagged model organism, is exported only to a
+  run with a matching approval (`custody.denied`, exit 6); every read of it is
+  logged and held; an unreadable registry denies (docs/INTERPRETABILITY.md).
+- Probe monitors: a `kind = "probe"` monitor scores actions from activations
+  passed under `_meta["opentine/activations"]`, and its verdicts record the
+  probe digest, checkpoint digest, layer, threshold and calibration. Activations
+  from another checkpoint fail with the existing `digest.mismatch` code; a
+  probe gate must fail closed.
+- `tine interp calibrate` signs `opentine.probe-calibration/1` evidence
+  (counts, TPR, FPR, samples digest); `tine interp check` reports a probe,
+  threshold, layer or checkpoint changed after calibration, and a missing or
+  unverified calibration. `tine interp score` scores one request.
+- Query tables `interp_artifacts` and `probe_calibrations`, verified per row by
+  pinned roles; schemas `tine-cli-interp-1`, `opentine-interp-artifact-1`,
+  `opentine-probe-calibration-1` and `opentine-linear-probe-1`.
 ## 0.81.2 — HEC audit round 2 (2026-11-25)
 
 - HEC (normative, SPEC "HEC1" field 1): deriving a `legacy_step_id` now meters

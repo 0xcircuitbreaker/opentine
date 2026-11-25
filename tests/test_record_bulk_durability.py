@@ -29,6 +29,7 @@ from opentine.repository import Repo, _paths, _write_batch
 from opentine.repository import store as store_module
 
 CHAIN = uuid.UUID(int=1)
+PACK_FSYNCS = 16  # the whole on_chain_end of a pack store, for any event count
 
 
 class Crash(BaseException):
@@ -104,11 +105,16 @@ def _end_counted(tmp_path, marks: int, counts: dict) -> dict:
 
 
 def test_pack_store_fsyncs_do_not_grow_with_the_event_count(tmp_path, io_counts, monkeypatch):
-    """Pack store: 16 fsyncs for 40 events and for 400, before and after."""
+    """Pack store: at most 16 fsyncs for 40 events and for 400, before and after.
+
+    The exact count can be one lower when two new objects land in the same
+    fresh directory (its sync is shared); it never grows with the event count.
+    """
     monkeypatch.setenv("OPENTINE_COMPRESS", "1")  # a version-2 store writes run packs
     small = _end_counted(tmp_path / "small", 40, io_counts)
     large = _end_counted(tmp_path / "large", 400, io_counts)
-    assert small["fsync"] == large["fsync"] > 0
+    assert 0 < small["fsync"] <= PACK_FSYNCS
+    assert 0 < large["fsync"] <= PACK_FSYNCS
     assert small["big_reads"] == large["big_reads"] == 0  # before: one per event
 
 

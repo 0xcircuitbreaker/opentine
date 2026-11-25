@@ -25,7 +25,7 @@ from opentine._cli_errors import error
 
 SCHEMA = "tine-cli-monitor/1"
 GROUPS = ("captured", "redacted", "unavailable")
-EVAL_VERBS = ("backtest", "collusion")
+EVAL_VERBS = ("backtest", "collusion", "protocol-sign", "protocol-run")
 
 
 def add_eval_parsers(verbs: argparse._SubParsersAction) -> None:
@@ -49,6 +49,9 @@ def add_eval_parsers(verbs: argparse._SubParsersAction) -> None:
         p.add_argument("--runs", action="append", required=p is coll, metavar="FILE",
                        help="Recorded trajectories (JSON Lines); repeatable")  # fmt: skip
         p.add_argument("--json", action="store_true", help="Machine-readable output")
+    from opentine._cli_monitor_protocol import add_protocol_parsers
+
+    add_protocol_parsers(verbs)
 
 
 def _recorded(repo_path: str, names: list[str]) -> tuple[list[dict], int]:
@@ -119,6 +122,10 @@ def _print(row: dict, command: str) -> None:
 def run(args: argparse.Namespace) -> None:
     from opentine._cli_json import emit
 
+    if args.monitor_command.startswith("protocol-"):
+        from opentine._cli_monitor_protocol import run as run_protocol
+
+        return run_protocol(args)
     try:
         row = _row(args)
     except (OSError, ValueError, KeyError, UnicodeDecodeError) as exc:

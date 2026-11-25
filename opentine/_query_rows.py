@@ -16,7 +16,7 @@ import json
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
-from opentine import _json_shallow
+from opentine import _collusion_verdicts, _json_shallow
 from opentine._query_containment import COLUMNS as _CONTAINMENT_COLUMNS
 from opentine._query_custody import COLUMNS as _CUSTODY_COLUMNS
 from opentine._query_datasets import COLUMNS as _DATASET_COLUMNS
@@ -237,7 +237,7 @@ def verdict_lines(source: str, raw: bytes) -> list[dict[str, Any]]:
         if not line.strip():
             continue
         try:
-            verdict = _json_shallow.loads(line)  # bounded nesting: untrusted lines
+            verdict = _collusion_verdicts.bare(_json_shallow.loads(line))  # 0.83: unwraps
         except ValueError:
             continue
         row = eval_row("sha256:" + hashlib.sha256(line).hexdigest(), source, number, verdict)

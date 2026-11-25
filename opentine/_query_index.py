@@ -45,6 +45,7 @@ _INDEXES = (
     "CREATE INDEX sabotage_task ON sabotage_tasks (task)",
     "CREATE INDEX elicit_items_oid ON elicit_items (oid)",
     "CREATE INDEX custody_artifact ON weight_custody (artifact)",
+    "CREATE INDEX interp_checkpoint ON interp_artifacts (checkpoint)",
     "CREATE INDEX flag_runs_run ON transcript_flag_runs (run)",
     "CREATE INDEX uplift_records_suite ON uplift_records (suite)",
     "CREATE INDEX trend_points_generation ON trend_points (generation)",
@@ -68,7 +69,8 @@ _KEYS = {"runs": "PRIMARY KEY (oid)", "steps": "PRIMARY KEY (run, seq)",
          "dataset_members": "PRIMARY KEY (oid, run)",
          "dataset_tombstones": "PRIMARY KEY (oid)",
          "policy_admissions": "PRIMARY KEY (oid)", "ingest_policies": "PRIMARY KEY (oid)",
-         "ingest_batches": "PRIMARY KEY (oid)"}  # fmt: skip
+         "ingest_batches": "PRIMARY KEY (oid)", "interp_artifacts": "PRIMARY KEY (oid)",
+         "probe_calibrations": "PRIMARY KEY (oid)"}  # fmt: skip
 VIEWS = (
     "CREATE VIEW costs AS SELECT oid, run, model, provider, cost, input_tokens, output_tokens"
     " FROM steps",

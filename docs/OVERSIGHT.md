@@ -82,6 +82,12 @@ when the finding names no batch (no held policy, more than one held head).
 Every held stream is re-verified on every read; advisory findings open
 nothing (docs/INGEST.md).
 
+A `collusion:BLOB` item (0.83, route `source = "collusion"`) names a held
+collusion-protocol verdict line (`tine monitor protocol-run --record`): an
+overall verdict the monitor did not clear, or a held line that no longer checks
+(signature, arithmetic or verdict role). Cleared runs open nothing
+(docs/MONITOR-COLLUSION.md).
+
 An item routed into several tiers must satisfy each of them.
 
 ### Pinning

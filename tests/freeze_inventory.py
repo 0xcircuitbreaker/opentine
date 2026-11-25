@@ -133,8 +133,13 @@ NOT_KINDS = (
     # 0.72 (release 0.71.0): attestation claims (organism tags, approvals, untags), a held blob
     "opentine-organism-tag-1", "opentine-organism-approval-1", "opentine-organism-untag-1",
     "opentine-organism-access-1",
+    # 0.83 (release 0.82.0): attestation claims (interpretability artifacts, probe
+    # calibrations) and the probe weights format
+    "opentine-interp-artifact-1", "opentine-probe-calibration-1", "opentine-linear-probe-1",
     # 0.74 (release 0.73.0): an attestation claim (transcript behaviour flags)
     "opentine-transcript-flag-1",
+    # 0.83 (release 0.82.0): a signed manifest file and an eval-verdict claim (collusion tests)
+    "opentine-collusion-protocol-1", "opentine-collusion-verdict-1",
     # 0.78 (release 0.75.0): an attestation claim (curated dataset versions)
     "opentine-dataset-version-1",
     # 0.75 (release 0.74.0): a policy file and an attestation claim (admission records)

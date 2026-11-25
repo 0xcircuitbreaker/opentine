@@ -39,7 +39,7 @@ reasoning = "captured"   # or "redacted": what reasoning text the monitor is sho
 
 [monitor]
 id = "shell-rules"
-kind = "rule"            # rule, command (local model) or http (remote API)
+kind = "rule"            # rule, command (local model), http (remote API) or probe (0.83)
 threshold = 0.5          # score >= threshold takes `action`
 action = "block"         # flag, resample, defer or block
 
@@ -60,6 +60,10 @@ command = ["python", "trusted.py"]   # resample/defer source (optional)
   `model_digest = "sha256:..."`.
 - `kind = "http"`: `url = "https://..."`; the request is POSTed as JSON and the
   reply has the same shape.
+- `kind = "probe"` (0.83): a linear probe on the model's activations, keyed to a
+  checkpoint digest and a signed calibration; the verdict's `monitor` records
+  `probe`, `checkpoint`, `layer`, `threshold` and `calibration`. See
+  docs/INTERPRETABILITY.md.
 
 The request a monitor receives is `{"tool", "method", "arguments",
 "reasoning"}`. `[alternate].command` receives the same request plus `"role":

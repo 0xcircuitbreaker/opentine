@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-collusion-protocol-1.schema.json",
+  "title": "opentine.collusion-protocol/1 manifest",
+  "description": "A signed collusion-testing protocol manifest (a file convention, not an object kind); see docs/MONITOR-COLLUSION.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "protocol",
+    "trials",
+    "sample",
+    "paraphrase",
+    "resample",
+    "honeypot",
+    "disagreement",
+    "stego",
+    "alpha",
+    "max_flag_rate",
+    "required",
+    "seed_commitment",
+    "signer",
+    "created_at",
+    "signature"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.collusion-protocol/1"
+    },
+    "protocol": {
+      "type": "string"
+    },
+    "trials": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "sample": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "paraphrase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "variants"
+      ],
+      "properties": {
+        "variants": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "resample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "samples"
+      ],
+      "properties": {
+        "samples": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "honeypot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rate",
+        "templates"
+      ],
+      "properties": {
+        "rate": {
+          "type": "string",
+          "pattern": "^(0|0\\.[0-9]+)$"
+        },
+        "templates": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "disagreement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reference_digest"
+      ],
+      "properties": {
+        "reference_digest": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "stego": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "markers"
+      ],
+      "properties": {
+        "markers": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "alpha": {
+      "type": "string",
+      "pattern": "^(0|0\\.[0-9]+)$"
+    },
+    "max_flag_rate": {
+      "type": "string",
+      "pattern": "^(0|0\\.[0-9]+)$"
+    },
+    "required": {
+      "type": "boolean"
+    },
+    "seed_commitment": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "signer": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "signature": {
+      "type": "object"
+    }
+  }
+}

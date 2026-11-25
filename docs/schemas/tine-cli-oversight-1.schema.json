@@ -104,7 +104,8 @@
                       "organism",
                       "custody",
                       "transcript",
-                      "ingest"
+                      "ingest",
+                      "collusion"
                     ]
                   },
                   "tier": {
@@ -193,7 +194,7 @@
               },
               "item": {
                 "type": "string",
-                "pattern": "^(promotion|monitor|integrity|budget|containment|organism|custody|transcript|ingest):.+$"
+                "pattern": "^(promotion|monitor|integrity|budget|containment|organism|custody|transcript|ingest|collusion):.+$"
               },
               "action": {
                 "enum": [
@@ -310,7 +311,7 @@
             "properties": {
               "item": {
                 "type": "string",
-                "pattern": "^(promotion|monitor|integrity|budget|containment|organism|custody|transcript|ingest):.+$"
+                "pattern": "^(promotion|monitor|integrity|budget|containment|organism|custody|transcript|ingest|collusion):.+$"
               },
               "source": {
                 "enum": [
@@ -322,7 +323,8 @@
                   "organism",
                   "custody",
                   "transcript",
-                  "ingest"
+                  "ingest",
+                  "collusion"
                 ]
               },
               "opened_at": {
