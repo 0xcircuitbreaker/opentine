@@ -16,12 +16,12 @@ from opentine._hec._core import (
 class Ctx:
     """What a derived field may use: the object being rebuilt, earlier objects, a work meter."""
 
-    __slots__ = ("body", "budget", "by_id", "limits", "type", "work")
+    __slots__ = ("body", "budget", "by_id", "limits", "mem", "type", "work")
 
     def __init__(self, limits: Limits, budget: int | None = None) -> None:
         self.by_id: dict[bytes, Obj] = {}
         self.limits = limits
-        self.work = 0
+        self.work = self.mem = 0
         self.body: bytes | None = None
         self.type = None
         cap = limits.max_hashed_bytes

@@ -23,11 +23,21 @@ INT_MAX = 9_007_199_254_740_991
 _JSON_TOK = re.compile(rb'[\[{\]},:"\\\x00]')
 _ESC = json.encoder.encode_basestring_ascii
 _SLICE = 1 << 14  # chars per escaped string piece (at most 12 bytes each)
+#: Worst-case parsed-tree bytes per structural token (a list/dict/str object and its slot).
+TOKEN_COST = 64
+#: Parsed-tree bytes one derivation may build (~1M tokens), the same for every encoder and
+#: decoder whatever its budget, so a writer never self-derives what a reader refuses.
+PARSE_MAX = 64 * 1024 * 1024
 
 
 def shape_ok(body: bytes, max_tokens: int) -> bool:
     """``kernel.validate_json_shape`` in one linear pass."""
-    depth = tokens = 0
+    return tokens(body, max_tokens) >= 0
+
+
+def tokens(body: bytes, max_tokens: int) -> int:
+    """The structural token count of *body*, or -1 past the depth or token cap."""
+    depth = count = 0
     in_str = False
     skip = -1
     for m in _JSON_TOK.finditer(body):
@@ -47,15 +57,15 @@ def shape_ok(body: bytes, max_tokens: int) -> bool:
             in_str = True
         elif c in b"[{":
             depth += 1
-            tokens += 1
+            count += 1
         elif c in b",:]}":
-            tokens += 1
+            count += 1
             depth -= c in b"]}"
         else:
             continue
-        if depth > MAX_JSON_DEPTH or tokens > max_tokens:
-            return False
-    return True
+        if depth > MAX_JSON_DEPTH or count > max_tokens:
+            return -1
+    return count
 
 
 def _parse_int(v: str):
@@ -130,8 +140,14 @@ def load(body: bytes, ctx, blob: bool = False) -> dict:
     """Parse a body under OpenTine's reader rules; anything else is ``derive``."""
     ctx.charge(len(body))
     budget = min(_TOK_MAX, max(_TOK_MIN, len(body))) if blob else EVENT_TOKENS
-    if not shape_ok(body, budget):
+    n = tokens(body, budget)
+    if n < 0:
         raise HecError("derive", "JSON nested too deeply or too many tokens")
+    # the parsed tree is ~TOKEN_COST bytes a token, ~40x a dense body: one derivation's
+    # trees are metered before any is built
+    ctx.mem += (n + 1) * TOKEN_COST
+    if ctx.mem > PARSE_MAX:
+        raise HecError("limit", "parsed JSON of one derivation exceeds PARSE_MAX")
     try:
         v = json.loads(_utf8(body), parse_int=_parse_int)
         if not _is_v3(v, body):
