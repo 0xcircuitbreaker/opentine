@@ -43,7 +43,8 @@ MAGIC6 = b"TINEPACK6\0"
 V6 = "TINEPACK6"
 GRAMMAR = "opentine-1"
 _KEYS = {"grammar", "hec", "hec_bytes", "plain_blocks", "shallow", "version"}
-#: Output budget of a pack decoded by ``tine serve`` (64 MiB per pack).
+#: HEC1 output budget of a pack decoded by ``tine serve`` (64 MiB per pack; the plain
+#: section, a TINEPACK5 stream, keeps the caller's ``max_body`` as TINEPACK5 does).
 SERVE_MAX_OUTPUT = 64 * 1024 * 1024
 #: Decodes ``tine serve`` runs at once; more wait (a decode peaks near 4x its budget).
 SERVE_DECODES = 2
@@ -140,16 +141,17 @@ def inspect(
     actual = hashlib.sha256(payload).digest()
     if actual != expected:
         raise KernelError("pack checksum mismatch")
-    budget = min(max_body, SERVE_MAX_OUTPUT) if serve else max_body
     header, offset = _header(payload)
     blocks, shallow = _blocks(header["plain_blocks"]), header["shallow"]
     if len(shallow) > max_objects or len(blocks) > max_objects + 1:
         raise KernelError("pack exceeds maximum object count")
-    if blocks and blocks[0][1] > MAX_HEADER_BYTES:
-        raise KernelError("invalid pack manifest")
     plain_total = sum(raw for _, raw in blocks[1:])
-    if plain_total > budget:
+    if plain_total > max_body:  # the TINEPACK5 stream: TINEPACK5's budget, serve or not
         raise Pack6Error("budget", "plain section exceeds the output budget")
+    # block 0 lists at most max_objects sizes, each at most plain_total: cap it before inflating
+    if blocks and blocks[0][1] > 14 + max_objects * (len(str(plain_total)) + 1):
+        raise KernelError("invalid pack manifest")
+    budget = min(max_body - plain_total, SERVE_MAX_OUTPUT if serve else max_body)
     end = offset + header["hec_bytes"]
     if end + sum(frame for frame, _ in blocks) != len(payload):
         raise KernelError("pack body does not match its manifest")
@@ -159,7 +161,7 @@ def inspect(
     if slots is not None:
         slots.acquire()
     try:
-        objects = _decode_hec(payload[offset:end], budget - plain_total, max_objects)
+        objects = _decode_hec(payload[offset:end], budget, max_objects)
         frames, cursor = [], end
         for frame, raw in blocks:
             frames.append((payload[cursor : cursor + frame], raw))

@@ -51,12 +51,18 @@ def choose(formats: Any, codecs: Any) -> tuple[str, str | None]:
     return _pack4.choose(formats, codecs)
 
 
-def convert(data: bytes, fmt: str, codec: str | None, *, peer_version: Any = None) -> bytes:
-    """*data* (a v3 pack) in *fmt*; codec v2 frames only for a 0.35+ peer."""
+def convert(
+    data: bytes, fmt: str, codec: str | None, *, peer_version: Any = None, serve: bool = False
+) -> bytes:
+    """*data* (a v3 pack) in *fmt*; codec v2 frames only for a 0.35+ peer.
+
+    *serve*: a server's response, built in a shared slot, so HEC at ``SERVE_LEVEL``.
+    """
     if fmt == V6:
         from opentine.repository import _pack6_build
 
-        return _pack6_build.from_v3(data)
+        level = _pack6_build.SERVE_LEVEL if serve else _pack6_build.HEC_LEVEL
+        return _pack6_build.from_v3(data, level=level)
     if fmt == V5:
         return _pack5.from_v3(data)
     if fmt == V4 and codec:

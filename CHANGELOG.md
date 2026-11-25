@@ -55,6 +55,32 @@
 - Query tables `interp_artifacts` and `probe_calibrations`, verified per row by
   pinned roles; schemas `tine-cli-interp-1`, `opentine-interp-artifact-1`,
   `opentine-probe-calibration-1` and `opentine-linear-probe-1`.
+## 0.81.2 — HEC audit round 2 (2026-11-25)
+
+- HEC (normative, SPEC "HEC1" field 1): deriving a `legacy_step_id` now meters
+  the parsed JSON it builds, not just the bytes it hashes. Each structural
+  token of every body a derivation reads costs 64 bytes against a fixed 64 MiB
+  cap, checked before the body is parsed. A 1 KB pack whose blob is a long list
+  of empty lists (about 42x its size once parsed) is refused (`limit`) before
+  `json.loads` runs; writers leave such an id literal.
+- TINEPACK6: plain block 0 (the size list) is capped by what `max_objects`
+  sizes can take before it is inflated. A 1.6 KB pack whose manifest inflated
+  to 16 MiB of small ints made `tine serve` peak near 400 MiB; it is now
+  refused without inflating anything.
+- TINEPACK6 under `tine serve`: the plain section is read under the same
+  budget as TINEPACK5 (it is the same zstd stream); only the HEC1 section keeps
+  the 64 MiB serve budget. The writer never puts more than 64 MiB of objects in
+  HEC1, so an opted-in push of 64-256 MiB that TINEPACK5 accepts is accepted as
+  TINEPACK6 too.
+- TINEPACK6 fetch responses: a server encodes HEC1 at zstd level 9 instead of
+  19, and skips HEC candidates past 64 MiB, bounding the CPU a fetch spends in
+  one of the two shared install/fetch slots (measured about 12x TINEPACK5's at
+  level 19).
+- HEC (normative clarification, SPEC "HEC1"): a root-closure want-set follows
+  elided links only, so it refuses a valid pack that is not in dependency
+  order (`want-mismatch`, fail-closed). This was the engine's behavior; the
+  spec said any table order was valid without that exception. TINEPACK6 is
+  unaffected (it decodes every object, and writers use dependency order).
 
 ## 0.81.1 — Audit hardening for HEC packs (2026-11-25)
 

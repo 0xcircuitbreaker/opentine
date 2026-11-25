@@ -109,6 +109,7 @@ def _inputs(ev: dict, ctx, seen: dict) -> dict:
 
 def _legacy_step_id(ctx) -> bytes:
     """sha256 over the canonical JSON of the step payload, as OpenTine 0.5x computed it."""
+    ctx.mem = 0  # parsed-tree bytes of this derivation (sj.load)
     ev = sj.load(ctx.body, ctx)
     try:
         parents = []

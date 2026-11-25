@@ -1161,8 +1161,11 @@ plain block 1+ = the plain objects' canonical bytes, cut every 4 MiB
   of the HEC1 objects and the plain objects MUST be unique and disjoint from
   `shallow`, and every object is checked as for every other pack format.
 - **Budgets (local policy, not wire).** CLI readers (fetch, pull, bundle):
-  `MAX_PACK_BODY_BYTES` (256 MiB) per pack. `tine serve` push receive: 64 MiB
-  per pack and at most 2 decodes at once. The unit cap (`max_unit_bytes`) is
+  `MAX_PACK_BODY_BYTES` (256 MiB) per pack. `tine serve` push receive: the
+  plain section gets the same budget as a TINEPACK5 (it is the same stream),
+  the HEC1 section at most 64 MiB, and at most 2 decodes run at once. Plain
+  block 0 is refused before it inflates when its `raw` size exceeds
+  `14 + max_objects x (digits(plain total) + 1)`. The unit cap (`max_unit_bytes`) is
   the output budget. A decode, accepted or refused, peaks at about 4x its
   output budget in memory (streams up to 2x, objects, units), however small
   the pack.
@@ -1172,7 +1175,10 @@ plain block 1+ = the plain objects' canonical bytes, cut every 4 MiB
 - **Writer.** The writer tries every object in HEC, binary and sealed
   (`TINEAES*`) blobs in the plain section with the rest in HEC, and every
   object plain, and keeps the smallest, so a TINEPACK6 is not larger than the
-  plain zstd form of its objects by more than its frame.
+  plain zstd form of its objects by more than its frame. A candidate whose
+  HEC1 section would hold more than 64 MiB of objects is not tried, so every
+  TINEPACK6 a writer produces is within the `tine serve` HEC1 budget. A server
+  building a fetch response encodes HEC1 at zstd level 9 (clients: 19).
 
 #### HEC1 (normative)
 
@@ -1199,7 +1205,11 @@ header, which MUST be the canonical OpenTine header of a known kind with schema
 v = 0 is the most recent object nothing links to yet, else object i - v),
 rendered as the full typed oid. Field 1: `legacy_step_id`, self-derived (at
 most one per object): sha256 of the step payload as 0.5x computed it, from
-the event, its earlier input/output blobs and its parents' ids. Field
+the event, its earlier input/output blobs and its parents' ids. One
+derivation may parse at most 1 048 576 structural JSON tokens (`[ { , : ] }`,
+counted over every body it reads, each costed at 64 bytes against a 64 MiB
+cap); past that it is refused (`limit`) before any body is parsed, and a writer
+leaves such a `legacy_step_id` literal. Field
 2: 32 raw bytes from `opaque`, rendered as 64 lowercase hex. The object id is
 `type ":sha256:" hex(sha256(type NUL schema NUL body))`.
 
@@ -1226,7 +1236,11 @@ Check order: the first failing step decides the reason code.
    (`limit`); output beyond `total_out` the moment it happens, or short at the
    end (`size-mismatch`); a repeated id (`duplicate`); every stream consumed
    exactly (`trailing`); the decoded id set equal to the caller's want-set when
-   one is given (`want-mismatch`).
+   one is given (`want-mismatch`). A decoder that takes a root closure instead
+   follows elided links only: a pack not in dependency order (a link to a later
+   object stays literal) is refused under it (`want-mismatch`), though valid
+   under an exact want-set. TINEPACK6 decodes with neither (every object is
+   checked as for every pack), and writers emit dependency order.
 
 Nothing is returned unless every step passes. Reason codes (frozen): `header`,
 `budget`, `limit`, `truncated`, `trailing`, `bad-varint`, `backend`,

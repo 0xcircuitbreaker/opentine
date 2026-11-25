@@ -93,7 +93,7 @@ def _pack(app, environ, sr, service, tenant: str, run: str, within=None):
         data, lazy = reads.run_pack(service, tenant, run, request)
         fmt, codec = _pack_peer.choose(request.get("pack_formats"), request.get("pack_codecs"))
         peer = request.get(_pack_peer.PEER_VERSION)
-        data = _pack_peer.convert(data, fmt, codec, peer_version=peer)
+        data = _pack_peer.convert(data, fmt, codec, peer_version=peer, serve=True)
     headers = [(_pack4.FORMAT_HEADER, fmt), (LAZY_HEADER, str(lazy))]
     return _send(sr, "200 OK", data, PACK_TYPE, headers)
 
