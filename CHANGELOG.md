@@ -1,5 +1,33 @@
 # Changelog
 
+## Unreleased — RL-scale capture audits and provenance trailers
+
+- `tine ingest seal` seals the ingest batches since the last segment into one
+  segment (`opentine.ingest-segment/1`, a claim convention on an existing
+  annotation): an RFC 6962 Merkle root over the captured episodes, signed once
+  per segment by a pinned `runner` key (never an optimizer key; refused when
+  roles are unpinned). The root is committed in the op log before the segment
+  is written. The newest segment is held (`ingest-segment:`, never released).
+- `tine ingest audit` runs a commit-then-reveal sampling audit of a segment.
+  The seed comes from the op log tree right after the seal (size seal + 2), so
+  it cannot be known when the episodes are sealed. A checkpoint that is not
+  later than the seal, disagrees with the log or does not cover the seal
+  commitment is refused. The sample size is the smallest one that meets the
+  stated guarantee (`--confidence`, `--max-bad`; default 99% that at most 0.5%
+  are tampered or missing), from the exact hypergeometric bound. Each sampled
+  episode is checked against the signed root by inclusion proof, in the
+  repository or in an exported `--episodes` file. The signed verdict
+  (`opentine.ingest-audit/1`, a pinned `auditor` key) records the guarantee,
+  the bound, the checkpoint and the counts missing and altered. Audits are held
+  (`ingest-audit:`, never released).
+- `tine ingest prove` prints a self-contained RFC 9162 inclusion proof of one
+  episode; `tine ingest segments` re-derives every segment and audit of a
+  stream and exits 1 on a `fail:` finding (`ingest.segment-*` and
+  `ingest.audit-*` command-level codes; unaudited or unsealed data is
+  advisory). No new object kind and no new `tine verify` code.
+- `scripts/bench/rl_capture.py` measures ingest, seal and audit end to end;
+  recorded results in docs/bench/0.84-rl-capture.md. Docs: docs/RL-CAPTURE.md.
+
 ## 0.83.0 — Monitor collusion protocols and interpretability custody (2026-11-25)
 
 - `tine monitor protocol-sign` signs a collusion-testing protocol manifest

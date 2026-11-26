@@ -2156,6 +2156,17 @@ convention `opentine.budget-ledger/1`. See docs/BUDGETS.md.
 
 `--json` prints `tine-cli-ingest/1`. See docs/INGEST.md.
 
+## RL-scale capture: segments and sampling audits (0.84)
+
+| Command | What it does |
+| --- | --- |
+| `tine ingest seal --stream NAME --key KEY [--through BATCH] [--repo PATH]` | Seals the batches since the last segment into one segment (`opentine.ingest-segment/1`): an RFC 6962 Merkle root over the episodes, logged in the op log first, signed by a pinned `runner` key (never an optimizer key) |
+| `tine ingest audit SEGMENT --key KEY [--confidence C] [--max-bad P] [--checkpoint FILE] [--episodes FILE] [--repo PATH]` | Samples the segment for the stated guarantee (exact hypergeometric size), seeded from the op log tree after the seal; checks each sampled episode by inclusion proof and signs the verdict (`opentine.ingest-audit/1`, a pinned `auditor` key); exits 1 when the verdict is `fail` |
+| `tine ingest prove SEGMENT --index I [--repo PATH]` | Prints a self-contained RFC 9162 inclusion proof of one episode |
+| `tine ingest segments STREAM [--strict] [--repo PATH]` | Re-derives every segment and audit of a stream; exits 1 on a `fail:` finding |
+
+`--json` prints `tine-cli-ingest/1`. See docs/RL-CAPTURE.md.
+
 ## Containment evidence (0.69)
 
 | Command | What it does |
