@@ -219,6 +219,20 @@ Advisory findings block only with `--strict`. An audit of a file source is
 re-checked for everything except its counts, because the file is not in the
 repository. Re-run `tine ingest audit --episodes FILE` to recheck them.
 
+## Query and oversight
+
+`tine query` lists every segment as an `ingest_segments` row and every audit
+as an `ingest_audits` row (docs/QUERY.md). `tine query --verify` re-derives
+each row from its record and marks it `verified` only for a pinned `runner`
+(segment) or `auditor` (audit) signer that does not also hold `optimizer`.
+Rows are derived; `tine ingest segments` decides.
+
+Each time the oversight queue is built, every stream with sealed segments is
+checked with `tine ingest segments`. Each `fail:` finding, including a failed
+audit, opens an `ingest:<segment>` item; it reaches a tier through a
+`[[route]] source = "ingest"` row of the pinned policy. Advisory findings open
+nothing.
+
 ## Performance
 
 `scripts/bench/rl_capture.py` measures ingest, seal and audit end to end for

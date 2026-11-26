@@ -52,6 +52,10 @@
 - Model cards and dataset exports use the sidecar (`--subject model-card`,
   `--subject dataset`); a dataset export can name its held curated dataset
   version with `--dataset-version`. See docs/PROVENANCE.md.
+- `tine query` gains `ingest_segments`, `ingest_audits` and
+  `artifact_provenance` tables with per-row `--verify` (pinned `runner`,
+  `auditor` and `runner` signers, never optimizer keys). Failing segments and
+  audits open `ingest` items in the oversight queue.
 
 ## 0.83.0 — Monitor collusion protocols and interpretability custody (2026-11-25)
 

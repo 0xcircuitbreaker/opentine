@@ -22,6 +22,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from opentine import _query_rl
+
 COLUMNS: dict[str, tuple[str, ...]] = {
     "ingest_policies": ("oid", "target", "signer", "signed", "stream", "rate", "seed_source",
                         "redact", "captures", "drops", "policy_digest", "issued_at"),
@@ -29,7 +31,8 @@ COLUMNS: dict[str, tuple[str, ...]] = {
                        "policy", "policy_digest", "first_index", "next_index", "received",
                        "captured", "dropped", "dropped_kind", "dropped_rate", "at"),
 }  # fmt: skip
-ROLES_FOR = {"ingest_policies": ("policy",), "ingest_batches": ("runner",)}
+COLUMNS.update(_query_rl.COLUMNS)  # 0.84: sealed segments, audits, provenance
+ROLES_FOR = {"ingest_policies": ("policy",), "ingest_batches": ("runner",), **_query_rl.ROLES_FOR}
 TABLES = tuple(COLUMNS)
 
 
@@ -86,17 +89,19 @@ def _batch(head: dict[str, Any], claim: dict[str, Any]) -> dict[str, Any]:
 
 
 def annotation_rows(oid: str, payload: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
-    """Rows of a budget ledger entry (0.69) or an ingest policy or batch (0.77)."""
+    """Rows of a budget ledger entry (0.69), an ingest policy or batch (0.77) or segment (0.84)."""
     from opentine._ingest_batch import CONVENTION as BATCH
     from opentine._ingest_policy import CONVENTION as POLICY
     from opentine._query_containment import ledger_rows
 
     claim = payload.get("value")
     convention = claim.get("convention") if isinstance(claim, dict) else None
-    if convention not in (POLICY, BATCH):
+    if convention not in (POLICY, BATCH, *_query_rl.conventions()):
         return ledger_rows(oid, payload)
     head = {"oid": oid, "target": _text(payload.get("target_id")),
             "signer": _text(payload.get("signer")), "signed": _signed(payload)}  # fmt: skip
+    if convention not in (POLICY, BATCH):
+        return _query_rl.annotation_rows(head, claim)
     if convention == POLICY:
         return {"ingest_policies": [_policy(head, claim)]}
     return {"ingest_batches": [_batch(head, claim)]}

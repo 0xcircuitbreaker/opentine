@@ -141,3 +141,12 @@ failure as `artifact.c2pa-invalid` except `signingCredential.untrusted`, because
 opentine's trust comes from the sidecar. Without the extra, a manifest present
 in the file is reported as `c2pa: "unchecked"`, never as valid. C2PA manifests
 are written for PNG and JPEG only.
+
+## Query
+
+`tine query` lists every provenance attestation as an `artifact_provenance`
+row (subject, name, media type, canonical digest, size, pointer, C2PA store
+digest, dataset version, `created_at`). `tine query --verify` re-derives each
+row and marks it `verified` only for a pinned `runner` signer that does not
+also hold `optimizer`. The row says what the run's record claims; `tine
+provenance verify ARTIFACT` decides whether a file matches it.
