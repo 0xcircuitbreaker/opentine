@@ -8,9 +8,8 @@ are no backports to earlier 0.x versions.
 
 | Version | Supported |
 | --- | --- |
-| 0.3.x | Yes |
-| 0.2.x | No |
-| 0.1.x | No |
+| The latest 0.x release | Yes |
+| Any earlier release | No |
 
 If you are running an earlier version, upgrade before reporting. The issue may
 already be fixed in the current release.

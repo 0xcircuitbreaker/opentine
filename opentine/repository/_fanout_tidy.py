@@ -1,6 +1,6 @@
 """Removing finished fan-out state (``.tine/fanouts/<id>.json`` and ``<id>/``).
 
-``tine fanout`` keeps a resumable record per fan-out plus a folder of member
+``tine fan-out`` keeps a resumable record per fan-out plus a folder of member
 cost files, and nothing ever removed them. ``gc`` now drops the state of a
 fan-out whose every member finished (``ok`` or ``failed``) once its record has
 not changed for :data:`GRACE` seconds. Anything unfinished, malformed, a

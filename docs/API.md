@@ -154,6 +154,12 @@ rather than a data type, and promoting it is a larger commitment than the
 that decision.
 `Agent(policies=PolicySet(...))` records the set on every run it makes; its
 `RedactionPolicy.extra_secret_keys` then applies to every save of that run.
+That redaction policy is the only part of `Agent.policies` that is applied:
+the filesystem, network, shell and Python policies in the set are recorded on
+the run, not enforced. Passing `isolated_profile()` or `secure_profile()` to
+`Agent` does not sandbox its tools. A tool policy takes effect only when it is
+given to the tool itself (for example the `policy=` argument of the shell,
+filesystem and Python tools).
 `ShellPolicy(sandbox="auto"|"bwrap"|"landlock"|"sandbox-exec"|"oci"|"none")`
 (0.41, default `"none"`) runs shell-tool commands under an OS sandbox, with
 `sandbox_network` and `sandbox_image` (for `oci`); a named backend that is

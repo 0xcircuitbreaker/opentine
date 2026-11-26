@@ -190,6 +190,7 @@ def test_bundles_stay_v3_and_carry_v6_only_when_asked(tmp_path):
 
 
 def test_the_ts_refusal_fixture_is_a_v6_pack_and_bundle_python_reads():
+    """The fixture is written by ``scripts/gen_tinepack6_ts_fixture.py``."""
     root = os.path.join(os.path.dirname(__file__), "vectors", "tinepack6", "ts-refusal.json")
     with open(root, encoding="utf-8") as handle:
         fixture = json.load(handle)

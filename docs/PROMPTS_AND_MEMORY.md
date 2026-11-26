@@ -39,7 +39,7 @@ tine memory sync --remote origin
 
 Only notes signed by a key in `.tine/memory-team.json` are listed, recalled or
 accepted by `sync`; a note that another trusted note supersedes is hidden.
-`tine mcp`'s `recall` tool returns the same notes beside the runs it finds, so
+The MCP server's (`python -m opentine.mcp_server`) `recall` tool returns the same notes beside the runs it finds, so
 an agent sees them; they are text to weigh, not instructions.
 
 ## Push-triggered evals
@@ -69,6 +69,6 @@ self-hosted runner or a laptop it is the same command.
 
 ## MCP tasks
 
-`tine mcp` supports MCP 2025-11-25 tasks: a `tools/call` with `task` returns a
+The MCP server (`python -m opentine.mcp_server`) supports MCP 2025-11-25 tasks: a `tools/call` with `task` returns a
 task id at once and runs the tool in the background; `tasks/get`,
 `tasks/result`, `tasks/list` and `tasks/cancel` follow it (SPEC 8.20).

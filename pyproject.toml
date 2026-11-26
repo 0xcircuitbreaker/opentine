@@ -95,8 +95,8 @@ tine = "opentine.cli:main"
 [project.urls]
 Homepage = "https://opentine.com"
 Repository = "https://github.com/0xcircuitbreaker/opentine"
-Documentation = "https://github.com/0xcircuitbreaker/opentine/blob/v0.51.0/README.md"
-Changelog = "https://github.com/0xcircuitbreaker/opentine/blob/v0.9.0/CHANGELOG.md"
+Documentation = "https://github.com/0xcircuitbreaker/opentine/blob/main/README.md"
+Changelog = "https://github.com/0xcircuitbreaker/opentine/blob/main/CHANGELOG.md"
 Issues = "https://github.com/0xcircuitbreaker/opentine/issues"
 Security = "https://github.com/0xcircuitbreaker/opentine/security/policy"
 
@@ -159,6 +159,6 @@ testpaths = ["tests"]
 markers = [
     "live: tests that call real model providers or local live services",
     "live_harness: tests that call real external agent CLI harnesses",
-    "stress: multi-process contention tests (run in CI; deselect with -m 'not stress')",
+    "stress: multi-process contention tests (run nightly; opt in with OPENTINE_STRESS=1 or -m stress)",
     "serial: tests that share process-wide state and must not run beside others under pytest-xdist (CI runs them in a separate -p no:xdist pass)",
 ]

@@ -124,7 +124,7 @@ def save_run(
             raise SignatureError("refusing to sign a draft checkpoint")
         if run.status not in (RunStatus.completed, RunStatus.failed):
             raise SignatureError(f"refusing to sign a non-terminal run (status={run.status.value})")
-    # v4 is the default; autosave drafts stay v2 (v4 has no draft marker, and a
+    # v5 is the default; autosave drafts stay v2 (v4 has no draft marker, and a
     # checkpoint must never fail over a value the finished run would soften).
     if fmt4.v4_requested() and not draft:
         from opentine._artifact_v4 import save_v4
