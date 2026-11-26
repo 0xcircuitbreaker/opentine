@@ -23,7 +23,6 @@ from typing import Any
 from opentine._compliance_facts import FACTS
 
 NOTICE = "draft — not legal advice, pending counsel review"
-PROFILE_SCHEMA = "opentine-compliance-profile/1"
 STATUSES = ("evidenced", "missing", "out-of-scope")
 _PACKAGED = Path(__file__).resolve().parent / "data" / "compliance"
 _SOURCE = Path(__file__).resolve().parents[1] / "docs" / "compliance"
@@ -157,7 +156,6 @@ def evaluate(profile: dict[str, Any], facts: dict[str, dict[str, str]]) -> dict[
 
 __all__ = [
     "NOTICE",
-    "PROFILE_SCHEMA",
     "STATUSES",
     "ProfileError",
     "available",

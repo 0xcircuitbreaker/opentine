@@ -22,7 +22,6 @@ from opentine.repository import _winretry
 from opentine.repository._lockfile import acquire
 from opentine.repository._paths import atomic_bytes, durable_directory
 
-LOG_FORMAT = "opentine-log/1"
 TILE_WIDTH = 256
 MAX_ENTRY_BYTES = 0xFFFF
 MAX_LOG_ENTRIES = 1 << 24  # a local log: the bound keeps a full read finite

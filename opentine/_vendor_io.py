@@ -76,10 +76,6 @@ def hex_id(value: Any, size: int) -> str:
     return hashlib.sha256(text.encode()).hexdigest()[:size]
 
 
-def text_or_json(value: Any) -> str:
-    return value if isinstance(value, str) else json.dumps(value, sort_keys=True, default=str)
-
-
 def maybe_json(value: Any) -> Any:
     if isinstance(value, str) and value[:1] in "{[":
         try:

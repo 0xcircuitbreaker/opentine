@@ -119,13 +119,6 @@ def _adopt(uri: str, *, retire: bool) -> tuple[Path, str]:
     return _shown(public)
 
 
-def _shown(public: Path) -> tuple[Path, str]:
-    """Report only what is read back from the public file, never the generated pair."""
-    from opentine._signing_pins import key_fingerprint
-
-    return public, key_fingerprint(bytes.fromhex(public.read_text().strip()))
-
-
 def migrate(uri: str) -> tuple[Path, str]:
     """Move the proxy identity to the signer *uri*; the old key is retired."""
     return _adopt(uri, retire=True)

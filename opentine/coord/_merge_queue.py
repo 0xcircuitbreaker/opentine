@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from opentine.coord._store import history, read, swap
+from opentine.coord._store import read, swap
 from opentine.coord._tasks import MAX_ATTEMPTS, TASK_ID, LeaseError, _holder, _ttl, now_ms
 
 KIND = "merge-queue"
@@ -194,9 +194,5 @@ def sync_target(repo: Any, queue: str) -> str | None:
     return value["head"]
 
 
-def queue_history(repo: Any, queue: str) -> list[dict[str, Any]]:
-    return history(repo, repo.read_ref(ref_name(queue)))
-
-
-__all__ = ["KIND", "claim", "enqueue", "get", "heartbeat", "init", "land", "queue_history",
+__all__ = ["KIND", "claim", "enqueue", "get", "heartbeat", "init", "land",
            "ref_name", "sync_target"]  # fmt: skip

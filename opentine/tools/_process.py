@@ -21,7 +21,6 @@ class BoundedResult:
     stderr: bytes
     timed_out: bool = False
     stdout_truncated: bool = False
-    stderr_truncated: bool = False
 
     def output(self, max_chars: int, *, prefix: str = "") -> str:
         if max_chars < 1:
@@ -194,5 +193,4 @@ def run_bounded(
         bytes(buffers[1]),
         timed_out,
         truncated[0],
-        truncated[1],
     )

@@ -30,11 +30,6 @@ TOKEN_COST = 64
 PARSE_MAX = 64 * 1024 * 1024
 
 
-def shape_ok(body: bytes, max_tokens: int) -> bool:
-    """``kernel.validate_json_shape`` in one linear pass."""
-    return tokens(body, max_tokens) >= 0
-
-
 def tokens(body: bytes, max_tokens: int) -> int:
     """The structural token count of *body*, or -1 past the depth or token cap."""
     depth = count = 0

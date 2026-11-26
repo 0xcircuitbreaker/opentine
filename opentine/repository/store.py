@@ -131,9 +131,6 @@ class Repo:
 
     _ref_name = staticmethod(normalize_ref)
 
-    def _read_ref_oid(self, name: str) -> str | None:
-        return read_ref_oid(self.path, self._ref_name(name))
-
     def read_ref(self, name: str) -> str | None:
         normalized = self._ref_name(name)
         value = read_ref_oid(self.path, normalized)

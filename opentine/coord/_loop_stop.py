@@ -174,9 +174,5 @@ def fence(repo: Any, task: dict[str, Any]) -> None:
                               f"no further generation may take or extend a lease")  # fmt: skip
 
 
-def loop_history(repo: Any, loop: str) -> list[dict[str, Any]]:
-    return history(repo, repo.read_ref(ref_name(loop)))
-
-
-__all__ = ["CONVENTION", "KIND", "LoopStopped", "fence", "loop_history", "loop_state",
+__all__ = ["CONVENTION", "KIND", "LoopStopped", "fence", "loop_state",
            "ref_name", "stop", "verify_stop"]  # fmt: skip

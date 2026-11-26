@@ -104,14 +104,6 @@ def read_tree(repo: Any, oid: str) -> dict[str, Any]:
     return parse_tree(envelope.body)
 
 
-def is_tree(repo: Any, oid: str) -> bool:
-    try:
-        read_tree(repo, oid)
-    except (KernelError, KeyError, ValueError, OSError):
-        return False
-    return True
-
-
 Leaf = tuple[str, str, str, bool]
 
 
@@ -145,7 +137,6 @@ __all__ = [
     "LINK",
     "TREE_TYPE",
     "encode_tree",
-    "is_tree",
     "link_tree",
     "parse_tree",
     "put_tree",

@@ -28,8 +28,6 @@ read-only: export never invents a vendor spelling it cannot read back.
 
 from __future__ import annotations
 
-SEMCONV_VERSION = "1.27.0"
-
 #: Semantic-convention release that moved GenAI message content off
 #: ``gen_ai.prompt``/``gen_ai.completion`` and onto structured message
 #: attributes. It is the shape export declares, because it is the newest one the

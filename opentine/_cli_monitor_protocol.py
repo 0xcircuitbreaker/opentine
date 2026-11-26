@@ -25,8 +25,6 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
-PROTOCOL_VERBS = ("protocol-sign", "protocol-run")
-
 
 def add_protocol_parsers(verbs: argparse._SubParsersAction) -> None:
     sign = verbs.add_parser("protocol-sign", help="Sign a collusion-testing protocol manifest")
@@ -164,4 +162,4 @@ def run(args: argparse.Namespace) -> None:
         raise SystemExit(1)
 
 
-__all__ = ["PROTOCOL_VERBS", "add_protocol_parsers", "run"]
+__all__ = ["add_protocol_parsers", "run"]
