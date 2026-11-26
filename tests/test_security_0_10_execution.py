@@ -18,6 +18,7 @@ from opentine import Budget
 from opentine._pricing_pass import price_run
 from opentine.graph import Run, StepKind
 from opentine.runtime import Agent
+from tests import _survivor
 
 # --------------------------------------------------------------------------- #
 # D3-1 / H1: the key the transport rule checks is the key the SDK sends
@@ -284,13 +285,8 @@ def test_public_addresses_stay_public(address):
 
 def _escaper(tmp_path: Path, marker: str, linger: float) -> list[str]:
     script = tmp_path / f"{marker}.py"
-    target = tmp_path / marker
     script.write_text(
-        "import subprocess, sys, time\n"
-        "subprocess.Popen([sys.executable, '-c', "
-        f'\'import time; time.sleep(2); open(r"{target}", "w")\'], start_new_session=True)\n'
-        "print('spawned', flush=True)\n"
-        f"time.sleep({linger})\n"
+        _survivor.spawn(tmp_path, marker) + f"print('spawned', flush=True)\ntime.sleep({linger})\n"
     )
     return [sys.executable, str(script)]
 
@@ -302,8 +298,7 @@ def test_setsid_descendant_is_killed_on_timeout_and_on_exit(tmp_path, linger, ti
 
     result = run_bounded(_escaper(tmp_path, "survivor", linger), timeout=timeout, max_chars=100)
     assert b"spawned" in result.stdout
-    time.sleep(3)
-    assert not (tmp_path / "survivor").exists(), "setsid() descendant outlived the tool"
+    assert _survivor.gone(tmp_path, "survivor"), "setsid() descendant outlived the tool"
 
 
 @pytest.mark.skipif(not sys.platform.startswith("linux"), reason="subreaper is Linux-only")
@@ -461,18 +456,12 @@ _KILLERS = {
 def test_killing_the_supervisor_does_not_free_a_setsid_descendant(tmp_path, how):
     from opentine.tools._process import run_bounded
 
-    target = tmp_path / "survivor"
     script = tmp_path / "escape.py"
     script.write_text(
-        "import os, signal, subprocess, sys, time\n"
-        "subprocess.Popen([sys.executable, '-c', "
-        f'\'import time; time.sleep(2); open(r"{target}", "w")\'], start_new_session=True)\n'
-        "time.sleep(0.2)\n"
-        f"{_KILLERS[how]}\n"
+        _survivor.spawn(tmp_path, "survivor") + f"import signal\ntime.sleep(0.2)\n{_KILLERS[how]}\n"
     )
     run_bounded([sys.executable, str(script)], timeout=10, max_chars=100)
-    time.sleep(3)
-    assert not target.exists(), f"setsid() descendant escaped after the {how} kill"
+    assert _survivor.gone(tmp_path, "survivor"), f"setsid() descendant escaped after the {how} kill"
 
 
 # --------------------------------------------------------------------------- #
@@ -505,19 +494,17 @@ _FORGE_OK = (
 def test_a_forged_sweep_report_does_not_free_a_setsid_descendant(tmp_path, hidden):
     from opentine.tools._process import run_bounded
 
-    target = tmp_path / "survivor"
     hide = "import ctypes; ctypes.CDLL(None).prctl(4, 0, 0, 0, 0); " if hidden else ""
-    survivor = f'{hide}import time; time.sleep(2); open(r"{target}", "w")'
     script = tmp_path / "escape.py"
     script.write_text(
-        "import os, signal, subprocess, sys, time\n"
-        f"subprocess.Popen([sys.executable, '-c', {survivor!r}], start_new_session=True)\n"
-        "time.sleep(0.3)\n" + _FIND_SUPERVISOR + _FORGE_OK + "os.kill(sup, signal.SIGKILL)\n"
-        "time.sleep(0.3)\n"
+        _survivor.spawn(tmp_path, "survivor", prefix=hide)
+        + "import signal\ntime.sleep(0.3)\n"
+        + _FIND_SUPERVISOR
+        + _FORGE_OK
+        + "os.kill(sup, signal.SIGKILL)\ntime.sleep(0.3)\n"
     )
     run_bounded([sys.executable, str(script)], timeout=10, max_chars=100)
-    time.sleep(3)
-    assert not target.exists(), "a forged 'ok' let a setsid() descendant escape"
+    assert _survivor.gone(tmp_path, "survivor"), "a forged 'ok' let a setsid() descendant escape"
 
 
 @pytest.mark.serial  # inspects the supervisor process tree, which a parallel sweep can kill
