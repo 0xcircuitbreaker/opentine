@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — RL-scale capture audits and provenance trailers
+## 0.84.0 — RL-scale capture audits and provenance trailers (2026-11-26)
 
 - `tine ingest seal` seals the ingest batches since the last segment into one
   segment (`opentine.ingest-segment/1`, a claim convention on an existing
