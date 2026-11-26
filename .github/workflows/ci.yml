@@ -65,6 +65,9 @@ jobs:
       - name: Overclaim lint for docs copy
         run: uv run python scripts/check_copy.py
 
+      - name: README SVG assets match real tine output
+        run: uv run python scripts/render_readme_svgs.py --check
+
       - name: Build package
         run: uv build --no-build-isolation --sdist --wheel --out-dir dist
 
@@ -183,6 +186,12 @@ jobs:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           persist-credentials: false
+
+      # The 0.34 reader-compat tests (tests/_v034.py) archive opentine at tag
+      # v0.34.0; the default checkout is shallow and has no tags, so they skipped.
+      - name: Fetch the v0.34.0 tag for the old-reader tests
+        shell: bash
+        run: git fetch --no-tags --depth=1 origin tag v0.34.0
 
       - name: Exclude the workspace from Defender scanning (Windows)
         if: runner.os == 'Windows'
@@ -434,6 +443,10 @@ jobs:
       - name: Build and run the conformance vectors
         run: npm test
 
+      # Its runtime dependencies are bundled into the shipped browser verifier.
+      - name: Audit the verifier's dependencies
+        run: npm audit --audit-level=low
+
       - name: Build and test the TS SDK against the verifier just built
         working-directory: ts/sdk
         run: |
@@ -459,8 +472,11 @@ jobs:
         working-directory: ts/run-viewer
         run: |
           npm ci --ignore-scripts --no-audit --no-fund
+          npm audit --audit-level=low
           npm run build
           git diff --exit-code -- ../../opentine/data/ui
+          # A build written anywhere else (a stray output path) fails too.
+          test -z "$(git status --porcelain --untracked-files=all -- . ../../opentine/data/ui)"
 
   browser-verifier:
     # 0.51: the full pinned conformance set and every bundle shape, verified in

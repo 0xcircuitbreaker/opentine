@@ -28,6 +28,48 @@ updates:
     open-pull-requests-limit: 5
     cooldown:
       default-days: 7
+  - package-ecosystem: npm
+    directory: /ts/run-viewer
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+  - package-ecosystem: npm
+    directory: /ts/browser-tests
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+  - package-ecosystem: npm
+    directory: /ide/vscode
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+  - package-ecosystem: gradle
+    directory: /ide/jetbrains
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+  - package-ecosystem: docker
+    directory: /deploy/witness
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+  - package-ecosystem: docker
+    directory: /deploy/review-runner
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
   - package-ecosystem: github-actions
     directory: /
     schedule:
