@@ -224,13 +224,6 @@ def held(repo) -> set[str]:
     return reachable(repo, roots) | roots if roots else set()
 
 
-def refuse_held(repo, oids, what: str) -> None:
-    """Raise :class:`HoldError` if any of *oids* is held (directly or by reach)."""
-    hit = sorted(set(oids) & held(repo))
-    if hit:
-        raise HoldError(f"{what} refused: {hit[0]} is held (tine hold release to allow it)")
-
-
 def refuse_held_names(path, names, what: str) -> None:
     """Refuse *what* when the repository at *path* holds any of *names* (ids or refs).
 

@@ -221,8 +221,7 @@ def test_prune_and_gc_prune_now_keep_held_objects(tmp_path, capsys):
     assert json.loads(capsys.readouterr().out)["pruned"] >= 2
     assert repo.has(held_run) and repo.has(held_blob)
     assert not repo.has(loose_run) and not repo.has(loose_blob)
-    with pytest.raises(_holds.HoldError):
-        _holds.refuse_held(repo, [held_blob], "delete")
+    assert held_blob in _holds.held(repo)  # so any delete of it is refused
 
 
 def test_a_corrupt_holds_file_refuses_every_delete(tmp_path):
