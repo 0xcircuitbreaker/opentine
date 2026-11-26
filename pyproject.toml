@@ -1,6 +1,6 @@
 [project]
 name = "opentine"
-version = "0.83.0"
+version = "0.84.0"
 description = "Git-shaped provenance for agent runs with verified objects, semantic forks, and universal usage accounting."
 readme = "README.md"
 license = "Apache-2.0"
@@ -47,6 +47,8 @@ zstd = ["backports.zstd>=1.0; python_version < '3.14'"]
 embed = ["numpy>=1.26"]
 # PDF evidence reports (`tine evidence report --format pdf`).
 pdf = ["pikepdf>=9"]
+# 0.84 C2PA manifests for produced PNG/JPEG artifacts (`tine provenance embed --c2pa-cert`).
+c2pa = ["c2pa-python>=0.39"]
 # 0.41 signer backends (`--ed25519-key-file pkcs11:... | kms:aws:... | kms:gcp:...`)
 # and an OS keyring as the key passphrase source (OPENTINE_KEY_KEYRING=1).
 # ssh-agent needs no extra: opentine speaks the agent protocol itself.

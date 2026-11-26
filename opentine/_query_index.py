@@ -51,6 +51,8 @@ _INDEXES = (
     "CREATE INDEX trend_points_generation ON trend_points (generation)",
     "CREATE INDEX dataset_members_run ON dataset_members (run)",
     "CREATE INDEX ingest_batches_stream ON ingest_batches (stream, seq)",
+    "CREATE INDEX ingest_audits_segment ON ingest_audits (segment)",
+    "CREATE INDEX artifact_provenance_digest ON artifact_provenance (digest)",
 )  # fmt: skip
 _KEYS = {"runs": "PRIMARY KEY (oid)", "steps": "PRIMARY KEY (run, seq)",
          "monitor_verdicts": "PRIMARY KEY (oid)", "oversight_decisions": "PRIMARY KEY (oid)",
@@ -70,7 +72,9 @@ _KEYS = {"runs": "PRIMARY KEY (oid)", "steps": "PRIMARY KEY (run, seq)",
          "dataset_tombstones": "PRIMARY KEY (oid)",
          "policy_admissions": "PRIMARY KEY (oid)", "ingest_policies": "PRIMARY KEY (oid)",
          "ingest_batches": "PRIMARY KEY (oid)", "interp_artifacts": "PRIMARY KEY (oid)",
-         "probe_calibrations": "PRIMARY KEY (oid)"}  # fmt: skip
+         "probe_calibrations": "PRIMARY KEY (oid)", "ingest_segments": "PRIMARY KEY (oid)",
+         "ingest_audits": "PRIMARY KEY (oid)",
+         "artifact_provenance": "PRIMARY KEY (oid)"}  # fmt: skip
 VIEWS = (
     "CREATE VIEW costs AS SELECT oid, run, model, provider, cost, input_tokens, output_tokens"
     " FROM steps",

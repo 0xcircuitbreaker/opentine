@@ -140,6 +140,8 @@ NOT_KINDS = (
     "opentine-transcript-flag-1",
     # 0.83 (release 0.82.0): a signed manifest file and an eval-verdict claim (collusion tests)
     "opentine-collusion-protocol-1", "opentine-collusion-verdict-1",
+    # 0.84 (release 0.84.0): a signed sidecar file, also held as an attestation claim
+    "opentine-artifact-provenance-1",
     # 0.78 (release 0.75.0): an attestation claim (curated dataset versions)
     "opentine-dataset-version-1",
     # 0.75 (release 0.74.0): a policy file and an attestation claim (admission records)
@@ -150,6 +152,8 @@ NOT_KINDS = (
     "opentine-dataset-licence-1", "opentine-dataset-withdraw-1", "opentine-dataset-tombstones-1",
     # 0.77: annotation values (ingest sampling policies and signed batches)
     "opentine-ingest-policy-1", "opentine-ingest-batch-1",
+    # 0.84: annotation values (sealed episode segments and their sampling audits)
+    "opentine-ingest-segment-1", "opentine-ingest-audit-1",
 )  # fmt: skip
 DEFERRED_SCHEMAS: dict[str, str] = {}
 #: Backticked SPEC heading words that are not kinds (capabilities, commands, fields).

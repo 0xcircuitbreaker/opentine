@@ -3,10 +3,9 @@
 Each function turns one stored object, lineage record or eval verdict into
 the index row it contributes, or ``None``. The index build and ``tine query
 --verify`` call the same functions, so a verified row is one the object still
-derives. Every row carries the ``oid`` it came from: the object id for
-repository objects, ``sha256:<hex>`` of the record bytes for lineage records and eval lines.
-Nothing here judges trust beyond "the signature holds"; which roles a signer
-has comes from the owner-pinned key roles only (:mod:`opentine._query_verify`).
+derives. Every row carries the ``oid`` it came from: the object id, or ``sha256:<hex>`` of
+the record bytes for lineage records and eval lines. Signer roles come from the
+owner-pinned key roles only (:mod:`opentine._query_verify`).
 """
 
 from __future__ import annotations
@@ -61,10 +60,8 @@ def _text(value: Any) -> str | None:
 
 
 def _num(value: Any) -> float | None:
-    if isinstance(value, bool):
-        return None
     if isinstance(value, int | float):
-        return float(value)
+        return None if isinstance(value, bool) else float(value)
     try:
         return float(Decimal(str(value))) if isinstance(value, str) else None
     except (InvalidOperation, ValueError):
@@ -185,12 +182,14 @@ def object_rows(repo: Any, oid: str, read: Any = None) -> dict[str, list[dict[st
         from opentine._query_custody import attestation_rows as custody_rows
         from opentine._query_datasets import attestation_rows as dataset_rows
         from opentine._query_policy import attestation_rows as policy_rows
+        from opentine._query_rl import attestation_rows as provenance_rows
         from opentine._query_transcripts import attestation_rows as flag_rows
         from opentine._query_uplift import attestation_rows as uplift_rows
 
         found = attestation_rows(oid, payload) or custody_rows(oid, payload)
         found = found or flag_rows(oid, payload) or uplift_rows(oid, payload)
-        return found or dataset_rows(oid, payload) or policy_rows(oid, payload)
+        found = found or dataset_rows(oid, payload) or policy_rows(oid, payload)
+        return found or provenance_rows(oid, payload)  # 0.84
     value = payload.get("value")
     if isinstance(value, dict) and value.get("convention") == "opentine.oversight-decision/1":
         row = oversight_row(oid, repo)

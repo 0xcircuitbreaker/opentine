@@ -37,6 +37,8 @@ from opentine._schema_defs_organism import COMMAND_SCHEMAS as _ORGANISM_COMMANDS
 from opentine._schema_defs_organism import SCHEMAS as _ORGANISM
 from opentine._schema_defs_policy import COMMAND_SCHEMAS as _POLICY_COMMANDS
 from opentine._schema_defs_policy import SCHEMAS as _POLICY
+from opentine._schema_defs_provenance import COMMAND_SCHEMAS as _PROVENANCE_COMMANDS
+from opentine._schema_defs_provenance import SCHEMAS as _PROVENANCE
 from opentine._schema_defs_query import COMMAND_SCHEMAS as _QUERY_COMMANDS
 from opentine._schema_defs_query import SCHEMAS as _QUERY
 from opentine._schema_defs_sabotage import COMMAND_SCHEMAS as _SABOTAGE_COMMANDS
@@ -59,6 +61,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     **_CUSTODY,
     **_ORGANISM,
     **_INTERP,
+    **_PROVENANCE,
     **_UPLIFT,
     **_TRENDS,
     **_TRANSCRIPTS,
@@ -80,6 +83,7 @@ COMMAND_SCHEMAS: dict[str, str] = {
     **_CUSTODY_COMMANDS,
     **_ORGANISM_COMMANDS,
     **_INTERP_COMMANDS,
+    **_PROVENANCE_COMMANDS,
     **_UPLIFT_COMMANDS,
     **_TRENDS_COMMANDS,
     **_TRANSCRIPTS_COMMANDS,

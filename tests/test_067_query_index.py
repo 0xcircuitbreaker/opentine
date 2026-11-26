@@ -47,7 +47,8 @@ def test_the_index_holds_every_table_and_every_row_names_its_oid(capsys, room):
                               "dataset_versions": 0, "dataset_members": 0,
                               "dataset_tombstones": 0,
                               "policy_admissions": 0, "ingest_policies": 0,
-                              "ingest_batches": 0}  # fmt: skip
+                              "ingest_batches": 0, "ingest_segments": 0,
+                              "ingest_audits": 0, "artifact_provenance": 0}  # fmt: skip
     path = room["repo"].path / "query" / "index.sqlite"
     with closing(sqlite3.connect(path)) as db:
         for table in COLUMNS:

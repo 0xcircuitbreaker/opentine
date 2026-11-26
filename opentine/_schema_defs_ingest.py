@@ -11,6 +11,9 @@ from __future__ import annotations
 from typing import Any
 
 from opentine._schema_defs import BOOL, FPR, INT, STR, TIME, closed, doc, opt
+from opentine._schema_defs_ingest_audit import SCHEMAS as _AUDIT_SCHEMAS
+from opentine._schema_defs_ingest_audit import SHAPES as _AUDIT_SHAPES
+from opentine._schema_defs_ingest_audit import VERBS as _AUDIT_VERBS
 
 _ANN = {"type": "string", "pattern": "^annotation:sha256:[0-9a-f]{64}$"}
 _STREAM = {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"}
@@ -61,13 +64,16 @@ _SHAPES = [
     closed(["command", "schema", "packs"], {
         **_HEAD, "command": {"const": "ingest packs"},
         "packs": {"type": "array", "items": _TENANT}}),
+    *_AUDIT_SHAPES,  # 0.84: seal, audit, prove, segments
 ]  # fmt: skip
 
 SCHEMAS: dict[str, dict[str, Any]] = {
     "tine-cli-ingest-1": doc("tine-cli-ingest-1", "tine ingest ... --json",
         "Batched streaming ingest. `ingest policy` signs and holds a sampling policy; "
         "`ingest --batch` samples, signs and chains one batch; `ingest verify` checks the "
-        "chain, counts and policy; `ingest packs` re-reads a tine serve pack store.",
+        "chain, counts and policy; `ingest packs` re-reads a tine serve pack store; "
+        "`ingest seal`, `audit`, `prove` and `segments` seal Merkle-rooted episode segments "
+        "and audit them by sampling (0.84).",
         {"anyOf": _SHAPES}),
     "opentine-ingest-policy-1": doc("opentine-ingest-policy-1",
         "opentine.ingest-policy/1 annotation value",
@@ -81,7 +87,9 @@ SCHEMAS: dict[str, dict[str, Any]] = {
         "an existing annotation, not an object kind.", BATCH_VALUE),
 }  # fmt: skip
 COMMAND_SCHEMAS: dict[str, str] = {
-    f"ingest {verb}": "tine-cli-ingest-1" for verb in ("--batch", "policy", "verify", "packs")
+    f"ingest {verb}": "tine-cli-ingest-1"
+    for verb in ("--batch", "policy", "verify", "packs", *_AUDIT_VERBS)
 }
+SCHEMAS.update(_AUDIT_SCHEMAS)
 
 __all__ = ["BATCH_VALUE", "COMMAND_SCHEMAS", "POLICY_VALUE", "SCHEMAS"]

@@ -1,0 +1,76 @@
+{
+  "audits": [
+    {
+      "episodes": 100000,
+      "sample": 913,
+      "verdict": "pass"
+    },
+    {
+      "episodes": 100000,
+      "sample": 913,
+      "verdict": "pass"
+    },
+    {
+      "episodes": 100000,
+      "sample": 913,
+      "verdict": "pass"
+    },
+    {
+      "episodes": 100000,
+      "sample": 913,
+      "verdict": "pass"
+    },
+    {
+      "episodes": 100000,
+      "sample": 913,
+      "verdict": "pass"
+    },
+    {
+      "episodes": 100000,
+      "sample": 913,
+      "verdict": "pass"
+    },
+    {
+      "episodes": 100000,
+      "sample": 913,
+      "verdict": "pass"
+    },
+    {
+      "episodes": 100000,
+      "sample": 913,
+      "verdict": "pass"
+    },
+    {
+      "episodes": 100000,
+      "sample": 913,
+      "verdict": "pass"
+    },
+    {
+      "episodes": 100000,
+      "sample": 913,
+      "verdict": "pass"
+    }
+  ],
+  "batch": 10000,
+  "episodes": 1000000,
+  "episodes_per_hour": 21528356,
+  "hardware": {
+    "cpus": 4,
+    "machine": "x86_64",
+    "processor": "x86_64",
+    "python": "3.13.18",
+    "system": "Linux 6.18.44-fc-v880"
+  },
+  "ingest_only_per_hour": 52405979,
+  "python_impl": "CPython",
+  "seconds": {
+    "audit": 38.232,
+    "ingest": 68.694,
+    "seal": 60.294
+  },
+  "segment": 100000,
+  "segments": 10,
+  "verify_fails": [],
+  "verify_ok": true,
+  "verify_s": 95.151
+}

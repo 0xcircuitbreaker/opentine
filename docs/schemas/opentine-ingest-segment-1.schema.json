@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-ingest-segment-1.schema.json",
+  "title": "opentine.ingest-segment/1 annotation value",
+  "description": "A sealed episode segment: an RFC 6962 Merkle root over the captured episodes of a run of ingest batches, signed once by a pinned runner key and committed in the op log. A claim convention on an existing annotation, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "stream",
+    "seq",
+    "previous",
+    "batches",
+    "first_index",
+    "next_index",
+    "episodes",
+    "root",
+    "log",
+    "sealed_at"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.ingest-segment/1"
+    },
+    "stream": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+    },
+    "seq": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "previous": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "batches": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+      },
+      "minItems": 1
+    },
+    "first_index": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "next_index": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "episodes": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "root": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "log": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "origin",
+        "index"
+      ],
+      "properties": {
+        "origin": {
+          "type": "string"
+        },
+        "index": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "sealed_at": {
+      "type": "string",
+      "description": "RFC 3339 UTC timestamp"
+    }
+  }
+}

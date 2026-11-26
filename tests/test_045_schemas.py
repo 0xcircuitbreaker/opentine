@@ -322,6 +322,7 @@ DRIVEN = (
     (("custody", "check", "ckpt", "--repo", "repo", "--json"), "tine-cli-custody-weights-1"),
     (("organism", "status", "--repo", "repo", "--json"), "tine-cli-organism-1"),  # 0.72
     (("interp", "list", "--repo", "repo", "--json"), "tine-cli-interp-1"),  # 0.83
+    (("provenance", "verify", "a.png", "--repo", "repo", "--json"), "tine-cli-provenance-1"),
     (("transcripts", "flags", "--repo", "repo", "--json"), "tine-cli-transcripts-1"),  # 0.74
     (("auditor", "check", "--repo", "repo", "--json"), "tine-cli-auditor-1"),  # 0.65
     (("sabotage", "report", "--repo", "repo", "--json"), "tine-cli-sabotage-1"),  # 0.68

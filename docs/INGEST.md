@@ -1,5 +1,8 @@
 # Batched streaming ingest (0.77)
 
+At RL scale, batches are sealed into Merkle-rooted segments and audited by
+sampling: see docs/RL-CAPTURE.md (0.84).
+
 Large episode streams, such as RL training rollouts, produce far more events
 than any reviewer reads. `tine ingest` takes them in batches, keeps what a
 signed sampling policy says to keep, and records for every batch what was

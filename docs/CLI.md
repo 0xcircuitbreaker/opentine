@@ -2156,6 +2156,17 @@ convention `opentine.budget-ledger/1`. See docs/BUDGETS.md.
 
 `--json` prints `tine-cli-ingest/1`. See docs/INGEST.md.
 
+## RL-scale capture: segments and sampling audits (0.84)
+
+| Command | What it does |
+| --- | --- |
+| `tine ingest seal --stream NAME --key KEY [--through BATCH] [--repo PATH]` | Seals the batches since the last segment into one segment (`opentine.ingest-segment/1`): an RFC 6962 Merkle root over the episodes, logged in the op log first, signed by a pinned `runner` key (never an optimizer key) |
+| `tine ingest audit SEGMENT --key KEY [--confidence C] [--max-bad P] [--checkpoint FILE] [--episodes FILE] [--repo PATH]` | Samples the segment for the stated guarantee (exact hypergeometric size), seeded from the op log tree after the seal; checks each sampled episode by inclusion proof and signs the verdict (`opentine.ingest-audit/1`, a pinned `auditor` key); exits 1 when the verdict is `fail` |
+| `tine ingest prove SEGMENT --index I [--repo PATH]` | Prints a self-contained RFC 9162 inclusion proof of one episode |
+| `tine ingest segments STREAM [--strict] [--repo PATH]` | Re-derives every segment and audit of a stream; exits 1 on a `fail:` finding |
+
+`--json` prints `tine-cli-ingest/1`. See docs/RL-CAPTURE.md.
+
 ## Containment evidence (0.69)
 
 | Command | What it does |
@@ -2207,6 +2218,16 @@ docs/MODEL_ORGANISMS.md.
 
 All commands take `--repo PATH`; `--json` prints `tine-cli-interp/1`. See
 docs/INTERPRETABILITY.md.
+
+## Artifact provenance (0.84)
+
+| Command | What it does |
+| --- | --- |
+| `tine provenance embed ARTIFACT --run RUN --key KEY [--subject artifact\|model-card\|dataset] [--dataset-version ATTESTATION] [--no-pointer] [--c2pa-cert PEM --c2pa-key PEM [--c2pa-alg ALG]] [--sidecar PATH]` | Writes a pointer to the run in the format's metadata slot (PNG text chunk, JPEG comment, PDF `/Info` update), optionally a C2PA manifest (the `c2pa` extra), and a signed `opentine.artifact-provenance/1` sidecar that is also held as an attestation on the held run |
+| `tine provenance verify ARTIFACT [--sidecar PATH]` | Checks the sidecar's signature (signer bound to the key) and pinned `runner` role, the canonical artifact digest, the pointer, the C2PA manifest and the run; exits 1 on `artifact.digest-mismatch`, `artifact.pointer-stripped`, `artifact.pointer-repointed` and the other codes in docs/PROVENANCE.md |
+
+Both take `--repo PATH`; `--json` prints `tine-cli-provenance/1`. See
+docs/PROVENANCE.md.
 
 ## Transcript search (0.74)
 

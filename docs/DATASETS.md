@@ -217,6 +217,9 @@ records:
   member tainted since curation), as eval items `tine eval` scores and
   `tine dataset seal` seals; runs withdrawn since curation are left out and
   listed. Tombstones are queryable as `dataset_tombstones` (docs/QUERY.md).
+* **Sign the provenance of an export** (0.84) with `tine provenance embed D.jsonl
+  --run RUN --key KEY --subject dataset --dataset-version ID`: the signed sidecar
+  links the file to the run and to the held version (docs/PROVENANCE.md).
 * **Verify a published version offline** with `tine dataset verify-version
   --file PAYLOAD.json` or the TS verifier; neither needs the repository or the
   network.
