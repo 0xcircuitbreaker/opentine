@@ -1,0 +1,220 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-provenance-1.schema.json",
+  "title": "tine provenance ... --json",
+  "description": "Embedding a run pointer and signed sidecar in a produced artifact, and checking it.",
+  "anyOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "artifact",
+        "sidecar",
+        "record",
+        "digest",
+        "run",
+        "pointer",
+        "c2pa",
+        "subject",
+        "signer"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-provenance/1"
+        },
+        "command": {
+          "const": "provenance embed"
+        },
+        "artifact": {
+          "type": "string"
+        },
+        "sidecar": {
+          "type": "string"
+        },
+        "record": {
+          "type": "string",
+          "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "run": {
+          "type": "string",
+          "pattern": "^run:sha256:[0-9a-f]{64}$"
+        },
+        "pointer": {
+          "anyOf": [
+            {
+              "enum": [
+                "png-text",
+                "jpeg-comment",
+                "pdf-info"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "c2pa": {
+          "type": "boolean"
+        },
+        "subject": {
+          "enum": [
+            "artifact",
+            "model-card",
+            "dataset"
+          ]
+        },
+        "signer": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "artifact",
+        "sidecar",
+        "digest",
+        "run",
+        "signer",
+        "verification",
+        "pointer",
+        "c2pa",
+        "held",
+        "findings"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-provenance/1"
+        },
+        "command": {
+          "const": "provenance verify"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "artifact": {
+          "type": "string"
+        },
+        "sidecar": {
+          "type": "string"
+        },
+        "digest": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "run": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^run:sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "signer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "verification": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pointer": {
+          "anyOf": [
+            {
+              "enum": [
+                "png-text",
+                "jpeg-comment",
+                "pdf-info"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "c2pa": {
+          "anyOf": [
+            {
+              "enum": [
+                "absent",
+                "unchecked",
+                "valid",
+                "invalid"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "held": {
+          "type": "boolean"
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "message"
+            ],
+            "properties": {
+              "code": {
+                "enum": [
+                  "artifact.sidecar-missing",
+                  "artifact.sidecar-invalid",
+                  "artifact.bad-signature",
+                  "artifact.signer-unverified",
+                  "artifact.digest-mismatch",
+                  "artifact.pointer-stripped",
+                  "artifact.pointer-repointed",
+                  "artifact.run-missing",
+                  "artifact.c2pa-invalid",
+                  "artifact.c2pa-stripped",
+                  "artifact.dataset-version-unknown"
+                ]
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

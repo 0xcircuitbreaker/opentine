@@ -29,6 +29,8 @@ from opentine._cli_organism import COMMANDS as ORGANISM_COMMANDS
 from opentine._cli_organism import add_organism_parser
 from opentine._cli_policy import COMMANDS as POLICY_COMMANDS
 from opentine._cli_policy import add_policy_parser
+from opentine._cli_provenance import COMMANDS as PROVENANCE_COMMANDS
+from opentine._cli_provenance import add_provenance_parser
 from opentine._cli_transcripts import COMMANDS as TRANSCRIPTS_COMMANDS
 from opentine._cli_transcripts import add_transcripts_parser
 
@@ -40,6 +42,7 @@ def add_containment_parser(subparsers: argparse._SubParsersAction) -> None:
     add_ingest_parser(subparsers)  # 0.77: tine ingest --batch, policy|verify|serve|packs
     add_organism_parser(subparsers)  # 0.72: tine organism tag|untag|approve|status|gate
     add_interp_parser(subparsers)  # 0.83: tine interp store|list|export|calibrate|check|score
+    add_provenance_parser(subparsers)  # 0.84: tine provenance embed|verify
     add_transcripts_parser(
         subparsers
     )  # 0.74: tine transcripts index|search|similar|cluster|label|flags
@@ -152,6 +155,7 @@ COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
     "containment": cmd_containment,
     **ORGANISM_COMMANDS,
     **INTERP_COMMANDS,
+    **PROVENANCE_COMMANDS,
     **TRANSCRIPTS_COMMANDS,
     **POLICY_COMMANDS,
     **KEYLESS_COMMANDS,

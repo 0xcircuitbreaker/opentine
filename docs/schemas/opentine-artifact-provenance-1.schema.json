@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-artifact-provenance-1.schema.json",
+  "title": "opentine.artifact-provenance/1 sidecar",
+  "description": "A signed sidecar binding an artifact's canonical digest to the run that produced it. A signed file convention, also held as an attestation claim; not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "subject",
+    "artifact",
+    "run",
+    "pointer",
+    "c2pa",
+    "dataset_version",
+    "created_at",
+    "signer",
+    "signature"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.artifact-provenance/1"
+    },
+    "subject": {
+      "enum": [
+        "artifact",
+        "model-card",
+        "dataset"
+      ]
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "media",
+        "digest",
+        "size"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "media": {
+          "enum": [
+            "png",
+            "jpeg",
+            "pdf",
+            "other"
+          ]
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "run": {
+      "type": "string",
+      "pattern": "^run:sha256:[0-9a-f]{64}$"
+    },
+    "pointer": {
+      "anyOf": [
+        {
+          "enum": [
+            "png-text",
+            "jpeg-comment",
+            "pdf-info"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "c2pa": {
+      "type": "boolean"
+    },
+    "dataset_version": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\dZ$"
+    },
+    "signer": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "signature": {
+      "type": "object"
+    }
+  }
+}
