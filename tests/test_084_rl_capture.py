@@ -181,8 +181,9 @@ def test_audit_seed_needs_a_checkpoint_strictly_after_the_seal(repo):
     row = _rl_audit.run(repo, segment["id"], _key("auditor"), confidence="0.99",
                         max_bad="0.005", at_ms=T0 + 20)  # fmt: skip
     # the seed comes from the first tree after the seal, whichever later checkpoint proves it
+    pub = _key("auditor").public_key().public_bytes_raw()
     again = _rl_audit.evaluate(repo, segment["id"], confidence="0.99", max_bad="0.005",
-                               checkpoint=middle)  # fmt: skip
+                               checkpoint=middle, reveal=(row["reveal"], pub))  # fmt: skip
     assert again["seed"] == row["seed"] and row["checkpoint"]["size"] == row["checkpoint"][
         "seal_index"] + 2 and row["checkpoint"]["note"] == later.decode()  # fmt: skip
     assert row["verdict"] == "pass" and row["checked"] == row["ok"] == row["bound"]["sample"]

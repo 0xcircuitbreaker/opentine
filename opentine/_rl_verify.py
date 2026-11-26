@@ -24,7 +24,7 @@ from opentine.repository._holds import INGEST_AUDIT
 from opentine.repository._tlog import LogError
 
 _RECOMPUTED = ("segment", "stream", "root", "episodes", "guarantee", "bound", "checkpoint",
-               "seed", "positions", "checked")  # fmt: skip
+               "reveal", "seed", "positions", "checked")  # fmt: skip
 _COUNTED = ("ok", "missing", "altered", "failures", "verdict")
 
 
@@ -78,16 +78,20 @@ def _audit(repo: Any, oid: str, segment: str, roles: dict[str, Any]) -> list[tup
         bad.append(("ingest.audit-target", "the audit names another segment"))
     guarantee = claim.get("guarantee") if isinstance(claim.get("guarantee"), dict) else {}
     checkpoint = claim.get("checkpoint") if isinstance(claim.get("checkpoint"), dict) else {}
+    source = claim.get("source") if isinstance(claim.get("source"), dict) else {}
     try:
+        block = repo.get(oid).payload()["signature"]
+        public = bytes.fromhex(block["public_key"]) if row["signed"] else b""
         again = _rl_audit.evaluate(repo, segment, confidence=guarantee.get("confidence"),
                                    max_bad=guarantee.get("max_bad"),
-                                   checkpoint=str(checkpoint.get("note")).encode())  # fmt: skip
-    except (IngestError, ValueError, OSError) as exc:
+                                   checkpoint=str(checkpoint.get("note")).encode(),
+                                   reveal=(claim.get("reveal"), public),
+                                   claimed=source)  # fmt: skip
+    except (IngestError, ValueError, OSError, KeyError, TypeError) as exc:
         return [*bad, ("ingest.audit-recompute", f"the audit does not recompute: {exc}")]
     drift = [k for k in _RECOMPUTED if again[k] != claim.get(k)]
     if drift:
         bad.append(("ingest.audit-recompute", f"{', '.join(drift)} do not recompute"))
-    source = claim.get("source") if isinstance(claim.get("source"), dict) else {}
     if source.get("kind") == "repository":
         if [again[k] for k in _COUNTED] != [claim.get(k) for k in _COUNTED]:
             bad.append(("ingest.audit-recompute", "the counts do not recompute"))

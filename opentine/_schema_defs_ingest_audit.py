@@ -40,13 +40,14 @@ _SOURCE = {
 _FAILURE = closed(["position", "index", "status"], {
     "position": INT, "index": INT, "status": {"enum": ["missing", "altered"]}})  # fmt: skip
 _AUDIT_KEYS = ["convention", "segment", "stream", "root", "episodes", "guarantee", "bound",
-               "checkpoint", "seed", "positions", "source", "checked", "ok", "missing",
+               "checkpoint", "reveal", "seed", "positions", "source", "checked", "ok", "missing",
                "altered", "failures", "verdict", "at"]  # fmt: skip
 _AUDIT_PROPS = {
     "convention": {"const": "opentine.ingest-audit/1"}, "segment": _ANN, "stream": _STREAM,
     "root": FPR, "episodes": INT,
     "guarantee": closed(["confidence", "max_bad"], {"confidence": _DECIMAL, "max_bad": _DECIMAL}),
-    "bound": _BOUND, "checkpoint": _CHECKPOINT, "seed": _HEX, "positions": FPR,
+    "bound": _BOUND, "checkpoint": _CHECKPOINT,
+    "reveal": {"type": "string", "pattern": "^[0-9a-f]{128}$"}, "seed": _HEX, "positions": FPR,
     "source": _SOURCE, "checked": INT, "ok": INT, "missing": INT, "altered": INT,
     "failures": {"type": "array", "items": _FAILURE, "maxItems": 1000},
     "verdict": {"enum": ["pass", "fail"]}, "at": TIME}  # fmt: skip

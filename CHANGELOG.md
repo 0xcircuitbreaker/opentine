@@ -9,8 +9,9 @@
   roles are unpinned). The root is committed in the op log before the segment
   is written. The newest segment is held (`ingest-segment:`, never released).
 - `tine ingest audit` runs a commit-then-reveal sampling audit of a segment.
-  The seed comes from the op log tree right after the seal (size seal + 2), so
-  it cannot be known when the episodes are sealed. A checkpoint that is not
+  The seed comes from the op log tree right after the seal (size seal + 2) and
+  the auditor's signed reveal over that tree and the audited source, so a
+  runner or trainer cannot compute or grind it before the audit. A checkpoint that is not
   later than the seal, disagrees with the log or does not cover the seal
   commitment is refused. The sample size is the smallest one that meets the
   stated guarantee (`--confidence`, `--max-bad`; default 99% that at most 0.5%

@@ -62,13 +62,13 @@ def test_one_percent_tampering_is_caught_in_at_least_99_of_100_seeds(repo):
         _advance(repo)
         lines = _lines(repo, segment)
         clean = _rl_audit.evaluate(repo, segment["id"], confidence="0.99", max_bad="0.005",
-                                   source=b"\n".join(lines))  # fmt: skip
+                                   source=b"\n".join(lines), key=_key("auditor"))  # fmt: skip
         assert clean["verdict"] == "pass" and clean["bound"]["tolerated"] == 5
         for t in range(TAMPER_SEEDS):
             seed = int.from_bytes(hashlib.sha256(f"{s}:{t}".encode()).digest()[:8], "big")
             data, bad = _tampered(lines, seed)
             row = _rl_audit.evaluate(repo, segment["id"], confidence="0.99", max_bad="0.005",
-                                     source=data)  # fmt: skip
+                                     source=data, key=_key("auditor"))  # fmt: skip
             hits = {f["position"] for f in row["failures"]}
             assert hits <= bad and row["missing"] + row["altered"] == len(hits)
             trials += 1

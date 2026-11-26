@@ -75,7 +75,9 @@ def test_a_segment_that_skips_batches_fails(repo):
 def test_an_audit_with_a_chosen_seed_fails_to_recompute(repo):
     segment = _sealed(repo)
     _advance(repo)
-    honest = _rl_audit.evaluate(repo, segment["id"], confidence="0.99", max_bad="0.005")
+    honest = _rl_audit.evaluate(
+        repo, segment["id"], confidence="0.99", max_bad="0.005", key=_key("auditor")
+    )
     forged = {**honest, "seed": "11" * 32, "at": "2027-01-15T08:00:00Z"}
     oid = _ingest_holds.write(repo, segment["id"], forged, _key("auditor"), previous=None,
                               signed_at=forged["at"])  # fmt: skip
@@ -86,7 +88,9 @@ def test_an_audit_with_a_chosen_seed_fails_to_recompute(repo):
 def test_an_audit_claiming_a_smaller_sample_fails(repo):
     segment = _sealed(repo)
     _advance(repo)
-    honest = _rl_audit.evaluate(repo, segment["id"], confidence="0.99", max_bad="0.005")
+    honest = _rl_audit.evaluate(
+        repo, segment["id"], confidence="0.99", max_bad="0.005", key=_key("auditor")
+    )
     forged = {**honest, "checked": 3, "ok": 3, "at": "2027-01-15T08:00:00Z",
               "bound": {**honest["bound"], "sample": 3}}  # fmt: skip
     oid = _ingest_holds.write(repo, segment["id"], forged, _key("auditor"), previous=None,
@@ -98,7 +102,9 @@ def test_an_audit_claiming_a_smaller_sample_fails(repo):
 def test_an_audit_signed_by_the_optimizer_fails(repo):
     segment = _sealed(repo)
     _advance(repo)
-    honest = _rl_audit.evaluate(repo, segment["id"], confidence="0.99", max_bad="0.005")
+    honest = _rl_audit.evaluate(
+        repo, segment["id"], confidence="0.99", max_bad="0.005", key=_key("optimizer")
+    )
     honest["at"] = "2027-01-15T08:00:00Z"
     oid = _ingest_holds.write(repo, segment["id"], honest, _key("optimizer"), previous=None,
                               signed_at=honest["at"])  # fmt: skip

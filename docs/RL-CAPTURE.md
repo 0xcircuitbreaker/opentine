@@ -10,8 +10,9 @@ person read each one are both too expensive. 0.84 builds on batched ingest
 2. **Commit**: the root is written to the repository's op log before the
    segment exists.
 3. **Audit**: a sample of episodes is checked against the root. The sample
-   seed comes from the op log tree that follows the seal, so nobody can know
-   it when the episodes are written. The sample size comes from a stated
+   seed comes from the op log tree that follows the seal and from the
+   auditor's signed reveal, so neither the runner nor a trainer can know it
+   before the audit. The sample size comes from a stated
    guarantee. The verdict is signed and records the bound.
 
 This adds no new object kinds and no new `tine verify` codes. Segments and
@@ -72,7 +73,7 @@ tine ingest segments rl-train                                   # exit 1 on a fa
            "threshold": 501, "miss_probability": 0.00998},
  "checkpoint": {"origin": "opentine.local/log/op", "seal_index": 41, "size": 43,
                 "root": "<64 hex>", "note": "<signed checkpoint>"},
- "seed": "<64 hex>", "positions": "sha256:...",
+ "reveal": "<128 hex>", "seed": "<64 hex>", "positions": "sha256:...",
  "source": {"kind": "repository"} | {"kind": "file", "sha256": "sha256:..."},
  "checked": 913, "ok": 913, "missing": 0, "altered": 0, "failures": [],
  "verdict": "pass", "at": "2027-01-15T09:00:00Z"}
@@ -82,13 +83,27 @@ tine ingest segments rl-train                                   # exit 1 on a fa
 
 Let `K` be the segment's seal entry in the op log. The seed is
 
-    SHA-256("opentine.ingest-audit/1" || 0x00 || SEGMENT-ID || 0x00 || R)
+    SHA-256("opentine.ingest-audit/1" || 0x00 || SEGMENT-ID || 0x00 || R || REVEAL)
 
 where `R` is the op log's Merkle root at size `K + 2`. That is the first log
 tree that is strictly later than the seal. `R` does not exist until an entry
 after the seal has been appended, so it cannot be known when the episodes are
 written or sealed. The auditor cannot choose a checkpoint either: `R` depends
 only on the log.
+
+`R` alone is not enough. Whoever writes entry `K + 1` knows every entry
+before it and could try many candidate entries offline, keeping one whose `R`
+gives a sample that misses its tampering. So `REVEAL` is the audit signer's
+Ed25519 signature over
+
+    "opentine.ingest-audit/1" 0x00 "reveal" 0x00 SEGMENT-ID 0x00 R-HEX 0x00 SOURCE
+
+where `SOURCE` is the episode file's `sha256:` digest, or `repository`. Only
+the pinned auditor key can make it, so a runner or trainer key cannot compute
+the sample before the audit. Because the source is signed too, an episode file
+gets its own sample: a file cannot be fitted to a sample published by an
+earlier audit. `tine ingest segments` checks `reveal` under the audit
+signer's key and recomputes the seed from it.
 
 To read `R`, the audit opens a signed checkpoint: `--checkpoint FILE` (for
 example a witness-cosigned copy) or, by default, the log's own. The audit
@@ -104,10 +119,12 @@ refuses a checkpoint that:
 The audit records the checkpoint it used (`checkpoint.note`), along with the
 size and root the seed was derived from.
 
-**Limit.** The op log is local. A sealer that controls the log could write the
-entry at `K + 1` many times and re-seal until the sample misses its
-tampering. Each attempt leaves a log entry and a segment, so this kind of
-grinding is visible, but it is not prevented. For adversarial settings, take
+**Limit.** The op log is local. The reveal stops a runner or trainer from
+predicting the sample, but the auditor is trusted: an auditor that colludes
+with the sealer could sign many reveals (Ed25519 signers can choose their
+nonce) or audit many copies of a file and keep one. Every audit run is held
+and any failing one fails `tine ingest segments`, so repeated runs stay
+visible. For adversarial settings, take
 the checkpoint from a log the sealer does not control (a remote's
 witness-cosigned audit log, docs/INTEGRITY.md), or keep the auditor's
 `--checkpoint` from a witness.

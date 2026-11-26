@@ -26,6 +26,7 @@ from opentine.repository._tlog import _node, leaf_hash, merkle_root
 from opentine.repository._tlog_proof import _split
 
 MAX_SAMPLE = 1_000_000
+MAX_DIGITS = 40  # a guarantee is a short decimal: no infinities, no huge exponents
 
 
 class Tree:
@@ -60,10 +61,14 @@ def episode_leaf(line: bytes) -> bytes:
 
 def fraction(text: Any, name: str, *, low_open: bool) -> Fraction:
     """A decimal string in ``(0, 1)`` (``[0, 1)`` unless *low_open*) as an exact fraction."""
+    raw = str(text)
     try:
-        value = Fraction(Decimal(str(text)))
-    except (InvalidOperation, ValueError) as exc:
-        raise ValueError(f"{name} {text!r} is not a decimal number") from exc
+        number = Decimal(raw) if len(raw) <= MAX_DIGITS else None
+        if number is None or not number.is_finite() or abs(number.as_tuple().exponent) > MAX_DIGITS:
+            raise ValueError("not a short finite decimal")
+        value = Fraction(number)
+    except (InvalidOperation, ValueError, OverflowError) as exc:
+        raise ValueError(f"{name} {raw[:40]!r} is not a short decimal number") from exc
     if not (0 < value < 1 if low_open else 0 <= value < 1):
         raise ValueError(f"{name} {text} must lie in {'(0' if low_open else '[0'}, 1)")
     return value
@@ -118,5 +123,5 @@ def positions_digest(positions: list[int]) -> str:
     return "sha256:" + hashlib.sha256(text).hexdigest()
 
 
-__all__ = ["MAX_SAMPLE", "Tree", "episode_leaf", "fraction", "positions_digest", "sample",
-           "sample_size"]  # fmt: skip
+__all__ = ["MAX_DIGITS", "MAX_SAMPLE", "Tree", "episode_leaf", "fraction", "positions_digest",
+           "sample", "sample_size"]  # fmt: skip

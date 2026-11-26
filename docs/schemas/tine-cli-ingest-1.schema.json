@@ -517,6 +517,7 @@
             "guarantee",
             "bound",
             "checkpoint",
+            "reveal",
             "seed",
             "positions",
             "source",
@@ -633,6 +634,10 @@
                   "type": "string"
                 }
               }
+            },
+            "reveal": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{128}$"
             },
             "seed": {
               "type": "string",

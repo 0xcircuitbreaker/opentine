@@ -2,10 +2,14 @@
 
 The segment root is committed first: it is in the op log at the seal entry
 ``K`` (:mod:`opentine._rl_segment`). The sample seed is revealed later: it is
-``SHA-256("opentine.ingest-audit/1" 0x00 SEGMENT-ID 0x00 R)``, where ``R`` is
-the op log's Merkle root at size ``K + 2`` -- the first log tree strictly later
-than the seal. No one choosing what to seal can know ``R``, and the auditor has
-no choice of checkpoint: ``R`` is fixed once entry ``K + 1`` exists. The signed
+``SHA-256("opentine.ingest-audit/1" 0x00 SEGMENT-ID 0x00 R || REVEAL)``, where
+``R`` is the op log's Merkle root at size ``K + 2`` -- the first log tree
+strictly later than the seal -- and ``REVEAL`` is the auditor's Ed25519
+signature over the segment, ``R`` and the audited source. ``R`` alone is
+public once entry ``K + 1`` exists (its writer could grind it offline); the
+reveal needs the auditor key, so a runner or trainer cannot compute the sample
+before the audit, and an episode file gets its own sample. ``R`` is fixed
+once entry ``K + 1`` exists, so the auditor has no choice of checkpoint. The signed
 checkpoint the audit reads (``--checkpoint FILE``, else the log's own) must
 be signed by the log key, have size above ``K + 1`` and agree with the log's
 entries (a forked or ahead-of-log checkpoint is ambiguous and refused).
@@ -71,9 +75,34 @@ def basis(repo: Any, segment: dict[str, Any], note: bytes | None = None) -> dict
             "note": note.decode("utf-8")}  # fmt: skip
 
 
-def seed(segment_id: str, tree_root_hex: str) -> str:
+def reveal_message(segment_id: str, tree_root_hex: str, source: dict[str, Any]) -> bytes:
+    """What the auditor signs to reveal the seed: the segment, the later tree and the source."""
+    where = source.get("sha256") or source.get("kind")
+    parts = (CONVENTION, "reveal", segment_id, tree_root_hex, str(where))
+    return "\x00".join(parts).encode("utf-8")
+
+
+def seed(segment_id: str, tree_root_hex: str, reveal_hex: str) -> str:
     raw = CONVENTION.encode() + b"\x00" + segment_id.encode() + b"\x00"
-    return hashlib.sha256(raw + bytes.fromhex(tree_root_hex)).hexdigest()
+    raw += bytes.fromhex(tree_root_hex) + bytes.fromhex(reveal_hex)
+    return hashlib.sha256(raw).hexdigest()
+
+
+def _reveal(key: Any, reveal: tuple[str, bytes] | None, message: bytes) -> str:
+    """The auditor's Ed25519 signature over *message*: by *key*, or checked under *reveal*."""
+    from cryptography.exceptions import InvalidSignature
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+
+    if key is not None:
+        return key.sign(message).hex()
+    if reveal is None:
+        raise IngestError("the audit needs the auditor key or its recorded reveal")
+    signature, public = reveal
+    try:
+        Ed25519PublicKey.from_public_bytes(public).verify(bytes.fromhex(str(signature)), message)
+    except (InvalidSignature, ValueError, TypeError) as exc:
+        raise IngestError("the reveal is not the audit signer's signature") from exc
+    return str(signature)
 
 
 def file_leaves(data: bytes) -> dict[int, bytes | None]:
@@ -119,15 +148,25 @@ def _load(repo: Any, segment_id: str) -> tuple[dict[str, Any], dict[str, Any]]:
 
 
 def evaluate(repo: Any, segment_id: str, *, confidence: str, max_bad: str,
-             checkpoint: bytes | None = None,
-             source: bytes | None = None) -> dict[str, Any]:  # fmt: skip
-    """The unsigned verdict claim (without ``at``): sample and check one segment."""
+             checkpoint: bytes | None = None, source: bytes | None = None, key: Any = None,
+             reveal: tuple[str, bytes] | None = None,
+             claimed: dict[str, Any] | None = None) -> dict[str, Any]:  # fmt: skip
+    """The unsigned verdict claim (without ``at``): sample and check one segment.
+
+    *key* signs the seed's reveal, or *reveal* (signature, public key) re-checks
+    a recorded one; *claimed* is a recorded file source re-checked without the file.
+    """
     conf = _rl_merkle.fraction(confidence, "confidence", low_open=True)
     bad = _rl_merkle.fraction(max_bad, "max-bad", low_open=False)
     segment, found = _load(repo, segment_id)
     claim = segment["claim"]
     picked = basis(repo, segment, checkpoint)
-    sample_seed = seed(segment_id, picked["root"])
+    src = ({"kind": "repository"} if source is None else
+           {"kind": "file", "sha256": "sha256:" + hashlib.sha256(source).hexdigest()})  # fmt: skip
+    if source is None and isinstance(claimed, dict) and claimed.get("kind") == "file":
+        src = {"kind": "file", "sha256": str(claimed.get("sha256"))}
+    revealed = _reveal(key, reveal, reveal_message(segment_id, picked["root"], src))
+    sample_seed = seed(segment_id, picked["root"], revealed)
     population = len(found["leaves"])
     bound = _rl_merkle.sample_size(population, conf, bad)
     positions = _rl_merkle.sample(sample_seed, population, bound["sample"])
@@ -148,14 +187,13 @@ def evaluate(repo: Any, segment_id: str, *, confidence: str, max_bad: str,
         counts[status] += 1
         if status != "ok" and len(failures) < MAX_FAILURES:
             failures.append({"position": position, "index": index, "status": status})
-    src = ({"kind": "repository"} if source is None else
-           {"kind": "file", "sha256": "sha256:" + hashlib.sha256(source).hexdigest()})  # fmt: skip
     return {"convention": CONVENTION, "segment": segment_id, "stream": claim["stream"],
             "root": claim["root"], "episodes": population,
             "guarantee": {"confidence": str(confidence), "max_bad": str(max_bad)},
             "bound": {"method": "hypergeometric", **bound}, "checkpoint": picked,
-            "seed": sample_seed, "positions": _rl_merkle.positions_digest(positions),
-            "source": src, "checked": len(positions), **counts, "failures": failures,
+            "reveal": revealed, "seed": sample_seed,
+            "positions": _rl_merkle.positions_digest(positions), "source": src,
+            "checked": len(positions), **counts, "failures": failures,
             "verdict": "pass" if counts["ok"] == len(positions) else "fail"}  # fmt: skip
 
 
@@ -173,7 +211,7 @@ def run(repo: Any, segment_id: str, key: Any, *, confidence: str, max_bad: str, 
         raise IngestError(f"this key may not sign audits ({code}): a pinned auditor key, "
                           "never an optimizer key")  # fmt: skip
     verdict = evaluate(repo, segment_id, confidence=confidence, max_bad=max_bad,
-                       checkpoint=checkpoint, source=source)  # fmt: skip
+                       checkpoint=checkpoint, source=source, key=key)  # fmt: skip
     at = datetime.fromtimestamp(at_ms / 1000, UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     verdict["at"] = at
     with _write_batch.batched(repo):
