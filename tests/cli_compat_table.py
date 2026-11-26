@@ -7727,6 +7727,8 @@ ROWS: tuple[tuple, ...] = (
             "strict": True,
             "json": True,
         },  # fmt: skip
+    ),
+    (
         "plain:provenance embed a.png --run r1 --key k",
         "plain",
         ["provenance", "embed", "a.png", "--run", "r1", "--key", "k"],
