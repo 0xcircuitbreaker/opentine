@@ -28,6 +28,29 @@
   advisory). No new object kind and no new `tine verify` code.
 - `scripts/bench/rl_capture.py` measures ingest, seal and audit end to end;
   recorded results in docs/bench/0.84-rl-capture.md. Docs: docs/RL-CAPTURE.md.
+- `tine provenance embed ARTIFACT --run RUN --key KEY` ties a produced file to
+  the run that made it: a signed sidecar `ARTIFACT.provenance.json`
+  (`opentine.artifact-provenance/1`, a signed file convention) binds the
+  artifact's canonical digest to the run, signed by the key its `signer` field
+  names. The same body is held as an attestation on the run, and the run is
+  held, so `tine hold release` refuses both.
+- Where the format has a standard metadata slot the file also points at the
+  run: a PNG `tEXt` chunk, a JPEG `COM` segment, or a PDF incremental update
+  with an `/Info` entry. The artifact digest is computed over the file with
+  that pointer (and any C2PA manifest store) removed, in a documented,
+  deterministic way, so embedding twice leaves the digest unchanged.
+- `tine provenance verify ARTIFACT` checks the sidecar signature, that the
+  signer is a pinned `runner` key and not an `optimizer` key, the digest, the
+  pointer and that the run exists here; it reports strip, modify and repoint as
+  `artifact.pointer-stripped`, `artifact.digest-mismatch` and
+  `artifact.pointer-repointed` (command-level codes; no new `tine verify`
+  codes and no new object kinds).
+- Optional `c2pa` extra (`c2pa-python`): `--c2pa-cert/--c2pa-key` writes a C2PA
+  manifest naming the run into PNG and JPEG files, and `verify` validates it
+  with the library. Without the extra a manifest reads as `unchecked`.
+- Model cards and dataset exports use the sidecar (`--subject model-card`,
+  `--subject dataset`); a dataset export can name its held curated dataset
+  version with `--dataset-version`. See docs/PROVENANCE.md.
 
 ## 0.83.0 — Monitor collusion protocols and interpretability custody (2026-11-25)
 

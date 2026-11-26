@@ -198,6 +198,27 @@ wheels = [
 ]
 
 [[package]]
+name = "c2pa-python"
+version = "0.39.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "certifi" },
+    { name = "cryptography" },
+    { name = "requests" },
+    { name = "toml" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ac/0a/f63310a1607de7b5155c1e52d2843b28fe28d5587b6efdde5efd0849ef15/c2pa_python-0.39.0.tar.gz", hash = "sha256:8876a953fd0850b3333b1e668b309b780078c8b622743edd6c1b1a258e5a9886", size = 141257, upload-time = "2026-11-12T18:33:08.778Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/46/f5/c499b2b3fa0409291d34fada9e1c6d0f7d02ea475ab7c753e7882ab692d1/c2pa_python-0.39.0-py3-none-macosx_10_9_universal2.whl", hash = "sha256:b8f7e262f7254def87d54187a1783ff707e7e488b08c7e28d2876e2edc7f1558", size = 16895677, upload-time = "2026-11-12T18:32:53.298Z" },
+    { url = "https://files.pythonhosted.org/packages/33/ad/9faa2d14138e14d7939bd04b71aa352571f0f1ebfc25a25a19bf3568cfb8/c2pa_python-0.39.0-py3-none-macosx_10_9_x86_64.whl", hash = "sha256:ca17147e208724713dc844305f1cdfc43e160a70671277bceefdb2799e533372", size = 8716547, upload-time = "2026-11-12T18:32:56.147Z" },
+    { url = "https://files.pythonhosted.org/packages/f0/66/acffa3bb6717c3bb160f04cf5a1b67b071533e1570f57adfd05a5b537910/c2pa_python-0.39.0-py3-none-macosx_11_0_arm64.whl", hash = "sha256:aecb8093b4d3095f67d42d2f8c30874160d1259afad28ab6313e9a443c3ff03e", size = 8228335, upload-time = "2026-11-12T18:32:58.231Z" },
+    { url = "https://files.pythonhosted.org/packages/ca/78/a4aae516185d0f75661e7954f1f30ffe6c8ec24fa529f20810b762f7356a/c2pa_python-0.39.0-py3-none-manylinux_2_28_aarch64.whl", hash = "sha256:4d07cd700b43589637eade7835cca1346ae16769910bbc638a3a59feb28f5815", size = 8540961, upload-time = "2026-11-12T18:32:59.907Z" },
+    { url = "https://files.pythonhosted.org/packages/8f/ed/6b5eb048831f14c45a8b80e0d1def4c761668fcb8f64ec44ea74a56c6902/c2pa_python-0.39.0-py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:eed28b6bd96a2fb7de151ecc4578334fab121610ef9571227801c794448d7c7c", size = 9226343, upload-time = "2026-11-12T18:33:01.916Z" },
+    { url = "https://files.pythonhosted.org/packages/e1/74/b2db2251cf3f33570a9ddbd7112a821d8ce8bcf22bbc1bc57784c3d2b9c0/c2pa_python-0.39.0-py3-none-win_amd64.whl", hash = "sha256:2f6f888afcd30c2303ec8d25406d3135e17900e809e7c825c50e270c6c475ce2", size = 9053247, upload-time = "2026-11-12T18:33:03.777Z" },
+    { url = "https://files.pythonhosted.org/packages/dc/b7/0fb185a3da94589efe2250a726d1818ac945cff7f1ee27af66e068b2aa79/c2pa_python-0.39.0-py3-none-win_arm64.whl", hash = "sha256:feb8e38d4147e102daf8cb08cc374ea182bee72a87c77b885a6db14a7415ca8f", size = 8421309, upload-time = "2026-11-12T18:33:05.797Z" },
+]
+
+[[package]]
 name = "certifi"
 version = "2026.10.23"
 source = { registry = "https://pypi.org/simple" }
@@ -1580,6 +1601,9 @@ all = [
 anthropic = [
     { name = "anthropic" },
 ]
+c2pa = [
+    { name = "c2pa-python" },
+]
 compat = [
     { name = "openai" },
 ]
@@ -1656,6 +1680,7 @@ requires-dist = [
     { name = "boto3", marker = "extra == 'kms-aws'", specifier = ">=1.35" },
     { name = "build", marker = "extra == 'dev'", specifier = ">=1.2" },
     { name = "build", marker = "extra == 'release'", specifier = ">=1.2" },
+    { name = "c2pa-python", marker = "extra == 'c2pa'", specifier = ">=0.39" },
     { name = "cryptography", specifier = ">=48.0.1" },
     { name = "cryptography", marker = "extra == 'all'", specifier = ">=48.0.1" },
     { name = "cryptography", marker = "extra == 'crypto'", specifier = ">=48.0.1" },
@@ -1690,7 +1715,7 @@ requires-dist = [
     { name = "twine", marker = "extra == 'dev'", specifier = ">=5.0" },
     { name = "twine", marker = "extra == 'release'", specifier = ">=5.0" },
 ]
-provides-extras = ["anthropic", "openai", "google", "compat", "mcp", "langchain", "crypto", "zstd", "embed", "pdf", "pkcs11", "kms-aws", "kms-gcp", "keyring", "graph", "grpc", "all", "release", "dev"]
+provides-extras = ["anthropic", "openai", "google", "compat", "mcp", "langchain", "crypto", "zstd", "embed", "pdf", "c2pa", "pkcs11", "kms-aws", "kms-gcp", "keyring", "graph", "grpc", "all", "release", "dev"]
 
 [[package]]
 name = "orjson"
@@ -2637,6 +2662,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/47/c6/ee486fd809e357697ee8a44d3d69222b344920433d3b6666ccd9b374630c/tenacity-9.1.4.tar.gz", hash = "sha256:adb31d4c263f2bd041081ab33b498309a57c77f9acf2db65aadf0898179cf93a", size = 49413, upload-time = "2026-02-07T10:45:33.841Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d7/c1/eb8f9debc45d3b7918a32ab756658a0904732f75e555402972246b0b8e71/tenacity-9.1.4-py3-none-any.whl", hash = "sha256:6095a360c919085f28c6527de529e76a06ad89b23659fa881ae0649b867a9d55", size = 28926, upload-time = "2026-02-07T10:45:32.24Z" },
+]
+
+[[package]]
+name = "toml"
+version = "0.10.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/be/ba/1f744cdc819428fc6b5084ec34d9b30660f6f9daaf70eead706e3203ec3c/toml-0.10.2.tar.gz", hash = "sha256:b3bda1d108d5dd99f4a20d24d9c348e91c4db7ab1b749200bded2f839ccbe68f", size = 22253, upload-time = "2020-11-01T01:40:22.204Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/44/6f/7120676b6d73228c96e17f1f794d8ab046fc910d781c8d151120c3f1569e/toml-0.10.2-py2.py3-none-any.whl", hash = "sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b", size = 16588, upload-time = "2020-11-01T01:40:20.672Z" },
 ]
 
 [[package]]

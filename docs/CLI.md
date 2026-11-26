@@ -2219,6 +2219,16 @@ docs/MODEL_ORGANISMS.md.
 All commands take `--repo PATH`; `--json` prints `tine-cli-interp/1`. See
 docs/INTERPRETABILITY.md.
 
+## Artifact provenance (0.84)
+
+| Command | What it does |
+| --- | --- |
+| `tine provenance embed ARTIFACT --run RUN --key KEY [--subject artifact\|model-card\|dataset] [--dataset-version ATTESTATION] [--no-pointer] [--c2pa-cert PEM --c2pa-key PEM [--c2pa-alg ALG]] [--sidecar PATH]` | Writes a pointer to the run in the format's metadata slot (PNG text chunk, JPEG comment, PDF `/Info` update), optionally a C2PA manifest (the `c2pa` extra), and a signed `opentine.artifact-provenance/1` sidecar that is also held as an attestation on the held run |
+| `tine provenance verify ARTIFACT [--sidecar PATH]` | Checks the sidecar's signature (signer bound to the key) and pinned `runner` role, the canonical artifact digest, the pointer, the C2PA manifest and the run; exits 1 on `artifact.digest-mismatch`, `artifact.pointer-stripped`, `artifact.pointer-repointed` and the other codes in docs/PROVENANCE.md |
+
+Both take `--repo PATH`; `--json` prints `tine-cli-provenance/1`. See
+docs/PROVENANCE.md.
+
 ## Transcript search (0.74)
 
 | Command | What it does |
