@@ -157,8 +157,7 @@ def quarantine(repo: Any, note: str, key: Any, why: str, *, created_at: str | No
     from opentine import _memory
     from opentine._signing_pins import key_fingerprint
     from opentine.repository import _registry_refs as refs
-    from opentine.repository._holds import MEMORY_QUARANTINE, edit_holds, holds_path
-    from opentine.repository._link_touch import touch_links
+    from opentine.repository._holds import MEMORY_QUARANTINE, hold_row
 
     if not why.strip():
         raise ValueError("a quarantine needs --why")
@@ -175,9 +174,7 @@ def quarantine(repo: Any, note: str, key: Any, why: str, *, created_at: str | No
     oid = refs.add_note(repo, signed)
     check = _memory.check(signed)
     held = oid  # the signed note's own blob: the hold keeps it when its ref is deleted
-    touch_links(repo, [held])
-    row = {"oid": held, "target": f"{MEMORY_QUARANTINE}{note[12:]}:{oid[12:]}"}
-    edit_holds(holds_path(repo), lambda rows: [*(r for r in rows if r != row), row])
+    hold_row(repo, held, f"{MEMORY_QUARANTINE}{note[12:]}:{oid[12:]}")
     return {"note": note, "quarantine": oid, "signer": check["signer"], "held": held,
             "verification": verification(check["signer"], curators(repo)),
             "record": signed}  # fmt: skip

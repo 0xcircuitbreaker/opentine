@@ -31,15 +31,12 @@ SOURCE = "custody"
 
 def log_refusal(repo: Any, artifact: str, reason: str, tool: str | None, at: str) -> str:
     """Store and hold one refused load; its blob id."""
-    from opentine.repository._holds import edit_holds, holds_path
-    from opentine.repository._link_touch import touch_links
+    from opentine.repository._holds import hold_row
 
     entry = {"convention": REFUSAL, "artifact": artifact, "reason": reason, "tool": tool,
              "at": at}  # fmt: skip
     oid = repo.put("blob", canonical_json(entry), redact=False)
-    touch_links(repo, [oid])
-    row = {"oid": oid, "target": REFUSED_HOLD + artifact}
-    edit_holds(holds_path(repo), lambda rows: [*(r for r in rows if r != row), row])
+    hold_row(repo, oid, REFUSED_HOLD + artifact)
     return oid
 
 

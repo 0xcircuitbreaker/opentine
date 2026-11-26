@@ -155,12 +155,9 @@ def record(repo: Any, target: str, claim: dict[str, Any], key: Any) -> str:
 
 
 def hold(repo: Any, oid: str, session: str) -> None:
-    from opentine.repository._holds import MONITOR_VERDICT, edit_holds, holds_path
-    from opentine.repository._link_touch import touch_links
+    from opentine.repository._holds import MONITOR_VERDICT, hold_row
 
-    touch_links(repo, [oid])
-    row = {"oid": oid, "target": f"{MONITOR_VERDICT}{session}"}
-    edit_holds(holds_path(repo), lambda rows: [*(r for r in rows if r != row), row])
+    hold_row(repo, oid, f"{MONITOR_VERDICT}{session}")
 
 
 def held(repo: Any) -> list[str]:

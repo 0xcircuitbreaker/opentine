@@ -148,8 +148,7 @@ def record(repo: Any, run: str, claim: dict[str, Any], key: Any) -> str:
     """Sign *claim* onto *run* and hold it; refuses a downgrade. The attestation id."""
     from opentine._signing_pins import key_fingerprint
     from opentine.repository._attest import attest
-    from opentine.repository._holds import SABOTAGE_TASK, edit_holds, holds_path
-    from opentine.repository._link_touch import touch_links
+    from opentine.repository._holds import SABOTAGE_TASK, hold_row
 
     problems = check_claim(claim)
     if problems:
@@ -164,9 +163,7 @@ def record(repo: Any, run: str, claim: dict[str, Any], key: Any) -> str:
             raise ValueError(f"sabotage.relabel: {claim['task']}: {why} ({prior['oid']})")
     oid = attest(repo, run, claim, signer=signer, key=key, algorithm="ed25519",
                  signed_at=claim["at"])  # fmt: skip
-    touch_links(repo, [oid])
-    row = {"oid": oid, "target": f"{SABOTAGE_TASK}{claim['task']}"}
-    edit_holds(holds_path(repo), lambda rows: [*(r for r in rows if r != row), row])
+    hold_row(repo, oid, f"{SABOTAGE_TASK}{claim['task']}")
     return oid
 
 

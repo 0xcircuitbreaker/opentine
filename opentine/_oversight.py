@@ -117,12 +117,9 @@ def decide(repo: Any, item: str, decision: str, key: Any, *, bind: dict | None =
 
 
 def hold(repo: Any, oid: str, item: str) -> None:
-    from opentine.repository._holds import OVERSIGHT_DECISION, edit_holds, holds_path
-    from opentine.repository._link_touch import touch_links
+    from opentine.repository._holds import OVERSIGHT_DECISION, hold_row
 
-    touch_links(repo, [oid])
-    row = {"oid": oid, "target": OVERSIGHT_DECISION + item}
-    edit_holds(holds_path(repo), lambda rows: [*(r for r in rows if r != row), row])
+    hold_row(repo, oid, OVERSIGHT_DECISION + item)
 
 
 def read(repo: Any, oid: str) -> dict[str, Any] | None:

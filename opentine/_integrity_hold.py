@@ -17,7 +17,13 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from opentine.repository._holds import TAINT, HoldError, edit_holds, holds_path, read_holds
+from opentine.repository._holds import (
+    TAINT,
+    HoldError,
+    hold_row,
+    holds_path,
+    read_holds,
+)
 
 
 def target(run: str) -> str:
@@ -40,7 +46,6 @@ def record(root: Path, document: dict[str, Any]) -> str | None:
     attestation must name a stored object): then only the file records it.
     """
     from opentine.kernel import KernelError
-    from opentine.repository._link_touch import touch_links
 
     repo = _repo(root)
     if repo is None:
@@ -49,9 +54,7 @@ def record(root: Path, document: dict[str, Any]) -> str | None:
         oid = repo.put("attestation", document)
     except KernelError:
         return None
-    touch_links(repo, [oid])
-    row = {"oid": oid, "target": target(document["claim"]["run"])}
-    edit_holds(holds_path(repo), lambda rows: [*(r for r in rows if r != row), row])
+    hold_row(repo, oid, target(document["claim"]["run"]))
     return oid
 
 

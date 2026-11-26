@@ -16,7 +16,13 @@ from __future__ import annotations
 
 from typing import Any
 
-from opentine.repository._holds import LOOP_STOP, HoldError, edit_holds, holds_path, read_holds
+from opentine.repository._holds import (
+    LOOP_STOP,
+    HoldError,
+    hold_row,
+    holds_path,
+    read_holds,
+)
 
 
 def target(loop: str) -> str:
@@ -24,11 +30,7 @@ def target(loop: str) -> str:
 
 
 def record(repo: Any, loop: str, oid: str) -> None:
-    from opentine.repository._link_touch import touch_links
-
-    touch_links(repo, [oid])
-    row = {"oid": oid, "target": target(loop)}
-    edit_holds(holds_path(repo), lambda rows: [*(r for r in rows if r != row), row])
+    hold_row(repo, oid, target(loop))
 
 
 def held_stop(repo: Any, loop: str) -> dict[str, Any] | None:
