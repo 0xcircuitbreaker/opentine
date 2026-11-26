@@ -9,12 +9,9 @@
 
 from __future__ import annotations
 
-import io
 import json
-import shutil
 import subprocess
 import sys
-import tarfile
 from pathlib import Path
 
 import pytest
@@ -25,6 +22,7 @@ from opentine.repository import Repo
 from opentine.repository._autopack import maybe_autopack
 from opentine.repository._gc import gc
 from opentine.repository._pack5 import from_v3
+from tests._v034 import v034
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -122,23 +120,6 @@ def test_repo_pack_default_is_tinepack3(tmp_path):
     assert _repo(tmp_path / "r").pack()[:10] == b"TINEPACK3\0"
 
 
-def _v034(tmp_path: Path) -> Path:
-    if shutil.which("git") is None:
-        pytest.skip("git is not installed")
-    try:
-        archive = subprocess.run(
-            ["git", "-C", str(ROOT), "archive", "v0.34.0", "opentine"],
-            capture_output=True,
-            check=True,
-        ).stdout
-    except (OSError, subprocess.CalledProcessError):
-        pytest.skip("tag v0.34.0 is not available in this checkout")
-    dest = tmp_path / "v034"
-    with tarfile.open(fileobj=io.BytesIO(archive)) as tar:
-        tar.extractall(dest, filter="data")
-    return dest
-
-
 OLD_READER = """
 import json, sys
 sys.path.insert(0, sys.argv[1])
@@ -163,7 +144,7 @@ print(json.dumps(out))
 def test_the_034_reader_refuses_tinepack5_and_reads_an_autopacked_repository(
     tmp_path, autopack_now
 ):
-    old = _v034(tmp_path)
+    old = v034(tmp_path)
     work = tmp_path / "w"
     repo = _repo(work / "r")
     pack = repo.pack()

@@ -9,16 +9,14 @@ published wheel instead), and the streak is computed from saved API pages.
 from __future__ import annotations
 
 import importlib.util
-import io
 import json
 import re
-import shutil
-import subprocess
-import tarfile
 from datetime import date
 from pathlib import Path
 
 import pytest
+
+from tests._v034 import v034
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOWS = ROOT / ".github" / "workflows"
@@ -197,29 +195,12 @@ def test_the_judge_fails_new_failures_and_pinned_gaps_that_start_passing():
     assert not peer.judge({"error": "boom"})["ok"]
 
 
-def _v034(tmp_path: Path) -> Path:
-    if shutil.which("git") is None:
-        pytest.skip("git is not installed")
-    try:
-        archive = subprocess.run(
-            ["git", "-C", str(ROOT), "archive", "v0.34.0", "opentine"],
-            capture_output=True,
-            check=True,
-        ).stdout
-    except (OSError, subprocess.CalledProcessError):
-        pytest.skip("tag v0.34.0 is not available in this checkout")
-    dest = tmp_path / "v034"
-    with tarfile.open(fileobj=io.BytesIO(archive)) as tar:
-        tar.extractall(dest, filter="data")
-    return dest
-
-
 @pytest.mark.filterwarnings("ignore::Warning")
 def test_034_reads_and_fetches_what_this_tree_writes_and_serves(tmp_path, monkeypatch, capsys):
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
     monkeypatch.delenv("OPENTINE_FORMAT", raising=False)
-    old = _v034(tmp_path)
+    old = v034(tmp_path)
     out = tmp_path / "report.json"
     code = _script("peer_compat_034").main(["--old-path", str(old), "--out", str(out)])
     report = json.loads(out.read_text("utf-8"))
