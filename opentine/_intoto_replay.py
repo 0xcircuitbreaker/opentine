@@ -13,14 +13,12 @@ shape check, and :func:`verify_envelope` checks signature and shape offline.
 
 from __future__ import annotations
 
-import base64
-import binascii
 import json
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from opentine.intoto import PAYLOAD_TYPE, STATEMENT_TYPE, pae, sign_statement
+from opentine.intoto import STATEMENT_TYPE, sign_statement
 
 PREDICATE_TYPE = "https://opentine.dev/attestation/replay/v1"
 MODES = ("cache", "rerun")
@@ -101,33 +99,9 @@ def validate_predicate(predicate: Any) -> list[str]:
 
 def verify_envelope(envelope: Any, public_key: Any) -> dict[str, Any]:
     """The statement of a ``replay/v1`` envelope signed by *public_key*; ``ValueError`` else."""
-    from cryptography.exceptions import InvalidSignature
+    from opentine._intoto_single import verify_single
 
-    from opentine._signing_keys import coerce_ed25519_public
-
-    key = coerce_ed25519_public(public_key)
-    try:
-        if not isinstance(envelope, dict) or envelope.get("payloadType") != PAYLOAD_TYPE:
-            raise ValueError(f"payloadType must be {PAYLOAD_TYPE}")
-        body = base64.b64decode(envelope["payload"], validate=True)
-        sigs = [base64.b64decode(s["sig"], validate=True) for s in envelope["signatures"]]
-    except (KeyError, TypeError, binascii.Error) as exc:
-        raise ValueError("malformed DSSE envelope") from exc
-    for sig in sigs:
-        try:
-            key.verify(sig, pae(PAYLOAD_TYPE, body))
-            break
-        except InvalidSignature:
-            continue
-    else:
-        raise ValueError("no signature verifies over the payload")
-    statement = json.loads(body)
-    if not isinstance(statement, dict) or statement.get("predicateType") != PREDICATE_TYPE:
-        raise ValueError(f"predicateType is not {PREDICATE_TYPE}")
-    errors = validate_predicate(statement.get("predicate"))
-    if errors:
-        raise ValueError("; ".join(errors))
-    return statement
+    return verify_single(envelope, public_key, PREDICATE_TYPE, validate_predicate)
 
 
 def attest(args: Any, verdict: Any, path: str | Path) -> None:
