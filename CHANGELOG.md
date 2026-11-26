@@ -47,7 +47,8 @@
   codes and no new object kinds).
 - Optional `c2pa` extra (`c2pa-python`): `--c2pa-cert/--c2pa-key` writes a C2PA
   manifest naming the run into PNG and JPEG files, and `verify` validates it
-  with the library. Without the extra a manifest reads as `unchecked`.
+  with the library. Without the extra a manifest reads as `unchecked`; the
+  sidecar still signs the C2PA store bytes, so an added or swapped store fails.
 - Model cards and dataset exports use the sidecar (`--subject model-card`,
   `--subject dataset`); a dataset export can name its held curated dataset
   version with `--dataset-version`. See docs/PROVENANCE.md.

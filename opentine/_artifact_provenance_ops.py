@@ -83,7 +83,7 @@ def embed(repo: Any, artifact: Path, *, run: str, key: Any, subject: str = "arti
                          **c2pa_signing)  # fmt: skip
     if trailer.digest(data) != digest:
         raise ValueError("embedding changed the canonical bytes; refusing to write")
-    doc = ap.make(key, subject=subject, run=run, pointer=slot, c2pa=c2pa_signing is not None,
+    doc = ap.make(key, subject=subject, run=run, pointer=slot, c2pa=trailer.stores(data),
                   dataset_version=dataset_version,
                   artifact={"name": artifact.name, "media": trailer.media(canonical),
                             "digest": digest, "size": len(canonical)})  # fmt: skip
@@ -95,7 +95,7 @@ def embed(repo: Any, artifact: Path, *, run: str, key: Any, subject: str = "arti
 
     out.write_bytes(canonical_json(doc) + b"\n")
     return {"artifact": artifact.as_posix(), "sidecar": out.as_posix(), "record": oid,
-            "digest": digest, "run": run, "pointer": slot, "c2pa": doc["c2pa"],
+            "digest": digest, "run": run, "pointer": slot, "c2pa": doc["c2pa"] is not None,
             "subject": subject, "signer": doc["signer"]}  # fmt: skip
 
 
@@ -132,7 +132,10 @@ def _pointer_findings(doc: dict[str, Any], found: list[str]) -> list[dict[str, s
 
 def _c2pa_findings(doc: dict[str, Any], data: bytes) -> tuple[str, list[dict[str, str]]]:
     report = c2pa.check(data)
-    state = report["state"]
+    state, bound = report["state"], trailer.stores(data)
+    if state != "absent" and bound != doc["c2pa"]:
+        why = "the file's C2PA store bytes are not the ones the sidecar signs"
+        return "invalid", [_finding("artifact.c2pa-invalid", why)]
     if state == "absent":
         bad = [_finding("artifact.c2pa-stripped", "the sidecar records a C2PA manifest; "
                         "the file has none")] if doc["c2pa"] else []  # fmt: skip

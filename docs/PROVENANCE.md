@@ -27,7 +27,7 @@ is not a new object kind:
  "subject": "artifact | model-card | dataset",
  "artifact": {"name": "chart.png", "media": "png", "digest": "sha256:...", "size": 1234},
  "run": "run:sha256:...", "pointer": "png-text | jpeg-comment | pdf-info | null",
- "c2pa": false, "dataset_version": "attestation:sha256:... | null",
+ "c2pa": "sha256:... | null", "dataset_version": "attestation:sha256:... | null",
  "signer": "sha256:<key fingerprint>", "created_at": "2026-11-26T10:00:00Z",
  "signature": {"...": "tine-sig/3 Ed25519 block"}}
 ```
@@ -64,7 +64,7 @@ sidecar only.
 
 | Format | Slot | Pointer |
 | --- | --- | --- |
-| PNG | a `tEXt` chunk (an `iTXt` chunk is also read) before `IEND` | keyword `opentine:provenance`, text = the run id |
+| PNG | a `tEXt` chunk (a plain `iTXt` chunk, uncompressed with empty language and translated keyword, is also read) before `IEND` | keyword `opentine:provenance`, text = the run id |
 | JPEG | a `COM` segment right after `SOI` | `opentine:provenance <run id>` |
 | PDF | an incremental update with a new `/Info` dictionary | `/OpentineProvenance (<run id>)` |
 | anything else | none | sidecar only |
@@ -92,6 +92,14 @@ Embedding always starts from the canonical bytes, so running `embed` again
 replaces the pointer (and drops an older C2PA manifest) and leaves the digest
 unchanged. A malformed PNG or JPEG is refused, not guessed at.
 
+### C2PA store binding
+
+The C2PA stores are left out of the artifact digest, so the sidecar's `c2pa`
+field signs them separately: `sha256:` of every `caBX` chunk (PNG) or `APP11`
+segment (JPEG), raw and concatenated in file order, or `null` when the file
+has none. Adding, removing or swapping a store is caught even without the
+optional C2PA library.
+
 ## What verify checks
 
 `tine provenance verify ARTIFACT` exits 0 with no findings, or 1 with one or
@@ -108,7 +116,7 @@ more of these command-level codes:
 | `artifact.pointer-repointed` | the file's pointer names another run |
 | `artifact.run-missing` | the run does not exist or does not read back in `--repo` |
 | `artifact.c2pa-stripped` | the sidecar records a C2PA manifest and the file has none |
-| `artifact.c2pa-invalid` | the C2PA validator reports a failure, or the manifest names another run or digest |
+| `artifact.c2pa-invalid` | the file's C2PA store bytes differ from the store digest the sidecar signs (checked with or without the extra), the C2PA validator reports a failure, or the manifest names another run or digest |
 | `artifact.dataset-version-unknown` | the named dataset version is not held |
 
 These are codes of this command. They are not `tine verify` `fail:` codes, and

@@ -6,14 +6,16 @@
     {"convention": "opentine.artifact-provenance/1", "subject": "artifact" |
      "model-card" | "dataset", "artifact": {"name", "media", "digest", "size"},
      "run": RUN, "pointer": "png-text" | "jpeg-comment" | "pdf-info" | null,
-     "c2pa": bool, "dataset_version": ATTESTATION | null, "signer": FINGERPRINT,
+     "c2pa": STORE-DIGEST | null, "dataset_version": ATTESTATION | null, "signer": FINGERPRINT,
      "created_at": "YYYY-MM-DDTHH:MM:SSZ", "signature": {tine-sig/3 Ed25519}}
 
 The signature covers every field but ``signature`` under the domain
 ``opentine.artifact-provenance.v1:``. ``artifact.digest`` is the digest of the
 canonical bytes (:mod:`opentine._artifact_trailer`), so the embedded pointer and
-a C2PA manifest do not change it. The same body is signed onto the run as a held
-attestation (``custody:provenance:``), and the run itself is held, so a loop
+a C2PA manifest do not change it; ``c2pa`` signs the digest of
+the C2PA store bytes (:func:`opentine._artifact_trailer.stores`) instead.
+The same body is signed onto the run as a held attestation
+(``custody:provenance:``), and the run itself is held, so a loop
 cannot delete the record or the run it names.
 
 The signer counts only as the key that signed (``used_key_fingerprint``) and as
@@ -63,7 +65,10 @@ def body(doc: Any) -> dict[str, Any]:
         ),  # fmt: skip
         (isinstance(m["run"], str) and _RUN.fullmatch(m["run"]), "run is run:sha256:<hex>"),
         (m["pointer"] is None or m["pointer"] in POINTERS, "pointer is a known slot or null"),
-        (type(m["c2pa"]) is bool, "c2pa is a boolean"),
+        (
+            m["c2pa"] is None or (isinstance(m["c2pa"], str) and _DIGEST.fullmatch(m["c2pa"])),
+            "c2pa is the C2PA store digest or null",
+        ),
         (
             m["dataset_version"] is None
             or (isinstance(m["dataset_version"], str) and _ATT.fullmatch(m["dataset_version"])),

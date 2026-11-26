@@ -78,7 +78,15 @@
       ]
     },
     "c2pa": {
-      "type": "boolean"
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "dataset_version": {
       "anyOf": [

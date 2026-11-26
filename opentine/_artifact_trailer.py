@@ -85,9 +85,8 @@ def _png_pointer(kind: bytes, payload: bytes) -> bytes | None:
     if kind not in (b"tEXt", b"iTXt") or not payload.startswith(KEYWORD + b"\x00"):
         return None
     text = payload[len(KEYWORD) + 1 :]
-    if kind == b"iTXt":  # compression flag, method, language\0, translated keyword\0, text
-        parts = text[2:].split(b"\x00", 2)
-        text = parts[2] if len(parts) == 3 and text[:1] == b"\x00" else b""
+    if kind == b"iTXt":  # only the plain form: no compression, empty language and keyword
+        return text[4:] if text.startswith(b"\x00" * 4) else None
     return text
 
 
@@ -145,6 +144,20 @@ def split(data: bytes) -> tuple[bytes, list[str]]:
     return canonical, [t.decode("utf-8", "replace") for t in found]
 
 
+def stores(data: bytes) -> str | None:
+    """``sha256:`` of the C2PA store bytes the canonical form drops, in file order.
+
+    ``None`` when there are none. The sidecar signs this, so a store added,
+    removed or swapped outside the artifact digest is still caught.
+    """
+    kind, raw = media(data), []
+    if kind == "png":
+        raw = [r for c, _, r in _png_chunks(data) if c == b"caBX"]
+    elif kind == "jpeg":
+        raw = [r for m, r in _jpeg_segments(data)[0] if m == 0xEB]
+    return "sha256:" + hashlib.sha256(b"".join(raw)).hexdigest() if raw else None
+
+
 def digest(data: bytes) -> str:
     """The artifact digest: ``sha256:`` of the canonical bytes."""
     return "sha256:" + hashlib.sha256(split(data)[0]).hexdigest()
@@ -198,4 +211,4 @@ def embed(data: bytes, run: str) -> tuple[bytes, str]:
     raise PointerUnsupported("this format has no pointer slot; the sidecar alone records it")
 
 
-__all__ = ["KEYWORD", "PointerUnsupported", "digest", "embed", "media", "split"]
+__all__ = ["KEYWORD", "PointerUnsupported", "digest", "embed", "media", "split", "stores"]

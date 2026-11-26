@@ -28,7 +28,7 @@ _ARTIFACT = closed(["name", "media", "digest", "size"], {
     "name": STR, "media": {"enum": ["png", "jpeg", "pdf", "other"]}, "digest": _DIGEST,
     "size": INT})  # fmt: skip
 _SIDECAR = {"subject": _SUBJECT, "artifact": _ARTIFACT, "run": _RUN, "pointer": _POINTER,
-            "c2pa": BOOL, "dataset_version": opt(_ATT),
+            "c2pa": opt(_DIGEST), "dataset_version": opt(_ATT),
             "created_at": _TIME}  # fmt: skip
 _SHAPES = [
     closed(["command", "schema", "artifact", "sidecar", "record", "digest", "run", "pointer",
