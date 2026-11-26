@@ -18,6 +18,9 @@ from opentine.repository import Repo
 from opentine.signing import SignatureError
 from opentine.tools import fs
 
+#: Pins the deprecated v2 writer (tests/conftest.py legacy_v2_writer).
+pytestmark = pytest.mark.usefixtures("legacy_v2_writer")
+
 HMAC_KEY = b"0123456789abcdef0123456789abcdef"
 
 
@@ -254,10 +257,3 @@ def test_catalog_parser_rejects_signature_malleation_and_bad_json_shapes(tmp_pat
         card = {"id": "bad", "provider": "x", "model": "x", "rates": {}, **malformed_field}
         with pytest.raises(CatalogError, match="invalid pricing rate card"):
             PricingCatalog.from_dict({"cards": [card]}, verify=False, require_signature=False)
-
-
-@pytest.fixture(autouse=True)
-def _legacy_v2_writer(monkeypatch):
-    """0.26 writes format v4 by default. This module inspects the v2 file layout
-    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
-    monkeypatch.setenv("OPENTINE_FORMAT", "2")

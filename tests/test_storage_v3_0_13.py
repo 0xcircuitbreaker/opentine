@@ -104,7 +104,7 @@ def test_v3_is_never_automatic_when_autopack_is_pinned_to_format_1(tmp_path, mon
     monkeypatch.setenv("OPENTINE_AUTO_PACK_FORMAT", "1")
     repo = Repo.init(tmp_path / "r", compression="zlib")
     _record(repo, "heads/a")
-    os.environ["OPENTINE_AUTO_PACK"] = "1"
+    monkeypatch.setenv("OPENTINE_AUTO_PACK", "1")
     assert maybe_autopack(repo, min_age=0) is not None
     assert _version(repo) == 2 and all(pack_version(repo.path, d) == 1 for d in _packs(repo))
     gc(repo, upgrade=True)

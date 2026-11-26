@@ -18,11 +18,13 @@ import pytest
 
 from opentine import Run, RunStatus, StepKind, cli
 from opentine._artifact_io import read_artifact_json
-from opentine.signing import HAS_ED25519, generate_ed25519
+from opentine.signing import generate_ed25519
+
+#: Pins the deprecated v2 writer (tests/conftest.py legacy_v2_writer).
+pytestmark = pytest.mark.usefixtures("legacy_v2_writer")
 
 ROOT = Path(__file__).resolve().parent.parent
 VERIFIER = ROOT / "docs" / "conformance" / "minimal_verifier.py"
-needs_ed25519 = pytest.mark.skipif(not HAS_ED25519, reason="ed25519 needs the crypto extra")
 
 
 @pytest.fixture
@@ -38,7 +40,7 @@ def room(monkeypatch, tmp_path: Path) -> Path:
         run.add_step(StepKind.done, {"text": "done"})
         run.status = RunStatus.completed
         run.save(tmp_path / f"{run_id}.tine")
-        if HAS_ED25519 and run_id == "alpha":
+        if run_id == "alpha":
             seed, public = generate_ed25519()
             (tmp_path / "ed.hex").write_text(seed + "\n", encoding="utf-8")
             (tmp_path / "ed.pub").write_text(public + "\n", encoding="utf-8")
@@ -124,7 +126,6 @@ def test_an_unsupported_format_version_fails_in_both(room, capsys):
     assert _checks(report)["digest"] == ("fail", "digest.unsupported-format")
 
 
-@needs_ed25519
 def test_signatures_agree_with_and_without_a_key(room, capsys):
     assert _checks(_agree(capsys, "signed.tine"))["signature"][1] == "signature.no-key"
     report = _agree(capsys, "signed.tine", "--pubkey", "ed.pub")
@@ -135,7 +136,6 @@ def test_signatures_agree_with_and_without_a_key(room, capsys):
     assert _checks(report)["signature"] == ("fail", "signature.mismatch")
 
 
-@needs_ed25519
 def test_without_cryptography_the_signature_is_unavailable_never_passed(room):
     code, report = _minimal("artifact", "signed.tine", "--pubkey", "ed.pub", flags=("-I", "-S"))
     assert _checks(report)["signature"] == ("unavailable-offline", "signature.crypto-unavailable")
@@ -155,7 +155,6 @@ def test_a_dataset_root_matches_the_reference(room, capsys):
     ]
 
 
-@needs_ed25519
 def test_an_evidence_export_verifies_and_a_changed_file_is_caught(room, capsys):
     try:
         cli.main(["evidence", "export", "alpha.tine", "--out", "ev", "--sign", "ed.hex"])
@@ -173,10 +172,3 @@ def test_an_evidence_export_verifies_and_a_changed_file_is_caught(room, capsys):
     (room / "ev" / "timeline.csv").write_text("forged\n", encoding="utf-8")
     code, mine = _minimal("evidence", "ev")
     assert code == 1 and _checks(mine)["manifest"] == ("fail", "evidence.manifest-mismatch")
-
-
-@pytest.fixture(autouse=True)
-def _legacy_v2_writer(monkeypatch):
-    """0.26 writes format v4 by default. This module inspects the v2 file layout
-    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
-    monkeypatch.setenv("OPENTINE_FORMAT", "2")

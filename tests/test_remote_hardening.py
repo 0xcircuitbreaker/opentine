@@ -16,9 +16,6 @@ from opentine.remote.backend import SQLiteBackend
 from opentine.remote.interfaces import AuditEvent
 from opentine.remote.security import LocalKeyProvider
 
-crypto = pytest.importorskip("cryptography")
-
-
 # --- M4: HMAC-chained audit log with an authenticated external head -------------------
 
 

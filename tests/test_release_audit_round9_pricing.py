@@ -23,6 +23,9 @@ from opentine import Run, StepKind, cli
 from opentine.mcp_server import fork_run_file
 from opentine.repository import Repo
 
+#: Pins the deprecated v2 writer (tests/conftest.py legacy_v2_writer).
+pytestmark = pytest.mark.usefixtures("legacy_v2_writer")
+
 # Builders keyed by malformed field position; each receives the real step id.
 MALFORMED_PRICING = {
     "invocation-step-id-list": lambda step: {
@@ -183,10 +186,3 @@ def test_fork_still_slices_well_formed_pricing(tmp_path):
     assert pricing["catalog_id"] == "cid"
     assert pricing["catalog_hash"] == "h"
     assert pricing["catalog_provenance"] == ["ok"]
-
-
-@pytest.fixture(autouse=True)
-def _legacy_v2_writer(monkeypatch):
-    """0.26 writes format v4 by default. This module inspects the v2 file layout
-    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
-    monkeypatch.setenv("OPENTINE_FORMAT", "2")

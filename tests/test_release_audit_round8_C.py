@@ -15,6 +15,9 @@ from opentine._jsonsafe import json_safe
 from opentine.autosave import Autosaver
 from opentine.repo import Repo
 
+#: Pins the deprecated v2 writer (tests/conftest.py legacy_v2_writer).
+pytestmark = pytest.mark.usefixtures("legacy_v2_writer")
+
 
 def _invoke(monkeypatch, *args: str) -> None:
     monkeypatch.setattr(sys, "argv", ["tine", *args])
@@ -120,10 +123,3 @@ def test_ls_with_an_unparseable_date_reports_a_clean_error(monkeypatch, tmp_path
     # A well-formed date still filters normally.
     _invoke(monkeypatch, "ls", "--since", "2020-01-01")
     assert "ls-run" in capsys.readouterr().out
-
-
-@pytest.fixture(autouse=True)
-def _legacy_v2_writer(monkeypatch):
-    """0.26 writes format v4 by default. This module inspects the v2 file layout
-    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
-    monkeypatch.setenv("OPENTINE_FORMAT", "2")

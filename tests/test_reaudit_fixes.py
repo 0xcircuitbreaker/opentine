@@ -505,7 +505,6 @@ def _b64(value: bytes) -> str:
 
 
 def test_l4_oidc_rejects_signed_but_unsupported_critical_headers():
-    pytest.importorskip("cryptography")
     from cryptography.hazmat.primitives import hashes
     from cryptography.hazmat.primitives.asymmetric import padding, rsa
 

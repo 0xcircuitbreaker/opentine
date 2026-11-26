@@ -55,7 +55,6 @@ def test_colliding_tracking_refs_are_refused_before_any_install(tmp_path):
 
 
 def test_sidecars_are_not_installed_when_the_ref_update_fails(tmp_path):
-    pytest.importorskip("cryptography")
     source, root, data = _signed(tmp_path)
     target = Repo.init(tmp_path / "dst")
     other = target.put_run(_run("diverged"), ref="heads/x").run_id
@@ -68,7 +67,6 @@ def test_sidecars_are_not_installed_when_the_ref_update_fails(tmp_path):
 
 
 def test_a_forged_ed25519_block_is_refused(tmp_path):
-    pytest.importorskip("cryptography")
     _, root, data = _signed(tmp_path, tamper=True)
     with pytest.raises(_bundle.BundleError, match="does not verify"):
         _bundle.verify(data)

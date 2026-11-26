@@ -19,6 +19,9 @@ from opentine._signing_view import signed_message
 from opentine.core import RunStatus
 from opentine.signing import SignatureError, generate_ed25519
 
+#: Pins the deprecated v2 writer (tests/conftest.py legacy_v2_writer).
+pytestmark = pytest.mark.usefixtures("legacy_v2_writer")
+
 KEY = b"0123456789abcdef0123456789abcdef"  # 32 bytes
 
 
@@ -171,7 +174,6 @@ def test_default_scheme_round_trips_under_hmac(tmp_path: Path):
     assert Run.verify_signature(p, hmac_key=KEY).state == "verified"
 
 
-@pytest.mark.skipif(not signing.HAS_ED25519, reason="requires the ed25519 extra")
 def test_default_scheme_round_trips_under_ed25519(tmp_path: Path):
     seed, pub = generate_ed25519()
     p = _terminal_run(tags=["t"]).save(tmp_path / "a.tine", sign_key=seed, sign_algorithm="ed25519")
@@ -293,10 +295,3 @@ def test_algorithm_downgrade_does_not_bypass(tmp_path: Path):
     data["metadata"]["integrity"]["signature"]["alg"] = "hmac-sha256"
     p.write_text(json.dumps(data), encoding="utf-8")
     assert not Run.verify_signature(p, hmac_key=KEY).ok
-
-
-@pytest.fixture(autouse=True)
-def _legacy_v2_writer(monkeypatch):
-    """0.26 writes format v4 by default. This module inspects the v2 file layout
-    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
-    monkeypatch.setenv("OPENTINE_FORMAT", "2")

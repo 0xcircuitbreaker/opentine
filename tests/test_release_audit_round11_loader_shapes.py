@@ -39,6 +39,9 @@ from opentine.graph import RunStatus
 from opentine.index import RunIndex
 from opentine.runtime import Agent
 
+#: Pins the deprecated v2 writer (tests/conftest.py legacy_v2_writer).
+pytestmark = pytest.mark.usefixtures("legacy_v2_writer")
+
 # manifest.pricing has no schema at all, so any JSON value can appear there.
 NON_DICT = {"int": 5, "float": 1.5, "true": True, "str": "abc", "none": None, "list": []}
 NON_LIST = {"int": 5, "str": "abc", "dict": {"a": 1}, "none": None, "true": True}
@@ -514,10 +517,3 @@ def test_every_written_entry_is_one_the_index_reader_accepts(tmp_path):
     for name, entry in index.entries.items():
         assert _Entry.from_dict(entry.to_dict()) == entry, name
     json.dumps({n: e.to_dict() for n, e in index.entries.items()}, allow_nan=False)
-
-
-@pytest.fixture(autouse=True)
-def _legacy_v2_writer(monkeypatch):
-    """0.26 writes format v4 by default. This module inspects the v2 file layout
-    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
-    monkeypatch.setenv("OPENTINE_FORMAT", "2")

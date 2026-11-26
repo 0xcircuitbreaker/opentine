@@ -20,6 +20,9 @@ from opentine.repository import Repo
 from opentine.repository._run_blobs import blob_json, put_transcript
 from opentine.trace.recorder import Recorder
 
+#: Pins the deprecated v2 writer (tests/conftest.py legacy_v2_writer).
+pytestmark = pytest.mark.usefixtures("legacy_v2_writer")
+
 
 def _structural_tokens(body: bytes) -> int:
     """Smallest budget validate_json_shape accepts == the body's token count."""
@@ -241,10 +244,3 @@ def test_tolerated_transcript_turns_survive_the_v3_round_trip(tmp_path):
     # dict turns keep their step-id discipline
     with pytest.raises(ValueError, match="unknown step"):
         put_transcript(repo, [{"step_id": "nope"}], {})
-
-
-@pytest.fixture(autouse=True)
-def _legacy_v2_writer(monkeypatch):
-    """0.26 writes format v4 by default. This module inspects the v2 file layout
-    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
-    monkeypatch.setenv("OPENTINE_FORMAT", "2")

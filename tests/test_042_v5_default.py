@@ -21,7 +21,7 @@ from opentine._pyz_build import build_bytes
 from opentine._signing_v4 import verify_artifact_v4
 from opentine._tine_v5 import ARTIFACT_V5_KIND, to_v4
 from opentine.kernel import canonical_json
-from opentine.signing import HAS_ED25519, generate_ed25519
+from opentine.signing import generate_ed25519
 
 AT = "2026-11-01T00:00:00Z"
 
@@ -63,7 +63,6 @@ def test_the_cli_writes_v5_by_default_and_v4_for_legacy(tmp_path):
         assert _kind(out) == kind
 
 
-@pytest.mark.skipif(not HAS_ED25519, reason="ed25519 needs the crypto extra")
 def test_v4_and_v5_have_the_same_root_and_ed25519_signature(tmp_path, monkeypatch):
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 

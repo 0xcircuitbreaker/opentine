@@ -15,14 +15,13 @@ import shutil
 from pathlib import Path
 
 import pytest
+from cryptography.hazmat.primitives.asymmetric import ed25519
 
 from opentine import Run
 from opentine.graph import Step, StepKind
 from opentine.kernel import KernelError, ObjectEnvelope, validate_json_shape
 from opentine.repository import Repo
 from opentine.repository.pack import create_pack
-
-ed25519 = pytest.importorskip("cryptography.hazmat.primitives.asymmetric.ed25519")
 
 
 def _run(run_id: str = "audit") -> Run:

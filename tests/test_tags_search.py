@@ -11,6 +11,9 @@ from opentine import Run, StepKind
 from opentine.core import RunStatus
 from opentine.index import IndexEntry, QueryError, RunIndex, parse_query
 
+#: Pins the deprecated v2 writer (tests/conftest.py legacy_v2_writer).
+pytestmark = pytest.mark.usefixtures("legacy_v2_writer")
+
 
 def _run(run_id: str, *, model="m", tags=(), cost=0.0, text="hello", created_at=1_700_000_000.0):
     run = Run(id=run_id, model_info=model, tags=list(tags), created_at=created_at)
@@ -202,10 +205,3 @@ def test_index_rejects_entry_key_file_mismatch(tmp_path: Path):
     (tmp_path / "index.json").write_text(json.dumps(cached), encoding="utf-8")
     index = RunIndex.open(tmp_path)
     assert index.entries == {} and index._stale is True
-
-
-@pytest.fixture(autouse=True)
-def _legacy_v2_writer(monkeypatch):
-    """0.26 writes format v4 by default. This module inspects the v2 file layout
-    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
-    monkeypatch.setenv("OPENTINE_FORMAT", "2")

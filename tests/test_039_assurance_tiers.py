@@ -10,9 +10,6 @@ import sys
 from pathlib import Path
 
 import pytest
-
-pytest.importorskip("cryptography")
-
 from cryptography.hazmat.primitives import serialization  # noqa: E402
 
 from opentine import Run, RunStatus, StepKind, cli  # noqa: E402

@@ -26,6 +26,9 @@ from opentine.repository import client as repository_client
 from opentine.repository._annotations import annotation_ref
 from opentine.repository.pack import create_pack
 
+#: Pins the deprecated v2 writer (tests/conftest.py legacy_v2_writer).
+pytestmark = pytest.mark.usefixtures("legacy_v2_writer")
+
 FORGED = {"metadata": {"reviewed": "security-team"}, "tags": ["approved"]}
 
 
@@ -572,10 +575,3 @@ def test_a_pack_walk_lists_the_association_indexes_once_however_many_runs(
         # one listing per association kind for the whole walk, not one per run
         assert sorted(calls) == ["annotation", "attestation"], (runs, calls)
         assert set(notes) <= found
-
-
-@pytest.fixture(autouse=True)
-def _legacy_v2_writer(monkeypatch):
-    """0.26 writes format v4 by default. This module inspects the v2 file layout
-    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
-    monkeypatch.setenv("OPENTINE_FORMAT", "2")

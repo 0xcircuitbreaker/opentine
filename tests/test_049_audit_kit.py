@@ -26,10 +26,9 @@ from opentine import Run, RunStatus, StepKind, cli
 from opentine._audit_kit_check import offline_checks, unpack, verify_kit
 from opentine._audit_kit_page import SCRIPT_END, SCRIPT_START
 from opentine.repository._tlog_cosign import witness_vkey
-from opentine.signing import HAS_ED25519, generate_ed25519
+from opentine.signing import generate_ed25519
 
 pytestmark = [
-    pytest.mark.skipif(not HAS_ED25519, reason="signing needs the crypto extra"),
     pytest.mark.filterwarnings("ignore::opentine._key_store.PlaintextKeyWarning"),
 ]
 NODE = shutil.which("node")

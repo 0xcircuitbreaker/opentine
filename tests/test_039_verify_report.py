@@ -12,9 +12,6 @@ import socket
 from pathlib import Path
 
 import pytest
-
-pytest.importorskip("cryptography")
-
 from cryptography.hazmat.primitives import serialization  # noqa: E402
 
 from opentine import (  # noqa: E402  # noqa: E402

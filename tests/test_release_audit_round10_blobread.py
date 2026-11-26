@@ -49,6 +49,9 @@ from opentine.repository import Repo
 from opentine.repository._run_blobs import blob_json, put_run_manifest, put_transcript
 from opentine.trace import Recorder, TraceEvent
 
+#: Pins the deprecated v2 writer (tests/conftest.py legacy_v2_writer).
+pytestmark = pytest.mark.usefixtures("legacy_v2_writer")
+
 # An unmodified JSON tool result: any number in exponent notation with magnitude
 # >= 2**53 parses to a Python float, and json_safe passes finite floats through.
 OTEL_RESULT = json.loads('{"startTimeUnixNano": 1.7e18, "name": "span"}')
@@ -393,10 +396,3 @@ def test_run_origin_refuses_a_non_mapping_fork_base_manifests(shape, tmp_path):
         repo.put_run(forked)
     forked._v3_fork_base = {"manifests": {}}
     assert repo.put_run(forked).run_id.startswith("run:sha256:")
-
-
-@pytest.fixture(autouse=True)
-def _legacy_v2_writer(monkeypatch):
-    """0.26 writes format v4 by default. This module inspects the v2 file layout
-    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
-    monkeypatch.setenv("OPENTINE_FORMAT", "2")
