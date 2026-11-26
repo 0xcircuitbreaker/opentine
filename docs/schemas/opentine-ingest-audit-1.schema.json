@@ -1,0 +1,227 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-ingest-audit-1.schema.json",
+  "title": "opentine.ingest-audit/1 annotation value",
+  "description": "A signed sampling audit of a sealed segment: the stated guarantee, the exact hypergeometric sample size, the op log checkpoint the seed came from, and how many sampled episodes were missing or altered. A claim convention on an existing annotation, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "segment",
+    "stream",
+    "root",
+    "episodes",
+    "guarantee",
+    "bound",
+    "checkpoint",
+    "seed",
+    "positions",
+    "source",
+    "checked",
+    "ok",
+    "missing",
+    "altered",
+    "failures",
+    "verdict",
+    "at"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.ingest-audit/1"
+    },
+    "segment": {
+      "type": "string",
+      "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+    },
+    "stream": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+    },
+    "root": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "episodes": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "guarantee": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "confidence",
+        "max_bad"
+      ],
+      "properties": {
+        "confidence": {
+          "type": "string",
+          "pattern": "^[0-9]+(\\.[0-9]+)?$"
+        },
+        "max_bad": {
+          "type": "string",
+          "pattern": "^[0-9]+(\\.[0-9]+)?$"
+        }
+      }
+    },
+    "bound": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "sample",
+        "tolerated",
+        "threshold",
+        "miss_probability"
+      ],
+      "properties": {
+        "method": {
+          "const": "hypergeometric"
+        },
+        "sample": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "tolerated": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "threshold": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "miss_probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "checkpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "origin",
+        "seal_index",
+        "size",
+        "root",
+        "note"
+      ],
+      "properties": {
+        "origin": {
+          "type": "string"
+        },
+        "seal_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "root": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "seed": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "positions": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "source": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "repository"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "sha256"
+          ],
+          "properties": {
+            "kind": {
+              "const": "file"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          }
+        }
+      ]
+    },
+    "checked": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "ok": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "missing": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "altered": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "failures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "position",
+          "index",
+          "status"
+        ],
+        "properties": {
+          "position": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "status": {
+            "enum": [
+              "missing",
+              "altered"
+            ]
+          }
+        }
+      },
+      "maxItems": 1000
+    },
+    "verdict": {
+      "enum": [
+        "pass",
+        "fail"
+      ]
+    },
+    "at": {
+      "type": "string",
+      "description": "RFC 3339 UTC timestamp"
+    }
+  }
+}

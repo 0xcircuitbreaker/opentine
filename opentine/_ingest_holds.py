@@ -27,13 +27,14 @@ def hold_policy(repo: Any, stream: str, oid: str) -> None:
     _edit(repo, lambda rows: [*(r for r in rows if r != row), row])
 
 
-def move_head(repo: Any, stream: str, expected: str | None, oid: str) -> None:
-    """Move the held head of *stream* from *expected* to *oid* (compare and swap)."""
+def move_head(repo: Any, stream: str, expected: str | None, oid: str, *,
+              prefix: str = INGEST_HEAD) -> None:  # fmt: skip
+    """Move the held head (*prefix*: batches, or 0.84 segments) of *stream* (compare and swap)."""
     from opentine._ingest_policy import IngestError
     from opentine.repository._link_touch import touch_links
 
     touch_links(repo, [oid])
-    target = INGEST_HEAD + stream
+    target = prefix + stream
 
     def change(rows: list[dict[str, str]]) -> list[dict[str, str]]:
         current = [r["oid"] for r in rows if r["target"] == target]
@@ -50,14 +51,27 @@ def _rows(repo: Any, target: str) -> list[str]:
     return sorted({r["oid"] for r in read_holds(holds_path(repo)) if r["target"] == target})
 
 
-def head(repo: Any, stream: str) -> str | None:
-    """The held newest batch of *stream*; more than one row is an error (fail closed)."""
+def head(repo: Any, stream: str, *, prefix: str = INGEST_HEAD) -> str | None:
+    """The held newest batch (or 0.84 segment) of *stream*; two rows fail closed."""
     from opentine._ingest_policy import IngestError
 
-    rows = _rows(repo, INGEST_HEAD + stream)
+    rows = _rows(repo, prefix + stream)
     if len(rows) > 1:
         raise IngestError(f"stream {stream} has {len(rows)} held heads")
     return rows[0] if rows else None
+
+
+def hold(repo: Any, target: str, oid: str) -> None:
+    """Hold *oid* under *target* (0.84: a segment's audits), never released."""
+    from opentine.repository._link_touch import touch_links
+
+    touch_links(repo, [oid])
+    row = {"oid": oid, "target": target}
+    _edit(repo, lambda rows: [*(r for r in rows if r != row), row])
+
+
+def held(repo: Any, target: str) -> list[str]:
+    return _rows(repo, target)
 
 
 def policies(repo: Any, stream: str) -> list[str]:
@@ -123,4 +137,14 @@ def read(repo: Any, oid: str, convention: str) -> dict[str, Any] | None:
             "previous": payload.get("previous_id")}  # fmt: skip
 
 
-__all__ = ["head", "hold_policy", "move_head", "policies", "read", "streams", "write"]
+__all__ = [
+    "head",
+    "hold",
+    "hold_policy",
+    "held",
+    "move_head",
+    "policies",
+    "read",
+    "streams",
+    "write",
+]

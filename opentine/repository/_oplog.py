@@ -115,7 +115,8 @@ def operation(command: str | None) -> Iterator[None]:
                 print(f"tine: warning: op log not written: {plain_text(exc)}", file=sys.stderr)
 
 
-def record(base: Path, op: _Op, rows: list[dict]) -> None:
+def record(base: Path, op: _Op, rows: list[dict]) -> int:
+    """Log one op entry; its index in the op log."""
     body = {
         "actor": _actor(),
         "command": op.command,
@@ -133,7 +134,7 @@ def record(base: Path, op: _Op, rows: list[dict]) -> None:
         prev = _tlog.leaf_hash(entries[-1]).hex() if entries else None
         return canonical_json({**body, "prev": prev})
 
-    _tlog_note.append(log_root(base), ORIGIN, chained)
+    return _tlog_note.append(log_root(base), ORIGIN, chained)
 
 
 def read_ops(base: Path, vkey: str | None = None) -> list[dict]:

@@ -78,10 +78,10 @@ DATASET_RECORD = "dataset-record:"
 DATASET_WITHDRAW = "dataset-withdraw:"
 #: 0.74: rows that keep a signed policy admission record (opentine._policy_record): never released.
 POLICY_ADMISSION = "policy-admission:"
-#: 0.77: rows that keep an ingest stream's sampling policies and its newest batch
-#: (opentine._ingest_holds): released never; batches chain to the held head.
-INGEST_POLICY = "ingest-policy:"
-INGEST_HEAD = "ingest-head:"
+#: 0.77/0.84: an ingest stream's policies, newest batch and newest sealed segment, and each
+#: segment's audits (opentine._ingest_holds, opentine._rl_audit): released never.
+INGEST_POLICY, INGEST_HEAD = "ingest-policy:", "ingest-head:"
+INGEST_SEGMENT, INGEST_AUDIT = "ingest-segment:", "ingest-audit:"
 #: 0.83: interpretability records and probe calibrations (opentine._interp_custody): never released.
 INTERP_CUSTODY = "custody:interp"
 #: 0.83: a signed collusion-protocol verdict (opentine._collusion_record): never released.
@@ -102,7 +102,7 @@ _NEVER_RELEASED = (
     ((DATASET_RECORD,), "a dataset record"),
     ((DATASET_WITHDRAW,), "a dataset withdrawal"),
     ((POLICY_ADMISSION,), "a policy admission record"),
-    ((INGEST_POLICY, INGEST_HEAD), "an ingest policy or batch"),
+    ((INGEST_POLICY, INGEST_HEAD, INGEST_SEGMENT, INGEST_AUDIT), "an ingest record"),
     ((INTERP_CUSTODY,), "an interpretability custody record"),
     ((COLLUSION_VERDICT,), "a collusion-protocol verdict"),
 )

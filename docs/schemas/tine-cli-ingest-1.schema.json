@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opentine.com/schemas/tine-cli-ingest-1.schema.json",
   "title": "tine ingest ... --json",
-  "description": "Batched streaming ingest. `ingest policy` signs and holds a sampling policy; `ingest --batch` samples, signs and chains one batch; `ingest verify` checks the chain, counts and policy; `ingest packs` re-reads a tine serve pack store.",
+  "description": "Batched streaming ingest. `ingest policy` signs and holds a sampling policy; `ingest --batch` samples, signs and chains one batch; `ingest verify` checks the chain, counts and policy; `ingest packs` re-reads a tine serve pack store; `ingest seal`, `audit`, `prove` and `segments` seal Merkle-rooted episode segments and audit them by sampling (0.84).",
   "anyOf": [
     {
       "type": "object",
@@ -374,6 +374,555 @@
                 "type": "array",
                 "items": {
                   "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "segment"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-ingest/1"
+        },
+        "command": {
+          "const": "ingest seal"
+        },
+        "segment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "convention",
+            "stream",
+            "seq",
+            "previous",
+            "batches",
+            "first_index",
+            "next_index",
+            "episodes",
+            "root",
+            "log",
+            "sealed_at"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+            },
+            "convention": {
+              "const": "opentine.ingest-segment/1"
+            },
+            "stream": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+            },
+            "seq": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "previous": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "batches": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+              },
+              "minItems": 1
+            },
+            "first_index": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "next_index": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "episodes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "root": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "log": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "origin",
+                "index"
+              ],
+              "properties": {
+                "origin": {
+                  "type": "string"
+                },
+                "index": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "sealed_at": {
+              "type": "string",
+              "description": "RFC 3339 UTC timestamp"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "audit"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-ingest/1"
+        },
+        "command": {
+          "const": "ingest audit"
+        },
+        "audit": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "convention",
+            "segment",
+            "stream",
+            "root",
+            "episodes",
+            "guarantee",
+            "bound",
+            "checkpoint",
+            "seed",
+            "positions",
+            "source",
+            "checked",
+            "ok",
+            "missing",
+            "altered",
+            "failures",
+            "verdict",
+            "at"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+            },
+            "convention": {
+              "const": "opentine.ingest-audit/1"
+            },
+            "segment": {
+              "type": "string",
+              "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+            },
+            "stream": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+            },
+            "root": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "episodes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "guarantee": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "confidence",
+                "max_bad"
+              ],
+              "properties": {
+                "confidence": {
+                  "type": "string",
+                  "pattern": "^[0-9]+(\\.[0-9]+)?$"
+                },
+                "max_bad": {
+                  "type": "string",
+                  "pattern": "^[0-9]+(\\.[0-9]+)?$"
+                }
+              }
+            },
+            "bound": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "method",
+                "sample",
+                "tolerated",
+                "threshold",
+                "miss_probability"
+              ],
+              "properties": {
+                "method": {
+                  "const": "hypergeometric"
+                },
+                "sample": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "tolerated": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "threshold": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "miss_probability": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              }
+            },
+            "checkpoint": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "origin",
+                "seal_index",
+                "size",
+                "root",
+                "note"
+              ],
+              "properties": {
+                "origin": {
+                  "type": "string"
+                },
+                "seal_index": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "size": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "root": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "note": {
+                  "type": "string"
+                }
+              }
+            },
+            "seed": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "positions": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "source": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "repository"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "sha256"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "file"
+                    },
+                    "sha256": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    }
+                  }
+                }
+              ]
+            },
+            "checked": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "ok": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "missing": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "altered": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "failures": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "position",
+                  "index",
+                  "status"
+                ],
+                "properties": {
+                  "position": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "index": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "status": {
+                    "enum": [
+                      "missing",
+                      "altered"
+                    ]
+                  }
+                }
+              },
+              "maxItems": 1000
+            },
+            "verdict": {
+              "enum": [
+                "pass",
+                "fail"
+              ]
+            },
+            "at": {
+              "type": "string",
+              "description": "RFC 3339 UTC timestamp"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "proof"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-ingest/1"
+        },
+        "command": {
+          "const": "ingest prove"
+        },
+        "proof": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "segment",
+            "root",
+            "size",
+            "position",
+            "index",
+            "leaf",
+            "proof"
+          ],
+          "properties": {
+            "segment": {
+              "type": "string",
+              "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+            },
+            "root": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "size": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "position": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "index": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "leaf": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "proof": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "maxItems": 64
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "report"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-ingest/1"
+        },
+        "command": {
+          "const": "ingest segments"
+        },
+        "report": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "stream",
+            "segments",
+            "episodes",
+            "roles",
+            "ok",
+            "findings"
+          ],
+          "properties": {
+            "stream": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+            },
+            "segments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "seq",
+                  "episodes",
+                  "root",
+                  "audits"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+                  },
+                  "seq": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
+                  "episodes": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
+                  "root": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "audits": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+                    }
+                  }
+                }
+              }
+            },
+            "episodes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "roles": {
+              "enum": [
+                "pinned",
+                "unpinned",
+                "absent"
+              ]
+            },
+            "ok": {
+              "type": "boolean"
+            },
+            "findings": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "level",
+                  "code",
+                  "record",
+                  "message"
+                ],
+                "properties": {
+                  "level": {
+                    "enum": [
+                      "fail",
+                      "advisory"
+                    ]
+                  },
+                  "code": {
+                    "type": "string"
+                  },
+                  "record": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "message": {
+                    "type": "string"
+                  }
                 }
               }
             }

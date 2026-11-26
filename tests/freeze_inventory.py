@@ -150,6 +150,8 @@ NOT_KINDS = (
     "opentine-dataset-licence-1", "opentine-dataset-withdraw-1", "opentine-dataset-tombstones-1",
     # 0.77: annotation values (ingest sampling policies and signed batches)
     "opentine-ingest-policy-1", "opentine-ingest-batch-1",
+    # 0.84: annotation values (sealed episode segments and their sampling audits)
+    "opentine-ingest-segment-1", "opentine-ingest-audit-1",
 )  # fmt: skip
 DEFERRED_SCHEMAS: dict[str, str] = {}
 #: Backticked SPEC heading words that are not kinds (capabilities, commands, fields).

@@ -10,7 +10,9 @@ Batched streaming ingest for large episode streams (docs/INGEST.md):
   exit 1 on a ``fail:`` finding (``--strict``: on any finding);
 * ``serve``: the loopback endpoint ``POST /v1/ingest`` (:mod:`opentine._ingest_http`);
 * ``packs``: re-read every pack of a ``tine serve`` pack store
-  (``TINE_REMOTE_PACK_STORE``), exit 1 on a bad pack or object.
+  (``TINE_REMOTE_PACK_STORE``), exit 1 on a bad pack or object;
+* ``seal``, ``audit``, ``prove``, ``segments`` (0.84): sealed segments and
+  sampling audits (:mod:`opentine._cli_ingest_audit`, docs/RL-CAPTURE.md).
 
 ``--json`` follows ``tine-cli-ingest-1``.
 """
@@ -25,6 +27,7 @@ from typing import Any
 from opentine._cli_errors import error
 
 SCHEMA = "tine-cli-ingest/1"
+_AUDIT_VERBS = ("seal", "audit", "prove", "segments")
 
 
 def add_ingest_parser(subparsers: argparse._SubParsersAction) -> None:
@@ -56,10 +59,13 @@ def add_ingest_parser(subparsers: argparse._SubParsersAction) -> None:
     packs = verbs.add_parser("packs", help="Re-read every pack of a tine serve pack store")
     packs.add_argument("--state", default=".tine-remote", help="tine serve --root")
     packs.add_argument("--tenant", action="append", required=True, help="Tenant (repeatable)")
-    for row in (parser, policy, verify, serve):
+    from opentine._cli_ingest_audit import add_verbs
+
+    audits = add_verbs(verbs)
+    for row in (parser, policy, verify, serve, *audits):
         row.add_argument("--repo", default=".", metavar="PATH", help="Repository")
         row.add_argument("--at", metavar="TIME", help="YYYY-MM-DDTHH:MM:SSZ (default: now)")
-    for row in (parser, policy, verify, packs):
+    for row in (parser, policy, verify, packs, *audits):
         row.add_argument("--json", action="store_true", help="Print a JSON object")
 
 
@@ -162,6 +168,7 @@ def cmd_ingest(args: argparse.Namespace) -> None:
     from opentine._cli_common import _terminal, console
     from opentine._cli_json import emit
     from opentine._ingest_policy import IngestError
+    from opentine.repository._tlog import LogError
 
     verb = args.ingest_command
     try:
@@ -175,10 +182,16 @@ def cmd_ingest(args: argparse.Namespace) -> None:
                 _serve(args, repo)
                 return
             if verb is None and not args.batch:
-                raise ValueError("give --batch FILE or one of policy, verify, serve, packs")
-            handler = {None: _batch, "policy": _policy, "verify": _verify}[verb]
-            out, lines, code = handler(args, repo)
-    except (OSError, ValueError, KeyError, IngestError) as exc:
+                raise ValueError("give --batch FILE or a verb: policy, verify, serve, packs, "
+                                 "seal, audit, prove, segments")  # fmt: skip
+            if verb in _AUDIT_VERBS:
+                from opentine._cli_ingest_audit import HANDLERS
+
+                out, lines, code = HANDLERS[verb](args, repo, _now(args))
+            else:
+                handler = {None: _batch, "policy": _policy, "verify": _verify}[verb]
+                out, lines, code = handler(args, repo)
+    except (OSError, ValueError, KeyError, IngestError, LogError) as exc:
         raise error(exc, prefix="ingest: ") from exc
     if args.json:
         emit({"command": "ingest" + (f" {verb}" if verb else " --batch"), "schema": SCHEMA, **out})

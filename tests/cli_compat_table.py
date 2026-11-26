@@ -7654,4 +7654,78 @@ ROWS: tuple[tuple, ...] = (
             "repo": ".",
         },
     ),  # fmt: skip
+    (
+        "plain:ingest seal --stream rl --key k --json",
+        "plain",
+        ["ingest", "seal", "--stream", "rl", "--key", "k", "--json"],
+        "opentine._cli_ingest:cmd_ingest",
+        False,
+        {
+            "command": "ingest",
+            "ingest_command": "seal",
+            "stream": "rl",
+            "key": "k",
+            "through": None,
+            "repo": ".",
+            "at": None,
+            "json": True,
+        },  # fmt: skip
+    ),
+    (
+        "plain:ingest audit annotation:x --key a --confidence 0.99 --max-bad 0.005",
+        "plain",
+        [
+            "ingest",
+            "audit",
+            "annotation:x",
+            "--key",
+            "a",
+            "--confidence",
+            "0.99",
+            "--max-bad",
+            "0.005",
+        ],  # fmt: skip
+        "opentine._cli_ingest:cmd_ingest",
+        False,
+        {
+            "command": "ingest",
+            "ingest_command": "audit",
+            "segment": "annotation:x",
+            "key": "a",
+            "confidence": "0.99",
+            "max_bad": "0.005",
+            "checkpoint": None,
+            "episodes": None,
+            "repo": ".",
+            "json": False,
+        },  # fmt: skip
+    ),
+    (
+        "plain:ingest prove annotation:x --index 7 --json",
+        "plain",
+        ["ingest", "prove", "annotation:x", "--index", "7", "--json"],
+        "opentine._cli_ingest:cmd_ingest",
+        False,
+        {
+            "command": "ingest",
+            "ingest_command": "prove",
+            "segment": "annotation:x",
+            "index": 7,
+            "json": True,
+        },  # fmt: skip
+    ),
+    (
+        "plain:ingest segments rl --strict --json",
+        "plain",
+        ["ingest", "segments", "rl", "--strict", "--json"],
+        "opentine._cli_ingest:cmd_ingest",
+        False,
+        {
+            "command": "ingest",
+            "ingest_command": "segments",
+            "stream": "rl",
+            "strict": True,
+            "json": True,
+        },  # fmt: skip
+    ),
 )
