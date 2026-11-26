@@ -64,11 +64,9 @@ CONTAINMENT = "containment:"
 WEIGHT_CUSTODY = "custody:weights:"
 #: 0.72: a refused load of a model-organism artifact (opentine._weight_custody_review).
 WEIGHT_CUSTODY_REFUSED = "custody:weights-refused:"
-#: 0.72: rows that keep a model-organism tag, untag, load approval or access-log entry
-#: (opentine._organism): released never, so a loop cannot untag or erase an access.
+#: 0.72: a model-organism tag, untag, approval or access entry (opentine._organism).
 ORGANISM = "organism:"
-#: 0.74: rows that keep a signed behaviour flag on transcripts (opentine._transcript_flags):
-#: released never, so a loop cannot delete the record that flagged it.
+#: 0.74: a signed behaviour flag on transcripts (opentine._transcript_flags): never released.
 TRANSCRIPT_FLAG = "transcript-flag:"
 #: 0.73: rows that keep an uplift suite or record (opentine._uplift): released never.
 UPLIFT = "uplift:"
@@ -78,14 +76,15 @@ DATASET_RECORD = "dataset-record:"
 DATASET_WITHDRAW = "dataset-withdraw:"
 #: 0.74: rows that keep a signed policy admission record (opentine._policy_record): never released.
 POLICY_ADMISSION = "policy-admission:"
-#: 0.77/0.84: an ingest stream's policies, newest batch and newest sealed segment, and each
-#: segment's audits (opentine._ingest_holds, opentine._rl_audit): released never.
+#: 0.77/0.84: ingest policies, newest batch and segment, audits (_ingest_holds, _rl_audit).
 INGEST_POLICY, INGEST_HEAD = "ingest-policy:", "ingest-head:"
 INGEST_SEGMENT, INGEST_AUDIT = "ingest-segment:", "ingest-audit:"
 #: 0.83: interpretability records and probe calibrations (opentine._interp_custody): never released.
 INTERP_CUSTODY = "custody:interp"
 #: 0.83: a signed collusion-protocol verdict (opentine._collusion_record): never released.
 COLLUSION_VERDICT = "collusion-verdict:"
+#: 0.84: an artifact provenance record and its run (opentine._artifact_provenance).
+PROVENANCE = "custody:provenance:"
 _NEVER_RELEASED = (
     ((MEMORY_QUARANTINE,), "a memory quarantine"),
     ((MONITOR_VERDICT, MONITOR_STOP), "a monitor verdict or stop token"),
@@ -105,6 +104,7 @@ _NEVER_RELEASED = (
     ((INGEST_POLICY, INGEST_HEAD, INGEST_SEGMENT, INGEST_AUDIT), "an ingest record"),
     ((INTERP_CUSTODY,), "an interpretability custody record"),
     ((COLLUSION_VERDICT,), "a collusion-protocol verdict"),
+    ((PROVENANCE,), "an artifact provenance record"),
 )
 MAX_HOLDS_BYTES = 4 * 1024 * 1024
 
