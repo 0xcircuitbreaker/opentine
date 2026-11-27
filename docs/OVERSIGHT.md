@@ -119,9 +119,30 @@ Each pinned tier's k is then at least the pinned value: the file may raise it
 but never lower it. A pinned tier the file lacks leaves the policy `unpinned`
 (it grants nothing), and a bad or rolled-back bundle under a pinned owner
 refuses with `promote.oversight-insufficient`. `tine oversight policy` and
-`queue` report `"floors": true` when a floor section is in force. There is no
-`tine trust bundle create` flag for this section yet; it is added to the
-bundle payload by hand before signing.
+`queue` report `"floors": true` when a floor section is in force.
+
+### Owner-pinned routes and policy digest (0.85)
+
+A floor does not stop an older signed copy that simply has no `promotion`
+route: nothing is routed, so nothing is gated. The same section can also pin
+which sources must keep a route, and the exact policy bytes:
+
+```json
+"oversight": {"version": 1, "routes": ["promotion"],
+              "policy_sha256": "<sha256 of .tine/oversight.toml>"}
+```
+
+`tiers`, `routes` and `policy_sha256` are each optional, but at least one is
+given. A file that lacks a route for a pinned source, or whose sha256 is not the
+pinned one, is `unpinned`. When `promotion` is a pinned route, `tine promote`
+then refuses with `promote.oversight-insufficient` even though the old file
+would route nothing, and it also refuses when the file is gone.
+
+`tine trust bundle create` takes the section with `--oversight FILE` (the JSON
+above) or `--oversight-policy .tine/oversight.toml`, which pins that file's
+sha256 and every source it routes. A pinned digest means each policy edit needs
+a new bundle from the owner: that is the point. Pin only `routes` when you want
+policy-role keys to keep editing tiers and approvers.
 
 ### Who counts
 

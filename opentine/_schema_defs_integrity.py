@@ -16,7 +16,7 @@ _HEX = {"type": "string", "pattern": "^[0-9a-f]{64}$"}
 _HEAD = {"schema": {"const": "tine-cli-integrity/1"}}
 _CODES = ("fail:protected-surface-modified", "fail:protected-list-missing",
           "fail:protected-list-unsigned", "advisory:test-deleted",
-          "advisory:holdout-read", *ADVISORY_CODES)  # fmt: skip
+          "advisory:holdout-read", "advisory:protected-read", *ADVISORY_CODES)  # fmt: skip
 _FINDING = closed(["level", "code", "surface", "path", "detail"], {
     "level": {"enum": ["fail", "advisory"]}, "code": {"enum": list(dict.fromkeys(_CODES))},
     "surface": STR, "path": STR, "detail": STR})  # fmt: skip

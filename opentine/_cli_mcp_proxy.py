@@ -101,7 +101,11 @@ def _guard(args: argparse.Namespace, session: str) -> Any:
         _fail("--monitor needs --monitor-repo (or --repo) and --monitor-key: verdicts are signed")
     try:
         config = load(args.monitor)
-        gate = Gate(config, repo=Repo.open(where), key=ed25519_private(args.monitor_key),
+        store = Repo.open(where)
+        from opentine._integrity_defaults import pin  # 0.85: the monitor config is pinned
+
+        pin(Path(store.path).parent, args.monitor, "monitor")
+        gate = Gate(config, repo=store, key=ed25519_private(args.monitor_key),
                     session=session, agent=args.monitor_agent)  # fmt: skip
     except (OSError, ValueError) as exc:
         _fail(f"monitor: {exc}")

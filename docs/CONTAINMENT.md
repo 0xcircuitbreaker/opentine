@@ -73,7 +73,7 @@ run (as the hook path and `tine mcp-proxy --save` record them) and reports
 | `self-replication` | copying the agent's own code or model weights; fetching weights |
 | `unmonitored-process` | `nohup`, `setsid`, `disown`, a trailing `&`, `systemd-run`, `docker run -d`, detached `screen`/`tmux` |
 | `persistence` | cron, systemd units, shell start-up files, launch agents, scheduled tasks |
-| `limit-edit` | seccomp, capabilities, cgroups, `ulimit`, key roles, the trust bundle, sandbox policies, budgets and limit files |
+| `limit-edit` | seccomp, capabilities, cgroups, `ulimit`, key roles, the trust bundle, sandbox policies, budgets and limit files; from 0.85 also the oversight and protected lists, `.tine/integrity/`, monitor config, policy files, agent hook settings (`.claude/settings*.json`, `.codex/hooks.json`, `.gemini/settings.json`, `.cursor/hooks.json`, `disableAllHooks`), MCP and proxy config, and setting or unsetting `OPENTINE_*`/`TINE_*` |
 
 With `--key`, each new finding is signed and held; a rescan records nothing
 twice. Findings carry the step index and a `sha256:` digest of the step text,

@@ -174,12 +174,13 @@ def load(store: Path | None) -> dict[str, Any]:
     try:
         data = (Path(store) / FILE_NAME).read_bytes()
     except FileNotFoundError:  # floors pinned in the trust bundle survive the file's removal
-        out["floors"] = _floor.pinned_tiers(Path(store)) is not None
+        out["floors"] = _floor.pinned(Path(store)) is not None
         return out
     out["policy"] = parse(data)
     out["roles"], out["role_status"] = roles(Path(store))
-    floors = _floor.pinned_tiers(Path(store))
+    floors = _floor.pinned(Path(store))
     out["floors"] = floors is not None
+    out["pinned_routes"] = floors["routes"] if floors else []
     lacks = _floor.apply(out["policy"], floors) if floors else ""
     try:
         doc = json.loads((Path(store) / PIN_NAME).read_bytes())

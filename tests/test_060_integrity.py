@@ -92,7 +92,7 @@ def test_the_shared_fixture_is_current_and_the_python_answers_match() -> None:
 
 
 def test_parse_refuses_unknown_kinds_bad_pins_and_duplicates() -> None:
-    assert len(parse(PROTECTED_TOML.encode())["surfaces"]) == 5
+    assert len(parse(PROTECTED_TOML.encode())["surfaces"]) == 7
     for bad in ('version = 1\n[[surface]]\nname = "a"\nkind = "other"\n',
                 'version = 1\n[[surface]]\nname = "a"\nkind = "test"\n[surface.pins]\n"x" = "1"\n',
                 'version = 1\n[[surface]]\nname = "a"\nkind = "test"\n'
@@ -125,7 +125,8 @@ def test_a_benign_run_passes_and_a_grader_edit_is_tainted(room: Path, tmp_path, 
     _tool(benign, "Read", file_path=GRADER)
     good = _store(room, benign)
     code, row = _cli(capsys, "integrity", "check", good, "--repo", room.as_posix(), "--json")
-    assert code == 0 and row["ok"] and row["findings"] == [] and row["taint"] is None
+    assert code == 0 and row["ok"] and row["taint"] is None  # 0.85: a grader read is advisory
+    assert [f["code"] for f in row["findings"]] == ["advisory:protected-read"]
     hack = Run(id="hack")
     _tool(hack, "Write", file_path=GRADER, content="def judge(x):\n    return True\n")
     bad = _store(room, hack)
