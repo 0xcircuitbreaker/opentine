@@ -24,7 +24,8 @@
       "enum": [
         "spend",
         "policy",
-        "flag"
+        "flag",
+        "deny"
       ]
     },
     "at": {
@@ -67,6 +68,34 @@
           "type": "null"
         }
       ]
+    },
+    "call": {
+      "type": [
+        "integer",
+        "string"
+      ]
+    },
+    "phase": {
+      "enum": [
+        "reserve",
+        "settle"
+      ]
+    },
+    "role": {
+      "enum": [
+        "agent",
+        "judge",
+        "scorer"
+      ]
+    },
+    "model": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string"
+    },
+    "path": {
+      "type": "string"
     }
   }
 }

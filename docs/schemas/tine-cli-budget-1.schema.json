@@ -233,6 +233,61 @@
                     "entry": {
                       "type": "string",
                       "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+                    },
+                    "model_path": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "allow": {
+                          "anyOf": [
+                            {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "aliases": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        },
+                        "judge": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "properties": {
+                            "tokens": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "money_usd": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "max_output_tokens": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      }
                     }
                   }
                 },
@@ -252,7 +307,9 @@
                 "money_usd",
                 "input_tokens",
                 "output_tokens",
-                "runs"
+                "runs",
+                "judge_tokens",
+                "judge_money_usd"
               ],
               "properties": {
                 "tokens": {
@@ -281,6 +338,13 @@
                 "runs": {
                   "type": "integer",
                   "minimum": 0
+                },
+                "judge_tokens": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "judge_money_usd": {
+                  "type": "number"
                 }
               }
             },
@@ -591,6 +655,61 @@
                     "entry": {
                       "type": "string",
                       "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+                    },
+                    "model_path": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "allow": {
+                          "anyOf": [
+                            {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "aliases": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        },
+                        "judge": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "properties": {
+                            "tokens": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "money_usd": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "max_output_tokens": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      }
                     }
                   }
                 },
@@ -610,7 +729,9 @@
                 "money_usd",
                 "input_tokens",
                 "output_tokens",
-                "runs"
+                "runs",
+                "judge_tokens",
+                "judge_money_usd"
               ],
               "properties": {
                 "tokens": {
@@ -639,6 +760,13 @@
                 "runs": {
                   "type": "integer",
                   "minimum": 0
+                },
+                "judge_tokens": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "judge_money_usd": {
+                  "type": "number"
                 }
               }
             },
@@ -923,7 +1051,9 @@
             "money_usd",
             "input_tokens",
             "output_tokens",
-            "runs"
+            "runs",
+            "judge_tokens",
+            "judge_money_usd"
           ],
           "properties": {
             "tokens": {
@@ -952,6 +1082,13 @@
             "runs": {
               "type": "integer",
               "minimum": 0
+            },
+            "judge_tokens": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "judge_money_usd": {
+              "type": "number"
             }
           }
         }
@@ -1121,6 +1258,61 @@
                     "entry": {
                       "type": "string",
                       "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+                    },
+                    "model_path": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "allow": {
+                          "anyOf": [
+                            {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "aliases": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        },
+                        "judge": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "properties": {
+                            "tokens": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "money_usd": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "max_output_tokens": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      }
                     }
                   }
                 },
@@ -1140,7 +1332,9 @@
                 "money_usd",
                 "input_tokens",
                 "output_tokens",
-                "runs"
+                "runs",
+                "judge_tokens",
+                "judge_money_usd"
               ],
               "properties": {
                 "tokens": {
@@ -1169,6 +1363,13 @@
                 "runs": {
                   "type": "integer",
                   "minimum": 0
+                },
+                "judge_tokens": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "judge_money_usd": {
+                  "type": "number"
                 }
               }
             },
