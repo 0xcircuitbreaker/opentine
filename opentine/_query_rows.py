@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from opentine import _collusion_verdicts, _json_shallow
@@ -26,6 +25,10 @@ from opentine._query_policy import COLUMNS as _POLICY_COLUMNS
 from opentine._query_research import COLUMNS as _RESEARCH_COLUMNS
 from opentine._query_transcripts import COLUMNS as _TRANSCRIPT_COLUMNS
 from opentine._query_uplift import COLUMNS as _UPLIFT_COLUMNS
+from opentine._query_values import flag as _flag
+from opentine._query_values import integer as _int
+from opentine._query_values import number as _num
+from opentine._query_values import text as _text
 
 #: The tables and the columns each row has, in order (``oid`` first).
 COLUMNS: dict[str, tuple[str, ...]] = {
@@ -53,27 +56,6 @@ COLUMNS.update(_UPLIFT_COLUMNS)  # 0.73: uplift suites and records, trend points
 COLUMNS.update({**_DATASET_COLUMNS, **_INGEST_COLUMNS})  # 0.75: datasets; 0.77: ingest
 #: Columns a row derives from its run (or file), not from the object itself.
 CONTEXT = {"run", "seq", "source", "line"}
-
-
-def _text(value: Any) -> str | None:
-    return value if isinstance(value, str) else None
-
-
-def _num(value: Any) -> float | None:
-    if isinstance(value, int | float):
-        return None if isinstance(value, bool) else float(value)
-    try:
-        return float(Decimal(str(value))) if isinstance(value, str) else None
-    except (InvalidOperation, ValueError):
-        return None
-
-
-def _int(value: Any) -> int | None:
-    return value if isinstance(value, int) and not isinstance(value, bool) else None
-
-
-def _flag(value: Any) -> int | None:
-    return int(value) if isinstance(value, bool) else None
 
 
 def run_row(oid: str, payload: dict[str, Any]) -> dict[str, Any]:

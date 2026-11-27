@@ -22,6 +22,10 @@ import json
 from pathlib import Path
 from typing import Any
 
+from opentine._query_values import flag as _flag
+from opentine._query_values import number as _num
+from opentine._query_values import text as _text
+
 COLUMNS: dict[str, tuple[str, ...]] = {
     "sabotage_tasks": ("oid", "target", "signer", "signed", "task", "class", "main_task",
                        "main_score", "main_passed", "side_task", "attempted", "achieved",
@@ -35,20 +39,6 @@ FILE_TABLES = ("elicit_links", "elicit_items")
 #: Roles that make a row of these tables ``verified`` under ``--verify``.
 ROLES_FOR = {"sabotage_tasks": ("scorer", "eval"),
              "elicit_links": ("scorer", "eval", "verdict")}  # fmt: skip
-
-
-def _text(value: Any) -> str | None:
-    return value if isinstance(value, str) else None
-
-
-def _flag(value: Any) -> int | None:
-    return int(value) if isinstance(value, bool) else None
-
-
-def _num(value: Any) -> float | None:
-    from opentine._query_rows import _num as num
-
-    return num(value)
 
 
 def sabotage_row(oid: str, payload: dict[str, Any]) -> dict[str, Any] | None:

@@ -18,6 +18,9 @@ from __future__ import annotations
 
 from typing import Any
 
+from opentine._query_values import integer as _int
+from opentine._query_values import text as _text
+
 COLUMNS: dict[str, tuple[str, ...]] = {
     "interp_artifacts": ("oid", "target", "signer", "signed", "kind", "digest", "blob", "size",
                          "checkpoint", "layer", "name", "tags", "recorded_at"),
@@ -26,14 +29,6 @@ COLUMNS: dict[str, tuple[str, ...]] = {
                            "false_positives", "tpr", "fpr", "calibrated_at"),
 }  # fmt: skip
 ROLES_FOR = {"interp_artifacts": ("runner",), "probe_calibrations": ("monitor", "policy")}
-
-
-def _text(value: Any) -> str | None:
-    return value if isinstance(value, str) else None
-
-
-def _int(value: Any) -> int | None:
-    return value if isinstance(value, int) and not isinstance(value, bool) else None
 
 
 def _num(value: Any) -> float | None:

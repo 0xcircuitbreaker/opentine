@@ -16,15 +16,13 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from opentine._query_values import text as _text
+
 COLUMNS: dict[str, tuple[str, ...]] = {
     "history_merges": ("oid", "target", "signer", "signed", "ref", "base", "sides",
                        "merged", "conflicts"),
 }  # fmt: skip
 ROLES_FOR = {"history_merges": ("policy",)}
-
-
-def _text(value: Any) -> str | None:
-    return value if isinstance(value, str) else None
 
 
 def merge_row(oid: str, payload: dict[str, Any]) -> dict[str, Any] | None:
