@@ -371,11 +371,11 @@ lays the working tree out again. Findings, all `fail:` (command-level codes):
 | --- | --- |
 | `fail:region-outside-modified` | a locked segment's bytes differ: an edit outside a region, a moved marker, text carried across a region, a CRLF or Unicode normalisation change |
 | `fail:region-file-added` / `fail:region-file-removed` | the globs now cover a file the pin does not list, or a pinned file is gone |
-| `fail:region-marker-invalid` | an unbalanced or nested marker, a different region count, a line that folds (NFKC, case-folded, letters only) to `evolveblock` but is not an exact marker line (renamed, look-alike, trailing, CR-split), or in a `.py` file a marker the tokenizer does not see as a comment (inside a string) |
+| `fail:region-marker-invalid` | an unbalanced or nested marker, a different region count, a line that folds (NFKC, case-folded, letters only) to `evolveblock` but is not an exact marker line (renamed, look-alike, trailing, CR-split), or in a `.py` file a marker the tokenizer does not see as a statement-level comment (inside a string or an open bracket, or an END right after a decorator line, where a region would change what the locked lines after it mean) |
 | `fail:regions-pin-missing` / `fail:regions-pin-unsigned` | no pin, or one that does not verify, does not parse, or is not signed by a pinned policy-role, non-optimizer key |
 
 Bytes are compared as they are; nothing is normalised before hashing. A
-symlink is pinned as its target text and never followed. `.git` and `.tine`
+symlink is pinned as its target text and never followed; a FIFO or device is pinned by its file type and never opened. `.git` and `.tine`
 are not walked.
 
 `tine promote` reads the promotion policy key `regions`. With `"advisory"`

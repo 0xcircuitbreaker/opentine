@@ -27,6 +27,7 @@ from __future__ import annotations
 import hashlib
 import os
 import re
+import stat
 from pathlib import Path
 from typing import Any
 
@@ -53,8 +54,11 @@ def _files(root: Path, globs: list[str]) -> dict[str, bytes]:
             rel = full.relative_to(root).as_posix()
             if not any(matches(g, rel) for g in globs):
                 continue
-            if full.is_symlink():  # a link is its target text, never followed
+            mode = full.lstat().st_mode
+            if stat.S_ISLNK(mode):  # a link is its target text, never followed
                 out[rel] = b"symlink:" + os.fsencode(os.readlink(full))
+            elif not stat.S_ISREG(mode):  # a FIFO or device is never opened
+                out[rel] = b"special:" + str(stat.S_IFMT(mode)).encode("ascii")
             else:
                 out[rel] = full.read_bytes()
             if len(out) > MAX_FILES:

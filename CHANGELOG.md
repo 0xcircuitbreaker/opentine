@@ -13,6 +13,10 @@
   tampering: unbalanced, nested, moved, renamed or look-alike markers, markers
   inside Python strings, CRLF and Unicode normalisation changes. Bytes are
   compared unnormalised; a symlink is pinned as its target text.
+- In `.py` files a marker inside an open bracket, or an END marker right after
+  a decorator line, is a marker error: such a region would change what the
+  locked lines after it mean without changing their bytes. A FIFO or device
+  under the globs is pinned by its file type and never opened.
 - `tine promote` reads a new policy key `regions`: `"advisory"` by default
   (`advisory:regions.outside-modified`, never blocking), `"required"` under
   `profile = "rsi"`, where any finding refuses `promote.region-modified` and a
