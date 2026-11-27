@@ -8205,4 +8205,12 @@ ROWS: tuple[tuple, ...] = (
             "root": ".",
         },
     ),  # fmt: skip  # 0.88
+    (
+        "plain:mcp-proxy --tool-defs block -- python server.py",
+        "plain",
+        ["mcp-proxy", "--tool-defs", "block", "--", "python", "server.py"],
+        "opentine._cli_mcp_proxy:cmd_mcp_proxy",
+        False,
+        {"command": "mcp-proxy", "tool_defs": "block", "http_upstream": None},
+    ),  # 0.88
 )
