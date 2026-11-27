@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Model-path controls and region pins
+## 0.87.0 — Model-path controls and region pins (2026-11-27)
 
 - `tine record --budget SUBJECT --budget-key KEY --repo PATH` enforces the
   subject's budget policy inside the record proxy, reusing the policy, ledger
@@ -48,6 +48,13 @@
   (`advisory:regions.outside-modified`, never blocking), `"required"` under
   `profile = "rsi"`, where any finding refuses `promote.region-modified` and a
   missing or unsigned pin refuses `promote.regions-unpinned`.
+  **Upgrade note:** existing `profile = "rsi"` users must file a region pin
+  (`tine integrity region-pin`) before their next promotion. See
+  `docs/REGION-PINS.md`.
+- New end-to-end acceptance test: `tine record --budget` refusing a model
+  outside the allowlist, a judge call over its cap and a call over the token
+  cap with signed, held deny entries, and `tine integrity region-pin` /
+  `region-check` through the CLI.
 
 ## 0.86.1 — Killed-writer durability fixes (2026-11-27)
 
