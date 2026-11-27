@@ -50,7 +50,8 @@ def _bounded_decompress(data: bytes, limit: int) -> bytes:
     decompressor = zlib.decompressobj()
     body = bytearray()
     pending = data
-    while pending:
+    # Past end-of-stream zlib keeps a stale unconsumed_tail: stop at eof or spin.
+    while pending and not decompressor.eof:
         remaining = limit + 1 - len(body)
         if remaining <= 0:
             raise KernelError("pack exceeds maximum decompressed size")

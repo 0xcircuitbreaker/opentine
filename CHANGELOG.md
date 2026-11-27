@@ -2,6 +2,11 @@
 
 ## 0.86.1 — Killed-writer durability fixes (2026-11-27)
 
+- A TINEPACK3 pack with bytes after its compressed stream is refused with
+  "truncated or trailing compressed data" instead of hanging: the bounded
+  decompressor now stops at end-of-stream, where zlib leaves a stale
+  `unconsumed_tail` (found by the scaled fuzz run; input kept in
+  `tests/fuzz_regressions/pack/`).
 - The git option probe test writes git's output to a file instead of a pipe
   and turns off auto gc/maintenance, so a detached child that inherited the
   pipe can no longer stall it past its timeout on Windows.
