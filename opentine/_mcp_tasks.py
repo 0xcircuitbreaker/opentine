@@ -216,16 +216,23 @@ class TaskMiddleware:
 
 
 def construct(server_class: Any, name: str) -> Any:
-    """``server_class(name)`` with tasks where the class takes extensions (SDK 2.x)."""
+    """``server_class(name)`` with tasks where the class takes extensions (SDK 2.x).
+
+    0.88: an SDK 2.x server also reports opentine's version in ``serverInfo`` and
+    enforces the protocol window (:mod:`opentine._mcp_protocol`).
+    """
+    from opentine._mcp_protocol import install
+    from opentine._version import __version__
+
     store = TaskStore()
     found = extension(store)
     if found is not None:
         try:
-            server = server_class(name, extensions=[found])
+            server = server_class(name, version=__version__, extensions=[found])
         except TypeError:
             return server_class(name)  # SDK 1.x FastMCP (or a test double): no tasks
         server.middleware.append(TaskMiddleware(store))
-        return server
+        return install(server)
     return server_class(name)
 
 
