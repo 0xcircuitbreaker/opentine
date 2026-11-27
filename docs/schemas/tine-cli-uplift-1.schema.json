@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opentine.com/schemas/tine-cli-uplift-1.schema.json",
   "title": "tine uplift ... --json",
-  "description": "Uplift and capability trends. `suite` and `record` write signed, held claims; `horizon` reports the 50%-success time horizon (logistic fit on log2 task length, seeded bootstrap interval) with a per-generation trend; `compare` sets two groups side by side. Reports are recomputable byte for byte from the export.",
+  "description": "Uplift and capability trends. `suite` and `record` write signed, held claims; `horizon` reports the 50%-success time horizon (logistic fit on log2 task length, seeded bootstrap interval; `bootstrap` names the method, `cluster` resampling clusters named by `cluster_key` and then points inside them) with a per-generation trend; `compare` sets two groups side by side. Reports are recomputable byte for byte from the export.",
   "anyOf": [
     {
       "type": "object",
@@ -110,6 +110,8 @@
         "seed",
         "resamples",
         "alpha",
+        "bootstrap",
+        "cluster_key",
         "findings",
         "condition",
         "subject",
@@ -151,6 +153,25 @@
         },
         "alpha": {
           "type": "string"
+        },
+        "bootstrap": {
+          "enum": [
+            "naive",
+            "cluster"
+          ]
+        },
+        "cluster_key": {
+          "anyOf": [
+            {
+              "enum": [
+                "task",
+                "subject"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "findings": {
           "type": "array",
@@ -430,6 +451,8 @@
         "seed",
         "resamples",
         "alpha",
+        "bootstrap",
+        "cluster_key",
         "findings",
         "a",
         "b",
@@ -471,6 +494,25 @@
         },
         "alpha": {
           "type": "string"
+        },
+        "bootstrap": {
+          "enum": [
+            "naive",
+            "cluster"
+          ]
+        },
+        "cluster_key": {
+          "anyOf": [
+            {
+              "enum": [
+                "task",
+                "subject"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "findings": {
           "type": "array",

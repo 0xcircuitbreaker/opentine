@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-eval-plan-reveal-1.schema.json",
+  "title": "opentine.eval-plan-reveal/1",
+  "description": "The claim that opens a plan's seed commitment after the runs. A claim convention on an attestation, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "plan_sha256",
+    "secret"
+  ],
+  "properties": {
+    "schema": {
+      "const": "opentine.eval-plan-reveal/1"
+    },
+    "plan_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "secret": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}

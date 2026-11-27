@@ -34,9 +34,13 @@ def add_eval_parsers(sub: Any) -> None:
         help="Sealed holdout DATASET came from: refuse runs that touched it",
     )
     run.add_argument("--repo", default=".", help="Repository holding the scored runs")
+    run.add_argument("--lineage", metavar="NODE", help="Lineage node a holdout query counts for")
     from opentine._cli_eval_scorer import add_run_args, add_verbs
 
     add_run_args(run)  # 0.85: --isolate, --contract, closure pins
+    from opentine import _cli_eval_plan as planning
+
+    planning.add_run_args(run)  # 0.86: --epochs, --cluster-key, --plan, --continue-on-error
     verify = verbs.add_parser("verify", help="Verify an eval folder's verdicts offline")
     verify.add_argument("eval_dir", metavar="DIR")
     compare = verbs.add_parser("compare", help="Diff two evals item by item (both verified)")
@@ -62,6 +66,7 @@ def add_eval_parsers(sub: Any) -> None:
     ci.add_argument("--repo", default=".", help="The directory holding .tine/")
     ci.add_argument("--created-at", metavar="TIME", help="YYYY-MM-DDTHH:MM:SSZ (default: now)")
     add_verbs(verbs)  # 0.85: rescore, lint
+    planning.add_verbs(verbs)  # 0.86: plan, reveal
     for verb in (verify, compare):
         verb.add_argument("--pubkey", metavar="PUB", help="Trusted Ed25519 public key")
     for verb in (run, verify, compare, ci):
@@ -78,16 +83,21 @@ def _pubkey(args: argparse.Namespace) -> bytes | None:
 def _outputs(path: str | None) -> dict[str, dict[str, Any]] | None:
     if not path:
         return None
+    from opentine._eval_coverage import keyed_outputs
+
     rows = [json.loads(line) for line in Path(path).read_text("utf-8").splitlines() if line.strip()]
-    return {str(row["id"]): row for row in rows}
+    return keyed_outputs(rows)  # 0.86: an "epoch" names ID@eK
 
 
 def _run(args: argparse.Namespace) -> dict[str, Any]:
     from opentine._eval_dataset import read_jsonl
     from opentine._eval_run import run_eval
     from opentine._eval_scorers import parse
+    from opentine._holdout_query import LINEAGE_RE
     from opentine._signing_keys import ed25519_private_from_file
 
+    if args.lineage is not None and not LINEAGE_RE.fullmatch(args.lineage):
+        raise ValueError(f"--lineage must match {LINEAGE_RE.pattern}")  # before anything is signed
     prompt = Path(args.judge_prompt).read_text("utf-8") if args.judge_prompt else None
     rubric = Path(args.judge_rubric).read_bytes().decode("utf-8") if args.judge_rubric else None
     from opentine._cli_eval_scorer import build
@@ -100,15 +110,22 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         from opentine._eval_holdout import refuse_touched
 
         refuse_touched(args, read_jsonl(Path(args.dataset)), _outputs(args.outputs))
-    summary = run_eval(read_jsonl(Path(args.dataset)), scorer, key, Path(args.out),
+    from opentine._cli_eval_plan import run_options
+
+    items = read_jsonl(Path(args.dataset))
+    summary = run_eval(items, scorer, key, Path(args.out),
                        threshold=args.threshold, outputs=_outputs(args.outputs),
-                       default_run=args.default_run, created_at=args.created_at)  # fmt: skip
+                       default_run=args.default_run, created_at=args.created_at,
+                       **run_options(args, items))  # fmt: skip
     found = scorer.config.get("closure")
     if found is not None:
         from opentine._scorer_closure import closure_digest
 
         summary["closure"] = closure_digest(found)
         summary["isolation"] = found["isolation"]["level"]
+    from opentine._eval_holdout import record_queries
+
+    summary["holdout_queries"] = record_queries(args, key, summary)  # 0.86
     return {**summary, "advisories": advisories}
 
 
@@ -134,10 +151,10 @@ def _human(verb: str, row: dict[str, Any]) -> None:
     for item in row.get("advisories", []):
         console.print(f"ADVISORY {item['code']}: {item['detail']}", highlight=False, markup=False)
 
-    if verb in ("rescore", "lint"):
-        from opentine._cli_eval_scorer import human
+    if verb in ("rescore", "lint", "plan", "reveal"):
+        from opentine import _cli_eval_plan, _cli_eval_scorer
 
-        human(row)
+        (_cli_eval_plan if verb in _cli_eval_plan.VERBS else _cli_eval_scorer).human(row)
         return
     if verb == "ci":
         for item in row["evals"]:
@@ -188,10 +205,11 @@ def cmd_eval(args: argparse.Namespace) -> None:
     try:
         if verb == "run":
             row = {"ok": True, **_run(args)}
-        elif verb in ("rescore", "lint"):
-            from opentine._cli_eval_scorer import run_verb
+        elif verb in ("rescore", "lint", "plan", "reveal"):
+            from opentine import _cli_eval_plan, _cli_eval_scorer
 
-            row = run_verb(args)
+            source = _cli_eval_plan if verb in _cli_eval_plan.VERBS else _cli_eval_scorer
+            row = source.run_verb(args)
         elif verb == "ci":
             row = _ci(args)
         elif verb == "verify":
