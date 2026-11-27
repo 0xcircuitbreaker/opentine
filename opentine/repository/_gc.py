@@ -29,6 +29,7 @@ from opentine.repository._config import (
     storage_codec,
     storage_version,
 )
+from opentine.repository._gc_drop import drop_pack, shadowed
 from opentine.repository._gc_refs import housekeep
 from opentine.repository._gc_tidy import old_loose, remove_empty_dir, sweep_empty_fanout
 from opentine.repository._lockfile import acquire
@@ -216,7 +217,7 @@ def _gc_locked(
         if oid_of(raw) != oid:
             raise KernelError(f"refusing to pack a corrupt object: {oid}")
     objects = sorted(raws.items())
-    removed_packs = 0
+    removed_packs, digest = 0, None
     if objects:
         digest = write_pack(repo.path, objects, chosen, level, fmt)
         check = load_pack(repo.path, digest)
@@ -226,12 +227,10 @@ def _gc_locked(
                 raise KernelError(f"new pack does not return {oid}; nothing was removed")
         for oid in loose:
             _remove_loose(repo, oid)
-        for old in old_packs:
-            if old == digest:
-                continue
-            for suffix in (".tidx", ".tpk"):  # unpublish first, then drop the body
-                internal_path(repo.path, "packs", old + suffix).unlink(missing_ok=True)
-            removed_packs += 1
+        for old in old_packs:  # a pack a reader still holds is left for a later gc
+            removed_packs += old != digest and drop_pack(repo.path, old)
+    for old in shadowed(packs, held, digest):  # duplicates such a gc left behind
+        removed_packs += drop_pack(repo.path, old)
     transfer = 0
     if not keep_transfer_packs:
         # Received transfer packs are kept only as a copy of what arrived; every

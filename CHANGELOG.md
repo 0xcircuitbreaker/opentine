@@ -2,6 +2,10 @@
 
 ## 0.86.1 — Killed-writer durability fixes (2026-11-27)
 
+- `tine gc` no longer fails when another process (a live recorder) still holds
+  a pack it merged away (Windows sharing violation): after the bounded retry
+  the pack is left in place -- a duplicate of objects the merged pack holds, or
+  an unpublished body -- and the next gc or reap removes it.
 - A TINEPACK3 pack with bytes after its compressed stream is refused with
   "truncated or trailing compressed data" instead of hanging: the bounded
   decompressor now stops at end-of-stream, where zlib leaves a stale
