@@ -1,5 +1,31 @@
 # Changelog
 
+## Unreleased — Scaffold manifests and structural diff
+
+- `tine lineage diff OLD NEW` compares two variant trees file by file: Python by
+  AST symbol, prompt files by heading section, tool sets by name and
+  `tool_def_digest`, JSON/TOML/YAML configs by canonical leaf, other text by
+  tokens. A file whose bytes changed is always listed, with hidden-edit flags
+  (`invisible`, `bidi`, `non-ascii`, `nfkc`, `line-endings`, `whitespace`), so
+  an edit made to look unchanged is named. A repeated config key refuses the
+  diff (`lineage-diff.duplicate-key`). `--key` signs the diff as an
+  `attestation` payload with the `opentine.lineage.diff` claim convention;
+  `--check` verifies and recomputes one; `--tree` prints a tree digest.
+- Lineage records take a `skill` artifact (`tine lineage record --skill`), in
+  Python and the TypeScript verifier.
+- `tine promote` shows a skill tree change between the holder and the candidate
+  as `skills` in its output and signed decision. Under a non-skill label it is
+  the advisory `advisory:promote.skill-changed`; with `skill_labels =
+  "required"` (on under `profile = "rsi"`) it is refused
+  (`promote.skill-label-required`), and a `skill.*` label on a candidate with
+  no recorded skill is `promote.skill-unrecorded`.
+- Padded base64 values (signatures, digests, opaque provider blobs such as
+  thought signatures) that end in `pw=` or `Pw==` (about 1 in 200 random
+  values) are no longer rewritten by the field scrubber in stored runs, `.tine`
+  files, attestation claims and annotation records. The scrubber read them as
+  an empty credential assignment and appended a marker; nothing was hidden by
+  that, and the value was corrupted.
+
 ## 0.87.1 — Release pipeline and Windows test fixes (2026-11-27)
 
 0.87.0 was merged but never tagged or published, because CI on main failed.

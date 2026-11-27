@@ -404,6 +404,8 @@ DRIVEN = (
     (("lineage", "graph", "--repo", "repo", "--format", "json"), "tine-cli-lineage-1"),  # 0.59
     (("lineage", "archive", "--repo", "repo", "--json"), "tine-cli-lineage-1"),  # 0.59
     (("lineage", "index", "--repo", "repo", "--rebuild", "--json"), "tine-cli-lineage-1"),
+    (("lineage", "diff", "repo", "repo", "--json"), "tine-cli-lineage-diff-1"),  # 0.88
+    (("lineage", "diff", "repo", "--tree", "--json"), "tine-cli-lineage-diff-1"),  # 0.88
     (
         ("loop", "stop", "opt", "--ed25519-key-file", "purge.key", "--repo", "repo", "--json"),
         "tine-cli-loop-1",

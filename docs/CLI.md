@@ -2290,12 +2290,14 @@ conflict toward the side that weakens a hold. `--json` prints
 
 | Command | What it does |
 | --- | --- |
-| `tine lineage record --run RUN --key KEY --code-tree\|--prompt\|--config\|--weights DIGEST [--parent VARIANT]... [--eval DIR]... [--selector T] [--decision FILE] [--policy HEX] [--loop LOOP] [--at TIME] [--dir DIR] --repo PATH` | Signs a variant record (claim convention `opentine.lineage.variant`) and files it, the eval verdicts and the promotion decision it cites in `REPO/.tine/lineage` (or `--dir`); refuses an eval that does not verify and a stopped `--loop` |
+| `tine lineage record --run RUN --key KEY --code-tree\|--prompt\|--config\|--weights\|--skill DIGEST [--parent VARIANT]... [--eval DIR]... [--selector T] [--decision FILE] [--policy HEX] [--loop LOOP] [--at TIME] [--dir DIR] --repo PATH` | Signs a variant record (claim convention `opentine.lineage.variant`) and files it, the eval verdicts and the promotion decision it cites in `REPO/.tine/lineage` (or `--dir`); refuses an eval that does not verify and a stopped `--loop` |
 | `tine lineage check VARIANT [--promotion-policy TOML] [--max-files N] [--max-bytes N] [--dir DIR] --repo PATH` | Walks the variant's ancestry; exit 1 with `lineage.*` findings (`evidence-missing`, `parent-missing`, `cycle`, `decision-mismatch`, `record-invalid`, `variant-unknown`, `signer-untrusted`); `signers` is `pinned` when `.tine/key-roles.toml` or the policy pins eval signers, else `unpinned` (a warning) |
 | `tine lineage graph [--format dot\|json] [--loop LOOP] [--dir DIR] [--no-refresh] --repo PATH` | The variant DAG from the derived index (DOT, or JSON with `missing_parents`, `cyclic`, `graph_sha256`) |
 | `tine lineage why VARIANT [--max-depth N] [--max-nodes N] [--dir DIR] --repo PATH` | Every ancestor and its evidence, re-derived from the records; carries the check's `ok` and `findings` and exits 1 when it refuses |
 | `tine lineage archive [--loop LOOP] [--signed] [--dir DIR] --repo PATH` | Population totals and per-variant fan-in/fan-out |
 | `tine lineage index [--rebuild] [--dir DIR] --repo PATH` | Build the derived index (`LINEAGE_FOLDER/index/lineage.sqlite`; rebuildable, never authoritative) |
+| `tine lineage diff OLD NEW [--from VARIANT] [--to VARIANT] [--key KEY] [--out FILE] [--at TIME] [--dir DIR] --repo PATH` | (0.88) Structural diff of two variant trees: Python by AST symbol, prompts by section, tool sets by `tool_def_digest`, configs by canonical leaf (a repeated key is refused, `lineage-diff.duplicate-key`), other text by tokens, with hidden-edit flags; `--key` signs it (claim convention `opentine.lineage.diff`) into `LINEAGE_FOLDER/diffs/` |
+| `tine lineage diff --check FILE [OLD NEW]` / `tine lineage diff PATH... --tree` | (0.88) Verify a signed diff and recompute it from the trees (exit 1 on `lineage-diff.bad-signature` or `lineage-diff.mismatch`) / print each path's tree digest |
 
 `--json` prints `tine-cli-lineage/1`. Every subcommand but `record` refuses a
 lineage folder over `--max-files` (200000) or `--max-bytes` (1 GiB) before

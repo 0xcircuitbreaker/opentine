@@ -5374,6 +5374,44 @@ ROWS: tuple[tuple, ...] = (
         {"command": "lineage", "lineage_command": "index", "rebuild": True, "json": True},
     ),
     (
+        "plain:lineage diff a b --from V --key k --json",
+        "plain",
+        ["lineage", "diff", "a", "b", "--from", "V", "--key", "k", "--json"],
+        "opentine._cli_lineage:cmd_lineage",
+        False,
+        {
+            "command": "lineage",
+            "lineage_command": "diff",
+            "old": "a",
+            "new": "b",
+            "from_variant": "V",
+            "key": "k",
+            "json": True,
+        },
+    ),  # 0.88
+    (
+        "plain:lineage diff --check d.json a b",
+        "plain",
+        ["lineage", "diff", "--check", "d.json", "a", "b"],
+        "opentine._cli_lineage:cmd_lineage",
+        False,
+        {
+            "command": "lineage",
+            "lineage_command": "diff",
+            "check": "d.json",
+            "old": "a",
+            "new": "b",
+        },
+    ),  # 0.88
+    (
+        "plain:lineage record --run R --key k --skill D",
+        "plain",
+        ["lineage", "record", "--run", "R", "--key", "k", "--skill", "D"],
+        "opentine._cli_lineage:cmd_lineage",
+        False,
+        {"command": "lineage", "lineage_command": "record", "skill": "D"},
+    ),  # 0.88
+    (
         "plain:lineage record --run R --key k --code-tree D --json",
         "plain",
         ["lineage", "record", "--run", "R", "--key", "k", "--code-tree", "D", "--json"],

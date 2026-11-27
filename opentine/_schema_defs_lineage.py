@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import Any
 
 from opentine._schema_defs import BOOL, INT, STR, closed, doc, opt, strs
+from opentine._schema_defs_lineage_diff import SCHEMAS as DIFF_SCHEMAS
 
 _HEX = {"type": "string", "pattern": "^[0-9a-f]{64}$"}
 _SHA = {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
@@ -93,9 +94,11 @@ SCHEMAS: dict[str, dict[str, Any]] = {
         "summarises a population with non-linear parents; `index` builds it.",
         {"oneOf": [_RECORD, _CHECK, _GRAPH, _WHY, _ARCHIVE, _INDEX]}),
 }  # fmt: skip
+SCHEMAS.update(DIFF_SCHEMAS)  # 0.88: tine lineage diff
 COMMAND_SCHEMAS: dict[str, str] = {
     f"lineage {name}": "tine-cli-lineage-1"
     for name in ("record", "check", "graph", "why", "archive", "index")
 }
+COMMAND_SCHEMAS["lineage diff"] = "tine-cli-lineage-diff-1"
 
 __all__ = ["COMMAND_SCHEMAS", "SCHEMAS"]
