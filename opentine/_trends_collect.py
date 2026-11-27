@@ -15,7 +15,9 @@ Inputs, each re-checked here and none trusted for being on disk:
 
 Flags are the lineage codes: ``lineage.score-tainted`` (0.59 taint on the
 mutation run), ``lineage.memory-quarantined`` (0.61), and the ``tine lineage
-check`` findings about the variant's own record.
+check`` findings about the variant's own record. 0.86 adds
+``holdout.query-over-budget`` when a cited eval has a held holdout query record
+that went over its holdout's query budget (or the holds cannot be read).
 """
 
 from __future__ import annotations
@@ -24,6 +26,7 @@ from decimal import ROUND_HALF_EVEN, Decimal
 from pathlib import Path
 from typing import Any
 
+from opentine._holdout_query import FLAG as QUERY_FLAG
 from opentine._trends import CONVENTION
 
 WITHHOLD = {"lineage.evidence-missing", "lineage.signer-untrusted"}
@@ -124,6 +127,16 @@ def _costs(root: Path) -> dict[str, int | None]:
     return out
 
 
+def _over_budget(root: Path) -> set[str] | None:
+    from opentine._holdout import HoldoutError
+    from opentine._holdout_query import over_budget_evals
+
+    try:
+        return over_budget_evals(root)
+    except HoldoutError:  # unreadable holds: every cited eval is suspect (None)
+        return None
+
+
 def _flags(root: Path, files: dict[str, bytes], variant: str, found: list[dict]) -> list[str]:
     from opentine._integrity_run import lineage_findings
     from opentine._memory_quarantine import lineage_findings as memory
@@ -158,6 +171,7 @@ def collect(root: Path, files: dict[str, bytes], *, lengths: dict[str, Any], tru
     depth, stuck = _generations({v: c["parents"] for v, c in claims.items()})
     excluded += [{"variant": v, "code": "lineage.cycle"} for v in stuck]
     costs = _costs(root)
+    over = _over_budget(root)
     runs: dict[str, int] = {}
     for variant in depth:
         runs[claims[variant]["mutation_run"]] = runs.get(claims[variant]["mutation_run"], 0) + 1
@@ -169,6 +183,9 @@ def collect(root: Path, files: dict[str, bytes], *, lengths: dict[str, Any], tru
             missing.append({"code": "lineage.signer-untrusted"})
         if runs[claim["mutation_run"]] > 1:
             missing.append({"code": RELABELLED})
+        cited = {e["eval"] for e in claim["evals"]}
+        if cited and (over is None or over & cited):
+            missing.append({"code": QUERY_FLAG})
         flags = _flags(root, files, variant, found[variant] + missing)
         keep = not WITHHOLD & set(flags)
         rows.append(

@@ -44,7 +44,7 @@ LABEL_RE = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}")
 RUN_RE = re.compile(r"run:sha256:[0-9a-f]{64}")
 _KEYS = {"label_policy", "test", "alpha", "seed", "resamples", "min_n", "metric", "budget_usd",
          "approvers", "min_approvals", "require_holdout", "eval_signers",
-         "scorer_isolation", "profile"}  # fmt: skip
+         "scorer_isolation", "profile", "holdout_queries"}  # fmt: skip
 
 
 def refusal(code: str, detail: str) -> dict[str, str]:
@@ -66,6 +66,9 @@ def load_policy(path: Path) -> dict[str, Any]:
     from opentine._promote_scorer import check_policy
 
     check_policy(out)  # 0.85: scorer_isolation / profile
+    from opentine._holdout_query import check_policy as query_policy
+
+    query_policy(out)  # 0.86: holdout_queries
     check(out["test"], out["alpha"], out["seed"], out["resamples"])
     if out["metric"] not in METRICS:
         raise ValueError(f"metric is one of {', '.join(METRICS)}")

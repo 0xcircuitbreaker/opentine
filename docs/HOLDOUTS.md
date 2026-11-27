@@ -150,6 +150,63 @@ paraphrase that changes most of the words. From 0.74, `tine dataset
 contamination --embedding-threshold COSINE` adds an embedding near-duplicate
 check (docs/INTEGRITY.md, docs/TRANSCRIPT_FLAGS.md).
 
+## Query accounting (0.86)
+
+Exposure budgets count unseals and revealed items. An eval that scores a
+holdout also reveals something (how many items passed, the mean score), and a
+loop that keeps scoring variants against the same holdout and keeps the best
+one is selecting on the holdout. So every eval against a sealed holdout is
+counted as a query.
+
+```
+tine dataset seal items.jsonl --out .tine/holdouts/h1 --name h1 \
+    --max-unseals 3 --max-items 50 --max-queries 20 --key dataset.key --seal-key ~/h1.key
+tine eval run /tmp/h1.jsonl --outputs outs.jsonl --scorer exact --key eval.key \
+    --out evals/v7 --holdout .tine/holdouts/h1 --lineage gen-4 --repo .
+```
+
+After `eval run` signs an eval, it writes one query record per sealed holdout
+the eval scored: the folder named with `--holdout`, and every folder under
+`.tine/holdouts/` whose commitment `dataset` equals the eval's dataset digest
+(so leaving out `--holdout` does not skip the count when all items were
+unsealed). The record is signed with the eval key, stored as
+`DIR/queries/HEX.json` and kept as a held blob (target
+`holdout-query:ROOT:HEX`) that `tine hold release` refuses:
+
+```json
+{"schema": "opentine.holdout.query/1", "holdout": "h1", "root": "<hex>",
+ "lineage": "gen-4", "eval": "sha256:<eval id>", "verdicts_sha256": "<hex>",
+ "dataset": "sha256:<hex>", "revealed": {"items": 50, "passed": 41, "mean_score": "0.82"},
+ "count": 21, "max_queries": 20, "over_budget": true}
+```
+
+`count` is the number of distinct evals recorded for that lineage node on that
+holdout, this one included (`--lineage`, default `unattributed`).
+`max_queries` comes from the signed commitment (`--max-queries`); a commitment
+without it has no query budget and never flags. Counts are the union of the
+folder's files and the held copies, so deleting a file lowers nothing; a
+record whose signature does not verify (signer bound to the signing key) does
+not count.
+
+Where the count shows up:
+
+- `tine eval run --json` lists the records it wrote under `holdout_queries`.
+- `tine dataset exposure --json` adds `queries`: `max_queries`, `total`,
+  `lineages` (count per node) and `over_budget` (the nodes past the budget).
+  `ok` does not change.
+- `tine trends --json` flags a variant `holdout.query-over-budget` when an
+  eval it cites has an over-budget query record (or the holds cannot be read),
+  and `tine query` shows the same flag in `trend_points.flags`.
+- `tine promote` reports a holdout on which any lineage node is over budget.
+  By default this is the advisory `advisory:holdout.query-budget` (D12). With
+  `holdout_queries = "required"` in the signed `[promote]` policy, or
+  `profile = "rsi"` (which requires it), promote refuses with
+  `promote.holdout-query-budget`. Rotate the holdout (`--rotate-from`) to
+  continue.
+
+This is counting only: an eval's result is not perturbed, and no noise is
+added to what a query reveals.
+
 ## Canaries
 
 Canaries are registered in the repository, not in the holdout folder, with
@@ -206,6 +263,11 @@ All six commands print `tine-cli-holdout-1` with `--json`
 with `refusals: [{code, detail}]` and exit 1.
 
 ## Limits
+
+- Query counts are per lineage node as the eval signer names it. A loop that
+  signs its own evals can spread queries over many node names; the total per
+  holdout is in `exposure` for that reason. An eval of a subset of a holdout,
+  run without `--holdout`, has another dataset digest and is not matched.
 
 - Held copies need a repository: a holdout used with no `--repo` counts only
   the records in its folder. A writer who can rewrite `.tine/holds` and the
