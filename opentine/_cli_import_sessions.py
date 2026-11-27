@@ -19,6 +19,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from opentine._agent_detect import _home
 from opentine.trace._cline_task_read import EXTENSIONS, HISTORY
 from opentine.trace._transcript_agents import agent_files
 
@@ -34,11 +35,6 @@ class Session:
     modified: float
     size: int
     agents: int = 0  # Claude Code subagent transcripts imported with the session
-
-
-def _home(variable: str, default: str) -> Path:
-    value = os.environ.get(variable)
-    return Path(value).expanduser() if value else Path.home() / default
 
 
 def _gemini_root() -> Path:

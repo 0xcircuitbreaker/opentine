@@ -27,6 +27,7 @@ from typing import Any
 
 from opentine._pyz import _p256
 from opentine._signed_record import RecordError
+from opentine.intoto import pae
 
 PREDICATE = "https://model_signing/signature/v1.0"
 STATEMENT = "https://in-toto.io/Statement/v1"
@@ -42,12 +43,6 @@ MAX_SIGNATURES = 16
 
 def _no(code: str, message: str) -> RecordError:
     return RecordError("oms." + code, message)
-
-
-def pae(payload_type: str, payload: bytes) -> bytes:
-    """DSSE v1 pre-authentication encoding."""
-    kind = payload_type.encode("utf-8")
-    return b"DSSEv1 %d %s %d %s" % (len(kind), kind, len(payload), payload)
 
 
 def _b64(value: Any, what: str) -> bytes:

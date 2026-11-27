@@ -8,7 +8,7 @@ from pathlib import Path
 
 from opentine._cli_archive import add_archive_parsers, cmd_archive
 from opentine._cli_common import BRAND, _terminal, console
-from opentine._cli_du import DU_COMMANDS
+from opentine._cli_du import DU_COMMANDS, _refuse, _repo
 from opentine._cli_gc_sweep import add_sweep_flags, cmd_sweep
 from opentine._cli_hold import HOLD_COMMANDS
 from opentine._cli_op import OP_COMMANDS
@@ -112,17 +112,6 @@ def add_storage_parsers(sub: argparse._SubParsersAction) -> None:
         action="store_true",
         help="Write plain JSON, which opentine releases before 0.11 can read",
     )
-
-
-def _repo(path: str):
-    from opentine.repository import Repo
-
-    return Repo.open(path)
-
-
-def _refuse(exc: Exception) -> None:
-    console.print(f"[red]{_terminal(exc)}[/]")
-    raise SystemExit(1) from exc
 
 
 def cmd_gc(args: argparse.Namespace) -> None:

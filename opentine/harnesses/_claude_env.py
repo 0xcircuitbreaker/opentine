@@ -27,7 +27,7 @@ from collections.abc import Mapping
 from typing import Any
 from urllib.parse import urlsplit
 
-from opentine.harnesses._types import MAX_COUNT, bounded_number
+from opentine.harnesses._types import MAX_COUNT
 
 LOCAL_PROVIDER = "local-anthropic-compatible"
 COMPATIBLE_PROVIDER = "anthropic-compatible"
@@ -40,14 +40,6 @@ _ENV_PROVIDERS = (
 
 def _count(value: Any) -> int | None:
     return value if type(value) is int and 0 <= value <= MAX_COUNT else None
-
-
-def _money(value: Any) -> float:
-    # A malformed figure from the CLI must not abort the run it describes, nor a
-    # JSON integer too large for a float (final pass 5, #10).
-    if not isinstance(value, int | float):
-        return 0.0
-    return bounded_number(value) or 0.0
 
 
 def _on(value: Any) -> bool:

@@ -16,15 +16,11 @@ import datetime
 from collections.abc import Iterator
 from typing import Any
 
+from opentine.remote._pack_blobs import _code
 from opentine.remote._worm import BlobRetention, RetentionLocked
 
 _REFUSED = {"AccessDenied", "InvalidRequest", "ObjectLocked", "InvalidObjectState"}
 _MISSING = {"NoSuchKey", "404", "NotFound", "NoSuchVersion"}
-
-
-def _code(exc: Exception) -> str:
-    response = getattr(exc, "response", None) or {}
-    return str(response.get("Error", {}).get("Code", ""))
 
 
 class S3BlobClient:

@@ -110,6 +110,16 @@ def _index_update(path: str | Path | None) -> None:
         pass
 
 
+def resolve_run(repo, value: str) -> str:
+    """The object id a ref name or object id names, else ``KeyError`` saying so."""
+    from opentine.repository.ops import resolve_target
+
+    try:
+        return resolve_target(repo, value)
+    except KeyError:
+        raise KeyError(f"cannot resolve {value}: no such ref or run") from None
+
+
 def _harness_from_args(args: argparse.Namespace):
     factory = HARNESS_FACTORIES[args.harness]
     command = shlex.split(args.harness_command) if args.harness_command else None
