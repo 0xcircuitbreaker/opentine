@@ -20,10 +20,11 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
+
+from opentine._utc import rfc3339_utc
 
 
 def add_protocol_parsers(verbs: argparse._SubParsersAction) -> None:
@@ -48,7 +49,7 @@ def add_protocol_parsers(verbs: argparse._SubParsersAction) -> None:
 
 
 def _now() -> str:
-    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return rfc3339_utc()
 
 
 def _store(path: str) -> Path | None:

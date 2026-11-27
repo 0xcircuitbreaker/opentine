@@ -33,12 +33,12 @@ from __future__ import annotations
 import hashlib
 import json
 import math
-from datetime import UTC, datetime
 from typing import Any
 
 from opentine import _ingest_holds, _ingest_policy
 from opentine._ingest_policy import IngestError
 from opentine._json_shallow import unique_pairs
+from opentine._utc import rfc3339_utc
 from opentine.redaction import redact_blob
 
 CONVENTION = "opentine.ingest-batch/1"
@@ -149,7 +149,7 @@ def append(repo: Any, stream: str, data: bytes, key: Any, *, at_ms: int,
             lines.append(_LINE.encode(line).encode("utf-8") + b"\n")
         else:
             dropped_by[reason] += 1
-    at = datetime.fromtimestamp(at_ms / 1000, UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    at = rfc3339_utc(at_ms / 1000)
     joined = b"".join(lines)
     with _write_batch.batched(repo):  # one durability point per batch
         target = _ingest_policy.anchor(repo, stream)

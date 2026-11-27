@@ -22,9 +22,9 @@ the holds, not from a head ref, so deleting a ref hides nothing.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from typing import Any
 
+from opentine._utc import rfc3339_utc
 from opentine.kernel import canonical_json
 
 CONVENTION = "opentine.budget-ledger/1"
@@ -32,7 +32,7 @@ ENTRIES = ("spend", "policy", "flag")
 
 
 def rfc3339(ms: int) -> str:
-    return datetime.fromtimestamp(ms / 1000, UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return rfc3339_utc(ms / 1000)
 
 
 def anchor(repo: Any, subject: str) -> str:

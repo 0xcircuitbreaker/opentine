@@ -13,12 +13,13 @@ Whether that signer holds a role comes only from the owner-pinned trust bundle
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from typing import Any
+
+from opentine._utc import rfc3339_utc
 
 
 def rfc3339(seconds: float) -> str:
-    return datetime.fromtimestamp(seconds, UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return rfc3339_utc(seconds)
 
 
 def fingerprint(key: Any) -> str:

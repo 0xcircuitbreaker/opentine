@@ -18,12 +18,12 @@ reference for the ``memory.verify`` conformance op (``vectors/69-memory.json``).
 from __future__ import annotations
 
 import re
-from datetime import UTC, datetime
 from typing import Any
 
 from opentine._signed_record import BLOB_OID, NAME, RUN_OID, WHEN, RecordError, check_signature
 from opentine._signed_record import fields as _fields
 from opentine._signed_record import sign as _sign
+from opentine._utc import rfc3339_utc
 from opentine.kernel import ObjectEnvelope, canonical_json
 
 KIND = "opentine.memory"
@@ -121,7 +121,7 @@ def build(
         "subject": subject,
         "supersedes": supersedes,
         "author": author,
-        "created_at": created_at or datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "created_at": created_at or rfc3339_utc(),
     }
     return body(record)
 

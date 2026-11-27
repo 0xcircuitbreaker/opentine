@@ -18,13 +18,13 @@ conformance op (``vectors/74-review-finding.json``), ported to the pyz
 from __future__ import annotations
 
 import re
-from datetime import UTC, datetime
 from typing import Any
 
 from opentine._review_rules import ID, SEVERITIES, text_ok
 from opentine._signed_record import NAME, RUN_OID, WHEN, RecordError, check_signature
 from opentine._signed_record import fields as _fields
 from opentine._signed_record import sign as _sign
+from opentine._utc import rfc3339_utc
 from opentine.kernel import ObjectEnvelope, canonical_json
 
 KIND = "opentine.review-finding"
@@ -94,7 +94,7 @@ def build(review_id: str, finding_id: str, severity: str, message: str, *, revie
         "message": message,
         "reviewer": reviewer,
         "run": run,
-        "created_at": created_at or datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "created_at": created_at or rfc3339_utc(),
     }
     return body(record)
 

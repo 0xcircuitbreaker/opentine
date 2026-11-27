@@ -14,10 +14,10 @@ shape check, and :func:`verify_envelope` checks signature and shape offline.
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from opentine._utc import rfc3339_utc
 from opentine.intoto import STATEMENT_TYPE, sign_statement
 
 PREDICATE_TYPE = "https://opentine.dev/attestation/replay/v1"
@@ -53,7 +53,7 @@ def build_predicate(verdict: Any) -> dict[str, Any]:
             "accounting_drift": list(verdict.accounting),
         },
         "fidelity": verdict.fidelity.to_dict(verdict.min_fidelity),
-        "verified_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "verified_at": rfc3339_utc(),
     }
 
 

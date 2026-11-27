@@ -22,11 +22,11 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from opentine._promote_checks import APPROVAL, DECISION, LABEL_RE, RUN_RE, gate, refusal
+from opentine._utc import rfc3339_utc
 
 STATE = Path(".tine") / "promotion"
 VERIFIER = "opentine:promote"
@@ -39,7 +39,7 @@ class PromotionRefused(ValueError):
 
 
 def _now() -> str:
-    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return rfc3339_utc()
 
 
 def _who(key: Any) -> str:

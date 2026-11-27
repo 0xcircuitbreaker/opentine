@@ -30,11 +30,11 @@ from __future__ import annotations
 
 import hashlib
 import re
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from opentine import _containment_records as records
+from opentine._utc import rfc3339_utc
 
 ARTIFACT = "opentine.organism-artifact/1"
 TAG = "opentine.organism-tag/1"
@@ -52,7 +52,7 @@ class OrganismError(ValueError):
 
 
 def now() -> str:
-    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return rfc3339_utc()
 
 
 def digest_of(value: str) -> str:

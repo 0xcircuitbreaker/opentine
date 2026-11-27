@@ -28,9 +28,9 @@ objects alone. No object kind is added.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from typing import Any
 
+from opentine._utc import rfc3339_utc
 from opentine.kernel import canonical_json
 
 ITEM = "opentine.oversight-item/1"
@@ -39,7 +39,7 @@ DECISIONS = ("request", "approve", "reject")
 
 
 def now() -> str:
-    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return rfc3339_utc()
 
 
 def promotion_item(label: str, candidate: str) -> str:

@@ -17,7 +17,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from opentine._signed_record import DIGEST, RUN_OID, WHEN, RecordError, fields
+from opentine._signed_record import DIGEST, RUN_OID, WHEN, RecordError, fields, is_count
 
 KIND = "opentine.review"
 GATE_KIND = "opentine.review-gate"
@@ -51,10 +51,6 @@ def malformed(code: str, message: str) -> RecordError:
 
 def _is(value: Any, pattern: re.Pattern) -> bool:
     return isinstance(value, str) and bool(pattern.fullmatch(value))
-
-
-def _count(value: Any) -> bool:
-    return isinstance(value, int) and not isinstance(value, bool) and 0 <= value < 2**53
 
 
 def text_ok(value: Any, limit: int, *, empty: bool = False) -> bool:
@@ -100,7 +96,7 @@ def _subjects(found: dict[str, Any], repos: set[str]) -> None:
             or row["severity"] not in SEVERITIES
             or row["status"] not in ("open", "resolved")
             or not text_ok(row["message"], 1024)
-            or not (at is None or (_count(at) and at < len(subjects)))
+            or not (at is None or (is_count(at) and at < len(subjects)))
         ):
             raise malformed("review", "a finding has an id, severity, status, message, subject")
     _distinct([row["id"] for row in findings], "finding ids")
@@ -131,9 +127,9 @@ def review_body(record: Any) -> dict[str, Any]:
     found = fields(record, KIND, FIELDS, "review", "review")
     seq, prev = found["seq"], found["prev"]
     checks = (
-        (found["review_version"] == 1 and _count(found["review_version"]), "review_version is 1"),
+        (found["review_version"] == 1 and is_count(found["review_version"]), "review_version is 1"),
         (_is(found["review_id"], ID), "review_id is [a-z0-9][a-z0-9._-]{0,63}"),
-        (_count(seq), "seq is a count"),
+        (is_count(seq), "seq is a count"),
         (prev is None if seq == 0 else _is(prev, BLOB_OID), "prev and seq disagree"),
         (text_ok(found["title"], 256), "title is 1 to 256 bytes of text"),
         (_is(found["updated_at"], WHEN), "updated_at is an RFC 3339 UTC time"),
@@ -172,10 +168,10 @@ def gate_body(record: Any) -> dict[str, Any]:
     """The signed body of a gate decision, after the field rules."""
     found = fields(record, GATE_KIND, GATE_FIELDS, "review-gate", "review gate decision")
     checks = (
-        (found["gate_version"] == 1 and _count(found["gate_version"]), "gate_version is 1"),
+        (found["gate_version"] == 1 and is_count(found["gate_version"]), "gate_version is 1"),
         (_is(found["review_id"], ID) and _is(found["gate"], ID), "review_id and gate are ids"),
         (_is(found["review"], BLOB_OID), "review is the decided version's blob oid"),
-        (_count(found["seq"]), "seq is a count"),
+        (is_count(found["seq"]), "seq is a count"),
         (found["decision"] in DECISIONS, "decision is approve or reject"),
         (text_ok(found["reason"], 1024, empty=True), "reason is at most 1024 bytes of text"),
         (_is(found["decided_at"], WHEN), "decided_at is an RFC 3339 UTC time"),

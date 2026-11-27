@@ -22,8 +22,9 @@ from __future__ import annotations
 import re
 import secrets
 import time
-from datetime import UTC, datetime
 from typing import Any
+
+from opentine._utc import rfc3339_utc
 
 CONVENTION = "opentine.monitor-stop/1"
 SCOPE = re.compile(r"^(\*|agent:[A-Za-z0-9._-]{1,64}|session:[A-Za-z0-9._:-]{1,128})$")
@@ -31,7 +32,7 @@ MAX_REASON = 1024
 
 
 def _rfc3339(seconds: float) -> str:
-    return datetime.fromtimestamp(seconds, UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return rfc3339_utc(seconds)
 
 
 def scopes(agent: str | None, session: str | None) -> list[str]:

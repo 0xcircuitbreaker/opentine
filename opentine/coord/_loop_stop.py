@@ -33,9 +33,9 @@ from __future__ import annotations
 
 import re
 import time
-from datetime import UTC, datetime
 from typing import Any
 
+from opentine._utc import rfc3339_utc
 from opentine.coord import _loop_hold
 from opentine.coord._store import history, read, swap
 
@@ -57,7 +57,7 @@ def ref_name(loop: str) -> str:
 
 
 def _rfc3339(ms: int) -> str:
-    return datetime.fromtimestamp(ms / 1000, UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return rfc3339_utc(ms / 1000)
 
 
 def _control_run(repo: Any, loop: str, reason: str) -> str:

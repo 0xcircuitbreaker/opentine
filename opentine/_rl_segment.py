@@ -27,13 +27,13 @@ so sealing fails closed without one. The newest segment is held as
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from typing import Any
 
 from opentine import _ingest_holds, _ingest_policy
 from opentine._ingest_batch import CONVENTION as BATCH
 from opentine._ingest_policy import IngestError
 from opentine._rl_merkle import Tree, episode_leaf
+from opentine._utc import rfc3339_utc
 from opentine.repository._holds import INGEST_SEGMENT
 
 CONVENTION = "opentine.ingest-segment/1"
@@ -158,7 +158,7 @@ def seal(repo: Any, stream: str, key: Any, *, at_ms: int,
     entry = _oplog._Op("tine ingest seal", None)
     entry.note = note_text(stream, seq, root, ids[-1])
     index = _oplog.record(repo.path, entry, [])  # the commitment, before the segment exists
-    at = datetime.fromtimestamp(at_ms / 1000, UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    at = rfc3339_utc(at_ms / 1000)
     claim = {"convention": CONVENTION, "stream": stream, "seq": seq, "previous": previous,
              "batches": ids, "first_index": found["first_index"],
              "next_index": found["next_index"], "episodes": len(found["leaves"]),

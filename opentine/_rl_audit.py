@@ -27,11 +27,11 @@ no ``optimizer`` role.
 from __future__ import annotations
 
 import hashlib
-from datetime import UTC, datetime
 from typing import Any
 
 from opentine import _ingest_holds, _rl_merkle, _rl_segment
 from opentine._ingest_policy import IngestError
+from opentine._utc import rfc3339_utc
 from opentine.repository import _oplog, _tlog, _tlog_note, _tlog_proof
 from opentine.repository._holds import INGEST_AUDIT
 
@@ -212,7 +212,7 @@ def run(repo: Any, segment_id: str, key: Any, *, confidence: str, max_bad: str, 
                           "never an optimizer key")  # fmt: skip
     verdict = evaluate(repo, segment_id, confidence=confidence, max_bad=max_bad,
                        checkpoint=checkpoint, source=source, key=key)  # fmt: skip
-    at = datetime.fromtimestamp(at_ms / 1000, UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    at = rfc3339_utc(at_ms / 1000)
     verdict["at"] = at
     with _write_batch.batched(repo):
         oid = _ingest_holds.write(repo, segment_id, verdict, key, previous=None, signed_at=at)

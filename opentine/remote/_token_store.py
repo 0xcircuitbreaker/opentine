@@ -22,10 +22,10 @@ import threading
 import time
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from opentine._utc import rfc3339_utc
 from opentine.remote._token_scope import ACCESS, SCOPE_CLAIM, check_namespaces
 from opentine.remote.interfaces import Identity
 from opentine.remote.security import AuthenticationError
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS seen_jti (issuer TEXT, jti TEXT, until REAL,
 
 
 def iso(seconds: float) -> str:
-    return datetime.fromtimestamp(int(seconds), UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return rfc3339_utc(int(seconds))
 
 
 def parse_ttl(text: str) -> int:

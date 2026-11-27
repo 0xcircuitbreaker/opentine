@@ -18,12 +18,12 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from opentine import _signed_doc
 from opentine._signing_pins import key_fingerprint
+from opentine._utc import rfc3339_utc
 
 SCHEME = "opentine-inspect-log-sig/1"
 DOMAIN = b"opentine.inspect-log-sig.v1:"
@@ -51,7 +51,7 @@ def sign_log(path: str | Path, key: Any, *, signed_at: str | None = None) -> Pat
     path = Path(path)
     private = load_ed25519_private(key)
     digest, size = _digest(path)
-    when = signed_at or datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    when = signed_at or rfc3339_utc()
     body = {"scheme": SCHEME, "log": path.name, "bytes": size, "sha256": digest,
             "signer": key_fingerprint(private.public_key().public_bytes_raw()),
             "signed_at": when}  # fmt: skip

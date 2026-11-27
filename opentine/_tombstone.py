@@ -20,11 +20,11 @@ reference for the ``tombstone.verify`` conformance op
 from __future__ import annotations
 
 import re
-from datetime import UTC, datetime
 from typing import Any
 
 from opentine._signed_record import BLOB_OID, NAME, WHEN, RecordError, check_signature, fields
 from opentine._signed_record import sign as _sign
+from opentine._utc import rfc3339_utc
 
 KIND = "opentine.tombstone"
 DOMAIN = b"opentine.tombstone.v1:"
@@ -67,7 +67,7 @@ def build(oid: str, reason: str, actor: str, purged_at: str | None = None) -> di
     from opentine.redaction import redact_blob
 
     clean = redact_blob(reason.strip().encode("utf-8")).decode("utf-8", "replace")
-    when = purged_at or datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    when = purged_at or rfc3339_utc()
     record = {
         "kind": KIND,
         "tombstone_version": 1,

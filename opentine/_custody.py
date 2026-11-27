@@ -24,12 +24,12 @@ import binascii
 import hashlib
 import json
 import secrets
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from opentine import _signed_doc
 from opentine._timestamp_sidecar import signature_bound
+from opentine._utc import rfc3339_utc
 from opentine.kernel import canonical_json
 from opentine.repository import _tlog, _tlog_note
 from opentine.repository._paths import internal_path
@@ -69,7 +69,7 @@ def record(
         "id": secrets.token_hex(8),
         "note": note,
         "subject": subject,
-        "time": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "time": rfc3339_utc(),
     }
     if token is not None:
         body["token"] = base64.b64encode(token).decode("ascii")

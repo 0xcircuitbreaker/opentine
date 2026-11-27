@@ -24,12 +24,12 @@ import base64
 import binascii
 import hashlib
 import json
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from opentine import _signed_doc
 from opentine._timestamp_sidecar import signature_bound
+from opentine._utc import rfc3339_utc
 from opentine._verify_report import SCHEMA, SCHEMA_V1
 from opentine.kernel import canonical_json
 
@@ -64,7 +64,7 @@ def load(path: str | Path) -> dict[str, Any]:
 def sign_report(doc: dict[str, Any], private_key: Any, signer: str | None = None) -> dict[str, Any]:
     if doc.get("schema") != SCHEMA:
         raise ValueError(f"only a {SCHEMA} report can be signed")
-    now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    now = rfc3339_utc()
     block = _signed_doc.sign(DOMAIN, body(doc), private_key, signer=signer, signed_at=now)
     return {**body(doc), "signature": block}
 

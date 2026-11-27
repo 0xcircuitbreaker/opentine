@@ -25,9 +25,9 @@ from __future__ import annotations
 import hashlib
 import re
 import secrets
-from datetime import UTC, datetime
 from typing import Any
 
+from opentine._utc import rfc3339_utc
 from opentine.kernel import canonical_json
 
 CONVENTION = "opentine.audit-game/1"
@@ -38,7 +38,7 @@ _DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
 
 
 def now() -> str:
-    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return rfc3339_utc()
 
 
 def secret(target: str, objective: str = "", nonce: str | None = None) -> dict[str, str]:
