@@ -71,8 +71,8 @@ pip install "opentine[crypto]" # compatibility alias only; see below
 pip install "opentine[all,mcp]" # every provider SDK plus MCP
 ```
 
-`all` installs the Anthropic, OpenAI, and Google SDKs; it does not include
-`mcp` or `langchain`. The Anthropic adapter works with both the 0.x SDK and the
+`all` installs the Anthropic, OpenAI, and Google SDKs (and, before Python 3.14,
+the zstd backport); it does not include `mcp` or `langchain`. The Anthropic adapter works with both the 0.x SDK and the
 1.x SDK (which no longer accepts `temperature` as a keyword; OpenTine sends it in
 the request body for the models that take it). Ollama needs no extra because it uses the core `httpx`
 dependency.
