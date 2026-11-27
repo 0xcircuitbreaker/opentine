@@ -399,7 +399,7 @@ def autopack_gate(work: Path, args) -> dict:
     from corpus import generate
 
     from opentine.repository import _gc_deltas
-    from opentine.repository._autopack import _pack_sizes, merge_candidates
+    from opentine.repository._autopack import merge_candidates, pack_sizes
     from opentine.repository._gc import gc
 
     result = {}
@@ -413,7 +413,7 @@ def autopack_gate(work: Path, args) -> dict:
             repo.put_run(run, ref=f"heads/bench/{n:04d}")
             if n % 4 == 3:
                 started = time.perf_counter()
-                merge = merge_candidates(_pack_sizes(repo.path))
+                merge = merge_candidates(pack_sizes(repo.path))
                 gc(repo, min_age=0, merge_packs=merge, keep_transfer_packs=True)
                 times.append(time.perf_counter() - started)
         times.sort()
