@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased — Model-path controls and region pins
+
+- Region pins: `EVOLVE-BLOCK-START` / `EVOLVE-BLOCK-END` comment lines mark the
+  code an optimizer may change. `tine integrity region-pin --glob G --key KEY`
+  signs the baseline (per file: the digest of each locked segment outside the
+  regions, the region count, and the file set) as an
+  `opentine.integrity.regions/1` claim on an existing attestation, signed by a
+  pinned `policy`-role key that is not an optimizer key.
+- `tine integrity region-check` (and `tine integrity check` when a pin is
+  filed) reports edits outside regions, added and removed files, and marker
+  tampering: unbalanced, nested, moved, renamed or look-alike markers, markers
+  inside Python strings, CRLF and Unicode normalisation changes. Bytes are
+  compared unnormalised; a symlink is pinned as its target text.
+- `tine promote` reads a new policy key `regions`: `"advisory"` by default
+  (`advisory:regions.outside-modified`, never blocking), `"required"` under
+  `profile = "rsi"`, where any finding refuses `promote.region-modified` and a
+  missing or unsigned pin refuses `promote.regions-unpinned`.
+
 ## 0.86.1 — Killed-writer durability fixes (2026-11-27)
 
 - `tine gc` no longer fails when another process (a live recorder) still holds

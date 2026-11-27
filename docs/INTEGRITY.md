@@ -332,6 +332,67 @@ and the full Unicode confusables table. A writer can also edit the derived
 scan index so objects look already scanned (delete
 `.tine/integrity/canary-index.sqlite` to rescan everything).
 
+## Editable regions (0.87)
+
+Some loops edit one function inside a file whose other lines are part of the
+measurement: the loop that reads the result, the slice that picks the last k
+items, the harness around the mutated code. A region pin says which lines the
+optimizer may change and refuses an edit anywhere else.
+
+Mark each editable region with two whole-line comments:
+
+```python
+# EVOLVE-BLOCK-START
+def heuristic(x):
+    return x * 2
+# EVOLVE-BLOCK-END
+```
+
+The comment leader may be `#`, `//`, `--`, `;`, `/*` or `<!--` (a block
+comment may close on the same line). Then pin the baseline with a
+`policy`-role key from the owner-pinned trust bundle that is not an
+`optimizer` key:
+
+```bash
+tine integrity region-pin --glob "evolve/**" --key policy.key --repo .
+tine integrity region-check --repo .
+```
+
+`region-pin` lays out every file under the globs and files
+`.tine/integrity/regions.json`, an existing `attestation` whose claim follows
+`opentine.integrity.regions/1`: the globs, and per file its sha256, its region
+count and the sha256 of each locked segment (the text before, between and after
+the regions, marker lines included), plus `baseline_sha256` over all of it. A
+file without markers is one locked segment. A baseline with a bad marker is
+never pinned. `region-check` (and `tine integrity check`, when a pin is filed)
+lays the working tree out again. Findings, all `fail:` (command-level codes):
+
+| Code | When |
+| --- | --- |
+| `fail:region-outside-modified` | a locked segment's bytes differ: an edit outside a region, a moved marker, text carried across a region, a CRLF or Unicode normalisation change |
+| `fail:region-file-added` / `fail:region-file-removed` | the globs now cover a file the pin does not list, or a pinned file is gone |
+| `fail:region-marker-invalid` | an unbalanced or nested marker, a different region count, a line that folds (NFKC, case-folded, letters only) to `evolveblock` but is not an exact marker line (renamed, look-alike, trailing, CR-split), or in a `.py` file a marker the tokenizer does not see as a comment (inside a string) |
+| `fail:regions-pin-missing` / `fail:regions-pin-unsigned` | no pin, or one that does not verify, does not parse, or is not signed by a pinned policy-role, non-optimizer key |
+
+Bytes are compared as they are; nothing is normalised before hashing. A
+symlink is pinned as its target text and never followed. `.git` and `.tine`
+are not walked.
+
+`tine promote` reads the promotion policy key `regions`. With `"advisory"`
+(the default) findings are reported as `advisory:regions.outside-modified` and
+never block (D12); with no pin and no rule nothing changes. With
+`"required"`, which `profile = "rsi"` sets and cannot lower, any finding
+refuses `promote.region-modified`, and a missing or unsigned pin refuses
+`promote.regions-unpinned` (fail closed). Promotion judges the repository's
+working tree (`--repo`), the same tree the protected list is checked against.
+
+Limits: markers are found line by line; only Python files are tokenized, so a
+marker inside a string literal in another language is taken as a marker.
+Prose that mentions the marker words inside a pinned file is reported as a
+look-alike. The pin file can be deleted by a writer; under `"required"` that
+refuses, under `"advisory"` it only removes the advice. `.tine/integrity/` is a
+protected control path, so a run that writes it trips the protected list.
+
 ## Python and TypeScript
 
 The pure check is `opentine._integrity.check`; the TS port is
