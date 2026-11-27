@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.87.1 — Release pipeline and Windows test fixes (2026-11-27)
+
+0.87.0 was merged but never tagged or published, because CI on main failed.
+0.87.1 is the first published release that contains the 0.87.0 changes below.
+
+- `scripts/bench/cdc_bakeoff.py` imports the renamed `_autopack.pack_sizes`
+  (it still used `_pack_sizes`, which broke the main-only bake-off job). A
+  new PR test checks every `opentine` import in scripts (including
+  function-local ones) resolves, without running them, so a rename like this
+  fails on pull requests.
+- The git unknown-option probe for `merge --strategy` runs with `PATH`
+  limited to git's own directory, so git does not scan every directory on a
+  long Windows `PATH` for `git-merge-*` strategies, which timed out on the
+  Windows runner.
+- The pack-count bound test disables auto-pack while it builds many packs,
+  so a slow runner crossing the auto-pack rescan interval no longer merges
+  the packs the test needs. Its setup check now demands the exact pack count.
+- No product behaviour changes.
+
 ## 0.87.0 — Model-path controls and region pins (2026-11-27)
 
 - `tine record --budget SUBJECT --budget-key KEY --repo PATH` enforces the
