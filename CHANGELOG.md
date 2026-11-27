@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Promotion discipline
+## 0.86.0 — Promotion discipline (2026-11-27)
 
 - `tine eval plan` signs a pre-registered analysis plan, an
   `opentine.eval-plan/1` claim on an existing attestation: metric, reducer,
