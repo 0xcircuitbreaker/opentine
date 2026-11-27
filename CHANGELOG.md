@@ -1,5 +1,28 @@
 # Changelog
 
+## Unreleased — Promotion discipline
+
+- Holdout query accounting: every signed `tine eval run` over a sealed holdout
+  writes a signed, held `opentine.holdout.query/1` record (lineage node from
+  `--lineage`, eval id, what the eval revealed, the running count for that
+  node). `tine dataset seal --max-queries N` sets a query budget in the signed
+  commitment; queries past it are marked `over_budget`. Deleting the record
+  files lowers no count, and `tine hold release` refuses the holds.
+  docs/HOLDOUTS.md.
+- `tine dataset exposure --json` adds `queries` (count per lineage node and the
+  nodes over budget); `tine trends --json` and `tine query` (`trend_points`)
+  flag variants whose cited evals went over budget with
+  `holdout.query-over-budget`.
+- `tine promote` reports a holdout whose query budget a lineage node exceeded
+  as `advisory:holdout.query-budget` (D12); `[promote] holdout_queries =
+  "required"`, or `profile = "rsi"`, refuses with
+  `promote.holdout-query-budget`.
+- `tine uplift horizon|compare --bootstrap cluster [--cluster-key
+  task|subject]`: a hierarchical bootstrap that resamples clusters, then
+  attempts inside each, so correlated attempts do not narrow the interval.
+  Reports record `bootstrap` and `cluster_key` with the seed and resample
+  count. docs/UPLIFT.md.
+
 ## 0.85.0 — Scorer isolation and oversight protection (2026-11-27)
 
 - `tine eval run --isolate` runs a `python:` scorer in a child interpreter
