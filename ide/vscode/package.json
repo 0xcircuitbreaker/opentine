@@ -67,7 +67,7 @@
     "test": "tsc -p tsconfig.json && node --test dist/test/blame.test.js dist/test/provenance.test.js dist/test/tine.test.js"
   },
   "devDependencies": {
-    "@types/node": "20.14.10",
+    "@types/node": "26.6.6",
     "@types/vscode": "1.85.0",
     "typescript": "5.6.3"
   }
