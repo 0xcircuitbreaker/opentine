@@ -17,7 +17,11 @@
   isolation level and limits). Its `sc1+sha256:` pin is the signed
   `scorer_version`, so `tine eval verify` fails an edited or missing
   `scorer.json` with `eval.summary-mismatch`. `--expect-closure DIGEST`
-  refuses a changed helper module with `scorer.closure-mismatch`.
+  refuses a changed helper module with `scorer.closure-mismatch`. The parent
+  also hashes every file in the scorer's own directory, so a scorer that edits
+  the report it returns cannot hide a helper (`scorer.closure-too-large` above
+  2000 files). Links, timestamps, SQLite files, unaudited process modules and
+  sub-interpreters are refused inside the child.
 - `tine eval rescore DIR` re-runs an isolated eval's recorded scorer under
   isolation on the named outputs and signs an `opentine.rescore-report/1`
   (agree/disagree per item and on the closure); it exits 4 on disagreement.

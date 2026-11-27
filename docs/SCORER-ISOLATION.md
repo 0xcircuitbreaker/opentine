@@ -43,6 +43,12 @@ and the files it loaded, and the parent hashes the files and signs. The child:
   write, and every file read or directory listing outside the interpreter's
   own library, the scorer's import paths and the `--scorer-input` files.
   Bytecode is read only from an empty prefix, so a planted `.pyc` never runs.
+  Hard links, symbolic links, timestamps, ownership, extended attributes and
+  SQLite databases count as writes. Modules that start processes, load native
+  code, open other databases or start sub-interpreters without an audit event
+  (`_posixsubprocess`, `subprocess`, `ctypes`, `_interpreters`, `_dbm`, the
+  CPython test modules) are dropped from `sys.modules` and refused on import,
+  and `os.mkfifo` and `os.mknod` are replaced by refusals.
 
 Any breach, a blown limit or the timeout refuses the eval with
 `scorer.isolation-breach`; no eval folder is written. A scorer that raises is a
@@ -63,7 +69,14 @@ absolute path.
 ## The closure pin
 
 After the call, the child reports every non-stdlib module in `sys.modules`
-and every other file it read; the parent hashes each one itself.
+and every other file it read; the parent hashes each one itself. That report
+comes from the same interpreter as the scorer, so the parent does not rely on
+it: it also lists and hashes every file under the scorer's own import
+directories (not the standard library or site directories, and not
+`__pycache__`) and records them under `data`. A helper hidden from the report
+is still in the closure. More than 2000 files there refuses the eval with
+`scorer.closure-too-large`: keep each scorer in a directory of its own.
+Installed packages are covered only by `--lockfile`.
 `scorer.json` sits beside the verdicts:
 
 ```json

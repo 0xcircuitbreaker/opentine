@@ -126,7 +126,16 @@ def describe(target: str, report: dict[str, Any], *, inputs: list[Path], limits:
     version = ".".join(str(n) for n in sys.version_info[:3])
     spec = _posix(target) if target.partition(":")[2].rpartition(":")[0].endswith(".py") else target
     given = {str(p.resolve()) for p in inputs}
-    data = [d for d in data if str(d) not in given]
+    import sysconfig
+
+    skip = [sysconfig.get_paths()[k] for k in ("stdlib", "platstdlib", "purelib", "platlib")]
+    try:
+        files = closure.tree(_paths, skip)
+    except ValueError as exc:
+        raise ScorerRefused("scorer.closure-too-large", str(exc)) from None
+    code = {str(Path(str(w)).resolve()) for w in modules.values()}
+    data = {str(Path(str(d)).resolve()) for d in data} | {str(f) for f in files}
+    data = [d for d in data if d not in given and d not in code]
     return {
         "convention": closure.CONVENTION, "target": spec, "python": version,
         "modules": [{"name": str(name), "sha256": closure.file_sha256(Path(where))}

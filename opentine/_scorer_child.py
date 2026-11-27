@@ -5,18 +5,16 @@ the child holds no signing key and no repository handle. It reads one JSON
 request file (its first argument, removed once read): ``nonce``, ``target``,
 ``paths``, ``inputs``, ``limits`` and ``pairs``. Then, before the scorer is imported:
 
-* lowers its own CPU, address-space, file-size and open-file limits, soft and
-  hard (POSIX; a lowered hard limit cannot be raised again);
+* lowers its CPU, memory, file-size and open-file limits, soft and hard (POSIX);
 * on Linux, moves into a fresh user and network namespace, so it has no
   network interface to reach (``network: namespace``); elsewhere, or when the
   kernel refuses, sockets are refused by the audit hook only (``network: audit``);
 * empties ``os.environ`` and watches it: a read from non-stdlib code is a breach;
-* installs an audit hook that refuses sockets, subprocesses, ``ctypes``, any
-  file write and any file read outside the interpreter, the scorer's import
-  paths and the inputs the parent passed explicitly.
+* installs an audit hook refusing sockets, processes, ``ctypes``, writes and reads
+  outside the interpreter, the import paths and the inputs passed explicitly.
 
-It prints one line, ``nonce`` + JSON: ``scores``, ``breaches``, ``modules``
-(non-stdlib modules the call imported) and ``data`` (other files it read).
+It prints ``nonce`` + JSON: ``scores``, ``breaches``, ``modules`` and ``data``. That
+report is the scorer's word: the parent pins the scorer's whole directory itself.
 """
 
 import json
@@ -30,7 +28,12 @@ _BLOCK = ("socket.", "subprocess.", "os.system", "os.exec", "os.posix_spawn", "o
           "os.fork", "os.forkpty", "ctypes.", "os.putenv", "os.unsetenv", "os.remove",
           "os.rename", "os.rmdir", "os.mkdir", "os.chmod", "os.truncate", "shutil.",
           "os.kill", "signal.", "sys.addaudithook", "sys.settrace", "sys.setprofile", "gc.",
-          "pty.", "winreg.")  # fmt: skip
+          "pty.", "winreg.", "os.symlink", "os.link", "os.utime", "os.chown", "os.lchown",
+          "os.chflags", "os.lchflags", "os.setxattr", "os.removexattr", "sqlite3.", "_winapi.",
+          "os.startfile", "os.chroot")  # fmt: skip
+_DENY = ("_posixsubprocess", "subprocess", "_ctypes", "ctypes", "_interpreters", "_dbm",
+         "_xxsubinterpreters", "_interpqueues", "_interpchannels", "_xxinterpchannels", "_gdbm",
+         "_testcapi", "_testinternalcapi", "_testsinglephase", "_testmultiphase")  # fmt: skip
 _DEVICES = ("/dev/null", "/dev/urandom")
 
 
@@ -56,6 +59,17 @@ def _scorer_on_stack(frame):
             return False
         if not name.startswith("<") and not _stdlib(name):
             return _norm(name) != here
+        frame = frame.f_back
+    return False
+
+
+def _importer(frame):
+    """True when the scorer's code is anywhere below this import (stdlib imports included)."""
+    here = _norm(__file__)
+    while frame is not None:
+        name = frame.f_code.co_filename
+        if not name.startswith("<") and not _stdlib(name) and _norm(name) != here:
+            return True
         frame = frame.f_back
     return False
 
@@ -89,6 +103,8 @@ def _unshare():
 
 
 class _Env(dict):
+    """An empty ``os.environ`` that records a read from the scorer's code."""
+
     def __init__(self, record):
         super().__init__()
         self._record = record
@@ -101,29 +117,18 @@ class _Env(dict):
         self._seen()
         raise KeyError(key)
 
-    def get(self, key, default=None):
-        self._seen()
-        return default
 
-    def __contains__(self, key):
+def _watched(name, empty):
+    def method(self, *_args):
         self._seen()
-        return False
+        return empty() if empty is not None else (_args[1:2] or [None])[0]
 
-    def __iter__(self):
-        self._seen()
-        return iter(())
+    setattr(_Env, name, method)
 
-    def keys(self):
-        self._seen()
-        return []
 
-    def items(self):
-        self._seen()
-        return []
-
-    def copy(self):
-        self._seen()
-        return {}
+for _pair in (("get", None), ("__contains__", bool), ("__iter__", lambda: iter(())),
+              ("keys", list), ("items", list), ("copy", dict)):  # fmt: skip
+    _watched(*_pair)
 
 
 def main():
@@ -143,6 +148,10 @@ def main():
         breaches.append({"kind": kind, "detail": detail[:200]})
 
     def hook(event, args):
+        if event == "import" and args and str(args[0]).partition(".")[0] in _DENY:
+            if _importer(sys._getframe(1)):  # the child's own imports are not breaches
+                record("process", f"import {args[0]}")
+            raise ImportError(f"isolated scorer: importing {args[0]} is refused")
         if event.startswith(_BLOCK):
             record("network" if event.startswith("socket.") else "process", event)
             raise PermissionError(f"isolated scorer: {event} is refused")
@@ -174,6 +183,7 @@ def main():
     sys.stdout = sys.stderr
     os.environ.clear()
     os.environ = _Env(record)
+    _disarm()
     before = set(sys.modules)
     sys.addaudithook(hook)
     sys.path[:0] = request["paths"]
@@ -195,6 +205,19 @@ def main():
               "limits": contained}  # fmt: skip
     out.write(request["nonce"] + json.dumps(result, sort_keys=True) + "\n")
     out.flush()
+
+
+def _disarm():
+    """Drop the unaudited process and file-node entry points before the hook goes in."""
+    for name in [m for m in sys.modules if m.partition(".")[0] in _DENY]:
+        del sys.modules[name]
+
+    def refused(*_args, **_kwargs):
+        raise PermissionError("isolated scorer: creating file nodes is refused")
+
+    for module in filter(None, (os, sys.modules.get("posix"), sys.modules.get("nt"))):
+        for name in {"mkfifo", "mknod"} & set(dir(module)):
+            setattr(module, name, refused)
 
 
 def _load(target):

@@ -50,6 +50,32 @@ def file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+TREE_FILES = 2000
+
+
+def tree(roots: list[str], skip: list[str]) -> list[Path]:
+    """Every file under the scorer's own import *roots* (not *skip*: stdlib, site dirs).
+
+    The parent lists these itself, so a scorer that hides a helper from the module
+    list it reports still has that helper in its closure. Bytecode caches are left
+    out: the child never runs a cached ``.pyc``. More than ``TREE_FILES`` files is
+    refused, so a scorer belongs in a directory of its own.
+    """
+    import os
+
+    found: set[Path] = set()
+    for root in roots:
+        real = Path(root).resolve()
+        if any(real == Path(s).resolve() or Path(s).resolve() in real.parents for s in skip):
+            continue
+        for top, dirs, files in os.walk(real):
+            dirs[:] = sorted(d for d in dirs if d != "__pycache__")
+            found.update(Path(top, f).resolve() for f in files if not f.endswith(".pyc"))
+            if len(found) > TREE_FILES:
+                raise ValueError(f"{real} holds more than {TREE_FILES} files")
+    return sorted(found)
+
+
 def display(path: Path, root: Path) -> str:
     """*path* relative to *root* when inside it, else absolute; always POSIX."""
     try:
@@ -133,4 +159,4 @@ def write(folder: Path, doc: dict[str, Any]) -> None:
 
 
 __all__ = ["CONVENTION", "FILE_NAME", "PREFIX", "check", "check_folder", "closure_digest",
-           "display", "file_sha256", "pin", "read", "write"]  # fmt: skip
+           "display", "file_sha256", "tree", "pin", "read", "write"]  # fmt: skip

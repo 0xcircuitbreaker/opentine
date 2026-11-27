@@ -2462,7 +2462,8 @@ limits, no network where the OS allows, and no access to files beyond its
 import paths and `--scorer-input` files; the child's import closure is hashed
 into `scorer.json`, whose `sc1+sha256:` pin is the signed `scorer_version`. A
 breach refuses with `scorer.isolation-breach`, a closure other than
-`--expect-closure` with `scorer.closure-mismatch`, and a `--contract` violation
+`--expect-closure` with `scorer.closure-mismatch`, a scorer directory over 2000
+files with `scorer.closure-too-large`, and a `--contract` violation
 with `scorer.contract`; nothing is signed. Without `--isolate`, a `python:` or
 `plugin:` run reports `advisory:scorer.in-process`. `eval rescore` re-runs an
 isolated eval's recorded scorer on the named outputs and signs an

@@ -95,7 +95,8 @@ def test_a_data_file_is_in_the_closure_only_when_passed_as_an_input(capsys, room
     assert status == 0, out
     doc = closure.read(room / "yes")
     assert [row["file"] for row in doc["inputs"]] == ["answers.txt"]
-    assert doc["data"] == []
+    # Siblings in the scorer's own directory are pinned by the parent, inputs are not data.
+    assert {row["file"] for row in doc["data"]} == {"sc/good.py", "sc/helper.py"}
 
 
 def test_an_edited_or_missing_closure_document_fails_eval_verify(capsys, room):
