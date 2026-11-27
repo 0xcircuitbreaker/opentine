@@ -8,8 +8,9 @@ the repository can delete it and launder a score. So
 for loop stops. The hold keeps the attestation from every delete, ``tine hold
 release`` refuses it (a taint is never released), and ``promote`` and
 ``lineage check`` read it when the file is gone. An unreadable holds file
-counts as a taint (fail closed). Only a run stored in the repository can be
-held this way (an attestation names a stored object).
+counts as a taint (fail closed); with no row (the holds file deleted or
+edited) the stored taint attestation is read from the object store. Only a
+run stored in the repository can be held this way (an attestation names a stored object).
 """
 
 from __future__ import annotations
@@ -67,12 +68,18 @@ def held(root: Path, run: str) -> list[dict[str, Any]]:
         rows = [r for r in read_holds(holds_path(repo)) if r["target"] == target(run)]
     except HoldError as exc:
         return [{"unreadable": str(exc)}]
+    oids = sorted(r["oid"] for r in rows)
+    if not oids:  # the row is gone (holds file deleted or edited): the object still taints
+        from opentine._integrity_run import TAINT
+        from opentine.repository._stored_claims import stored
+
+        oids = stored(repo, TAINT, lambda claim: claim.get("run") == run)
     out = []
-    for row in sorted(rows, key=lambda r: r["oid"]):
+    for oid in oids:
         try:
-            out.append(repo.get(row["oid"]).payload())
+            out.append(repo.get(oid).payload())
         except Exception:  # noqa: BLE001 - a held taint that cannot be read still taints
-            out.append({"unreadable": f"held taint {row['oid']} cannot be read"})
+            out.append({"unreadable": f"held taint {oid} cannot be read"})
     return out
 
 

@@ -5,7 +5,8 @@ delete or rewrite it. So :func:`opentine.coord._loop_stop.stop` also adds a
 ``tine hold`` row ``{"oid": STOP_ATTESTATION, "target": "loop-stop:LOOP"}``.
 The hold keeps the attestation from every delete, ``tine hold release``
 refuses it (there is no un-stop), and the fence and ``promote`` read it when
-the ref has no stop. An unreadable holds file counts as a stop (fail closed).
+the ref has no stop. An unreadable holds file counts as a stop (fail closed),
+and with the holds file deleted the stored stop attestations are read.
 
 A task id is also in the namespace of each loop its dotted prefixes name
 (``opt.gen-3`` is in ``opt``), so a generation added without ``--loop`` is
@@ -40,6 +41,11 @@ def held_stop(repo: Any, loop: str) -> dict[str, Any] | None:
     except HoldError as exc:
         return {"loop": loop, "status": "stopped", "stop": None, "signer": None,
                 "source": "hold", "detail": str(exc)}  # fmt: skip
+    if not rows and not holds_path(repo).exists():  # the file was deleted: read the objects
+        from opentine.coord._loop_stop import CONVENTION
+        from opentine.repository._stored_claims import stored
+
+        rows = [{"oid": o} for o in stored(repo, CONVENTION, lambda c: c.get("loop") == loop)]
     if not rows:
         return None
     oid = sorted(r["oid"] for r in rows)[0]

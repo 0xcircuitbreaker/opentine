@@ -58,6 +58,10 @@ object kind or `tine verify` code.
   monitor, auditor or curator, even when the bundle also lists it there (one
   shared `_key_roles_pin.granting` check), as the transcript, containment and
   oversight checks already did.
+- Security: deleting `.tine/holds` no longer clears an integrity taint or a
+  loop stop. With no hold row, the taint reader (promote, lineage check) reads
+  the stored taint attestation, and with the holds file gone the loop fence
+  reads the stored stop attestation.
 
 ## 0.84.0 — RL-scale capture audits and provenance trailers (2026-11-26)
 
