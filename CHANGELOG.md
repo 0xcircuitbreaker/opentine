@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.86.1 — Killed-writer durability fixes (2026-11-27)
+
+- `tine gc` no longer fails when another process (a live recorder) still holds
+  a pack it merged away (Windows sharing violation): after the bounded retry
+  the pack is left in place -- a duplicate of objects the merged pack holds, or
+  an unpublished body -- and the next gc or reap removes it.
+- A TINEPACK3 pack with bytes after its compressed stream is refused with
+  "truncated or trailing compressed data" instead of hanging: the bounded
+  decompressor now stops at end-of-stream, where zlib leaves a stale
+  `unconsumed_tail` (found by the scaled fuzz run; input kept in
+  `tests/fuzz_regressions/pack/`).
+- The git option probe test writes git's output to a file instead of a pipe
+  and turns off auto gc/maintenance, so a detached child that inherited the
+  pipe can no longer stall it past its timeout on Windows.
+- `tine fsck` accepts a `.tpk` with no `.tidx` as unpublished staging left by a
+  killed writer: its bytes must still hash to its name and start with a pack
+  magic. Only pack staging names (`.<digest>.(tpk|tidx|pack).<suffix>`) are
+  skipped, not every dot-file in `packs/`.
+- `tine gc` reaps unpublished `.tpk` files older than the reap age. The reaper
+  renames the body aside first and deletes it only if it is the same file it
+  aged and no `.tidx` has appeared, so it can never delete a pack a writer has
+  just published.
+- Batched loose-object flushes write objects in staging order, so links land
+  before the objects that point at them.
+- Object lookups stay linear when killed writers leave many packs behind, and a
+  plain `tine gc` folds small packs so the pack count stays bounded.
+
 ## 0.86.0 — Promotion discipline (2026-11-27)
 
 - `tine eval plan` signs a pre-registered analysis plan, an

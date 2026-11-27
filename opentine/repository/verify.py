@@ -24,6 +24,8 @@ if TYPE_CHECKING:
 
 _PACK_NAME = re.compile(r"^([0-9a-f]{64})\.pack$")
 _LOCAL_PACK = re.compile(r"^[0-9a-f]{64}\.(tpk|tidx)$")
+# A killed writer's pack staging file (``mkstemp`` next to its target); nothing else.
+_PACK_STAGING = re.compile(r"^\.[0-9a-f]{64}\.(tpk|tidx|pack)\.[a-z0-9_]{8}(\.tmp)?$")
 _MAX_FSCK_PACKS = 1_000
 _MAX_FSCK_PACK_BYTES = 1024 * 1024 * 1024
 
@@ -91,7 +93,7 @@ def _pack_errors(repo: Repo) -> list[str]:
     errors.extend(verify_packs(repo.path))  # local .tpk/.tidx packs (tine gc)
     for name in sorted(names):
         match = _PACK_NAME.fullmatch(name)
-        if _LOCAL_PACK.fullmatch(name):
+        if _LOCAL_PACK.fullmatch(name) or _PACK_STAGING.fullmatch(name):
             continue
         if not match:
             errors.append(f"pack {name}: invalid pack filename")

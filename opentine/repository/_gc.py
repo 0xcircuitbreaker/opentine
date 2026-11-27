@@ -17,6 +17,7 @@ from pathlib import Path
 from opentine import _codec
 from opentine.kernel import KernelError
 from opentine.repository import _winretry
+from opentine.repository._autopack import merge_candidates, pack_sizes
 from opentine.repository._autopack_format import pinned
 from opentine.repository._config import (
     STORAGE_V3,
@@ -28,6 +29,7 @@ from opentine.repository._config import (
     storage_codec,
     storage_version,
 )
+from opentine.repository._gc_drop import drop_pack, shadowed
 from opentine.repository._gc_refs import housekeep
 from opentine.repository._gc_tidy import old_loose, remove_empty_dir, sweep_empty_fanout
 from opentine.repository._lockfile import acquire
@@ -56,10 +58,7 @@ class GcResult:
 
 
 def footprint(tine: Path) -> tuple[int, int]:
-    """(file bytes, allocated disk bytes) of objects, packs, refs, reflogs and state.
-
-    Refs and reflogs count since 0.14: after a gc they are most of the disk.
-    """
+    """(file bytes, allocated disk bytes) of objects, packs, refs, reflogs and state."""
     total = disk = 0
     for name in FOOTPRINT_DIRS:
         for directory, _, files in os.walk(internal_path(tine, name)):
@@ -160,7 +159,8 @@ def gc(
 ) -> GcResult:
     """Pack loose objects (*min_age* s old or older); never delete one (``--prune=now``: prune).
 
-    ``repack`` also rewrites every pack; *merge_packs* rewrites just those.
+    ``repack`` also rewrites every pack; *merge_packs* rewrites just those (default:
+    the small packs :func:`merge_candidates` picks, so pack lookups stay bounded).
     ``upgrade`` moves the repository to storage version 3 and rewrites every
     pack in that format; ``downgrade`` rewrites every pack in the version-1
     pack format and returns the descriptor to version 2 (what 0.11-0.12 read).
@@ -179,6 +179,8 @@ def gc(
         rewrite = repack or downgrade or (upgrade and not _is_v3(repo, chosen))
         if upgrade:  # descriptor first: a crash leaves a v3 repo holding v1 packs
             set_storage_version(repo, STORAGE_V3, chosen)
+        if merge_packs is None and not rewrite:  # 0.86.1: a plain gc keeps packs <= MAX_PACKS
+            merge_packs = merge_candidates(pack_sizes(repo.path))
         args = (repo, rewrite, chosen, level, keep_transfer_packs)
         result = _gc_locked(*args, (min_age, own), merge_packs, 1 if downgrade else None)
         if downgrade:  # descriptor last: until then 0.12 must keep refusing
@@ -215,7 +217,7 @@ def _gc_locked(
         if oid_of(raw) != oid:
             raise KernelError(f"refusing to pack a corrupt object: {oid}")
     objects = sorted(raws.items())
-    removed_packs = 0
+    removed_packs, digest = 0, None
     if objects:
         digest = write_pack(repo.path, objects, chosen, level, fmt)
         check = load_pack(repo.path, digest)
@@ -225,12 +227,10 @@ def _gc_locked(
                 raise KernelError(f"new pack does not return {oid}; nothing was removed")
         for oid in loose:
             _remove_loose(repo, oid)
-        for old in old_packs:
-            if old == digest:
-                continue
-            for suffix in (".tidx", ".tpk"):  # unpublish first, then drop the body
-                internal_path(repo.path, "packs", old + suffix).unlink(missing_ok=True)
-            removed_packs += 1
+        for old in old_packs:  # a pack a reader still holds is left for a later gc
+            removed_packs += old != digest and drop_pack(repo.path, old)
+    for old in shadowed(packs, held, digest):  # duplicates such a gc left behind
+        removed_packs += drop_pack(repo.path, old)
     transfer = 0
     if not keep_transfer_packs:
         # Received transfer packs are kept only as a copy of what arrived; every

@@ -8,6 +8,9 @@ from __future__ import annotations
 
 from opentine.repository._pack_lookup import LegacyIndex, MappedIndex
 
+MANY_PACKS = 16  # more indexes than this, and lookups go through ``where`` ...
+MANY_LOOKUPS = 64  # ... once this many were made since the last refresh
+
 
 class LazyIndexes:
     """``PackSet``'s view of its indexes: single lookups in place, bulk maps lazily.
@@ -76,6 +79,11 @@ class LazyIndexes:
     def _find(self, oid: str) -> tuple[str, int, int, int] | None:
         if self._where is not None:
             return self._where.get(oid)
+        # Many packs (killed writers' gc never merging them): each lookup would probe
+        # every index, so a walk turns quadratic; past MANY_LOOKUPS, build the map once.
+        self._finds = finds = getattr(self, "_finds", 0) + 1
+        if len(self.indexes) > MANY_PACKS and finds > MANY_LOOKUPS:
+            return self.where.get(oid)
         for digest, index in self.indexes.items():  # first pack by name wins, as before
             if (place := index.find(oid)) is not None:
                 return (digest, *place[:3])

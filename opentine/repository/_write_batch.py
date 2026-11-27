@@ -94,8 +94,9 @@ def flush(repo) -> str | None:
     objects = staged(repo)
     if not objects:
         return None
-    items = sorted(objects.items())
+    staged_order = list(objects.items())  # links staged before what names them
     objects.clear()
+    items = sorted(staged_order)
     version = _pack_version(repo)
     if len(items) == 1 or version is None or len(items) > MAX_PACK_OBJECTS:
         from opentine.repository._storage import write_loose
@@ -103,7 +104,9 @@ def flush(repo) -> str | None:
         directories: set[Path] = set()
         token = DEFERRED_DIRS.set(directories)
         try:
-            for oid, raw in items:
+            # Staging order, not oid order: a writer killed mid-flush must not
+            # leave an object whose linked object never reached the disk.
+            for oid, raw in staged_order:
                 write_loose(repo, oid, raw)  # each file still fsynced before its rename
         finally:
             DEFERRED_DIRS.reset(token)

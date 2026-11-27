@@ -321,3 +321,44 @@ def test_a_complete_listing_still_reports_a_missing_object_at_once(tmp_path, mon
     monkeypatch.setattr(packs, "_scan", lambda: scans.append(1) or real_scan())
     assert packs.locate("blob:sha256:" + "0" * 64) is None
     assert len(scans) == 2  # the first load, then one rescan on the miss
+
+
+@pytest.mark.parametrize("held_suffix", [".tidx", ".tpk"])
+def test_gc_merging_a_pack_a_reader_still_holds_keeps_going(tmp_path, monkeypatch, held_suffix):
+    # 0.86.1: a plain gc merges small packs; a live recorder in another process
+    # holding a merged-away pack open made the delete fail (WinError 32) and gc
+    # with it. The pack is left for a later gc instead; nothing is lost.
+    from opentine.repository import _autopack
+    from opentine.repository._gc import gc
+    from opentine.repository._reap import reap_temp
+
+    monkeypatch.setattr(_autopack, "MAX_PACKS", 2)
+
+    store = Repo.init(tmp_path / "r")
+    oids = []
+    for n in range(3):  # three small packs (> MAX_PACKS): a plain gc folds them
+        oids.append(store.put("blob", f'{{"a":{n}}}'.encode(), redact=False))
+        gc(store, min_age=0, merge_packs=[])
+    packs_dir = store.path / "packs"
+    old = {p.name for p in packs_dir.iterdir()}
+    assert len([n for n in old if n.endswith(".tidx")]) == 3
+    monkeypatch.setattr(_winretry, "WINDOWS", True)
+    monkeypatch.setattr(_winretry, "_sleep", lambda _s: None)
+    real = os.unlink
+
+    def held(target, *args, **kwargs):  # every old pack stays open for this gc
+        if os.path.basename(str(target)) in old and str(target).endswith(held_suffix):
+            raise PermissionError(32, "being used by another process")
+        return real(target, *args, **kwargs)
+
+    monkeypatch.setattr(os, "unlink", held)
+    gc(store, min_age=0)
+    monkeypatch.setattr(os, "unlink", real)
+    fresh = Repo(store.path)
+    assert all(fresh.raw(oid) for oid in oids)
+    assert fresh.fsck().errors == ()
+    gc(fresh, min_age=0)
+    reap_temp(fresh.path, min_age=0)  # an unpublished body left behind
+    assert len(list(packs_dir.iterdir())) == 2  # one merged pack: .tidx + .tpk
+    assert all(Repo(store.path).raw(oid) for oid in oids)
+    assert Repo(store.path).fsck().errors == ()
