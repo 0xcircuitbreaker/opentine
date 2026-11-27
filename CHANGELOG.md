@@ -47,6 +47,10 @@ object kind or `tine verify` code.
   already makes), chosen among those, and refuse when none qualifies. A newer
   policy from an unroled or optimizer key can no longer turn redaction off or
   drop events at write time.
+- Security: a budget subject whose ledger has a policy entry that is an orphan
+  or forks the chain is denied (fail closed). An orphan policy dated before
+  the owner's could otherwise become the "first" policy and, in a repository
+  without pinned roles, lift every cap.
 
 ## 0.84.0 — RL-scale capture audits and provenance trailers (2026-11-26)
 
