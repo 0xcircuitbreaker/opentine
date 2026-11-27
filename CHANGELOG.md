@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Cleanup and security pass
+## 0.84.1 — Cleanup and security pass (2026-11-27)
 
 No user-facing command, flag, file format or `--json` shape changes, and no new
 object kind or `tine verify` code.
