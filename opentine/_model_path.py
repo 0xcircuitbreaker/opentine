@@ -36,6 +36,7 @@ _PREFIXES = {"openai", "anthropic", "google", "gemini", "vertex", "vertex_ai", "
              "us", "eu", "apac", "global"}  # fmt: skip
 _KEYS = {"allow", "aliases", "judge", "max_output_tokens"}
 _OUT_KEYS = ("max_tokens", "max_completion_tokens", "max_output_tokens", "maxOutputTokens")
+_FAN_KEYS = ("n", "best_of", "candidateCount", "candidate_count")
 
 
 class ModelPathError(ValueError):
@@ -108,8 +109,7 @@ def widens(old: dict[str, Any] | None, new: dict[str, Any] | None) -> list[str]:
     if old["allow"] is not None and (new["allow"] is None
                                      or set(new["allow"]) - set(old["allow"])):  # fmt: skip
         out.append("model_path.allow")
-    if old["allow"] is not None and any(old["aliases"].get(k) != v
-                                        for k, v in new["aliases"].items()):  # fmt: skip
+    if any(old["aliases"].get(k) != v for k, v in new["aliases"].items()):  # prices too
         out.append("model_path.aliases")
     for unit, before in old["judge"].items():
         after = new["judge"].get(unit)
@@ -131,18 +131,20 @@ def _segments(path: str) -> list[str] | None:
 
 def _out(request: dict[str, Any], default: int) -> int:
     """Output tokens one request may produce: its own limit (or *default*) times fan-out."""
-    config = request.get("generationConfig")
-    config = config if isinstance(config, dict) else {}
-    found = [v for k in _OUT_KEYS for v in (request.get(k), config.get(k)) if v is not None]
+    places = [request] + [
+        c
+        for c in (request.get("generationConfig"), request.get("generation_config"))
+        if isinstance(c, dict)
+    ]
+    found = [p.get(k) for p in places for k in _OUT_KEYS if p.get(k) is not None]
     for value in found:
         if isinstance(value, bool) or not isinstance(value, int) or value < 0:
             raise ModelPathError("an output-token limit is not a whole number")
-    fan = request.get("n", config.get("candidateCount", 1))
-    if fan is None:
-        fan = 1
-    if isinstance(fan, bool) or not isinstance(fan, int) or not 1 <= fan <= MAX_FANOUT:
-        raise ModelPathError("a request asks for an unsupported number of choices")
-    return (max(found) if found else default) * fan
+    fans = [p.get(k) for p in places for k in _FAN_KEYS if p.get(k) is not None] or [1]
+    for fan in fans:
+        if isinstance(fan, bool) or not isinstance(fan, int) or not 1 <= fan <= MAX_FANOUT:
+            raise ModelPathError("a request asks for an unsupported number of choices")
+    return (max(found) if found else default) * max(fans)
 
 
 def _batch(dialect: str, body: dict[str, Any]) -> list[dict[str, Any]]:
@@ -175,10 +177,9 @@ def probe(dialect: str, method: str, path: str, raw: bytes, request: Any,
     if not isinstance(request, dict):
         return {**out, "problem": "the request body is not a JSON object"}
     last = parts[-1] if parts else ""
-    if dialect == "gemini" and "models" in parts[:-1]:
-        out["models"].append(parts[parts.index("models") + 1].split(":", 1)[0])
-    if dialect == "openai" and "deployments" in parts[:-1]:
-        out["models"].append(parts[parts.index("deployments") + 1])
+    mark = {"gemini": "models", "openai": "deployments"}.get(dialect)
+    out["models"] += [parts[i + 1].split(":", 1)[0] for i, p in enumerate(parts[:-1]) if p == mark]
+    free = last == "count_tokens" or (last.count(":") == 1 and last.endswith(":counttokens"))
     try:
         if "batches" in parts and dialect == "anthropic" or last.endswith(":batchgeneratecontent"):
             items = _batch(dialect, request)
@@ -189,11 +190,16 @@ def probe(dialect: str, method: str, path: str, raw: bytes, request: Any,
         for item in items:
             if item.get("model") is not None:
                 out["models"].append(str(item["model"]))
-            if not (last.endswith(("count_tokens", ":counttokens")) or "embed" in last):
+            if item.get("models") is not None:  # a gateway's fallback list
+                more = item["models"]
+                if not isinstance(more, list) or len(more) > MAX_ENTRIES:
+                    raise ModelPathError("a fallback model list cannot be checked")
+                out["models"] += [str(m) for m in more]
+            if not (free or "embed" in last):
                 out["output"] += _out(item, default_out)
     except ModelPathError as exc:
         return {**out, "problem": str(exc)}
-    out["free"] = last.endswith(("count_tokens", ":counttokens"))
+    out["free"] = free
     return out
 
 

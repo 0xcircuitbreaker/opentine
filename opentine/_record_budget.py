@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import itertools
 import json
+import re
 import threading
 from collections.abc import Callable
 from typing import Any
@@ -155,7 +156,7 @@ class RecordBudget:
                 return self._deny("budget.judge-would-exceed",
                                   f"the call could exceed the judge {unit} cap", info)  # fmt: skip
         ticket = {**info, "provider": provider, "estimate": usage, "money": money,
-                  "priced": money is not None}  # fmt: skip
+                  "priced": money is not None, "names": names}  # fmt: skip
         append(self.repo, self.subject, "spend", self._spend(ticket, usage, money, "reserve"),
                self.key, at_ms=self.now())  # fmt: skip
         return {"ok": True, "ticket": ticket}
@@ -181,10 +182,15 @@ class RecordBudget:
         else:
             reported = step_args(record).get("usage")
             if isinstance(reported, dict) and reported and _complete(record):
-                usage = _reported(reported)
-                if ticket["priced"]:
-                    price = self._price(ticket["provider"], ticket["model"], usage)
-                    money = money if price is None else price
+                usage = _reported(reported, usage)
+                if ticket["priced"]:  # the dearest of the asked and the answering model
+                    said = _model_path.canonical(step_args(record).get("model_info"))
+                    prices = [
+                        self._price(ticket["provider"], n, usage)
+                        for n in {*ticket["names"], ticket["model"], said}
+                        if n
+                    ]
+                    money = money if None in prices or not prices else max(prices)
         try:
             append(self.repo, self.subject, "spend", self._spend(ticket, usage, money, "settle"),
                    self.key, at_ms=self.now())  # fmt: skip
@@ -192,16 +198,21 @@ class RecordBudget:
             pass
 
 
-def _reported(reported: dict[str, Any]) -> dict[str, int]:
-    ins = ("input", "cache_read", "cache_write_5m", "cache_write_1h")
-    return {
-        "input": sum(int(reported.get(k, 0)) for k in ins),
-        "output": int(reported.get("output", 0)) + int(reported.get("reasoning", 0)),
-    }
+def _reported(reported: dict[str, Any], estimate: dict[str, int]) -> dict[str, int]:
+    """Usage as reported; the *estimate* when a field is not a whole number >= 0."""
+    groups = {"input": ("input", "cache_read", "cache_write_5m", "cache_write_1h"),
+              "output": ("output", "reasoning")}  # fmt: skip
+    values = [reported.get(k, 0) for g in groups.values() for k in g]
+    if any(isinstance(v, bool) or not isinstance(v, int) or not 0 <= v < 10**15 for v in values):
+        return dict(estimate)
+    return {u: sum(reported.get(k, 0) for k in g) for u, g in groups.items()}
 
 
-#: The last event of a finished stream, per dialect; a cut stream settles at the estimate.
-_ENDS = (b"[DONE]", b"message_stop", b'"finishReason"', b"response.completed")
+#: The last event of a finished stream, as a whole line so model text (always a JSON
+#: string, never a raw line break) cannot fake one; a cut stream settles at the estimate.
+#: Gemini's key appears unescaped only outside text.
+_ENDS = re.compile(rb'(?m)^(?:data: ?\[DONE\]|event: ?(?:message_stop|response\.completed))\r?$'
+                   rb'|"finishReason"')  # fmt: skip
 
 
 def _complete(record: dict[str, Any]) -> bool:
@@ -212,7 +223,7 @@ def _complete(record: dict[str, Any]) -> bool:
         return False
     if "event-stream" not in str(record.get("content_type") or ""):
         return True
-    return any(end in raw[-65536:] for end in _ENDS)
+    return _ENDS.search(raw[-65536:]) is not None
 
 
 def refusal(decision: dict[str, Any]) -> bytes:

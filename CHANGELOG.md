@@ -24,6 +24,9 @@
 - Each refusal is a signed, held `deny` ledger entry (a new entry of the
   `opentine.budget-ledger/1` claim convention). The proxy fails closed:
   calls are refused when the ledger is unreachable or no policy is in force.
+- Any change to `model_path.aliases` needs a pinned policy-role key, with or
+  without an allowlist, because aliases also choose the price. `count_tokens`
+  calls are free only at their exact endpoint.
 - Ledger appends from every writer are serialised by `budget-ledger.lock`.
   `tine budget status` reports `judge_tokens` and `judge_money_usd`.
 

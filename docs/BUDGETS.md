@@ -163,11 +163,15 @@ as before.
 
 The policy's optional `model_path` section (`--allow-model`,
 `--model-alias`, `--judge-tokens`, `--judge-money-usd`, `--max-output-tokens`)
-adds the following:
+adds the following. Widening the allowlist, lowering `max_output_tokens`,
+raising or removing a judge cap, or adding or changing any alias (aliases
+also choose the price, so this holds even without an allowlist) is a
+`budget.limit-raise` unless a pinned policy-role key signs it.
 
 - **Allowlist.** Each model a call names (the body's `model`, a Gemini
-  `models/NAME:method` path, an Azure deployment, every request of an inline
-  batch) is canonicalised and then matched. Canonicalisation applies Unicode
+  `models/NAME:method` path segment, an Azure deployment, every entry of a
+  gateway's `models` fallback list, every request of an inline batch) is
+  canonicalised and then matched. Canonicalisation applies Unicode
   NFKC, folds case, removes all whitespace, strips provider and routing
   prefixes (`openai/`, `models/`, `us.anthropic.`, ...) and then applies the
   policy's aliases. A trailing `*` in an allowlist entry matches a prefix. A
@@ -176,16 +180,20 @@ adds the following:
   entry with `phase: "reserve"` holding a pessimistic estimate. Input tokens
   are estimated as the request's byte length. Output tokens are the largest
   output limit the request names (or `max_output_tokens`, default 32768),
-  times `n` or `candidateCount`. Money is the catalog price of that usage. The
+  times the largest fan-out it names (`n`, `best_of`, `candidateCount` or
+  `candidate_count`; Gemini's `generationConfig` and `generation_config` are
+  both read). Money is the catalog price of that usage. The
   read, the decision and the append happen under one lock
   (`budget-ledger.lock` in the repository, held across processes), so
   concurrent calls cannot both pass a cap that only one of them fits under.
   A call is refused when the totals plus its estimate would exceed `tokens` or
   `money_usd`.
 - **Settlement.** After the reply, a `phase: "settle"` entry records the usage
-  the provider reported, priced from the catalog. A reply with no usage
-  settles at the estimate, and so does a stream cut before its end-of-stream
-  event. A call that never reached the provider settles at zero. A settle
+  the provider reported, priced from the catalog at the dearest of the
+  models asked for and the model the reply names. A reply with no usage, or
+  with a usage field that is not a whole number of at least zero, settles at
+  the estimate, and so does a stream cut before its end-of-stream event (read
+  as a whole SSE line, so text the model writes cannot imitate it). A call that never reached the provider settles at zero. A settle
   entry replaces its reservation only when the same key signed both and every
   entry for that call is signed. Otherwise the larger value counts, so a
   forged settle entry cannot hide spend.
