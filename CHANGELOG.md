@@ -62,6 +62,11 @@ object kind or `tine verify` code.
   loop stop. With no hold row, the taint reader (promote, lineage check) reads
   the stored taint attestation, and with the holds file gone the loop fence
   reads the stored stop attestation.
+- Security: `tine witness serve`, `tine ui`, `tine mcp-proxy --http`, the
+  record proxy and the OTLP receiver now bound slow and idle clients the way
+  `tine ingest serve` did: a 30 s per-read socket timeout, a whole-request
+  deadline, a cap on connections served at once (the rest get 503) and daemon
+  handler threads, from one shared `_http_guard` module.
 
 ## 0.84.0 — RL-scale capture audits and provenance trailers (2026-11-26)
 

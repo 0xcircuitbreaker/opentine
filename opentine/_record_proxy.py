@@ -18,11 +18,10 @@ import os
 import threading
 import time
 from collections.abc import Callable
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 from urllib.parse import urlsplit
 
-from opentine._http_linger import LingeringCloseMixin
+from opentine._http_guard import GuardedHandler, LingeringGuardedServer
 from opentine._otlp_http import LOOPBACK_NAMES, _host_name
 
 #: name -> (base-URL env vars, public default, provider, wire dialect).
@@ -89,7 +88,7 @@ def child_env(
     return env
 
 
-class _Handler(BaseHTTPRequestHandler):
+class _Handler(GuardedHandler):
     server: RecordingServer
 
     def log_message(self, format: str, *args: Any) -> None:  # noqa: A002 - stdlib name
@@ -174,8 +173,8 @@ class _Handler(BaseHTTPRequestHandler):
     do_GET = do_POST = do_PUT = do_DELETE = do_PATCH = _proxy
 
 
-class RecordingServer(LingeringCloseMixin, ThreadingHTTPServer):
-    daemon_threads = True
+class RecordingServer(LingeringGuardedServer):
+    max_clients = 64  # long-lived streams: a wider cap, still bounded
 
     def __init__(self, bases: dict[str, str], on_record: Callable[[dict[str, Any]], None]):
         super().__init__(("127.0.0.1", 0), _Handler)
