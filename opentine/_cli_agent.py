@@ -7,6 +7,8 @@
   that claim that ref, each with its own trust state.
 * ``trust`` trusts the repository's ``.tine/agents.toml`` as it is now.
 * ``keys`` lists this user's agent keys (``tine keygen --agent NAME``).
+* ``scaffold``, ``scaffold-diff``, ``scaffold-pin`` (0.88): scaffold manifests
+  (:mod:`opentine._cli_agent_scaffold`).
 
 Every recorded string is untrusted and reaches the terminal through
 ``_terminal``; a name that is not plain ASCII is flagged as a possible look-alike.
@@ -153,9 +155,13 @@ def _keys(args: argparse.Namespace) -> None:
 
 
 def cmd_agent(args: argparse.Namespace) -> None:
+    from opentine import _cli_agent_scaffold as scaffold
+
     handler = {"id": _id, "show": _show, "trust": _trust, "keys": _keys}.get(args.agent_command)
+    if args.agent_command in scaffold.HANDLERS:  # 0.88
+        handler = scaffold.run
     if handler is None:
-        _fail("usage: tine agent {id,show,trust,keys}")
+        _fail("usage: tine agent {id,show,trust,keys,scaffold,scaffold-diff,scaffold-pin}")
         return
     handler(args)
 
@@ -176,6 +182,9 @@ def add_agent_parser(sub: Any) -> None:
     who_trust.add_trust_args(show, filters=False)
     verbs.add_parser("trust", help="Trust .tine/agents.toml as it is now")
     verbs.add_parser("keys", help="List this user's agent signing keys")
+    from opentine._cli_agent_scaffold import add_parsers
+
+    add_parsers(verbs)  # 0.88: scaffold manifests
     for parser in verbs.choices.values():
         if not any(a.dest == "json" for a in parser._actions):
             parser.add_argument("--json", action="store_true", help="Emit JSON")

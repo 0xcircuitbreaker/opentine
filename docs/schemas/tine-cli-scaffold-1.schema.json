@@ -1,0 +1,342 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-scaffold-1.schema.json",
+  "title": "tine agent scaffold VERB --json",
+  "description": "Scaffold manifests (0.88). `scaffold` digests every scaffold file of a harness (instruction files and their `@path` imports, settings, hooks, skills, commands, agents, rules, MCP configuration) under `--root`; `record` is the attestation id when `--record RUN` signed it onto a stored run. `scaffold-diff` compares two manifests path by path. `scaffold-pin` signs the glob list that replaces a harness's defaults with a policy-role key.",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "manifest",
+        "record"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-scaffold/1"
+        },
+        "command": {
+          "const": "agent scaffold"
+        },
+        "manifest": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schema",
+            "harness",
+            "source",
+            "globs",
+            "files",
+            "tree_sha256"
+          ],
+          "properties": {
+            "schema": {
+              "const": "opentine.scaffold-manifest/1"
+            },
+            "harness": {
+              "type": "string"
+            },
+            "source": {
+              "enum": [
+                "default",
+                "pinned"
+              ]
+            },
+            "globs": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "files": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "path",
+                  "kind",
+                  "sha256",
+                  "bytes",
+                  "target",
+                  "resolved",
+                  "via"
+                ],
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "enum": [
+                      "file",
+                      "link",
+                      "special",
+                      "external",
+                      "missing"
+                    ]
+                  },
+                  "sha256": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "bytes": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "target": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "resolved": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "via": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "tree_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        },
+        "record": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "before_tree",
+        "after_tree",
+        "added",
+        "removed",
+        "changed",
+        "same"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-scaffold/1"
+        },
+        "command": {
+          "const": "agent scaffold-diff"
+        },
+        "before_tree": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "after_tree": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "added": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "removed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "same": {
+          "type": "boolean"
+        },
+        "changed": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "before",
+              "after"
+            ],
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "before": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "sha256",
+                  "target",
+                  "resolved"
+                ],
+                "properties": {
+                  "kind": {
+                    "type": "string"
+                  },
+                  "sha256": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "target": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "resolved": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              },
+              "after": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "sha256",
+                  "target",
+                  "resolved"
+                ],
+                "properties": {
+                  "kind": {
+                    "type": "string"
+                  },
+                  "sha256": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "target": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "resolved": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "harnesses",
+        "signer",
+        "pin"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-scaffold/1"
+        },
+        "command": {
+          "const": "agent scaffold-pin"
+        },
+        "harnesses": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "signer": {
+          "type": "string"
+        },
+        "pin": {
+          "type": "string"
+        }
+      }
+    }
+  ]
+}

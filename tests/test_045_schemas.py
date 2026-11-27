@@ -464,6 +464,8 @@ DRIVEN = (
         + ("--out", "bom.json", "--json"),
         "tine-cli-bom-1",
     ),  # 0.78: exports the root variant the pre-step records
+    (("agent", "scaffold", "--root", ".", "--json"), "tine-cli-scaffold-1"),  # 0.88
+    (("agent", "scaffold-diff", "sa.json", "sa.json", "--json"), "tine-cli-scaffold-1"),
 )
 
 
@@ -487,6 +489,9 @@ def test_every_driven_json_output_validates(monkeypatch, capsys, room, argv, exp
         if argv[1] == "rescore":
             run = ("eval", "run", "repo/d.jsonl", "--scorer", "python:sc.py:score", "--isolate")
             _tine(monkeypatch, capsys, *run, "--key", "purge.key", "--out", "es")
+    if argv[:2] == ("agent", "scaffold-diff"):  # 0.88: a manifest to compare
+        _code, out = _tine(monkeypatch, capsys, "agent", "scaffold", "--json")
+        (room / "sa.json").write_bytes(out.encode("utf-8"))
     if argv[0] == "bom":  # 0.78: a lineage node to export
         _tine(monkeypatch, capsys, "lineage", "record", "--run", "run:sha256:" + "a" * 64,
               "--key", "purge.key", "--code-tree", "sha256:" + "1" * 64, "--repo", "repo",
