@@ -385,8 +385,14 @@ def test_every_option_the_guard_reads_a_value_for_takes_one_in_git(tmp_path):
     """
     from opentine.tools import _git_policy as policy
 
+    git = shutil.which("git")
     env = {
         **os.environ,
+        # An unknown merge strategy makes git readdir() every PATH entry looking
+        # for git-merge-* programs (builtin/merge.c get_strategy -> help.c
+        # load_command_list); on a Windows runner's long PATH that scan alone
+        # outlived the probe. Only git's own directory is needed.
+        "PATH": os.path.dirname(git),
         "HOME": str(tmp_path),
         "GIT_CONFIG_NOSYSTEM": "1",
         "GIT_TERMINAL_PROMPT": "0",
@@ -417,7 +423,7 @@ def test_every_option_the_guard_reads_a_value_for_takes_one_in_git(tmp_path):
             (repo / "f").write_text("x\n", encoding="utf-8")
             subprocess.run(["git", "-C", str(repo), "add", "f"], env=env, check=True)
             subprocess.run(["git", "-C", str(repo), "commit", "-qm", "c"], env=env, check=True)
-            probe = ["git", "-c", "protocol.allow=never", "-C", str(repo), subcommand, option]
+            probe = [git, "-c", "protocol.allow=never", "-C", str(repo), subcommand, option]
             # Output goes to a file, not a pipe: waiting on git's exit cannot be
             # held up by a grandchild that inherited the pipe (seen on Windows).
             with open(tmp_path / "probe.out", "w+", encoding="utf-8", errors="replace") as out:
