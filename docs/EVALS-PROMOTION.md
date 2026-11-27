@@ -98,6 +98,7 @@ require_holdout = true
 eval_signers = ["sha256:<key fingerprint>"]   # the keys trusted to sign verdicts
 scorer_isolation = "advisory"  # 0.85: or "required"; profile = "rsi" implies "required"
 holdout_queries = "advisory"   # 0.86: or "required"; profile = "rsi" implies "required"
+regions = "advisory"           # 0.87: or "required"; profile = "rsi" implies "required"
 ```
 
 ### What the gate checks
@@ -128,6 +129,7 @@ A label moves only when every check passes. Each refusal names its reason:
 | `promote.scorer-in-process` | (0.85) an eval ran a `python:` or `plugin:` scorer without `--isolate` while the policy sets `scorer_isolation = "required"` or `profile = "rsi"`; otherwise the same finding is the advisory `advisory:scorer.in-process` in the output's `advisories` (docs/SCORER-ISOLATION.md) |
 | `promote.plan-missing`, `promote.plan-invalid`, `promote.plan-signer`, `promote.plan-mismatch`, `promote.plan-after-outputs`, `promote.seed-not-committed`, `promote.coverage`, `promote.candidates-over-plan`, `promote.uncorrected`, `promote.eval-signer-role` | (0.86) a pre-registered plan (`--plan`, `--reveal`) is required and missing, does not hold, or its corrected test fails; under `profile = "rsi"` a verdict signer holds no pinned `scorer` role. Without a plan and without `require_plan` the advisory is `advisory:promote.no-plan` (docs/EVAL-PLANS.md) |
 | `promote.holdout-query-budget` | (0.86) a lineage node made more queries against a sealed holdout than its commitment's `max_queries`, while the policy sets `holdout_queries = "required"` or `profile = "rsi"`; otherwise the advisory `advisory:holdout.query-budget` (docs/HOLDOUTS.md) |
+| `promote.region-modified`, `promote.regions-unpinned` | (0.87) the policy sets `regions = "required"` (or `profile = "rsi"`) and the working tree changes code outside an EVOLVE-BLOCK region, adds or removes a covered file or tampers with a marker, or no signed region pin is filed; otherwise findings are the advisory `advisory:regions.outside-modified` (docs/INTEGRITY.md) |
 | `promote.already-current` | the run already holds the label |
 | `promote.not-current` | the run to revert does not hold the label |
 

@@ -2320,6 +2320,9 @@ Node. See docs/TRENDS.md.
 | `tine integrity sign --key KEY [--at TIME] --repo PATH` | Pins the list's bytes with an `opentine.integrity.protected/1` attestation; only a `policy`-role, non-optimizer key counts |
 | `tine integrity check RUN [--strict] [--key KEY] [--at TIME] --repo PATH` | Judges the run's tool calls and every pinned digest; exit 1 on `fail:protected-surface-modified`, `fail:protected-list-unsigned` or `fail:protected-list-missing`; `advisory:test-deleted` and `advisory:holdout-read` block only with `--strict`; `--key` files a signed `opentine.integrity.taint` for a failing run |
 
+| `tine integrity region-pin --glob GLOB... --key KEY [--at TIME] --repo PATH` | (0.87) Signs the locked code outside EVOLVE-BLOCK regions of the files under the globs as an `opentine.integrity.regions/1` attestation in `.tine/integrity/regions.json`; only a `policy`-role, non-optimizer key may pin |
+| `tine integrity region-check --repo PATH` | (0.87) Judges the working tree against the region pin; exit 1 on `fail:region-outside-modified`, `fail:region-file-added`, `fail:region-file-removed`, `fail:region-marker-invalid`, `fail:regions-pin-missing` or `fail:regions-pin-unsigned`. `integrity check` adds these when a pin is filed |
+
 `--json` prints `tine-cli-integrity/1`. A tainted run is refused by `tine
 promote` (`promote.score-tainted`) and reported by `tine lineage check|why`
 (`lineage.score-tainted`). See docs/INTEGRITY.md.
