@@ -31,8 +31,8 @@ dependencies {
         testFramework(org.jetbrains.intellij.platform.gradle.TestFrameworkType.Platform)
     }
     // The platform bundles Gson; the core's unit tests need it on their own.
-    compileOnly("com.google.code.gson:gson:2.11.0")
-    testImplementation("com.google.code.gson:gson:2.11.0")
+    compileOnly("com.google.code.gson:gson:2.15.0")
+    testImplementation("com.google.code.gson:gson:2.15.0")
     testImplementation("junit:junit:4.13.2")
 }
 
