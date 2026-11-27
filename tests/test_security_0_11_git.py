@@ -396,6 +396,12 @@ def test_every_option_the_guard_reads_a_value_for_takes_one_in_git(tmp_path):
         "GIT_AUTHOR_EMAIL": "a@example.invalid",
         "GIT_COMMITTER_NAME": "a",
         "GIT_COMMITTER_EMAIL": "a@example.invalid",
+        # No detached auto-gc/maintenance child may outlive git and hold its output open.
+        "GIT_CONFIG_COUNT": "2",
+        "GIT_CONFIG_KEY_0": "maintenance.auto",
+        "GIT_CONFIG_VALUE_0": "false",
+        "GIT_CONFIG_KEY_1": "gc.auto",
+        "GIT_CONFIG_VALUE_1": "0",
     }
     unknown = re.compile(
         r"(unknown option|unrecognized argument|unknown switch|invalid option)[^\n]{0,8}zzprobe"
@@ -412,15 +418,20 @@ def test_every_option_the_guard_reads_a_value_for_takes_one_in_git(tmp_path):
             subprocess.run(["git", "-C", str(repo), "add", "f"], env=env, check=True)
             subprocess.run(["git", "-C", str(repo), "commit", "-qm", "c"], env=env, check=True)
             probe = ["git", "-c", "protocol.allow=never", "-C", str(repo), subcommand, option]
-            done = subprocess.run(
-                [*probe, "--zzprobe"],
-                env=env,
-                capture_output=True,
-                text=True,
-                timeout=30,
-                stdin=subprocess.DEVNULL,
-            )
-            if unknown.search(done.stdout + done.stderr):
+            # Output goes to a file, not a pipe: waiting on git's exit cannot be
+            # held up by a grandchild that inherited the pipe (seen on Windows).
+            with open(tmp_path / "probe.out", "w+", encoding="utf-8", errors="replace") as out:
+                subprocess.run(
+                    [*probe, "--zzprobe"],
+                    env=env,
+                    stdout=out,
+                    stderr=subprocess.STDOUT,
+                    timeout=30,
+                    stdin=subprocess.DEVNULL,
+                )
+                out.seek(0)
+                text = out.read()
+            if unknown.search(text):
                 disagree.append(f"{subcommand} {option}")
     assert disagree == []
 

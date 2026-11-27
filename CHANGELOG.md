@@ -2,6 +2,9 @@
 
 ## 0.86.1 — Killed-writer durability fixes (2026-11-27)
 
+- The git option probe test writes git's output to a file instead of a pipe
+  and turns off auto gc/maintenance, so a detached child that inherited the
+  pipe can no longer stall it past its timeout on Windows.
 - `tine fsck` accepts a `.tpk` with no `.tidx` as unpublished staging left by a
   killed writer: its bytes must still hash to its name and start with a pack
   magic. Only pack staging names (`.<digest>.(tpk|tidx|pack).<suffix>`) are
