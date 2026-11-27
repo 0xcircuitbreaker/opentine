@@ -53,7 +53,7 @@ def import_paths(target: str) -> tuple[list[str], Path]:
         where = Path(location).resolve()
         if not where.is_file():
             raise ScorerError(f"python scorer file {location} does not exist")
-        return [str(where.parent)], where.parent
+        return [str(where.parent)], Path.cwd().resolve()
     found = [str(Path(p or ".").resolve()) for p in sys.path]
     return [p for p in dict.fromkeys(found) if Path(p).is_dir()], Path.cwd().resolve()
 
@@ -69,7 +69,7 @@ def run_child(target: str, pairs: list[tuple[dict[str, Any], Any]], *, inputs: l
     if location.endswith(".py"):  # the child runs in an empty directory
         location = str(Path(location).resolve())
     request = {"nonce": nonce, "target": f"{location}:{func}", "paths": paths,
-               "inputs": [str(p) for p in inputs], "limits": limits,
+               "inputs": [str(p.resolve()) for p in inputs], "limits": limits,
                "pairs": [[item, output] for item, output in pairs]}  # fmt: skip
     work = Path(tempfile.mkdtemp(prefix="tine-scorer-"))
     try:
