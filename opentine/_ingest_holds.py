@@ -87,11 +87,14 @@ def streams(repo: Any) -> list[str]:
 
 
 def write(repo: Any, target: str, value: dict[str, Any], key: Any, *, previous: str | None,
-          signed_at: str) -> str:  # fmt: skip
+          signed_at: str, verbatim: tuple[str, ...] = ()) -> str:  # fmt: skip
     """Sign and store one record: an ``annotation`` whose ``value`` is the claim.
 
     The payload is redacted before it is signed (as ``attest`` does), so the
-    signature covers the bytes readers read.
+    signature covers the bytes readers read. *verbatim* names claim fields that
+    are verified public data a reader recomputes byte for byte (an audit's signed
+    op log checkpoint): redaction is not allowed to rewrite them, since a random
+    base64 root ending ``pw=`` reads as a credential assignment to the scrubber.
     """
     from opentine._signing_pins import key_fingerprint
     from opentine._v3_guards import guarded_redaction
@@ -102,6 +105,9 @@ def write(repo: Any, target: str, value: dict[str, Any], key: Any, *, previous: 
     payload = {"target_id": target, "value": small, "previous_id": previous,
                "signer": key_fingerprint(key.public_key().public_bytes_raw())}  # fmt: skip
     payload = guarded_redaction(payload, where="v3 'annotation'")
+    for field in verbatim:
+        if field in small:
+            payload["value"][field] = small[field]
     if events is not None:  # a batch's JSON Lines, already redacted as a blob is
         payload["value"]["events"] = events
     payload["signature"] = sign_attestation(payload, key, algorithm="ed25519",

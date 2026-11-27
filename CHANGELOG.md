@@ -5,6 +5,13 @@
 0.87.0 was merged but never tagged or published, because CI on main failed.
 0.87.1 is the first published release that contains the 0.87.0 changes below.
 
+- An RL sampling audit (`tine ingest audit`) whose signed op log checkpoint
+  had a base64 root ending in `pw=` (about 1 audit in 500) was stored with the
+  checkpoint partly replaced by `[REDACTED]`, because the credential scrubber
+  read `pw=` plus the next line as a password assignment. That audit then
+  failed `tine ingest segments` with `ingest.audit-recompute`. Audits now
+  store the checkpoint exactly as signed. Audits already affected still fail
+  verification and have to be run again.
 - `scripts/bench/cdc_bakeoff.py` imports the renamed `_autopack.pack_sizes`
   (it still used `_pack_sizes`, which broke the main-only bake-off job). A
   new PR test checks every `opentine` import in scripts (including
