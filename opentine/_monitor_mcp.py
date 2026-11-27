@@ -23,6 +23,7 @@ import queue
 import threading
 from typing import Any
 
+from opentine._json_shallow import unique_pairs
 from opentine._monitor_gate import Gate
 from opentine._monitor_verdict import META_KEY
 
@@ -47,15 +48,10 @@ def _gated(item: Any) -> bool:
 def _strict(raw: bytes) -> Any:
     """Parse as a server would, refusing what parsers read differently (duplicate keys, NaN)."""
 
-    def pairs(items: list[tuple[str, Any]]) -> dict[str, Any]:
-        if len({k for k, _ in items}) != len(items):
-            raise ValueError("duplicate key")
-        return dict(items)
-
     def constant(name: str) -> Any:
         raise ValueError(f"non-standard constant {name}")
 
-    return json.loads(raw.decode("utf-8"), object_pairs_hook=pairs, parse_constant=constant)
+    return json.loads(raw.decode("utf-8"), object_pairs_hook=unique_pairs, parse_constant=constant)
 
 
 def _unmark(item: dict[str, Any]) -> tuple[dict[str, Any], bool]:

@@ -38,6 +38,7 @@ from typing import Any
 
 from opentine import _ingest_holds, _ingest_policy
 from opentine._ingest_policy import IngestError
+from opentine._json_shallow import unique_pairs
 from opentine.redaction import redact_blob
 
 CONVENTION = "opentine.ingest-batch/1"
@@ -45,13 +46,6 @@ MAX_EVENTS = 1_000_000
 MAX_LINE_BYTES = 1 << 20
 _LINE = json.JSONEncoder(sort_keys=True, separators=(",", ":"), ensure_ascii=False,
                          allow_nan=False)  # fmt: skip
-
-
-def _pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
-    out = dict(pairs)
-    if len(out) != len(pairs):
-        raise ValueError("duplicate key")
-    return out
 
 
 def _finite(text: str) -> float:
@@ -81,7 +75,7 @@ def parse(data: bytes) -> list[tuple[str, Any]]:
         try:
             event = _json_shallow.loads(
                 line.decode("utf-8"),
-                object_pairs_hook=_pairs,
+                object_pairs_hook=unique_pairs,
                 parse_float=_finite,
                 parse_constant=_constant,
             )

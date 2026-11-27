@@ -107,15 +107,15 @@ def _reveal(key: Any, reveal: tuple[str, bytes] | None, message: bytes) -> str:
 
 def file_leaves(data: bytes) -> dict[int, bytes | None]:
     """Episode leaf per index from JSON Lines of stored lines (``None``: conflicting copies)."""
-    from opentine._ingest_batch import _LINE, _pairs
-    from opentine._json_shallow import loads
+    from opentine._ingest_batch import _LINE
+    from opentine._json_shallow import loads, unique_pairs
 
     out: dict[int, bytes | None] = {}
     for number, line in enumerate(data.split(b"\n"), 1):
         if not line.strip():
             continue
         try:
-            row = loads(line.decode("utf-8"), object_pairs_hook=_pairs)
+            row = loads(line.decode("utf-8"), object_pairs_hook=unique_pairs)
         except (UnicodeDecodeError, ValueError, RecursionError) as exc:
             raise IngestError(f"episodes line {number} is not JSON: {exc}") from exc
         index = row.get("i") if isinstance(row, dict) else None

@@ -28,6 +28,8 @@ import stat
 from pathlib import Path
 from typing import Any, NoReturn
 
+from opentine._json_shallow import unique_pairs
+
 FILE_NAME = "trust-policies.json"
 MAX_BYTES = 256 * 1024
 NAME = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}")
@@ -73,12 +75,6 @@ def check_name(name: Any) -> str:
     return name
 
 
-def _unique(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
-    if len({key for key, _ in pairs}) != len(pairs):
-        raise ValueError("duplicate key")
-    return dict(pairs)
-
-
 def _refuse_unsafe(path: Path, info: os.stat_result) -> None:
     if stat.S_ISLNK(info.st_mode):
         raise PolicyError(f"{path} is a symlink; trust policies must be a regular file")
@@ -119,7 +115,7 @@ def load() -> dict[str, Any]:
 
     try:
         validate_json_shape(raw, max_tokens=20_000)
-        value = json.loads(raw.decode("utf-8"), object_pairs_hook=_unique)
+        value = json.loads(raw.decode("utf-8"), object_pairs_hook=unique_pairs)
         return validated(value)
     except PolicyError:
         raise

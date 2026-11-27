@@ -20,6 +20,8 @@ import os
 from pathlib import Path
 from typing import Any, NoReturn
 
+from opentine._json_shallow import unique_pairs
+
 FILE_NAME = "settings.json"
 MAX_BYTES = 64 * 1024
 ENV = "OPENTINE_OUTPUT"
@@ -34,12 +36,6 @@ class SettingsError(ValueError):
 def settings_file() -> Path:
     home = os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config"
     return Path(home, "opentine", FILE_NAME)
-
-
-def _unique(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
-    if len({key for key, _ in pairs}) != len(pairs):
-        raise ValueError("duplicate key")
-    return dict(pairs)
 
 
 def check(key: str, value: Any = None) -> str:
@@ -64,7 +60,7 @@ def load() -> dict[str, str]:
     try:
         if len(raw) > MAX_BYTES:
             raise ValueError(f"exceeds {MAX_BYTES} bytes")
-        value = json.loads(raw.decode("utf-8"), object_pairs_hook=_unique)
+        value = json.loads(raw.decode("utf-8"), object_pairs_hook=unique_pairs)
         if not isinstance(value, dict) or value.get("version") != 1:
             raise ValueError('expected {"version": 1, "settings": {...}}')
         if set(value) - {"version", "settings"} or not isinstance(value.get("settings"), dict):

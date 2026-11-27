@@ -10,6 +10,7 @@ from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
+from opentine._json_shallow import unique_pairs
 from opentine.kernel import canonical_json, validate_json_shape
 
 MAX_CONFIG_BYTES = 64 * 1024
@@ -43,13 +44,6 @@ _SEMVER = re.compile(r"(0|[1-9][0-9]{0,3})\.(0|[1-9][0-9]{0,4})\.(0|[1-9][0-9]{0
 _REFUSED = "repository config is incompatible"
 
 
-def _unique(pairs: list[tuple[str, object]]) -> dict[str, object]:
-    keys = [key for key, _ in pairs]
-    if len(set(keys)) != len(keys):
-        raise ValueError("duplicate key")
-    return dict(pairs)
-
-
 def read_config(path: Path) -> dict[str, object]:
     """Accept the descriptor ``Repo.init`` writes, read as SPEC §2.2 says.
 
@@ -67,7 +61,7 @@ def read_config(path: Path) -> dict[str, object]:
         raise ValueError("repository config exceeds maximum size")
     try:
         validate_json_shape(raw, max_tokens=10_000)
-        value = json.loads(raw.decode("utf-8-sig"), object_pairs_hook=_unique)
+        value = json.loads(raw.decode("utf-8-sig"), object_pairs_hook=unique_pairs)
     except (ValueError, RecursionError, UnicodeDecodeError) as exc:
         raise ValueError("repository config is malformed") from exc
     fixed = _object_format(value) if isinstance(value, dict) else _FIXED

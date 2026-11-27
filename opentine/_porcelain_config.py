@@ -22,6 +22,7 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from opentine._canon import atomic_write_text
+from opentine._json_shallow import unique_pairs
 from opentine.kernel import validate_json_shape
 from opentine.repository._paths import internal_path
 
@@ -36,13 +37,6 @@ RESERVED_KEYS = ("trust.", "policy.")  # verify trust roots: never from a reposi
 
 def _path(repo_path: Path) -> Path:
     return internal_path(Path(repo_path), FILE_NAME)
-
-
-def _unique(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
-    keys = [key for key, _ in pairs]
-    if len(set(keys)) != len(keys):
-        raise ValueError("duplicate key")
-    return dict(pairs)
 
 
 def _raw(repo_path: Path) -> bytes:
@@ -64,7 +58,7 @@ def load(repo_path: Path) -> dict[str, Any]:
         return {"remotes": {}, "config": {}}
     try:
         validate_json_shape(raw, max_tokens=20_000)
-        value = json.loads(raw.decode("utf-8"), object_pairs_hook=_unique)
+        value = json.loads(raw.decode("utf-8"), object_pairs_hook=unique_pairs)
     except (ValueError, RecursionError, UnicodeDecodeError) as exc:
         raise ValueError(f"{FILE_NAME} is malformed") from exc
     return _validated(value)
