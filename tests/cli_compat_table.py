@@ -5564,6 +5564,77 @@ ROWS: tuple[tuple, ...] = (
         {"command": "dataset", "dataset_command": "seal", "dataset": "d", "name": "h"},
     ),  # 0.60
     (
+        "plain:dataset seal d --out h --name h --max-unseals 1 --max-items 1 --max-queries 3 "
+        "--key k --seal-key s",
+        "plain",
+        [
+            "dataset",
+            "seal",
+            "d",
+            "--out",
+            "h",
+            "--name",
+            "h",
+            "--max-unseals",
+            "1",
+            "--max-items",
+            "1",
+            "--max-queries",
+            "3",
+            "--key",
+            "k",
+            "--seal-key",
+            "s",
+        ],
+        "opentine._cli_dataset:cmd_dataset",
+        False,
+        {"command": "dataset", "dataset_command": "seal", "max_queries": 3},
+    ),  # 0.86
+    (
+        "plain:eval run d.jsonl --scorer exact --key k --out ev --holdout h --lineage g",
+        "plain",
+        [
+            "eval",
+            "run",
+            "d.jsonl",
+            "--scorer",
+            "exact",
+            "--key",
+            "k",
+            "--out",
+            "ev",
+            "--holdout",
+            "h",
+            "--lineage",
+            "g",
+        ],
+        "opentine._cli_eval:cmd_eval",
+        False,
+        {"command": "eval", "eval_command": "run", "holdout": "h", "lineage": "g"},
+    ),  # 0.86
+    (
+        "plain:uplift horizon --from e.json --bootstrap cluster --cluster-key subject",
+        "plain",
+        [
+            "uplift",
+            "horizon",
+            "--from",
+            "e.json",
+            "--bootstrap",
+            "cluster",
+            "--cluster-key",
+            "subject",
+        ],
+        "opentine._cli_uplift:cmd_uplift",
+        False,
+        {
+            "command": "uplift",
+            "uplift_command": "horizon",
+            "bootstrap": "cluster",
+            "cluster_key": "subject",
+        },
+    ),  # 0.86
+    (
         "plain:dataset unseal h --out o.jsonl --run r --why w --key k --seal-key s",
         "plain",
         [
