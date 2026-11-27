@@ -178,6 +178,13 @@ def test_the_rsi_profile_requires_a_plan_and_pinned_eval_signers(room, capsys):
     plan, reveal = write_plan(room.base, room.rows)
     code, row = room.promote(capsys, *room.pair(plan=plan), *_plan_args(plan, reveal),
                              profile="rsi")  # fmt: skip
+    assert code == 1 and "promote.lineage-missing" in _codes(row)  # no record: fail closed
+    from opentine._lineage import record
+
+    record(key(PROMOTER), run=RUN_B, artifacts={"code_tree": "sha256:" + "1" * 64},
+           store=store / "lineage", parents=["sha256:" + "9" * 64], at=AT)  # fmt: skip
+    code, row = room.promote(capsys, *room.pair(plan=plan), *_plan_args(plan, reveal),
+                             profile="rsi")  # fmt: skip
     assert code == 0, row.get("refusals")
 
 

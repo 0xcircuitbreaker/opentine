@@ -22,7 +22,8 @@
   `promote.plan-missing`, `promote.plan-invalid`, `promote.plan-signer`,
   `promote.plan-mismatch`, `promote.plan-after-outputs`,
   `promote.seed-not-committed`, `promote.coverage`,
-  `promote.candidates-over-plan`, `promote.uncorrected`. The decision signs
+  `promote.candidates-over-plan`, `promote.lineage-missing`,
+  `promote.uncorrected`. The decision signs
   the plan digest, seed, candidate count, corrected alpha, coverage and the
   analysis with standard error, effective n and power at the planned effect.
 - Without a plan the promotion reports `advisory:promote.no-plan` and does not

@@ -77,9 +77,10 @@ the counts under `coverage`.
 | `promote.plan-signer` | the plan is not signed by a key in `eval_signers` (under `rsi`: a pinned `scorer` key that is not an optimizer key) |
 | `promote.plan-mismatch` | the candidate scored another dataset, the candidate's `coverage.json` names another plan digest (a plan written or edited after the run), or either side's epochs or the candidate's cluster key differ from the plan |
 | `promote.plan-after-outputs` | the plan's signing time is after the earliest candidate verdict |
-| `promote.seed-not-committed` | no `--reveal`, or a reveal that names another plan, another signer, or a secret that does not open the commitment |
+| `promote.seed-not-committed` | no `--reveal`, or a reveal that names another plan, another signer, or a secret that does not open the commitment, or a reveal signed before the latest candidate verdict |
 | `promote.coverage` | the candidate eval has no signed coverage, or scored / planned is below `min_coverage` |
-| `promote.candidates-over-plan` | the lineage records more variants sharing the candidate's parents than `max_candidates` |
+| `promote.candidates-over-plan` | the lineage records more variants sharing the candidate's parents than `max_candidates`, or the plan has already promoted `m` candidates |
+| `promote.lineage-missing` | a lineage is recorded but not the candidate; under `rsi`, the candidate has no lineage record |
 | `promote.uncorrected` | the planned test fails at the corrected alpha |
 | `promote.eval-signer-role` | under `rsi`, a verdict signer on any side holds no pinned `scorer` role in the owner trust bundle, or is an optimizer key |
 

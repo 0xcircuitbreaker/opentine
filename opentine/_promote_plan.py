@@ -11,10 +11,14 @@
                               the candidate eval was not run under this plan
                               (``coverage.json`` binds the plan's digest);
 ``promote.plan-after-outputs`` the plan was signed after the candidate's verdicts;
-``promote.seed-not-committed`` no reveal, or one that does not open the commitment;
+``promote.seed-not-committed`` no reveal, one that does not open the commitment, or
+                              one signed before the candidate's verdicts;
 ``promote.coverage``          no signed coverage, or scored/planned below the floor;
 ``promote.candidates-over-plan`` the lineage records more sibling candidates than the
-                              plan's ``max_candidates``;
+                              plan's ``max_candidates``, or the plan has already
+                              promoted that many (Holm never steps past ``m``);
+``promote.lineage-missing``  a lineage is recorded but not the candidate (or, under the
+                              rsi profile, the candidate has no lineage record at all);
 ``promote.uncorrected``       the planned test fails at the corrected alpha;
 ``promote.eval-signer-role``  (rsi profile) a verdict signer holds no pinned ``scorer``
                               role in the owner trust bundle, or is an optimizer key.
@@ -59,7 +63,8 @@ def roles(store: Path | None, folders: dict[str, Path]) -> list[dict[str, str]]:
 
 
 def siblings(lineage: Path | None, candidate: str) -> int | None:
-    """Recorded variants sharing the candidate's parent set, or ``None`` when it has no record."""
+    """Recorded variants sharing the candidate's parent set; ``None`` when nothing is
+    recorded, ``0`` when variants are recorded but not the candidate."""
     from opentine import _lineage
 
     if lineage is None or not (Path(lineage) / "variants").is_dir():
@@ -78,19 +83,20 @@ def siblings(lineage: Path | None, candidate: str) -> int | None:
             claims.append(claim)
     mine = [c for c in claims if c.get("mutation_run") == candidate]
     if not mine:
-        return None
+        return 0 if claims else None
     parents = sorted(map(str, mine[0]["parents"]))
     return len({c.get("variant") for c in claims if sorted(map(str, c["parents"])) == parents})
 
 
-def _plan(plan_path: Path, reveal_path: Path | None, out: list) -> tuple[dict, int] | None:
+def _plan(plan_path: Path, reveal_path: Path | None, out: list) -> tuple[dict, int, str] | None:
     from opentine import _eval_plan as plans
 
     try:
         plan = plans.opened_plan(plans.load(plan_path))
         if reveal_path is None:
             raise plans.PlanError("promote.seed-not-committed", "no reveal (--reveal) was given")
-        return plan, plans.opened_reveal(plans.load(reveal_path), plan)
+        doc = plans.load(reveal_path)
+        return plan, plans.opened_reveal(doc, plan), doc["signature"]["signed_at"]
     except plans.PlanError as exc:
         out.append(refusal(exc.code, str(exc)))
     except (OSError, ValueError, RecursionError) as exc:
@@ -143,7 +149,7 @@ def check(policy: dict[str, Any], *, candidate: str, history: list[dict[str, Any
     opened = _plan(Path(plan_path), reveal_path, out)
     if opened is None:
         return out, [], None
-    plan, seed = opened
+    plan, seed, revealed_at = opened
     claim = plan["claim"]
     if policy.get("require_signer_roles"):
         from opentine._key_roles_pin import granting
@@ -160,6 +166,9 @@ def check(policy: dict[str, Any], *, candidate: str, history: list[dict[str, Any
     if not stamps or _time(plan["signed_at"]) > min(stamps):
         out.append(refusal("promote.plan-after-outputs",
                            "the plan was signed after the candidate's verdicts"))  # fmt: skip
+    if not stamps or _time(revealed_at) < max(stamps):
+        out.append(refusal("promote.seed-not-committed",
+                           "the seed was revealed before the candidate's verdicts"))  # fmt: skip
     cov_c = coverage.read(evals, {r.get("signer") for r in rows_c})
     cov_b = coverage.read(baseline, {r.get("signer") for r in rows_b})
     if cov_c is None:
@@ -170,9 +179,14 @@ def check(policy: dict[str, Any], *, candidate: str, history: list[dict[str, Any
     if found is not None and found > claim["max_candidates"]:
         out.append(refusal("promote.candidates-over-plan", f"the lineage records {found} "
                            f"candidates; the plan allows {claim['max_candidates']}"))  # fmt: skip
+    if found == 0 or (found is None and policy.get("require_lineage")):
+        out.append(refusal("promote.lineage-missing", "the lineage does not record the candidate"))
     m = max(claim["max_candidates"], found or 0)
     done = [h for h in history if h.get("action") == "promote"]
     rank = 1 + sum(1 for h in done if h.get("plan_sha256") == plan["sha256"])
+    if rank > m:
+        out.append(refusal("promote.candidates-over-plan", f"the plan already promoted {rank - 1} "
+                           f"of its {m} candidates"))  # fmt: skip
     alpha = corrected_alpha(claim["alpha"], claim["correction"], m, rank)
     if out:
         return out, [], None
