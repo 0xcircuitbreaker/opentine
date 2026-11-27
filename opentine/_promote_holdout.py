@@ -12,6 +12,10 @@
   ``tine dataset canary-check`` on it does not pass (a counted canary coded
   below its declared entropy, no counted canary scored, or a lengths file that
   does not parse). Advisory canary findings stay advisory (D12).
+- ``promote.holdout-query-budget`` (0.86) when a lineage node made more
+  queries against a holdout than its commitment's ``max_queries``, under a
+  policy whose ``holdout_queries`` is ``required`` (the rsi profile);
+  otherwise the advisory ``holdout.query-budget`` (D12).
 - ``promote.canary-run-mismatch`` when the signed lengths name a scoring run
   other than the candidate being promoted, so a clean model's scores cannot
   vouch for another candidate.
@@ -67,12 +71,18 @@ def canary_refusals(lengths: Path | None, repo: Path | None,
 
 
 def refusals(named: list[Path], lengths: Path | None, repo: Path | None,
-             candidate: str | None = None) -> list[dict[str, str]]:  # fmt: skip
+             candidate: str | None = None, *, policy: dict | None = None,
+             advisories: list | None = None) -> list[dict[str, str]]:  # fmt: skip
+    """Refusals; a query-budget finding (0.86) is appended to *advisories* unless the
+    policy's ``holdout_queries`` is ``required`` (the rsi profile), when it refuses."""
     from opentine._holdout_access import promote_refusals
+    from opentine._holdout_query import promote_findings
 
-    return promote_refusals(sealed_folders(named, repo), repo) + canary_refusals(
-        lengths, repo, candidate
-    )
+    folders = sealed_folders(named, repo)
+    refused, advised = promote_findings(folders, repo, policy or {})
+    if advisories is not None:
+        advisories += advised
+    return promote_refusals(folders, repo) + refused + canary_refusals(lengths, repo, candidate)
 
 
 __all__ = ["HOLDOUTS", "canary_refusals", "refusals", "sealed_folders"]

@@ -33,6 +33,7 @@ TAINT = "integrity-taint:"
 #: (opentine._holdout_hold): released never, so deleting the file lowers nothing.
 HOLDOUT_ACCESS = "holdout-access:"
 CANARY_HOLD = "holdout-canary:"
+HOLDOUT_QUERY = "holdout-query:"  # 0.86: a holdout query record (opentine._holdout_query)
 #: 0.61: rows that keep a memory quarantine (opentine._memory_quarantine): released
 #: never, so deleting the quarantine's ref cannot serve the note again.
 MEMORY_QUARANTINE = "memory-quarantine:"
@@ -98,6 +99,7 @@ _NEVER_RELEASED = (
     ((ORGANISM,), "a model-organism record"),
     ((TRANSCRIPT_FLAG,), "a transcript behaviour flag"),
     ((UPLIFT,), "an uplift record"),
+    ((HOLDOUT_QUERY,), "a holdout query record"),
     ((DATASET_RECORD,), "a dataset record"),
     ((DATASET_WITHDRAW,), "a dataset withdrawal"),
     ((POLICY_ADMISSION,), "a policy admission record"),

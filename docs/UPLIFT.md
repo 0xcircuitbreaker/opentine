@@ -120,7 +120,8 @@ same export and parameters give the same bytes.
 
 ```
 tine uplift horizon (--suite DIGEST | --from FILE) [--condition ai] [--subject ID] \
-    [--seed N] [--resamples N] [--alpha A] [--strict] [--export FILE]
+    [--seed N] [--resamples N] [--alpha A] [--strict] [--export FILE] \
+    [--bootstrap naive|cluster] [--cluster-key task|subject]
 ```
 
 Success is modelled as `p = 1 / (1 + exp(-(a + b * log2(minutes))))`, fitted by
@@ -142,6 +143,17 @@ includes perfect separation), or success does not fall with length
 resamples or a large alpha would print a narrow, flattering interval. The seed
 and count are in every report, so a reader can rerun with other seeds; picking
 a favourable seed among many runs is not prevented, only made visible.
+
+### Cluster bootstrap (0.86)
+
+Attempts on the same task (or by the same subject) are correlated, and the
+flat bootstrap treats them as independent, which narrows the interval.
+`--bootstrap cluster` resamples in two stages: first clusters with
+replacement, then the attempts inside each drawn cluster with replacement.
+`--cluster-key task` (the default) or `subject` names what a cluster is. Every
+report carries `bootstrap` (`naive` or `cluster`) and `cluster_key` (null for
+`naive`) next to `seed` and `resamples`, so the interval can be recomputed. The
+point estimate does not change; only the interval does.
 
 A record held under its suite by more than one hold row counts once. `--from`
 refuses an export with duplicate keys, `NaN`/`Infinity`, a non-boolean

@@ -22,15 +22,28 @@ from opentine._uplift_fit import fmt, horizon
 #: alpha gives a narrow, flattering interval; a huge count only burns CPU.
 MIN_RESAMPLES, MAX_RESAMPLES = 100, 100_000
 MIN_ALPHA = Fraction(1, 1000)
+#: 0.86: ``naive`` resamples points; ``cluster`` resamples clusters (task or subject), then
+#: points inside each drawn cluster, so correlated attempts do not overstate precision.
+METHODS, CLUSTER_KEYS = ("naive", "cluster"), ("task", "subject")
 
 
-def _params(seed: int, resamples: int, alpha: str) -> dict[str, Any]:
+def _params(seed: int, resamples: int, alpha: str, method: str = "naive",
+            cluster_key: str | None = None) -> dict[str, Any]:  # fmt: skip
+    if method not in METHODS:
+        raise ValueError(f"--bootstrap is one of {', '.join(METHODS)}")
+    if method == "cluster":
+        cluster_key = cluster_key or "task"
+        if cluster_key not in CLUSTER_KEYS:
+            raise ValueError(f"--cluster-key is one of {', '.join(CLUSTER_KEYS)}")
+    else:
+        cluster_key = None
     if not MIN_RESAMPLES <= resamples <= MAX_RESAMPLES:
         raise ValueError(f"--resamples is {MIN_RESAMPLES}..{MAX_RESAMPLES}")
     level = Fraction(alpha)
     if not MIN_ALPHA <= level <= Fraction(1, 2):
         raise ValueError("--alpha is between 0.001 and 0.5")
-    return {"seed": seed, "resamples": resamples, "alpha": alpha}
+    return {"seed": seed, "resamples": resamples, "alpha": alpha, "bootstrap": method,
+            "cluster_key": cluster_key}  # fmt: skip
 
 
 def _select(export: dict[str, Any], condition: str, subject: str | None) -> list[dict]:
@@ -40,13 +53,18 @@ def _select(export: dict[str, Any], condition: str, subject: str | None) -> list
 
 def _points(export: dict[str, Any], rows: list[dict]) -> list[tuple[float, bool]]:
     lengths = {t["id"]: float(t["minutes"]) for t in export["definition"]["tasks"]}
-    return [(math.log2(lengths[r["task"]]), bool(r["success"])) for r in rows
-            if r["record"] in ("baseline", "run")]  # fmt: skip
+    return [(math.log2(lengths[r["task"]]), bool(r["success"])) for r in _attempts(rows)]
+
+
+def _attempts(rows: list[dict]) -> list[dict]:
+    return [r for r in rows if r["record"] in ("baseline", "run")]
 
 
 def _fit(export: dict, rows: list[dict], p: dict[str, Any]) -> dict[str, Any]:
+    key = p["cluster_key"]
+    clusters = [str(r[key]) for r in _attempts(rows)] if key else None
     return horizon(_points(export, rows), seed=p["seed"], resamples=p["resamples"],
-                   alpha=float(Fraction(p["alpha"])))  # fmt: skip
+                   alpha=float(Fraction(p["alpha"])), clusters=clusters)  # fmt: skip
 
 
 def _ok(findings: list[dict], strict: bool) -> tuple[int, bool]:
@@ -56,9 +74,10 @@ def _ok(findings: list[dict], strict: bool) -> tuple[int, bool]:
 
 def report_horizon(export: dict[str, Any], *, condition: str = "ai", subject: str | None = None,
                    seed: int = 0, resamples: int = 2000, alpha: str = "0.05",
-                   strict: bool = False) -> dict[str, Any]:  # fmt: skip
+                   strict: bool = False, bootstrap: str = "naive",
+                   cluster_key: str | None = None) -> dict[str, Any]:  # fmt: skip
     """The horizon report for one condition (and subject) of an export."""
-    p = _params(seed, resamples, alpha)
+    p = _params(seed, resamples, alpha, bootstrap, cluster_key)
     rows = _select(export, condition, subject)
     fit = _fit(export, rows, p)
     gens = sorted({r["generation"] for r in rows if r["generation"] is not None})
@@ -106,9 +125,10 @@ def _group(export: dict, condition: str, subject: str | None, p: dict) -> tuple[
 
 def report_compare(export: dict[str, Any], a: tuple[str, str | None], b: tuple[str, str | None],
                    *, seed: int = 0, resamples: int = 2000, alpha: str = "0.05",
-                   strict: bool = False) -> dict[str, Any]:  # fmt: skip
+                   strict: bool = False, bootstrap: str = "naive",
+                   cluster_key: str | None = None) -> dict[str, Any]:  # fmt: skip
     """Two groups side by side; ``b_over_a_minutes`` > 1 means B took longer."""
-    p = _params(seed, resamples, alpha)
+    p = _params(seed, resamples, alpha, bootstrap, cluster_key)
     ga, ma = _group(export, *a, p)
     gb, mb = _group(export, *b, p)
     paired = sorted(set(ma) & set(mb))

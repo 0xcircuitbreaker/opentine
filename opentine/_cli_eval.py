@@ -34,6 +34,7 @@ def add_eval_parsers(sub: Any) -> None:
         help="Sealed holdout DATASET came from: refuse runs that touched it",
     )
     run.add_argument("--repo", default=".", help="Repository holding the scored runs")
+    run.add_argument("--lineage", metavar="NODE", help="Lineage node a holdout query counts for")
     from opentine._cli_eval_scorer import add_run_args, add_verbs
 
     add_run_args(run)  # 0.85: --isolate, --contract, closure pins
@@ -92,8 +93,11 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
     from opentine._eval_dataset import read_jsonl
     from opentine._eval_run import run_eval
     from opentine._eval_scorers import parse
+    from opentine._holdout_query import LINEAGE_RE
     from opentine._signing_keys import ed25519_private_from_file
 
+    if args.lineage is not None and not LINEAGE_RE.fullmatch(args.lineage):
+        raise ValueError(f"--lineage must match {LINEAGE_RE.pattern}")  # before anything is signed
     prompt = Path(args.judge_prompt).read_text("utf-8") if args.judge_prompt else None
     rubric = Path(args.judge_rubric).read_bytes().decode("utf-8") if args.judge_rubric else None
     from opentine._cli_eval_scorer import build
@@ -119,6 +123,9 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
 
         summary["closure"] = closure_digest(found)
         summary["isolation"] = found["isolation"]["level"]
+    from opentine._eval_holdout import record_queries
+
+    summary["holdout_queries"] = record_queries(args, key, summary)  # 0.86
     return {**summary, "advisories": advisories}
 
 

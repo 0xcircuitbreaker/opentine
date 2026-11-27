@@ -142,7 +142,8 @@ def promote(key: Any, policy: dict[str, Any], candidate: str, label: str, *, sta
     refusals += promote_refusals(repo_path, candidate)
     from opentine._promote_holdout import refusals as sealed
 
-    refusals += sealed(list(sealed_holdouts), canary_lengths, repo_path, candidate)  # 0.60
+    refusals += sealed(list(sealed_holdouts), canary_lengths, repo_path, candidate,
+                       policy=policy, advisories=evidence["advisories"])  # fmt: skip
     from opentine._promote_guards import late
 
     refusals += late(repo_path, candidate, label, record, evals)  # 0.61 memory, 0.64 oversight

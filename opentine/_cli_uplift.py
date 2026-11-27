@@ -32,6 +32,17 @@ def _report_args(verb: argparse.ArgumentParser) -> None:
     verb.add_argument("--resamples", type=int, default=2000, help="Bootstrap resamples")
     verb.add_argument("--alpha", default="0.05", help="Interval alpha (default 0.05)")
     verb.add_argument("--strict", action="store_true", help="Advisory findings block too")
+    verb.add_argument(
+        "--bootstrap",
+        default="naive",
+        choices=("naive", "cluster"),
+        help="naive: resample points; cluster: clusters, then points (0.86)",
+    )
+    verb.add_argument(
+        "--cluster-key",
+        choices=("task", "subject"),
+        help="With --bootstrap cluster: what a cluster is (default task)",
+    )
 
 
 def add_uplift_parser(subparsers: argparse._SubParsersAction) -> None:
@@ -135,7 +146,8 @@ def _horizon(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[
 
     body = report_horizon(_export(args, repo), condition=args.condition, subject=args.subject,
                           seed=args.seed, resamples=args.resamples, alpha=args.alpha,
-                          strict=args.strict)  # fmt: skip
+                          strict=args.strict, bootstrap=args.bootstrap,
+                          cluster_key=args.cluster_key)  # fmt: skip
     lines = [_fit_line(args.condition, body["fit"])]
     lines += [_fit_line(f"  generation {t['generation']}", t) for t in body["trend"]]
     return body, lines
@@ -146,7 +158,8 @@ def _compare(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[
 
     body = report_compare(_export(args, repo), selector(args.a), selector(args.b),
                           seed=args.seed, resamples=args.resamples, alpha=args.alpha,
-                          strict=args.strict)  # fmt: skip
+                          strict=args.strict, bootstrap=args.bootstrap,
+                          cluster_key=args.cluster_key)  # fmt: skip
     lines = []
     for name in ("a", "b"):
         g = body[name]

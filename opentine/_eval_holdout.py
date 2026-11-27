@@ -4,6 +4,9 @@ The runs scored are those the outputs file and the items name, plus ``--run``.
 Each is read from ``--repo`` (a run not stored there is judged by its access
 records only) and handed to :func:`opentine._holdout_access.touched`. Any
 finding refuses the whole eval with ``eval.holdout-touched``: nothing is signed.
+
+0.86: after the eval is signed, :func:`record_queries` counts it as a query
+against each sealed holdout it scored (:mod:`opentine._holdout_query`).
 """
 
 from __future__ import annotations
@@ -47,4 +50,14 @@ def refuse_touched(args: argparse.Namespace, items: list[dict[str, Any]],
         raise HoldoutTouched(found)
 
 
-__all__ = ["HoldoutTouched", "refuse_touched"]
+def record_queries(args: argparse.Namespace, key: Any, summary: dict[str, Any]) -> list[dict]:
+    """0.86: one signed, held query record per sealed holdout this eval scored."""
+    from opentine._holdout_query import folders_for, record
+
+    repo = Path(args.repo)
+    return [record(folder, key, summary, repo=repo, lineage=args.lineage,
+                   at=summary["created_at"])
+            for folder in folders_for(args.holdout, summary["dataset"], repo)]  # fmt: skip
+
+
+__all__ = ["HoldoutTouched", "record_queries", "refuse_touched"]

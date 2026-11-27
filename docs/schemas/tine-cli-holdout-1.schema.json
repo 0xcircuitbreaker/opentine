@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opentine.com/schemas/tine-cli-holdout-1.schema.json",
   "title": "tine dataset seal|unseal|exposure --json",
-  "description": "Sealed holdouts. `seal` commits to the items with a Merkle root (signed claim `opentine.holdout.commitment/1`) and stores each item TINEAES-sealed; `previous` names the generation it rotates. `unseal` writes a signed `opentine.holdout.access/1` record (who, which run, why) before it releases items. `exposure` counts the valid access records against the budget and checks the commitment chain. Canaries are `tine-cli-canary-1`. A refusal is `ok` false with `refusals` (`holdout.*`) and exit 1.",
+  "description": "Sealed holdouts. `seal` commits to the items with a Merkle root (signed claim `opentine.holdout.commitment/1`) and stores each item TINEAES-sealed; `previous` names the generation it rotates. `unseal` writes a signed `opentine.holdout.access/1` record (who, which run, why) before it releases items. `exposure` counts the valid access records against the budget and checks the commitment chain; `queries` (0.86) counts the signed `opentine.holdout.query/1` records per lineage node against `max_queries` (advisory: `ok` ignores it). Canaries are `tine-cli-canary-1`. A refusal is `ok` false with `refusals` (`holdout.*`) and exit 1.",
   "oneOf": [
     {
       "type": "object",
@@ -71,6 +71,10 @@
               "minimum": 0
             },
             "max_items": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "max_queries": {
               "type": "integer",
               "minimum": 0
             }
@@ -159,7 +163,8 @@
         "over_budget",
         "chain_ok",
         "records",
-        "chain"
+        "chain",
+        "queries"
       ],
       "properties": {
         "schema": {
@@ -199,6 +204,10 @@
               "minimum": 0
             },
             "max_items": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "max_queries": {
               "type": "integer",
               "minimum": 0
             }
@@ -286,6 +295,46 @@
               "commitment_sha256": {
                 "type": "string",
                 "pattern": "^[0-9a-f]{64}$"
+              }
+            }
+          }
+        },
+        "queries": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "max_queries",
+            "total",
+            "lineages",
+            "over_budget"
+          ],
+          "properties": {
+            "max_queries": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "total": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "lineages": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "over_budget": {
+              "type": "array",
+              "items": {
+                "type": "string"
               }
             }
           }
