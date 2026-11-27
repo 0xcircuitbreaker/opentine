@@ -51,6 +51,7 @@ def _at(args: argparse.Namespace) -> str:
 def _scaffold(args: argparse.Namespace) -> None:
     from opentine._scaffold_manifest import build
 
+    args.harness = args.harness or "claude-code"
     manifest = build(args.harness, args.root)
     record = None
     if args.record:
@@ -132,7 +133,7 @@ def run(args: argparse.Namespace) -> None:
 
 def add_parsers(verbs: Any) -> None:
     scaffold = verbs.add_parser("scaffold", help="Digest every scaffold file of a harness")
-    scaffold.add_argument("--harness", default="claude-code")
+    scaffold.add_argument("--harness", help="Harness (default: claude-code)")
     scaffold.add_argument("--root", default=".", help="Directory the scaffold is under")
     scaffold.add_argument("--record", metavar="RUN", help="Sign the manifest onto this run")
     scaffold.add_argument("--key", metavar="KEY", help="Ed25519 key that signs the record")
