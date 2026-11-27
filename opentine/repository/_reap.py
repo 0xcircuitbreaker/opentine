@@ -3,7 +3,8 @@
 Every repository writer stages a file next to its target and renames it into
 place: ``.<name>.<8 random>`` (``atomic_bytes``, reflogs) or ``.<name>.<8
 random>.tmp`` (``atomic_write_text``/``atomic_write_bytes``). A writer killed
-between the two leaves that file for ever. ``tine gc`` removes such a file only
+between the two leaves that file for ever; likewise a pack body renamed in
+without the ``.tidx`` that would publish it. ``tine gc`` removes such a file only
 once it is :data:`REAP_AGE` seconds old: a live writer renames its file within
 moments, so an old one has no owner. Temporary files are never objects, so a
 hold (which names objects) never covers one; links and anything that does not
@@ -23,6 +24,16 @@ from opentine.repository import _winretry
 REAP_AGE = 3600.0
 # mkstemp's random part is 8 characters from [a-z0-9_].
 _STAGING = re.compile(r"\..+\.[a-z0-9_]{8}(\.tmp)?")
+_PACK_BODY = re.compile(r"[0-9a-f]{64}\.tpk")
+
+
+def _unpublished_pack(directory: str, name: str) -> bool:
+    """A ``packs/<digest>.tpk`` whose ``.tidx`` never landed (writer killed between renames)."""
+    return (
+        os.path.basename(directory) == "packs"
+        and _PACK_BODY.fullmatch(name) is not None
+        and not os.path.lexists(os.path.join(directory, name[:64] + ".tidx"))
+    )
 
 
 def is_staging(name: str) -> bool:
@@ -35,7 +46,7 @@ def reap_temp(tine: Path, *, min_age: float = REAP_AGE) -> int:
     for directory, dirs, files in os.walk(tine):  # never follows directory links
         dirs[:] = [name for name in dirs if not os.path.islink(os.path.join(directory, name))]
         for name in files:
-            if not is_staging(name):
+            if not (is_staging(name) or _unpublished_pack(directory, name)):
                 continue
             path = os.path.join(directory, name)
             try:

@@ -124,8 +124,19 @@ def verify_packs(root: Path) -> list[str]:
     v3_allowed = storage_version(read_config(internal_path(root, "config.json"))) == 3
     for digest in sorted(digests):
         tpk, tidx = f"{digest}.tpk", f"{digest}.tidx"
-        if tpk not in names or tidx not in names:
-            errors.append(f"pack {digest}: missing its {'.tpk' if tpk not in names else '.tidx'}")
+        if tidx not in names:
+            # The index rename publishes a pack (``publish_pack``): a writer
+            # killed between the two renames leaves a body no reader sees.
+            # It is unpublished staging (``tine gc`` reaps it), but its bytes
+            # must still be the pack its name claims.
+            try:
+                if _file_digest(internal_path(root, "packs", tpk)) != digest:
+                    raise KernelError("unpublished pack file does not match its name")
+            except (KernelError, OSError) as exc:
+                errors.append(f"pack {digest}: {exc}")
+            continue
+        if tpk not in names:
+            errors.append(f"pack {digest}: missing its .tpk")
             continue
         try:
             body_path = internal_path(root, "packs", tpk)

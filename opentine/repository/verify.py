@@ -14,6 +14,7 @@ from opentine.kernel import KernelError, ObjectEnvelope, parse_oid, verify_objec
 from opentine.repository._annotations import validate_annotation_chain
 from opentine.repository._pack_write import verify_packs
 from opentine.repository._paths import internal_path
+from opentine.repository._reap import is_staging
 from opentine.repository._refs import validate_ref_target
 from opentine.repository._run_graph import validate_event_metrics, validate_run_graph
 from opentine.repository._semantic_view import SemanticView
@@ -91,7 +92,7 @@ def _pack_errors(repo: Repo) -> list[str]:
     errors.extend(verify_packs(repo.path))  # local .tpk/.tidx packs (tine gc)
     for name in sorted(names):
         match = _PACK_NAME.fullmatch(name)
-        if _LOCAL_PACK.fullmatch(name):
+        if _LOCAL_PACK.fullmatch(name) or is_staging(name):  # staging: a killed writer's
             continue
         if not match:
             errors.append(f"pack {name}: invalid pack filename")
