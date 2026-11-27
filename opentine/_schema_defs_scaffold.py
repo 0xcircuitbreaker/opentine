@@ -26,8 +26,11 @@ _SIDE = closed(["kind", "sha256", "target", "resolved"], {
 _SCAFFOLD = closed(["command", "schema", "manifest", "record"], {
     **_HEAD, "command": {"const": "agent scaffold"}, "manifest": MANIFEST,
     "record": opt(STR)})  # fmt: skip
+_EITHER = closed(["before", "after"], {"before": opt(STR), "after": opt(STR)})
 _DIFF = closed(["command", "schema", "before_tree", "after_tree", "added", "removed", "changed",
-                "same"], {
+                "globs", "source", "harness", "same"], {
+    "globs": closed(["added", "removed"], {"added": strs(), "removed": strs()}),
+    "source": _EITHER, "harness": _EITHER,
     **_HEAD, "command": {"const": "agent scaffold-diff"}, "before_tree": _HEX,
     "after_tree": _HEX, "added": strs(), "removed": strs(), "same": BOOL,
     "changed": {"type": "array", "items": closed(["path", "before", "after"], {
@@ -43,7 +46,8 @@ SCHEMAS: dict[str, dict[str, Any]] = {
         "(instruction files and their `@path` imports, settings, hooks, skills, commands, "
         "agents, rules, MCP configuration) under `--root`; `record` is the attestation id "
         "when `--record RUN` signed it onto a stored run. `scaffold-diff` compares two "
-        "manifests path by path. `scaffold-pin` signs the glob list that replaces a "
+        "manifests path by path, and their glob lists, sources and harnesses (`same` needs all "
+        "equal). `scaffold-pin` signs the glob list that replaces a "
         "harness's defaults with a policy-role key.",
         {"oneOf": [_SCAFFOLD, _DIFF, _PIN]}),
 }  # fmt: skip

@@ -46,9 +46,13 @@ def recorded(repo: Any, run: str) -> list[dict[str, Any]]:
     from opentine import _containment_records as records
 
     out = []
-    for _target, row in records.held(repo, HOLD + run):
+    for target, row in records.held(repo, HOLD + run):
         body = row.get("claim")
+        if target != HOLD + run or row.get("target") != run:  # a prefix, or another run's
+            continue
         if not isinstance(body, dict) or body.get("convention") != SCHEMA:
+            continue
+        if body.get("run") != run:  # a manifest replayed from another run
             continue
         files = body.get("files")
         ok = isinstance(files, list) and tree_digest(files) == body.get("tree_sha256")

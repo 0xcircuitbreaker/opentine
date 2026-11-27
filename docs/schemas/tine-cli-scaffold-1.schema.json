@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opentine.com/schemas/tine-cli-scaffold-1.schema.json",
   "title": "tine agent scaffold VERB --json",
-  "description": "Scaffold manifests (0.88). `scaffold` digests every scaffold file of a harness (instruction files and their `@path` imports, settings, hooks, skills, commands, agents, rules, MCP configuration) under `--root`; `record` is the attestation id when `--record RUN` signed it onto a stored run. `scaffold-diff` compares two manifests path by path. `scaffold-pin` signs the glob list that replaces a harness's defaults with a policy-role key.",
+  "description": "Scaffold manifests (0.88). `scaffold` digests every scaffold file of a harness (instruction files and their `@path` imports, settings, hooks, skills, commands, agents, rules, MCP configuration) under `--root`; `record` is the attestation id when `--record RUN` signed it onto a stored run. `scaffold-diff` compares two manifests path by path, and their glob lists, sources and harnesses (`same` needs all equal). `scaffold-pin` signs the glob list that replaces a harness's defaults with a policy-role key.",
   "oneOf": [
     {
       "type": "object",
@@ -161,9 +161,94 @@
         "added",
         "removed",
         "changed",
+        "globs",
+        "source",
+        "harness",
         "same"
       ],
       "properties": {
+        "globs": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "added",
+            "removed"
+          ],
+          "properties": {
+            "added": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "removed": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "before",
+            "after"
+          ],
+          "properties": {
+            "before": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "after": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "harness": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "before",
+            "after"
+          ],
+          "properties": {
+            "before": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "after": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
         "schema": {
           "const": "tine-cli-scaffold/1"
         },

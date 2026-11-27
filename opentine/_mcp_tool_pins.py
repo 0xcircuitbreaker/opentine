@@ -5,7 +5,9 @@ The first complete ``tools/list`` answer of a session (every page, followed by
 listing whose definitions differ is recorded as a change
 (``advisory:mcp.tool-def-changed``); a ``tools/call`` step carries the
 ``tool_def_digest`` of the definition in force and, when that differs from the
-pin or the tool was never listed, the advisory code. With ``--tool-defs block``
+pin or the tool was never listed, the advisory code; a name listed twice in
+one listing is an alias (``advisory:mcp.tool-duplicate``) whose digest covers
+every definition given for it. With ``--tool-defs block``
 such a call is refused with a JSON-RPC error instead of reaching the server.
 
 ``tool_def_digest`` is ``sha256:`` over a domain tag and a canonical, lossless
@@ -27,6 +29,7 @@ from typing import Any
 DOMAIN = b"opentine.mcp-tool-def.v1\0"
 CHANGED = "advisory:mcp.tool-def-changed"
 UNPINNED = "advisory:mcp.tool-unpinned"
+DUPLICATE = "advisory:mcp.tool-duplicate"
 MAX_TOOLS = 4096
 
 
@@ -81,7 +84,8 @@ class ToolPins:
         self.current: dict[str, str] = {}
         self.changes: list[dict[str, Any]] = []
         self.redacted: set[str] = set()
-        self._page: dict[str, str] = {}
+        self.duplicates: set[str] = set()
+        self._page: dict[str, list[Any]] = {}
         self._lock = threading.Lock()
 
     def listed(self, params: Any, result: Any, step: int | None = None) -> list[dict[str, Any]]:
@@ -94,10 +98,14 @@ class ToolPins:
                 self._page = {}
             for tool in tools[:MAX_TOOLS]:
                 if isinstance(tool, dict) and isinstance(tool.get("name"), str):
-                    self._page[tool["name"]] = tool_def_digest(tool)
+                    self._page.setdefault(tool["name"], []).append(tool)
             if result.get("nextCursor"):
                 return []
-            listing, self._page = self._page, {}
+            page, self._page = self._page, {}
+            # One name listed twice is an alias: its digest covers every definition, in
+            # order, so it never equals the digest of whichever one a client picks.
+            listing = {n: tool_def_digest(d[0] if len(d) == 1 else d) for n, d in page.items()}
+            self.duplicates |= {n for n, d in page.items() if len(d) > 1}
             self.current = listing
             if self.pinned is None:
                 self.pinned = dict(listing)
@@ -120,7 +128,9 @@ class ToolPins:
             now = self.current.get(name)
             if now is None or name not in self.pinned:
                 return now, UNPINNED
-            return now, CHANGED if now != self.pinned[name] else None
+            if now != self.pinned[name]:
+                return now, CHANGED
+            return now, DUPLICATE if name in self.duplicates else None
 
     def summary(self) -> dict[str, Any]:
         from opentine.kernel import canonical_json
@@ -129,7 +139,17 @@ class ToolPins:
             pinned = dict(sorted((self.pinned or {}).items()))
             digest = hashlib.sha256(canonical_json(pinned)).hexdigest() if self.pinned else None
             return {"pinned": pinned, "pinned_sha256": digest, "changes": list(self.changes),
-                    "redacted": sorted(self.redacted)}  # fmt: skip
+                    "redacted": sorted(self.redacted),
+                    "duplicates": sorted(self.duplicates)}  # fmt: skip
 
 
-__all__ = ["CHANGED", "DOMAIN", "UNPINNED", "ToolPins", "canonical", "loads", "tool_def_digest"]
+__all__ = [
+    "CHANGED",
+    "DOMAIN",
+    "DUPLICATE",
+    "UNPINNED",
+    "ToolPins",
+    "canonical",
+    "loads",
+    "tool_def_digest",
+]

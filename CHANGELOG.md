@@ -29,6 +29,14 @@
   `advisory:mcp.tool-def-changed` and a call to a tool never listed is
   `advisory:mcp.tool-unpinned`; both are advice by default. New
   `--tool-defs block` (stdio) refuses such calls with JSON-RPC error `-32004`.
+- A tool name listed twice in one `tools/list` is recorded as an alias
+  (`advisory:mcp.tool-duplicate`), never pinned as one of its definitions.
+- `tine agent scaffold-diff` also compares the glob lists, sources and harnesses;
+  `@path` imports keep every path character and are followed inside files a
+  glob already lists; a held manifest is listed only for the run it names.
+- Fixed: a multi-line signed note or checkpoint whose base64 line ends like a
+  credential name followed by `=` padding lost the rest of its text through
+  redacted v3 writes; it is now kept byte for byte.
 - The stdio relay hands each finished line to the recorder before writing it
   on, so a reply can no longer be recorded before the request it answers.
 - `python -m opentine.mcp_server` now speaks MCP 2026-07-28 and keeps

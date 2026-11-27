@@ -37,7 +37,7 @@ MAX_DEPTH = 5
 MAX_INCLUDE_BYTES = 1 << 20
 _FENCE = re.compile(r"^\s*(```|~~~)")
 _CODE = re.compile(r"`[^`]*`")
-_IMPORT = re.compile(r"(?:^|(?<=\s))@((?:~/|/|\.{1,2}/)?[A-Za-z0-9_.~/-]+)")
+_IMPORT = re.compile(r"(?:^|(?<=\s))@([^\s`]+)")  # every path character: no truncation
 _SKIP = {".git"}
 
 
@@ -159,6 +159,7 @@ def _includes(root: Path, out: dict[str, dict[str, Any]]) -> None:
 
     queue = [(p, 0) for p, r in sorted(out.items())
              if p.rsplit("/", 1)[-1] in INSTRUCTIONS and r["sha256"]]  # fmt: skip
+    seen = {p for p, _ in queue}
     while queue:
         rel, depth = queue.pop(0)
         row = out[rel]
@@ -176,7 +177,10 @@ def _includes(root: Path, out: dict[str, dict[str, Any]]) -> None:
             if name.split("/")[0] == "..":
                 out.setdefault(token, _row(token, "external", via=rel))
                 continue
-            if name in out:
+            if name in out:  # listed by a glob: its own imports are still followed
+                if name not in seen and out[name]["sha256"] and depth + 1 < MAX_DEPTH:
+                    seen.add(name)
+                    queue.append((name, depth + 1))
                 continue
             found = _entry(root, name, via=rel)
             if found is None:
@@ -185,6 +189,7 @@ def _includes(root: Path, out: dict[str, dict[str, Any]]) -> None:
             if len(out) > MAX_FILES:
                 raise ScaffoldError("scaffold.too-many-files", f"more than {MAX_FILES} files")
             if found["sha256"] and depth + 1 < MAX_DEPTH:
+                seen.add(name)
                 queue.append((name, depth + 1))
 
 
@@ -211,15 +216,22 @@ _SAME = ("kind", "sha256", "target", "resolved")
 
 
 def diff(before: dict[str, Any], after: dict[str, Any]) -> dict[str, Any]:
-    """``{added, removed, changed, same}``: path lists, and ``changed`` rows with both sides."""
+    """``{added, removed, changed, globs, source, harness, same}``; ``same`` needs all equal."""
     a = {r["path"]: r for r in before["files"]}
     b = {r["path"]: r for r in after["files"]}
     changed = [{"path": p, "before": {k: a[p][k] for k in _SAME},
                 "after": {k: b[p][k] for k in _SAME}}
                for p in sorted(a.keys() & b.keys())
                if any(a[p][k] != b[p][k] for k in _SAME)]  # fmt: skip
+    ga, gb = set(before.get("globs") or []), set(after.get("globs") or [])
+    scope = {"globs": {"added": sorted(gb - ga), "removed": sorted(ga - gb)},
+             "source": {"before": before.get("source"), "after": after.get("source")},
+             "harness": {"before": before.get("harness"),
+                         "after": after.get("harness")}}  # fmt: skip
+    same = before["tree_sha256"] == after["tree_sha256"] and ga == gb and all(
+        before.get(k) == after.get(k) for k in ("source", "harness"))  # fmt: skip
     return {"added": sorted(b.keys() - a.keys()), "removed": sorted(a.keys() - b.keys()),
-            "changed": changed, "same": before["tree_sha256"] == after["tree_sha256"]}  # fmt: skip
+            "changed": changed, **scope, "same": same}  # fmt: skip
 
 
 __all__ = ["DOMAIN", "MAX_DEPTH", "MAX_FILES", "SCHEMA", "build", "diff", "imports",

@@ -29,21 +29,24 @@ tine agent scaffold-diff before.json after.json
   regular file inside the root. A symlinked directory is one entry and is not
   descended into. A FIFO or device is a `special` entry and is never opened.
 - `@path` imports in `CLAUDE.md`, `AGENTS.md`, `GEMINI.md` (and the files they
-  import, up to depth 5) are followed inside the root, outside code fences and
+  import, up to depth 5, including files a glob already lists) are followed
+  inside the root; the path is read up to the next space or backtick, outside code fences and
   inline code. An import outside the root (`~/...`, `/...`, `../...`) is an
   `external` entry, named but never read. An import that names no file is a
   `missing` entry, so planting it later is a visible change.
 - At most 4096 entries (`scaffold.too-many-files` past it).
-- `scaffold-diff` lists added, removed and changed paths; editing one skill
-  file is a one-file change. A manifest file whose `tree_sha256` does not
+- `scaffold-diff` lists added, removed and changed paths, and the glob list,
+  source and harness of each side; editing one skill file is a one-file change.
+  `same` is true only when the files, globs, source and harness all match. A manifest file whose `tree_sha256` does not
   match its entries is refused.
 
 **Per run.** A harness capture records `metadata.scaffold` (schema, harness,
 source, file count, `tree_sha256`). `--record RUN --key KEY --repo PATH` signs
 the full manifest onto the stored run: an existing `attestation` whose claim
 follows `opentine.scaffold-manifest/1` (the manifest plus `run`), held as
-`scaffold-manifest:RUN`, which `tine hold release` refuses. The record counts
-as signed only when the signature verifies under the key its `signer` names.
+`scaffold-manifest:RUN`, which `tine hold release` refuses. A record held under
+another run's name, signed onto another run, or whose claim names another run
+is not listed for this run. The record counts as signed only when the signature verifies under the key its `signer` names.
 A manifest whose paths or link targets read as credentials would be stored
 altered by the scrubber, so it is refused (`scaffold.redaction`).
 
@@ -73,6 +76,10 @@ pages): `metadata.mcp_proxy.tool_defs.pinned` maps each tool name to its
   `tool_defs.changes`. A call whose definition differs from the pin carries
   the same code; a call to a tool never listed carries
   `advisory:mcp.tool-unpinned`.
+- A name listed more than once in one listing is an alias: its digest covers
+  every definition given for it, in order, so it never matches the one a client
+  picks; a call to it carries `advisory:mcp.tool-duplicate` and
+  `tool_defs.duplicates` names it.
 - Digests are taken before redaction. `tool_defs.redacted` names tools whose
   recorded definition the scrubber changed; their digest cannot be recomputed
   from the recording.
