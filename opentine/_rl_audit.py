@@ -215,7 +215,8 @@ def run(repo: Any, segment_id: str, key: Any, *, confidence: str, max_bad: str, 
     at = rfc3339_utc(at_ms / 1000)
     verdict["at"] = at
     with _write_batch.batched(repo):
-        oid = _ingest_holds.write(repo, segment_id, verdict, key, previous=None, signed_at=at)
+        oid = _ingest_holds.write(repo, segment_id, verdict, key, previous=None, signed_at=at,
+                                  verbatim=("checkpoint",))  # fmt: skip
     _ingest_holds.hold(repo, INGEST_AUDIT + segment_id, oid)
     return {"id": oid, **verdict}
 

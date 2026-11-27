@@ -6,7 +6,7 @@ import hashlib
 
 import pytest
 
-from opentine import _rl_audit, _rl_merkle, _rl_segment, _rl_verify
+from opentine import _ingest_holds, _rl_audit, _rl_merkle, _rl_segment, _rl_verify
 from opentine._ingest_policy import IngestError
 from opentine.repository import _oplog, _tlog, _tlog_note
 from tests.key_roles_helpers import isolated_trust_config, pin_roles  # noqa: F401
@@ -43,7 +43,8 @@ def test_the_seed_is_not_computable_from_the_op_log_alone(repo):
     row = _rl_audit.run(repo, segment["id"], _key("auditor"), confidence="0.99",
                         max_bad="0.005", at_ms=T0 + 20)  # fmt: skip
     assert row["seed"] != _public_seed(repo, segment)
-    assert _rl_verify.verify(repo, "rl")["ok"]
+    result = _rl_verify.verify(repo, "rl")
+    assert result["ok"], result["findings"]
 
 
 def test_a_reveal_not_made_by_the_audit_signer_does_not_recompute(repo):
@@ -81,3 +82,25 @@ def test_an_episode_file_gets_its_own_seed_so_it_cannot_be_fitted_to_a_known_sam
 def test_guarantee_numbers_that_are_infinite_or_unbounded_are_refused(text):
     with pytest.raises(ValueError):
         _rl_merkle.fraction(text, "confidence", low_open=True)
+
+
+def test_a_checkpoint_root_that_reads_as_a_password_is_stored_verbatim(repo, monkeypatch):
+    # 0.87.1: about 1 checkpoint in 500 has a base64 root ending "pw=", which the
+    # scrubber read as "pw= <signature line>" and redacted, so the audit no longer
+    # recomputed and a sound segment failed verification (seen as a suite flake).
+    segment = _sealed(repo)
+    note = ("opentine.local/log/op\n2\nOZxRx4UDr6IcuO/fsLYOxWFJ8LxflX546hZKOG7/Gpw=\n\n"
+            "— opentine.local/log/op OiMO/0we1O/Vmt4h53ivRjJkxznGtD8dBKuw9yGVPhCfTzuNIayFuDTQo"
+            "5+j9cDy0Sri35R1rRP1c7EjpA3c15B9/gE=\n")  # fmt: skip
+    real = _rl_audit.evaluate
+
+    def crafted(*args, **kwargs):
+        verdict = real(*args, **kwargs)
+        verdict["checkpoint"] = {**verdict["checkpoint"], "note": note}
+        return verdict
+
+    monkeypatch.setattr(_rl_audit, "evaluate", crafted)
+    row = _rl_audit.run(repo, segment["id"], _key("auditor"), confidence="0.99",
+                        max_bad="0.005", at_ms=T0 + 20)  # fmt: skip
+    stored = _ingest_holds.read(repo, row["id"], _rl_audit.CONVENTION)
+    assert stored["signed"] and stored["claim"]["checkpoint"]["note"] == note
