@@ -1,5 +1,41 @@
 # Changelog
 
+## Unreleased — Promotion discipline
+
+- `tine eval plan` signs a pre-registered analysis plan, an
+  `opentine.eval-plan/1` claim on an existing attestation: metric, reducer,
+  epochs, test, alpha, Holm (default) or Bonferroni correction over a committed
+  candidate count, cluster key, minimum detectable effect, coverage floor, and
+  a commitment to a secret seed. `tine eval reveal` opens the commitment after
+  the runs; the analysis seed is derived from the secret and the plan digest,
+  so neither the caller nor a re-run can choose it (docs/EVAL-PLANS.md).
+- `tine eval run --epochs N` scores each item N times (`ID@eK` verdicts);
+  `--cluster-key FIELD` records each item's cluster; `--continue-on-error`
+  records items with no output as skipped and scorer errors (also inside the
+  isolated child) as errored instead of aborting; `--plan` binds the run to a
+  plan. Every eval folder now holds a signed `coverage.json`
+  (`opentine.eval-coverage/1`) and `eval.json` repeats its counts.
+- `tine promote --plan FILE --reveal FILE` checks that the run matched the
+  plan and runs the planned test: epochs reduced (`mean`, `pass@k`, `pass^k`),
+  clusters pooled (effective n), and the alpha corrected for
+  max(`max_candidates`, the lineage's sibling count). New refusals:
+  `promote.plan-missing`, `promote.plan-invalid`, `promote.plan-signer`,
+  `promote.plan-mismatch`, `promote.plan-after-outputs`,
+  `promote.seed-not-committed`, `promote.coverage`,
+  `promote.candidates-over-plan`, `promote.uncorrected`. The decision signs
+  the plan digest, seed, candidate count, corrected alpha, coverage and the
+  analysis with standard error, effective n and power at the planned effect.
+- Without a plan the promotion reports `advisory:promote.no-plan` and does not
+  block; `require_plan = true` in the `[promote]` policy makes it a refusal.
+- `profile = "rsi"` now requires a plan and requires every eval signer (and the
+  plan signer) to hold a pinned `scorer` role in the owner trust bundle that is
+  not an optimizer key (`promote.eval-signer-role`).
+- A bootstrap with too few resamples to resolve the corrected interval fails
+  closed (`resolved: false`).
+- New schemas: `tine-cli-eval-plan-1`, `tine-cli-eval-reveal-1`,
+  `opentine-eval-plan-1`, `opentine-eval-plan-reveal-1`,
+  `opentine-eval-coverage-1` (claim conventions, not object kinds).
+
 ## 0.85.0 — Scorer isolation and oversight protection (2026-11-27)
 
 - `tine eval run --isolate` runs a `python:` scorer in a child interpreter
