@@ -41,6 +41,8 @@ _GROUP = closed(
         "perceived_over_measured": opt(_DEC), "fit": _FIT})  # fmt: skip
 _REPORT = {"ok": BOOL, "strict": BOOL, "blocking": INT, "suite": _DIGEST,
            "export_digest": _DIGEST, "seed": INT, "resamples": INT, "alpha": STR,
+           "bootstrap": {"enum": ["naive", "cluster"]},
+           "cluster_key": opt({"enum": ["task", "subject"]}),
            "findings": {"type": "array", "items": _FINDING}}  # fmt: skip
 _SHAPES = [
     closed(["command", "schema", "suite", "tasks", "record", "run"], {
@@ -79,8 +81,10 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     "tine-cli-uplift-1": doc("tine-cli-uplift-1", "tine uplift ... --json",
         "Uplift and capability trends. `suite` and `record` write signed, held claims; "
         "`horizon` reports the 50%-success time horizon (logistic fit on log2 task length, "
-        "seeded bootstrap interval) with a per-generation trend; `compare` sets two groups "
-        "side by side. Reports are recomputable byte for byte from the export.",
+        "seeded bootstrap interval; `bootstrap` names the method, `cluster` resampling "
+        "clusters named by `cluster_key` and then points inside them) with a per-generation "
+        "trend; `compare` sets two groups side by side. Reports are recomputable byte for "
+        "byte from the export.",
         {"anyOf": _SHAPES}),
     "opentine-uplift-suite-1": doc("opentine-uplift-suite-1", "opentine.uplift-suite/1 claim",
         "The claim of an attestation recording a versioned task suite (task list, lengths in "
