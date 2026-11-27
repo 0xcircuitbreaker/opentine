@@ -24,6 +24,8 @@ from typing import Any
 
 MODES = ("advisory", "required")
 PREFIX = "skill."
+#: Signed records of one run name different skills: always a change, never recorded.
+CONFLICT = "conflicting"
 
 
 def check_policy(policy: dict[str, Any]) -> None:
@@ -40,6 +42,7 @@ def _skills(lineage: Path) -> dict[str, str | None]:
     from opentine import _lineage
 
     out: dict[str, str | None] = {}
+    seen: dict[str, set] = {}
     if not (Path(lineage) / "variants").is_dir():
         return out
     for name, raw in _lineage.read_folder(lineage).items():
@@ -55,7 +58,9 @@ def _skills(lineage: Path) -> dict[str, str | None]:
             continue
         run, skill = claim.get("mutation_run"), claim["artifacts"].get("skill")
         if isinstance(run, str):
-            out[run] = skill if isinstance(skill, str) else out.get(run)
+            seen.setdefault(run, set()).add(skill if isinstance(skill, str) else None)
+    for run, found in seen.items():  # records disagree: no one of them decides
+        out[run] = next(iter(found)) if len(found) == 1 else CONFLICT
     return out
 
 
@@ -71,10 +76,10 @@ def findings(policy: dict[str, Any], *, candidate: str, current: str | None, lab
     required = policy.get("skill_labels") == "required"
     to, was = known.get(candidate), known.get(current) if current else None
     skill_label = label.startswith(PREFIX)
-    if required and skill_label and to is None:
+    if required and skill_label and to in (None, CONFLICT):
         return [refusal("promote.skill-unrecorded", f"{label} is a skill label and the "
                         "candidate's signed lineage record names no skill")], [], None  # fmt: skip
-    if to == was:
+    if to == was and to != CONFLICT:
         return [], [], None
     row = {"from": was, "to": to, "label": label}
     if skill_label:

@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import ast
 import hashlib
+import io
+import tokenize
 from typing import Any
 
 _DEFS = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
@@ -57,9 +59,19 @@ def _put(out: dict[str, str], order: list[str], name: str, text: str) -> None:
     order.append(name)
 
 
+def _foreign_encoding(source: str) -> bool:
+    """A coding cookie other than UTF-8: Python would decode the bytes another way, so
+    what reads as a comment here can be code (``# coding: utf-7`` and ``+AAo-``)."""
+    try:
+        found, _ = tokenize.detect_encoding(io.BytesIO(source.encode("utf-8")).readline)
+    except (SyntaxError, LookupError):
+        return True
+    return found not in ("utf-8", "utf-8-sig")
+
+
 def symbols(source: str) -> tuple[dict[str, str], list[str]] | None:
     """``({qualified name: dump}, order)``, or ``None`` when *source* does not parse."""
-    if len(source) > MAX_SOURCE:
+    if len(source) > MAX_SOURCE or _foreign_encoding(source):
         return None
     try:
         tree = ast.parse(source)

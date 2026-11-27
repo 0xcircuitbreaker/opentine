@@ -234,7 +234,7 @@ def test_the_cli_signs_into_the_lineage_folder_and_binds_variants(tmp_path, caps
     assert code == 0 and row["claim"]["to"] == {"tree": digest, "variant": variant, "bound": True}
     assert Path(row["signed"]).parent == lineage / "diffs"
     code, checked = _tine(capsys, "lineage", "diff", "--check", row["signed"], old.as_posix(),
-                          new.as_posix(), "--json")  # fmt: skip
+                          new.as_posix(), "--dir", lineage.as_posix(), "--json")  # fmt: skip
     assert code == 0 and checked["ok"] and checked["target"] == variant
     code, _ = _tine(capsys, "lineage", "diff", old.as_posix(), new.as_posix(), "--to",
                     "sha256:" + "0" * 64, "--dir", lineage.as_posix())  # fmt: skip

@@ -231,8 +231,17 @@ in the lineage folder; `bound` says whether the variant's recorded artifacts
 include the tree's digest. The `target_id` is the newer variant id, else the
 newer tree's digest. `tine lineage diff --check FILE [OLD NEW]` verifies the
 signature (the signer must be the signing key) and, given both trees,
-recomputes the claim: exit 1 with `lineage-diff.bad-signature` or
+recomputes the claim, `bound` included (read from the lineage folder, never
+taken from the signed file): exit 1 with `lineage-diff.bad-signature` or
 `lineage-diff.mismatch`. The diff is evidence: it does not block a promotion.
+
+No folder is skipped (a cache or VCS folder can hold scaffold). A Python file
+with a coding cookie other than UTF-8 is diffed by tokens, since Python would
+decode its bytes differently. A config key that is not plain
+(`[A-Za-z0-9_-]+`) or not a string is quoted in its path, so `{"a.b": 1}` is not
+`{"a": {"b": 1}}`. In `tine promote`, signed records of one run that name
+different skills are a skill change, and under `skill_labels = "required"` a
+`skill.*` label cannot move to such a candidate.
 
 ## Not yet
 

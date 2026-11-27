@@ -79,11 +79,21 @@ def _secret_field(name: str, credential_names: set[str], suffixes: tuple[str, ..
 
 
 _LOOSE_NAMES = frozenset({"pass", "auth"})
-#: A whole string of padded base64 (a signature, a digest, an opaque provider blob).
-#: Its only ``=`` is the padding, so the "assignment" split has no value to hide:
-#: about one random blob in 200 ends in ``...pw=`` or ``...Pw==`` and read as a
-#: credential name with an empty value, and appending a marker corrupted it (0.88).
+#: A whole string of padded base64: about one in 200 ends in ``...pw=`` and read as a
+#: credential name with an empty value; the appended marker corrupted it (0.88).
 _PADDED_B64 = re.compile(r"[A-Za-z0-9+/_-]{16,}={1,2}")
+_B64_TAIL = re.compile(r"(?:^|\s)([A-Za-z0-9+/]{20,})$")
+
+
+def _base64_padding(label: str, candidate: str) -> bool:
+    """``label=`` ends in a base64 token (a digit, ``+``, ``/`` or many capitals, which a
+    credential name lacks) whose ``=`` is padding, not an assignment."""
+    found = _B64_TAIL.search(label)
+    token = found.group(1) if found and candidate[:1] in ("", "=", " ", "\n") else ""
+    upper = sum(c.isupper() for c in token)
+    return any(c.isdigit() or c in "+/" for c in token) or upper >= 6
+
+
 _AUTH_MODES = frozenset({"", "none", "basic", "bearer", "oauth", "oauth2", "api_key", "token"})
 
 
@@ -214,6 +224,8 @@ def _redact(value: Any, _depth: int = 0) -> Any:
         if _PADDED_B64.fullmatch(value):
             return value
         label, separator, candidate = _split_assignment(value)
+        if separator == "=" and _base64_padding(label, candidate):
+            return label + separator + _redact(candidate, _depth + 1)
         name = _field_name(label)
         headers = {"authorization", "proxy_authorization", "cookie", "set_cookie"}
         words = candidate.strip().casefold().split()

@@ -17,6 +17,7 @@ while its schema changes is ``changed``.
 from __future__ import annotations
 
 import hashlib
+import re
 import tomllib
 from typing import Any
 
@@ -26,6 +27,7 @@ from opentine.kernel import canonical_json
 CONFIG_SUFFIXES = (".json", ".toml", ".yaml", ".yml")
 _SCHEMA_KEYS = ("inputSchema", "input_schema", "parameters")
 TOOL_DOMAIN = b"opentine.tool-def.v1:"
+_PLAIN_KEY = re.compile(r"[A-Za-z0-9_-]+")
 
 
 class DuplicateKey(ValueError):
@@ -112,10 +114,18 @@ def tools(doc: Any) -> dict[str, dict[str, Any]] | None:
     return out
 
 
+def _segment(key: Any) -> str:
+    """A key as a path segment; quoted unless plain, so ``"a.b"`` is not ``a`` then ``b``
+    and a YAML ``1`` is not the string ``"1"``."""
+    if isinstance(key, str) and _PLAIN_KEY.fullmatch(key):
+        return key
+    return canonical_json(_plain(key)).decode("utf-8")
+
+
 def _leaves(value: Any, path: str, out: dict[str, str]) -> None:
     if isinstance(value, dict) and value:
         for key in value:
-            _leaves(value[key], f"{path}.{key}" if path else str(key), out)
+            _leaves(value[key], f"{path}.{_segment(key)}" if path else _segment(key), out)
     elif isinstance(value, list) and value:
         for index, item in enumerate(value):
             _leaves(item, f"{path}[{index}]", out)

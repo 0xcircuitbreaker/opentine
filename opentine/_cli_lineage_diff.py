@@ -64,6 +64,21 @@ def _artifacts(args: argparse.Namespace, variant: str | None) -> dict | None:
     return dict(claim.get("artifacts") or {})
 
 
+def _signed_sides(path: Path) -> dict:
+    """The variant ids a signed diff names, so ``bound`` is recomputed, never trusted."""
+    from opentine._lineage import loads
+
+    try:
+        claim = loads(path.read_bytes()).get("claim")
+    except (OSError, ValueError, RecursionError, AttributeError):
+        return {}
+    if not isinstance(claim, dict):
+        return {}
+    named = {side: (claim.get(side) or {}).get("variant") for side in ("from", "to")
+             if isinstance(claim.get(side), dict)}  # fmt: skip
+    return {side: v if isinstance(v, str) else None for side, v in named.items()}
+
+
 def _row(args: argparse.Namespace) -> dict:
     from opentine import _sdiff
 
@@ -79,7 +94,9 @@ def _row(args: argparse.Namespace) -> dict:
             raise error("lineage diff --check takes both OLD and NEW, or neither", USAGE,
                         prefix="lineage: ")  # fmt: skip
         trees = [Path(p) for p in paths] or [None, None]
-        return {"mode": "check", **_sdiff.check(Path(args.check), *trees)}
+        sides = _signed_sides(Path(args.check)) if paths else {}
+        found = {f"{side}_artifacts": _artifacts(args, v) for side, v in sides.items()}
+        return {"mode": "check", **_sdiff.check(Path(args.check), *trees, **found)}
     if len(paths) != 2:
         raise error("lineage diff needs OLD and NEW", USAGE, prefix="lineage: ")
     claim = _sdiff.compute(Path(args.old), Path(args.new), from_variant=args.from_variant,

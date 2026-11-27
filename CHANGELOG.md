@@ -2,6 +2,9 @@
 
 ## Unreleased — Scaffold manifests and structural diff
 
+- The field scrubber keeps a base64 token whose padding ends a line of a note
+  (`root ...pw=`); only a token with a digit, `+`, `/` or many capitals counts,
+  and what follows it is still scrubbed.
 - `tine lineage diff OLD NEW` compares two variant trees file by file: Python by
   AST symbol, prompt files by heading section, tool sets by name and
   `tool_def_digest`, JSON/TOML/YAML configs by canonical leaf, other text by

@@ -35,7 +35,6 @@ TREE_DOMAIN = b"opentine.lineage.diff.tree.v1:"
 MAX_FILES = 20_000
 MAX_BYTES = 256 << 20
 PROMPT_SUFFIXES = (".md", ".markdown", ".mdc", ".txt", ".prompt")
-SKIP_DIRS = {".git", "__pycache__"}
 
 
 class DiffRefused(ValueError):
@@ -65,9 +64,8 @@ def listing(root: Path) -> dict[str, bytes]:
             rel = path.relative_to(root).as_posix()
             if path.is_symlink():
                 data = b"symlink:" + str(path.readlink().as_posix()).encode("utf-8")
-            elif path.is_dir():
-                if path.name not in SKIP_DIRS:
-                    stack.append(path)
+            elif path.is_dir():  # no folder is skipped: a cache or VCS folder can hold scaffold
+                stack.append(path)
                 continue
             elif path.is_file():
                 data = path.read_bytes()
@@ -187,9 +185,13 @@ def dumps(document: dict[str, Any]) -> bytes:
     return (json.dumps(document, indent=2, sort_keys=True) + "\n").encode("utf-8")
 
 
-def check(path: Path, old_root: Path | None = None,
-          new_root: Path | None = None) -> dict[str, Any]:  # fmt: skip
-    """Re-verify a signed diff file; recompute it when both trees are given."""
+def check(path: Path, old_root: Path | None = None, new_root: Path | None = None, *,
+          from_artifacts: dict | None = None,
+          to_artifacts: dict | None = None) -> dict[str, Any]:  # fmt: skip
+    """Re-verify a signed diff file; recompute it when both trees are given.
+
+    ``bound`` is recomputed from the named variants' recorded artifacts; a signed
+    ``bound`` that cannot be recomputed (no artifacts given) must be ``None``."""
     from opentine._lineage import loads, signed
 
     try:
@@ -210,9 +212,8 @@ def check(path: Path, old_root: Path | None = None,
         )
     if old_root is not None and new_root is not None:
         again = compute(old_root, new_root, from_variant=claim["from"].get("variant"),
-                        to_variant=claim["to"].get("variant"))  # fmt: skip
-        for side in ("from", "to"):  # bound reads the lineage folder, not the trees
-            again[side]["bound"] = (claim.get(side) or {}).get("bound")
+                        to_variant=claim["to"].get("variant"), from_artifacts=from_artifacts,
+                        to_artifacts=to_artifacts)  # fmt: skip
         if canonical_json(again) != canonical_json(claim):
             findings.append(
                 {"code": "lineage-diff.mismatch", "detail": "the trees do not give the signed diff"}
