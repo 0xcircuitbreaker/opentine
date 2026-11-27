@@ -1,5 +1,43 @@
 # Changelog
 
+## Unreleased — Cleanup and security pass
+
+No user-facing command, flag, file format or `--json` shape changes, and no new
+object kind or `tine verify` code.
+
+- Docs say only `Agent(policies=...)`'s `RedactionPolicy` is applied. The
+  filesystem, network, shell and Python policies are recorded but not enforced,
+  so `isolated_profile()` does not sandbox an Agent's tools; bind each tool's
+  own policy for that. SECURITY.md's supported-versions table no longer names
+  0.3.x. Fixed references to the nonexistent `tine mcp`, `tine pricing install`,
+  `tine fanout`, docs/KEYS.md and docs/SEARCH.md, stale "v4 is the default"
+  comments, and the pyproject Documentation and Changelog URLs. The ed25519
+  import error no longer suggests the no-op `crypto` extra.
+- CI and supply chain: the test job fetches tag v0.34.0, so the 0.34
+  reader-compat tests run instead of skipping. `npm audit` covers ts/verifier
+  and ts/run-viewer. CodeQL also analyzes JavaScript/TypeScript. Dependabot
+  watches the remaining npm, Gradle and container manifests. The review-runner
+  image build context is allowlisted, so `.env`, `.git`, `.tine` and `.venv`
+  never enter a layer. The README SVG `--check` runs in CI.
+  `scripts/ci_docker.py` matches CI.
+- Removed dead code with no caller: unused private helpers, tables and
+  constants, a shadowed duplicate `_proxy_key._shown`, the never-read
+  `BoundedResult.stderr_truncated`, the test-only `refuse_held`, two orphan
+  bench scripts, a stray copy of the browser verifier bundle under
+  ts/run-viewer, and the unused `pytest-rerunfailures` dev dependency.
+- Shared one definition instead of copies: hold-row upsert
+  (`repository._holds.hold_row`), the verify arming predicate, the
+  single-predicate DSSE envelope check, the strict-JSON duplicate-key hook,
+  the user config directory, the RFC 3339 UTC timestamp, the JSON-safe count
+  check, the `tine query` column-value helpers, and a set of byte-identical
+  small helpers (OpenAI-style tool schema, DSSE PAE, run-ref resolution, pack
+  version parse and others).
+- Tests: one shared v0.34.0 archive helper and `legacy_v2_writer` fixture. No
+  sleep-then-assert-absent process checks in the touched tests. No dead
+  `crypto`-extra skips for core dependencies, so a broken install fails
+  instead of skipping. No temp directories leaked into the system temp dir, and
+  no direct `os.environ` writes.
+
 ## 0.84.0 — RL-scale capture audits and provenance trailers (2026-11-26)
 
 - `tine ingest seal` seals the ingest batches since the last segment into one
