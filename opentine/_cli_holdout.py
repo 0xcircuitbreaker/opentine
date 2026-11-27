@@ -19,6 +19,8 @@ def add_holdout_parsers(verbs: Any) -> list[Any]:
     seal.add_argument("--name", required=True, help="Holdout name ([a-z0-9._-])")
     seal.add_argument("--max-unseals", type=int, required=True, help="Exposure budget: unseals")
     seal.add_argument("--max-items", type=int, required=True, help="Exposure budget: items")
+    seal.add_argument("--max-queries", type=int, metavar="N",
+                      help="Query budget: evals per lineage node (0.86)")  # fmt: skip
     seal.add_argument("--rotate-from", metavar="DIR", help="The generation this one replaces")
     unseal = verbs.add_parser("unseal", help="Record a signed access, then release items")
     unseal.add_argument("folder", metavar="DIR")
@@ -71,7 +73,7 @@ def _seal(args: argparse.Namespace) -> dict[str, Any]:
 
     if _inside(Path(args.seal_key), Path(args.out)):
         raise holdout.HoldoutError("holdout.seal-key", "keep the seal key outside DIR")
-    if args.max_unseals < 1 or args.max_items < 1:
+    if args.max_unseals < 1 or args.max_items < 1 or (args.max_queries or 1) < 1:
         raise holdout.HoldoutError("holdout.budget", "budgets are at least 1")
     key = _key(args.key)
     holdout.require_role(Path(args.repo), key_fingerprint(key.public_key().public_bytes_raw()),
@@ -80,8 +82,9 @@ def _seal(args: argparse.Namespace) -> dict[str, Any]:
     master = holdout.seal_key(Path(args.seal_key), create=True)
     claim = holdout.seal(read_jsonl(Path(args.dataset)), Path(args.out), name=args.name,
                          key=key, master=master, at=_now(args.at), previous=previous,
-                         budget={"max_unseals": args.max_unseals,
-                                 "max_items": args.max_items})  # fmt: skip
+                         budget={"max_unseals": args.max_unseals, "max_items": args.max_items,
+                                 **({"max_queries": args.max_queries}
+                                    if args.max_queries is not None else {})})  # fmt: skip
     return {"out": Path(args.out).as_posix(), **{k: claim[k] for k in (
         "holdout", "root", "items", "generation", "previous", "budget")}}  # fmt: skip
 
@@ -104,7 +107,15 @@ def _exposure(args: argparse.Namespace) -> dict[str, Any]:
     links = chain([Path(p) for p in [*args.chain, args.folder]])
     row = {k: v for k, v in exposure(Path(args.folder), Path(args.repo)).items()
            if not k.startswith("_")}  # fmt: skip
-    return {**row, "chain": links, "ok": not row["over_budget"] and row["chain_ok"]}
+    from opentine._holdout_query import counts
+
+    queries = counts(Path(args.folder), Path(args.repo))  # 0.86: advisory, ok unchanged
+    return {
+        **row,
+        "chain": links,
+        "queries": queries,
+        "ok": not row["over_budget"] and row["chain_ok"],
+    }
 
 
 def cmd_holdout(args: argparse.Namespace) -> None:

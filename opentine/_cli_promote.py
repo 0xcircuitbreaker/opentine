@@ -44,6 +44,10 @@ def add_signed_promote_args(p: Any) -> None:
                    help="The budget subject of the --require-admission input (as tine policy "
                    "check --budget)")  # fmt: skip
     p.add_argument("--loop", metavar="LOOP", help="Refuse when LOOP is stopped (tine loop stop)")
+    p.add_argument("--plan", metavar="FILE", help="Signed analysis plan (tine eval plan) (0.86)")
+    p.add_argument("--reveal", metavar="FILE", help="The plan's seed reveal (tine eval reveal)")
+    p.add_argument("--lineage", metavar="DIR",
+                   help="Lineage folder that counts candidates (REPO/.tine/lineage)")  # fmt: skip
     p.add_argument("--state", metavar="DIR", help="Label state (default REPO/.tine/promotion)")
     p.add_argument("--out", metavar="DIR", help="Where decisions go (a FILE for --approve)")
     p.add_argument("--at", metavar="TIME", help="YYYY-MM-DDTHH:MM:SSZ (default: now)")
@@ -115,7 +119,12 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
                                  Path(a) for a in args.policy_attestation],
                              sealed_holdouts=[Path(d) for d in args.sealed_holdout],
                              canary_lengths=Path(args.canary_lengths) if args.canary_lengths
-                             else None)  # fmt: skip
+                             else None, **_plan_args(args))  # fmt: skip
+
+
+def _plan_args(args: argparse.Namespace) -> dict[str, Path | None]:
+    return {name: Path(getattr(args, name)) if getattr(args, name, None) else None
+            for name in ("plan", "reveal", "lineage")}  # fmt: skip
 
 
 def cmd_signed_promote(args: argparse.Namespace) -> None:

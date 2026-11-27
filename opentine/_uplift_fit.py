@@ -101,15 +101,36 @@ def fit(points: list[tuple[float, bool]]) -> dict[str, Any]:
             "iterations": MAX_ITER}  # fmt: skip
 
 
+def _pick(rng: random.Random, pool: list) -> list:
+    n = len(pool)
+    return [pool[int(rng.random() * n)] for _ in range(n)]
+
+
+def _sample(rng: random.Random, points: list, groups: list[list] | None) -> list:
+    """Flat resampling, or (0.86) two-stage: clusters with replacement, then points
+    with replacement inside each drawn cluster."""
+    if groups is None:
+        return _pick(rng, points)
+    return [p for group in _pick(rng, groups) for p in _pick(rng, group)]
+
+
 def bootstrap(points: list[tuple[float, bool]], *, seed: int, resamples: int,
-              alpha: float = 0.05) -> dict[str, Any]:  # fmt: skip
-    """Percentile interval of the horizon: ``{ci: [lo, hi] | None, used, failed}``."""
+              alpha: float = 0.05,
+              clusters: list[str] | None = None) -> dict[str, Any]:  # fmt: skip
+    """Percentile interval of the horizon: ``{ci: [lo, hi] | None, used, failed}``.
+
+    *clusters* (one label per point) selects the hierarchical bootstrap."""
     rng = random.Random(seed)
-    n = len(points)
+    groups = None
+    if clusters is not None:
+        table: dict[str, list] = {}
+        for label, point in zip(clusters, points, strict=True):
+            table.setdefault(label, []).append(point)
+        groups = [table[k] for k in sorted(table)]
     horizons: list[float] = []
     failed = 0
     for _ in range(resamples):
-        sample = [points[int(rng.random() * n)] for _ in range(n)]
+        sample = _sample(rng, points, groups)
         result = fit(sample)
         if result["status"] == "ok":
             horizons.append(result["horizon"])
@@ -125,7 +146,7 @@ def bootstrap(points: list[tuple[float, bool]], *, seed: int, resamples: int,
 
 
 def horizon(points: list[tuple[float, bool]], *, seed: int, resamples: int,
-            alpha: float = 0.05) -> dict[str, Any]:  # fmt: skip
+            alpha: float = 0.05, clusters: list[str] | None = None) -> dict[str, Any]:  # fmt: skip
     """The reported fit: point estimate, seeded bootstrap interval, all as strings."""
     point = fit(points)
     out: dict[str, Any] = {
@@ -139,7 +160,7 @@ def horizon(points: list[tuple[float, bool]], *, seed: int, resamples: int,
         return out
     out.update(intercept=fmt(point["a"]), slope=fmt(point["b"]),
                horizon_minutes=fmt(point["horizon"]))  # fmt: skip
-    boot = bootstrap(points, seed=seed, resamples=resamples, alpha=alpha)
+    boot = bootstrap(points, seed=seed, resamples=resamples, alpha=alpha, clusters=clusters)
     out.update(bootstrap_used=boot["used"], bootstrap_failed=boot["failed"],
                ci=[fmt(v) for v in boot["ci"]] if boot["ci"] else None)  # fmt: skip
     return out

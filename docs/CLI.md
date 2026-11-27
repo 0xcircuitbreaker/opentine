@@ -2402,7 +2402,14 @@ tine eval run DATASET.jsonl --scorer SPEC --key KEY --out DIR [--threshold T]
               [--holdout DIR [--repo PATH]]
               [--isolate [--expect-closure DIGEST] [--scorer-input FILE]... [--lockfile FILE]
                [--cpu-seconds N] [--memory-mb N] [--timeout S]] [--contract FILE]
+              [--epochs N] [--cluster-key FIELD] [--plan FILE] [--continue-on-error]
 tine eval verify DIR [--pubkey PUB]
+tine eval plan DATASET.jsonl --key KEY --out FILE --secret-out FILE --max-candidates 20
+               [--metric score|pass_rate] [--reducer mean|pass@k|pass^k] [--epochs N]
+               [--test paired-bootstrap|permutation] [--alpha A] [--resamples R]
+               [--correction holm|bonferroni] [--cluster-key FIELD] [--mde D]
+               [--min-coverage F] [--at TIME]
+tine eval reveal PLAN --secret FILE --key KEY --out FILE [--at TIME]
 tine eval rescore DIR --dataset DATASET.jsonl --key KEY [--outputs FILE.jsonl] [--out FILE]
                   [--scorer-input FILE]... [--created-at TIME]
 tine eval lint FILE.py... [--grader PATH]... [--strict]
@@ -2479,6 +2486,22 @@ isolated eval's recorded scorer on the named outputs and signs an
 `opentine.rescore-report/1` (exits 4 on disagreement; `--json` follows
 `tine-cli-eval-rescore-1`). `eval lint` reports `advisory:introspection.*`
 findings and exits 0 unless `--strict` (`tine-cli-eval-lint-1`).
+
+Eval plans (0.86, docs/EVAL-PLANS.md): `eval plan` signs an
+`opentine.eval-plan/1` (metric, reducer, epochs, test, alpha, Holm or
+Bonferroni correction over `--max-candidates`, cluster key, minimum detectable
+effect, coverage floor) with a seed commitment, and writes the secret to
+`--secret-out` (never overwritten); `eval reveal` signs the reveal after the
+runs (`tine-cli-eval-plan-1`, `tine-cli-eval-reveal-1`). `eval run --epochs N`
+scores each item N times (outputs lines name their `epoch`; verdict items are
+`ID@eK`); `--cluster-key` records each item's `metadata` cluster;
+`--continue-on-error` records skipped and errored items instead of aborting;
+`--plan` binds the run to a plan and takes its epochs and cluster key. Every
+eval folder holds a signed `coverage.json` (`opentine.eval-coverage/1`).
+`tine promote --plan FILE --reveal FILE [--lineage DIR]` runs the planned test at
+the corrected alpha and refuses with the `promote.plan-*`, `promote.coverage`,
+`promote.candidates-over-plan`, `promote.uncorrected` and (rsi profile)
+`promote.eval-signer-role` codes.
 
 `eval ci` (0.47) runs every `[[eval]]` table of `.tine/evals.toml` (or
 `--config`) with `eval run` into `--out` (default `.tine/evals`), signed with the

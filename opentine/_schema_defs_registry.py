@@ -171,7 +171,8 @@ SCHEMAS: dict[str, dict[str, Any]] = {
         "the `opentine.promotion-policy/1` attestation) or `refused`; `refusals` "
         "lists each named reason (`promote.*`); `previous` and `current` are the label's "
         "holder before and after; `stats` holds the `opentine.eval-compare/1` statistics; "
-        "`advisories` (0.85) lists non-blocking findings such as `advisory:scorer.in-process`.",
+        "`advisories` (0.85) lists non-blocking findings such as `advisory:scorer.in-process`; "
+        "`plan` (0.86) is the pre-registered, corrected analysis under `--plan`.",
         open_(["command"], {
             "command": {"const": "promote"}, "ok": BOOL,
             "action": {"enum": ["promote", "revert", "canary", "approve", "sign-policy",
@@ -182,7 +183,8 @@ SCHEMAS: dict[str, dict[str, Any]] = {
                                      "detail": STR})},
             "stats": {"type": "object", "additionalProperties": _STATS},
             "inputs": {"type": "array"}, "run_id": STR, "ref": STR, "name": STR,
-            "created": BOOL, "advisories": {"type": "array", "items": closed(
+            "created": BOOL, "plan": opt({"type": "object"}),
+            "advisories": {"type": "array", "items": closed(
                 ["code", "detail"], {"code": {"type": "string",
                                               "pattern": "^advisory:[a-z.-]+$"},
                                      "detail": STR})}})),

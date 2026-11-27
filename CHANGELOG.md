@@ -1,5 +1,64 @@
 # Changelog
 
+## 0.86.0 — Promotion discipline (2026-11-27)
+
+- `tine eval plan` signs a pre-registered analysis plan, an
+  `opentine.eval-plan/1` claim on an existing attestation: metric, reducer,
+  epochs, test, alpha, Holm (default) or Bonferroni correction over a committed
+  candidate count, cluster key, minimum detectable effect, coverage floor, and
+  a commitment to a secret seed. `tine eval reveal` opens the commitment after
+  the runs; the analysis seed is derived from the secret and the plan digest,
+  so neither the caller nor a re-run can choose it (docs/EVAL-PLANS.md).
+- `tine eval run --epochs N` scores each item N times (`ID@eK` verdicts);
+  `--cluster-key FIELD` records each item's cluster; `--continue-on-error`
+  records items with no output as skipped and scorer errors (also inside the
+  isolated child) as errored instead of aborting; `--plan` binds the run to a
+  plan. Every eval folder now holds a signed `coverage.json`
+  (`opentine.eval-coverage/1`) and `eval.json` repeats its counts.
+- `tine promote --plan FILE --reveal FILE` checks that the run matched the
+  plan and runs the planned test: epochs reduced (`mean`, `pass@k`, `pass^k`),
+  clusters pooled (effective n), and the alpha corrected for
+  max(`max_candidates`, the lineage's sibling count). New refusals:
+  `promote.plan-missing`, `promote.plan-invalid`, `promote.plan-signer`,
+  `promote.plan-mismatch`, `promote.plan-after-outputs`,
+  `promote.seed-not-committed`, `promote.coverage`,
+  `promote.candidates-over-plan`, `promote.lineage-missing`,
+  `promote.uncorrected`. The decision signs
+  the plan digest, seed, candidate count, corrected alpha, coverage and the
+  analysis with standard error, effective n and power at the planned effect.
+- Without a plan the promotion reports `advisory:promote.no-plan` and does not
+  block; `require_plan = true` in the `[promote]` policy makes it a refusal.
+- `profile = "rsi"` now requires a plan and requires every eval signer (and the
+  plan signer) to hold a pinned `scorer` role in the owner trust bundle that is
+  not an optimizer key (`promote.eval-signer-role`).
+- A bootstrap with too few resamples to resolve the corrected interval fails
+  closed (`resolved: false`).
+- New schemas: `tine-cli-eval-plan-1`, `tine-cli-eval-reveal-1`,
+  `opentine-eval-plan-1`, `opentine-eval-plan-reveal-1`,
+  `opentine-eval-coverage-1` (claim conventions, not object kinds).
+- Holdout query accounting: every signed `tine eval run` over a sealed holdout
+  writes a signed, held `opentine.holdout.query/1` record (lineage node from
+  `--lineage`, eval id, what the eval revealed, the running count for that
+  node). `tine dataset seal --max-queries N` sets a query budget in the signed
+  commitment; queries past it, for one node or in total over all nodes (so
+  spreading queries over node names does not avoid it), are marked
+  `over_budget`. `--lineage` names are pattern-checked before anything is signed. Deleting the record
+  files lowers no count, and `tine hold release` refuses the holds.
+  docs/HOLDOUTS.md.
+- `tine dataset exposure --json` adds `queries` (count per lineage node and the
+  nodes over budget); `tine trends --json` and `tine query` (`trend_points`)
+  flag variants whose cited evals went over budget with
+  `holdout.query-over-budget`.
+- `tine promote` reports a holdout whose query budget a lineage node exceeded
+  as `advisory:holdout.query-budget` (D12); `[promote] holdout_queries =
+  "required"`, or `profile = "rsi"`, refuses with
+  `promote.holdout-query-budget`.
+- `tine uplift horizon|compare --bootstrap cluster [--cluster-key
+  task|subject]`: a hierarchical bootstrap that resamples clusters, then
+  attempts inside each, so correlated attempts do not narrow the interval.
+  Reports record `bootstrap` and `cluster_key` with the seed and resample
+  count. docs/UPLIFT.md.
+
 ## 0.85.0 — Scorer isolation and oversight protection (2026-11-27)
 
 - `tine eval run --isolate` runs a `python:` scorer in a child interpreter

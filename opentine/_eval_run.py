@@ -5,6 +5,7 @@ An eval writes a folder::
     eval.json       tine-eval/1 summary (unsigned; every fact in it is re-derived
                     from the verdicts by ``verify_eval``)
     verdicts.jsonl  one signed tine-eval-verdict/1 per dataset item, in item order
+    coverage.json   0.86: the signed opentine.eval-coverage/1 (opentine._eval_coverage)
 
 The eval id is ``sha256:`` over ``opentine.eval.v1:`` + JCS of the dataset
 digest, scorer, scorer version, threshold, creation time and signer, so two
@@ -21,7 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from opentine import _eval_verdict as verdicts
-from opentine._eval_dataset import DatasetError, dataset_digest, item_digest
+from opentine._eval_dataset import dataset_digest, item_digest
 from opentine._eval_scorers import Scorer
 from opentine._utc import rfc3339_utc
 from opentine.kernel import canonical_json
@@ -50,8 +51,14 @@ def run_eval(
     outputs: dict[str, dict[str, Any]] | None = None,
     default_run: str | None = None,
     created_at: str | None = None,
+    epochs: int = 1,
+    lenient: bool = False,
+    cluster_key: str | None = None,
+    plan_sha256: str | None = None,
 ) -> dict[str, Any]:
-    """Score every item, sign one verdict each, write the eval folder; the summary."""
+    """Score every item (per epoch), sign one verdict each, write the folder (0.86: epochs,
+    ``lenient`` skip/error recording, cluster key and plan binding, :mod:`_eval_coverage`)."""
+    from opentine import _eval_coverage as cov
     from opentine._canon import atomic_write_text
     from opentine._signing_keys import load_ed25519_private
     from opentine._signing_pins import key_fingerprint
@@ -60,10 +67,13 @@ def run_eval(
     signer = key_fingerprint(private.public_key().public_bytes_raw())
     when = created_at or now()
     data = dataset_digest(items)
-    given = [_given(item, outputs, default_run) for item in items]
+    groups = cov.clusters(items, cluster_key)
+    plan = cov.expand(items, outputs, epochs, default_run, lenient)
+    given = [row for row in plan if row[2] is not None]
+    skipped = [vid for vid, _item, row in plan if row is None]
     batch = None
     if scorer.batch is not None:  # 0.85: scored first, so the version can pin the closure
-        batch = scorer.batch([(item, row["output"]) for item, row in zip(items, given)])
+        batch = scorer.batch([(item, row["output"]) for _vid, item, row in given])
     pinned = {
         "dataset": data,
         "scorer": scorer.id,
@@ -74,12 +84,20 @@ def run_eval(
     }
     ident = eval_id(pinned)
     lines: list[str] = []
-    for number, (item, row) in enumerate(zip(items, given)):
-        run = row["run"]
-        score, judge = (batch[number], "") if batch is not None else scorer(item, row["output"])
+    errored: list[str] = []
+    for number, (vid, item, row) in enumerate(given):
+        try:
+            score, judge = (batch[number], "") if batch is not None else scorer(item, row["output"])
+            if score is None:
+                raise ValueError("the scorer returned no score")
+        except Exception:
+            if not lenient:
+                raise
+            errored.append(vid)
+            continue
         verdict = verdicts.make(
-            private, eval=ident, dataset=data, item=item["id"], item_digest=item_digest(item),
-            run=run, scorer=scorer.id, scorer_version=scorer.version, score=score,
+            private, eval=ident, dataset=data, item=vid, item_digest=item_digest(item),
+            run=row["run"], scorer=scorer.id, scorer_version=scorer.version, score=score,
             threshold=threshold, judge_run=judge, created_at=when,
         )  # fmt: skip
         lines.append(json.dumps(verdict, sort_keys=True, ensure_ascii=False) + "\n")
@@ -97,21 +115,18 @@ def run_eval(
         from opentine._scorer_closure import write
 
         write(out, scorer.config["closure"])
+    coverage = cov.sign(private, at=when, eval=ident, dataset=data, epochs=epochs,
+                        planned=len(plan), scored=len(lines), skipped=skipped, errored=errored,
+                        cluster_key=cluster_key, clusters=groups,
+                        plan_sha256=plan_sha256)  # fmt: skip
+    text = json.dumps(coverage, indent=2, sort_keys=True) + "\n"
+    atomic_write_text(out / cov.FILE, text, newline="\n")
+    summary["coverage"] = {"planned": len(plan), "scored": len(lines), "skipped": len(skipped),
+                           "errored": len(errored)}  # fmt: skip
     atomic_write_text(
         out / SUMMARY, json.dumps(summary, indent=2, sort_keys=True) + "\n", newline="\n"
     )
     return summary
-
-
-def _given(item: dict[str, Any], outputs: dict[str, dict[str, Any]] | None,
-           default_run: str | None) -> dict[str, Any]:  # fmt: skip
-    given = (outputs or {}).get(item["id"], item)
-    if "output" not in given:
-        raise DatasetError(f"item {item['id']!r} has no output to score")
-    run = given.get("run") or item.get("run") or default_run
-    if not run:
-        raise DatasetError(f"item {item['id']!r} names no run: pass --run or --from-run items")
-    return {"output": given["output"], "run": run}
 
 
 def _tally(lines: list[str]) -> dict[str, Any]:

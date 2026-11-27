@@ -180,6 +180,13 @@ Then an in-process scorer refuses the promotion with
 `scorer_isolation = "advisory"`. Built-in scorers (`exact`, `regex:`,
 `json-schema:`) and `llm-judge:` are not in-process code and are not flagged.
 
+Since 0.86 `profile = "rsi"` also requires a pre-registered eval plan
+(`promote.plan-missing`), a lineage record for the candidate
+(`promote.lineage-missing`), eval and plan signers that hold a pinned `scorer`
+role in the owner trust bundle and are not optimizer keys
+(`promote.eval-signer-role`), and holdout query budgets as a refusal
+(`promote.holdout-query-budget`). See docs/EVAL-PLANS.md and docs/HOLDOUTS.md.
+
 ## Not covered
 
 - `tine eval ci` runs scorers in-process; it does not take `--isolate` yet.

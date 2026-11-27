@@ -1,6 +1,6 @@
 """Schemas for the query, experiment, elicitation, sabotage, history-merge, budget,
 containment, weight custody, model-organism, interpretability, uplift, trends,
-transcript-analysis, ingest and scorer-isolation areas.
+transcript-analysis, ingest, scorer-isolation and eval-plan areas.
 
 Collected by :mod:`opentine._schemas`.
 """
@@ -35,6 +35,8 @@ from opentine._schema_defs_merge_history import COMMAND_SCHEMAS as _MH_COMMANDS
 from opentine._schema_defs_merge_history import SCHEMAS as _MH
 from opentine._schema_defs_organism import COMMAND_SCHEMAS as _ORGANISM_COMMANDS
 from opentine._schema_defs_organism import SCHEMAS as _ORGANISM
+from opentine._schema_defs_plan import COMMAND_SCHEMAS as _PLAN_COMMANDS
+from opentine._schema_defs_plan import SCHEMAS as _PLAN
 from opentine._schema_defs_policy import COMMAND_SCHEMAS as _POLICY_COMMANDS
 from opentine._schema_defs_policy import SCHEMAS as _POLICY
 from opentine._schema_defs_provenance import COMMAND_SCHEMAS as _PROVENANCE_COMMANDS
@@ -74,6 +76,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     **_KEYLESS,
     **_INGEST,
     **_SCORER,
+    **_PLAN,
 }
 COMMAND_SCHEMAS: dict[str, str] = {
     **_QUERY_COMMANDS,
@@ -97,6 +100,7 @@ COMMAND_SCHEMAS: dict[str, str] = {
     **_KEYLESS_COMMANDS,
     **_INGEST_COMMANDS,
     **_SCORER_COMMANDS,
+    **_PLAN_COMMANDS,
 }
 
 __all__ = ["COMMAND_SCHEMAS", "SCHEMAS"]

@@ -13,7 +13,12 @@ from opentine._schema_defs import BOOL, INT, STR, closed, doc, opt
 
 _HEX = {"type": "string", "pattern": "^[0-9a-f]{64}$"}
 _HEAD = {"schema": {"const": "tine-cli-holdout/1"}, "ok": BOOL}
-_BUDGET = closed(["max_unseals", "max_items"], {"max_unseals": INT, "max_items": INT})
+_BUDGET = closed(["max_unseals", "max_items"], {"max_unseals": INT, "max_items": INT,
+                                                "max_queries": INT})  # fmt: skip
+_QUERIES = closed(["max_queries", "total", "lineages", "over_budget"], {
+    "max_queries": opt(INT), "total": INT,
+    "lineages": {"type": "object", "additionalProperties": INT},
+    "over_budget": {"type": "array", "items": STR}})  # fmt: skip
 _REFUSAL = {
     "type": "object", "required": ["code", "detail"], "additionalProperties": False,
     "properties": {"code": STR, "detail": STR}}  # fmt: skip
@@ -35,11 +40,11 @@ _RECORD = closed(["sequence", "run", "signer", "purpose", "items", "sha256"], {
 _LINK = closed(["generation", "root", "commitment_sha256"], {
     "generation": INT, "root": _HEX, "commitment_sha256": _HEX})  # fmt: skip
 _EXPOSURE = closed(["command", "schema", "ok", "holdout", "root", "unseals", "revealed",
-                    "budget", "over_budget", "chain_ok", "records", "chain"], {
+                    "budget", "over_budget", "chain_ok", "records", "chain", "queries"], {
     **_HEAD, "command": {"const": "dataset exposure"}, "holdout": STR, "root": _HEX,
     "unseals": INT, "revealed": INT, "budget": _BUDGET, "over_budget": BOOL,
     "chain_ok": BOOL, "records": {"type": "array", "items": _RECORD},
-    "chain": {"type": "array", "items": _LINK}})  # fmt: skip
+    "chain": {"type": "array", "items": _LINK}, "queries": _QUERIES})  # fmt: skip
 SCHEMAS: dict[str, dict[str, Any]] = {
     "tine-cli-holdout-1": doc("tine-cli-holdout-1",
         "tine dataset seal|unseal|exposure --json",
@@ -47,7 +52,9 @@ SCHEMAS: dict[str, dict[str, Any]] = {
         "`opentine.holdout.commitment/1`) and stores each item TINEAES-sealed; `previous` "
         "names the generation it rotates. `unseal` writes a signed `opentine.holdout.access/1` "
         "record (who, which run, why) before it releases items. `exposure` counts the valid "
-        "access records against the budget and checks the commitment chain. Canaries are "
+        "access records against the budget and checks the commitment chain; `queries` (0.86) "
+        "counts the signed `opentine.holdout.query/1` records per lineage node against "
+        "`max_queries` (advisory: `ok` ignores it). Canaries are "
         "`tine-cli-canary-1`. A refusal is `ok` false with `refusals` (`holdout.*`) and exit 1.",
         {"oneOf": [_SEAL, _UNSEAL, _EXPOSURE, _REFUSED]}),
 }  # fmt: skip

@@ -6,7 +6,9 @@ in-process scorer. By default ``tine promote`` reports it as the advisory
 ``scorer.in-process`` and does not block (owner decision D12). It refuses
 (``promote.scorer-in-process``) only when the signed promotion policy says so:
 ``scorer_isolation = "required"``, or ``profile = "rsi"``, which requires it and
-cannot be combined with ``scorer_isolation = "advisory"``.
+cannot be combined with ``scorer_isolation = "advisory"``. From 0.86 the rsi
+profile also turns on ``require_plan`` (a pre-registered plan, refusable only
+there) and requires every eval signer to hold a pinned ``scorer`` role.
 """
 
 from __future__ import annotations
@@ -30,6 +32,12 @@ def check_policy(policy: dict[str, Any]) -> None:
     if profile == "rsi" and mode != "required":
         raise ValueError('the rsi profile requires scorer_isolation = "required"')
     policy["scorer_isolation"] = mode
+    plan = policy.get("require_plan", profile == "rsi")  # 0.86: advisory unless rsi (D12)
+    if not isinstance(plan, bool) or (profile == "rsi" and not plan):
+        raise ValueError("require_plan is a boolean; the rsi profile requires it")
+    policy["require_plan"] = plan
+    policy["require_signer_roles"] = profile == "rsi"  # 0.86: pinned scorer keys only
+    policy["require_lineage"] = profile == "rsi"  # 0.86: hidden candidates fail closed
 
 
 def in_process(folder: Path) -> bool:

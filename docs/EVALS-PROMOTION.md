@@ -97,6 +97,7 @@ min_approvals = 1
 require_holdout = true
 eval_signers = ["sha256:<key fingerprint>"]   # the keys trusted to sign verdicts
 scorer_isolation = "advisory"  # 0.85: or "required"; profile = "rsi" implies "required"
+holdout_queries = "advisory"   # 0.86: or "required"; profile = "rsi" implies "required"
 ```
 
 ### What the gate checks
@@ -125,6 +126,8 @@ A label moves only when every check passes. Each refusal names its reason:
 | `promote.loop-stopped` | `--loop LOOP`, or the candidate run's metadata (`opentine.loop`, or `opentine.task` naming a loop generation), names a stopped loop (`tine loop stop`: its coord record or the hold that keeps the stop); `--revert` stays allowed |
 | `promote.label-policy` | the admission policy does not cover `labels/LABEL`, or its `subjects` do not list the promoting key |
 | `promote.scorer-in-process` | (0.85) an eval ran a `python:` or `plugin:` scorer without `--isolate` while the policy sets `scorer_isolation = "required"` or `profile = "rsi"`; otherwise the same finding is the advisory `advisory:scorer.in-process` in the output's `advisories` (docs/SCORER-ISOLATION.md) |
+| `promote.plan-missing`, `promote.plan-invalid`, `promote.plan-signer`, `promote.plan-mismatch`, `promote.plan-after-outputs`, `promote.seed-not-committed`, `promote.coverage`, `promote.candidates-over-plan`, `promote.uncorrected`, `promote.eval-signer-role` | (0.86) a pre-registered plan (`--plan`, `--reveal`) is required and missing, does not hold, or its corrected test fails; under `profile = "rsi"` a verdict signer holds no pinned `scorer` role. Without a plan and without `require_plan` the advisory is `advisory:promote.no-plan` (docs/EVAL-PLANS.md) |
+| `promote.holdout-query-budget` | (0.86) a lineage node made more queries against a sealed holdout than its commitment's `max_queries`, while the policy sets `holdout_queries = "required"` or `profile = "rsi"`; otherwise the advisory `advisory:holdout.query-budget` (docs/HOLDOUTS.md) |
 | `promote.already-current` | the run already holds the label |
 | `promote.not-current` | the run to revert does not hold the label |
 

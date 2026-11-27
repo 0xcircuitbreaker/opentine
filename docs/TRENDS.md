@@ -40,6 +40,9 @@ A variant's `flags` are lineage codes:
 * `lineage.decision-mismatch`: reported as found;
 * `lineage.parent-missing`: a cited parent's record is absent, so no paired
   comparison against it runs; the variant is listed in `unchecked[]`.
+* `holdout.query-over-budget` (0.86): an eval it cites has a held holdout
+  query record that went over the holdout's query budget, or the holds cannot
+  be read (docs/HOLDOUTS.md).
 
 A flagged variant's numbers are still printed, but it is never a generation's
 `best`.

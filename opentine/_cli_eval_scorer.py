@@ -91,7 +91,8 @@ def build(args: argparse.Namespace, parse: Any) -> tuple[Any, list[dict[str, str
         scorer = isolated(args.scorer, inputs=[Path(p) for p in args.scorer_input],
                           limits=_bounds(args),
                           lockfile=Path(args.lockfile) if args.lockfile else None,
-                          expect=args.expect_closure)  # fmt: skip
+                          expect=args.expect_closure,
+                          tolerate=getattr(args, "continue_on_error", False))  # fmt: skip
         advisories = []
     else:
         if args.expect_closure or args.scorer_input:

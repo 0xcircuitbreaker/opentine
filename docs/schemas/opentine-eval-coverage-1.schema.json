@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-eval-coverage-1.schema.json",
+  "title": "opentine.eval-coverage/1",
+  "description": "The claim of an eval folder's coverage.json: items times epochs planned, scored, skipped and errored, the cluster of each item and the plan the run was bound to. A claim convention on an attestation, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "eval",
+    "dataset",
+    "epochs",
+    "planned",
+    "scored",
+    "skipped",
+    "errored",
+    "cluster_key",
+    "clusters",
+    "plan_sha256"
+  ],
+  "properties": {
+    "schema": {
+      "const": "opentine.eval-coverage/1"
+    },
+    "eval": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "dataset": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "epochs": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "planned": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "scored": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "skipped": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "errored": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "cluster_key": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "clusters": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "plan_sha256": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}
