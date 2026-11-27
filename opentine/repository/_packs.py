@@ -118,7 +118,7 @@ class PackSet(LazyIndexes):
                 # Unreadable for now (being renamed in, or gone): skip it, but don't
                 # remember this listing, or its objects would stay invisible here.
                 complete = False
-        self.indexes, self._where, self._v3 = indexes, None, None
+        self.indexes, self._where, self._v3, self._finds = indexes, None, None, 0
         self.blocks = {digest: index.table for digest, index in indexes.items()}
         self.fingerprint = fingerprint if complete else None
         self._recent.clear()
