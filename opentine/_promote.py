@@ -124,8 +124,7 @@ def promote(key: Any, policy: dict[str, Any], candidate: str, label: str, *, sta
 
     if not RUN_RE.fullmatch(candidate):
         raise ValueError("CANDIDATE must be a run:sha256: oid")
-    at = at or _now()
-    record = read_state(state, label)
+    at, record = at or _now(), read_state(state, label)
     _check_label(policy, label, key)
     evidence, refusals = gate(policy, candidate=candidate, label=label, current=record["current"],
                               baseline=baseline, evals=evals, holdout=holdout,
@@ -135,7 +134,7 @@ def promote(key: Any, policy: dict[str, Any], candidate: str, label: str, *, sta
     from opentine._promote_guards import guards, late
     from opentine._promote_holdout import refusals as sealed
     from opentine._promote_pins import policy_pin
-    from opentine._regions_pin import promote_findings as regions
+    from opentine._promote_skill import gates
 
     pin, unsigned = policy_pin(repo_path, policy, _who(key), list(policy_attestations))
     refusals = unsigned + guards(repo_path, _who(key), loop, candidate) + refusals
@@ -143,8 +142,8 @@ def promote(key: Any, policy: dict[str, Any], candidate: str, label: str, *, sta
     refusals += sealed(list(sealed_holdouts), canary_lengths, repo_path, candidate,
                        policy=policy, advisories=evidence["advisories"])  # fmt: skip
     refusals += late(repo_path, candidate, label, record, evals)  # 0.61 memory, 0.64 oversight
-    held, advised = regions(policy, repo_path)  # 0.87: EVOLVE-BLOCK region pins
-    refusals += held
+    held, advised, skills = gates(policy, repo_path, candidate, record["current"], label, lineage)
+    refusals += held  # 0.87: EVOLVE-BLOCK region pins; 0.88: skill labels
     evidence["advisories"] += advised
     more, advice, plan_row = planned(policy, record, candidate, baseline, evals, holdout, plan,
                                      reveal, lineage, repo_path)  # fmt: skip
@@ -179,7 +178,8 @@ def promote(key: Any, policy: dict[str, Any], candidate: str, label: str, *, sta
         "budget_usd": evidence["budget_usd"], "policy_sha256": policy["sha256"],
         "label_policy_sha256": policy["label_policy_sha256"], "policy_attestation": pin,
         "sequence": len(record["history"]),
-        **({"plan": plan_row} if plan_row else {})}, at)  # fmt: skip
+        **({"plan": plan_row} if plan_row else {}), **({"skills": skills} if skills else {})},
+        at)  # fmt: skip
     _write(out / "vsa.json", vsa)
     _write(out / "decision.json", decision)
     for name, document in files.items():
@@ -190,7 +190,7 @@ def promote(key: Any, policy: dict[str, Any], candidate: str, label: str, *, sta
     return {"action": "promote", "label": label, "candidate": candidate, "previous": previous,
             "current": candidate, "out": out.as_posix(), "inputs": inputs, "stats": stats,
             "refusals": [], "advisories": evidence["advisories"] + advice,
-            "plan": plan_row}  # fmt: skip
+            "plan": plan_row, "skills": skills}  # fmt: skip
 
 
 def revert(key: Any, policy: dict[str, Any], candidate: str, label: str, *, state: Path,

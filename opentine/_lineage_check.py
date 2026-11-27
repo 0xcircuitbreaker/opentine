@@ -66,7 +66,7 @@ def _shape(claim: Any, variant: str) -> str | None:
         isinstance(v, str) and DIGEST_RE.fullmatch(v) for v in getattr(arts, "values", list)()
     )
     if not (isinstance(arts, dict) and arts and set(arts) <= set(ARTIFACTS) and good):
-        return "artifacts must map code_tree/prompt/config/weights to sha256: digests"
+        return "artifacts must map code_tree/prompt/config/weights/skill to sha256: digests"
     if claim["variant"] != variant or variant_id(arts) != variant:
         return "the variant id is not the digest of its artifacts"
     parents, evals = claim["parents"], claim["evals"]

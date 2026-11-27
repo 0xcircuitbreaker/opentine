@@ -147,6 +147,12 @@ def cmd_signed_promote(args: argparse.Namespace) -> None:
         holder = row.get("current", row["candidate"])
         label = row.get("label", "policy")
         console.print(f"{row['action'].upper()} {label}: {holder}", markup=False)
+        if row.get("skills"):
+            skills = row["skills"]
+            console.print(f"  skill {skills['from']} -> {skills['to']} ({skills['label']})",
+                          markup=False, highlight=False)  # fmt: skip
+        for item in row.get("advisories") or []:
+            console.print(f"  {item['code']}: {item['detail']}", highlight=False, markup=False)
     else:
         console.print(f"REFUSED {args.baseline} -> {args.target}", highlight=False, markup=False)
         for item in row["refusals"]:
