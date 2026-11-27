@@ -6,7 +6,7 @@
 // Platform, so CI does not run them (no JDK-and-network job). See README.md.
 
 plugins {
-    id("org.jetbrains.kotlin.jvm") version "2.0.21"
+    id("org.jetbrains.kotlin.jvm") version "2.4.21"
     id("org.jetbrains.intellij.platform") version "2.1.0"
 }
 
