@@ -1,5 +1,44 @@
 # Changelog
 
+## Unreleased — Scorer isolation and oversight protection
+
+- `tine eval run --isolate` runs a `python:` scorer in a child interpreter
+  (`python -I -B`) with an empty environment, a fresh empty working
+  directory, CPU, memory, file-size and open-file limits, a timeout that kills
+  the whole process tree, and bounded output. On Linux the child moves into a
+  new user and network namespace when the kernel allows; elsewhere sockets are
+  refused by an audit hook, which also refuses subprocesses, `ctypes`, writes
+  and reads outside the scorer's import paths and `--scorer-input` files. The
+  child holds no signing key. A breach refuses the eval with
+  `scorer.isolation-breach` and nothing is signed. docs/SCORER-ISOLATION.md.
+- Closure pins: the parent hashes every non-stdlib module and data file the
+  isolated scorer loaded into `scorer.json` (`opentine.scorer-closure/1`,
+  with interpreter version, optional `--lockfile` digest, contract digest,
+  isolation level and limits). Its `sc1+sha256:` pin is the signed
+  `scorer_version`, so `tine eval verify` fails an edited or missing
+  `scorer.json` with `eval.summary-mismatch`. `--expect-closure DIGEST`
+  refuses a changed helper module with `scorer.closure-mismatch`.
+- `tine eval rescore DIR` re-runs an isolated eval's recorded scorer under
+  isolation on the named outputs and signs an `opentine.rescore-report/1`
+  (agree/disagree per item and on the closure); it exits 4 on disagreement.
+- Evaluator contracts: `--contract FILE` (`opentine.scorer-contract/1`)
+  checks determinism (scored twice), anchors with known scores, output shape,
+  length bounds and a length relation to an item field. A violation refuses
+  the eval with `scorer.contract` instead of reporting a score.
+- `tine eval lint FILE...` flags stack and frame inspection, `gc` walks,
+  dynamic code and string literals naming grader or test files
+  (`advisory:introspection.*`). It is advisory; `--strict` exits 4.
+- In-process scorers: a `python:` or `plugin:` run without `--isolate`
+  reports `advisory:scorer.in-process`, and `tine promote` lists it under
+  `advisories`. The promotion policy's new `scorer_isolation = "required"`
+  (or `profile = "rsi"`) turns it into the refusal `promote.scorer-in-process`;
+  the default stays advisory (D12).
+- New schemas: `tine-cli-eval-rescore-1`, `tine-cli-eval-lint-1`,
+  `opentine-scorer-closure-1`, `opentine-scorer-contract-1` and
+  `opentine-rescore-report-1` (conventions, not object kinds);
+  `tine-cli-promote-1` gains `advisories`. No new object kind or
+  `tine verify` code.
+
 ## 0.84.1 — Cleanup and security pass (2026-11-27)
 
 No user-facing command, flag, file format or `--json` shape changes, and no new

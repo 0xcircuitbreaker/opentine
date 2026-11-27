@@ -2391,7 +2391,12 @@ tine eval run DATASET.jsonl --scorer SPEC --key KEY --out DIR [--threshold T]
               [--outputs FILE.jsonl] [--run RUN] [--judge-prompt FILE] [--judge-rubric FILE]
               [--created-at TIME]
               [--holdout DIR [--repo PATH]]
+              [--isolate [--expect-closure DIGEST] [--scorer-input FILE]... [--lockfile FILE]
+               [--cpu-seconds N] [--memory-mb N] [--timeout S]] [--contract FILE]
 tine eval verify DIR [--pubkey PUB]
+tine eval rescore DIR --dataset DATASET.jsonl --key KEY [--outputs FILE.jsonl] [--out FILE]
+                  [--scorer-input FILE]... [--created-at TIME]
+tine eval lint FILE.py... [--grader PATH]... [--strict]
 tine eval compare A B [--pubkey PUB] [--exit-code]
 tine eval ci --key KEY [--config TOML] [--out DIR] [--repo PATH] [--created-at TIME]
 ```
@@ -2450,6 +2455,20 @@ verifies both evals, then lists `regressed` (pass to fail), `fixed`,
 `--exit-code` exits 1 on any regression. A failed verification exits 4.
 `tine-verify.pyz DIR|verdicts.jsonl` and `opentine-verify verdicts.jsonl`
 check the same verdicts without opentine installed.
+
+Scorer isolation (0.85, docs/SCORER-ISOLATION.md): `eval run --isolate` runs a
+`python:` scorer in a child interpreter with an empty environment, resource
+limits, no network where the OS allows, and no access to files beyond its
+import paths and `--scorer-input` files; the child's import closure is hashed
+into `scorer.json`, whose `sc1+sha256:` pin is the signed `scorer_version`. A
+breach refuses with `scorer.isolation-breach`, a closure other than
+`--expect-closure` with `scorer.closure-mismatch`, and a `--contract` violation
+with `scorer.contract`; nothing is signed. Without `--isolate`, a `python:` or
+`plugin:` run reports `advisory:scorer.in-process`. `eval rescore` re-runs an
+isolated eval's recorded scorer on the named outputs and signs an
+`opentine.rescore-report/1` (exits 4 on disagreement; `--json` follows
+`tine-cli-eval-rescore-1`). `eval lint` reports `advisory:introspection.*`
+findings and exits 0 unless `--strict` (`tine-cli-eval-lint-1`).
 
 `eval ci` (0.47) runs every `[[eval]]` table of `.tine/evals.toml` (or
 `--config`) with `eval run` into `--out` (default `.tine/evals`), signed with the
