@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from opentine._cli_common import _runs_dir, console
+from opentine._cli_deprecated import SignKeyAction
 from opentine._cli_errors import fail
 from opentine._cli_json import emit
 from opentine._cli_who_render import emit_or_print
@@ -144,7 +145,14 @@ def add_git_extras(git_sub: Any) -> None:
     write = git_sub.add_parser("attribute", help="Sign which run and step wrote each added line")
     write.add_argument("commit")
     write.add_argument("runs", nargs="*", help="Run ids (default: the runs the commit links)")
-    write.add_argument("--sign-key", metavar="KEY", help="Ed25519 private key to sign with")
+    write.add_argument(
+        "--key",
+        "--sign-key",
+        dest="sign_key",
+        action=SignKeyAction,
+        metavar="KEY",
+        help="Ed25519 private key to sign with",
+    )
     write.add_argument(
         "--no-configure", action="store_true", help="Do not set notes.rewriteRef in git config"
     )

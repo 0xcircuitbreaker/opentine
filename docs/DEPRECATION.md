@@ -119,7 +119,33 @@ removed in a minor release; a deprecated one raises `DeprecationWarning` for at
 least two minor releases first. Names starting with `_` are private and may
 change in any release.
 
-## 8. Release notes
+## 8. Current deprecations
+
+Each entry keeps working until the removal version. CLI spellings print one
+stderr notice naming the replacement (`OPENTINE_NO_DEPRECATION=1` silences it);
+Python names raise `DeprecationWarning`. Legacy format writers are not on this
+list: they follow §3.
+
+| Deprecated | Since | Replacement | Removal |
+|---|---|---|---|
+| `tine keys lint` | 0.85 | `tine key lint` | 1.0 |
+| `tine plugin export` | 0.85 | `tine plugins export` | 1.0 |
+| `tine price RUN` | 0.85 | `tine pricing reprice RUN` (`tine show RUN --price` also works) | 1.0 |
+| `--sign-key` (cost, custody record, fleet record, import git-ai, attribution writes, attach) | 0.85 | `--key` | 1.0 |
+| `opentine.tools.python.execute_unsafe_legacy` | 0.85 | `execute()` with a `PythonPolicy` | 1.0 |
+| `opentine.policies.secure_profile`, `dev_profile`, `isolated_profile` | 0.85 | build a `PolicySet` and bind each tool's own policy (an Agent records these profiles, it does not enforce them) | 1.0 |
+| `opentine.billing.engine.now_utc` | 0.85 | `datetime.now(UTC)` | 1.0 |
+| `opentine.repository.ops.linked_objects` | 0.85 | none (unused) | 1.0 |
+| `opentine.remote.backend.valid_ref` | 0.85 | `normalize_ref` | 1.0 |
+| `pip install opentine[crypto]` | 0.85 | nothing: `cryptography` is a core dependency | 1.0 |
+| `pip install opentine[compat]` | 0.85 | `opentine[openai]` (the same package) | 1.0 |
+
+`tine cost` stays the noun for costs recorded at capture; `tine pricing` is the
+noun for the catalog and for repricing. `tine verify --sign-key` keeps its
+spelling: `verify` takes keys to trust, so a bare `--key` there would be
+ambiguous. The extras stay installable until removal.
+
+## 9. Release notes
 
 Every release's CHANGELOG has a **Compatibility** section. It lists any new
 deprecation (with the release that may remove it), any change in canonical

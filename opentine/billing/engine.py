@@ -236,4 +236,9 @@ def calculate(
 
 
 def now_utc() -> datetime:
+    """Deprecated since 0.85 (removal in 1.0): use ``datetime.now(UTC)``."""
+    import warnings
+
+    warnings.warn("opentine.billing.engine.now_utc is deprecated since 0.85; "
+                  "use datetime.now(UTC)", DeprecationWarning, stacklevel=2)  # fmt: skip
     return datetime.now(UTC)

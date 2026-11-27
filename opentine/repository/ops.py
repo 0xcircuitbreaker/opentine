@@ -235,4 +235,9 @@ def promote(repo: Repo, run_id: str, name: str, *, expected_old: str | None = No
 
 
 def linked_objects(repo: Repo, oid: str) -> tuple[str, ...]:
+    """Deprecated since 0.85 (removal in 1.0): unused; see docs/DEPRECATION.md."""
+    import warnings
+
+    warnings.warn("opentine.repository.ops.linked_objects is deprecated since 0.85",
+                  DeprecationWarning, stacklevel=2)  # fmt: skip
     return validate_links(_get(repo, oid))

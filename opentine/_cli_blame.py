@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any
 
 from opentine._cli_common import _runs_dir, _terminal, console
+from opentine._cli_deprecated import SignKeyAction
 from opentine._cli_errors import fail
 from opentine._cli_json import emit
 from opentine._cli_who_render import emit_or_print
@@ -44,7 +45,14 @@ def add_blame_parser(sub: Any) -> None:
     attach = sub.add_parser("attach", help="Attach a run to a commit after the fact")
     attach.add_argument("run")
     attach.add_argument("commit")
-    attach.add_argument("--sign-key", metavar="KEY", help="Ed25519 private key to sign with")
+    attach.add_argument(
+        "--key",
+        "--sign-key",
+        dest="sign_key",
+        action=SignKeyAction,
+        metavar="KEY",
+        help="Ed25519 private key to sign with",
+    )
     attach.add_argument(
         "--no-configure", action="store_true", help="Do not set notes.rewriteRef in git config"
     )

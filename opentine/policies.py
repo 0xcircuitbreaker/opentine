@@ -159,11 +159,21 @@ class PolicySet:
         return asdict(self)
 
 
+def _profile_deprecated(name: str) -> None:
+    import warnings
+
+    warnings.warn(f"opentine.policies.{name} is deprecated since 0.85 (removal in 1.0): an "
+                  "Agent records these policies but does not enforce them; bind each tool's "
+                  "own policy instead", DeprecationWarning, stacklevel=3)  # fmt: skip
+
+
 def secure_profile(root: str | Path = ".") -> PolicySet:
+    _profile_deprecated("secure_profile")
     return PolicySet(filesystem=FilesystemPolicy(roots=(str(root),), write_roots=()))
 
 
 def dev_profile(root: str | Path = ".") -> PolicySet:
+    _profile_deprecated("dev_profile")
     root_s = str(root)
     return PolicySet(
         filesystem=FilesystemPolicy(roots=(root_s,), write_roots=(root_s,), deny_symlinks=False),
@@ -178,6 +188,7 @@ def dev_profile(root: str | Path = ".") -> PolicySet:
 
 
 def isolated_profile(root: str | Path = ".") -> PolicySet:
+    _profile_deprecated("isolated_profile")
     root_s = str(root)
     return PolicySet(
         filesystem=FilesystemPolicy(roots=(root_s,), write_roots=(), deny_symlinks=True),

@@ -46,6 +46,11 @@ def valid_tenant(tenant: str) -> str:
 
 
 def valid_ref(name: str) -> str:
+    """Deprecated since 0.85 (removal in 1.0): use ``normalize_ref``."""
+    import warnings
+
+    warnings.warn("opentine.remote.backend.valid_ref is deprecated since 0.85; use "
+                  "normalize_ref", DeprecationWarning, stacklevel=2)  # fmt: skip
     return normalize_ref(name)
 
 

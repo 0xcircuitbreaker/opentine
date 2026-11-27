@@ -17,6 +17,7 @@ import json
 from typing import Any
 
 from opentine._cli_common import BRAND, _terminal, console
+from opentine._cli_deprecated import SignKeyAction
 from opentine._cli_errors import VERIFICATION_FAILED, fail
 from opentine._signing_keys import SignatureError
 
@@ -27,7 +28,15 @@ def add_custody_parser(sub: Any) -> None:
     rec = actions.add_parser("record", help="Append a signed custody record")
     rec.add_argument("action", help="received, exported, verified, transferred, stored, timestamp")
     rec.add_argument("subject", help="What it concerns: a digest, run root or sig:sha256: binding")
-    rec.add_argument("--sign-key", required=True, metavar="KEY", help="Actor's Ed25519 key file")
+    rec.add_argument(
+        "--key",
+        "--sign-key",
+        dest="sign_key",
+        action=SignKeyAction,
+        required=True,
+        metavar="KEY",
+        help="Actor's Ed25519 key file",
+    )
     rec.add_argument("--actor", help="Who acted (default: the login name)")
     rec.add_argument("--note", default="", help="Free text kept in the signed record")
     rec.add_argument("--token", metavar="TOKEN.tsr", help="timestamp: the TSA response")

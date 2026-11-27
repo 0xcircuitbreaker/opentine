@@ -321,4 +321,8 @@ PAIRS: tuple[tuple, ...] = (
     ),
     ("plain", ["share-link", "revoke", "0123"], ["share", "revoke", "0123"]),
     ("plain", ["share-link", "list", "--json"], ["share", "list", "--json"]),
+    # 0.85: canonical nouns.
+    ("plain", ["keys", "lint", "--strict", "--json"], ["key", "lint", "--strict", "--json"]),
+    ("plain", ["plugin", "export", "p", "--repo", "."], ["plugins", "export", "p", "--repo", "."]),
+    ("plain", ["price", "r1", "--json"], ["pricing", "reprice", "r1", "--json"]),
 )

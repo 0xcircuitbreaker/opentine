@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any
 
 from opentine._cli_common import BRAND, _terminal, console
+from opentine._cli_deprecated import SignKeyAction
 from opentine._cli_json import emit
 from opentine._git_link import GitLinkError, checked_revision, git, resolve_commit
 
@@ -148,7 +149,12 @@ def export_git_ai(args: argparse.Namespace) -> None:
 
 def add_sign_key(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
-        "--sign-key", metavar="KEY", help="git-ai: sign imported attribution with this Ed25519 key"
+        "--key",
+        "--sign-key",
+        dest="sign_key",
+        action=SignKeyAction,
+        metavar="KEY",
+        help="git-ai: sign imported attribution with this Ed25519 key",
     )
 
 
