@@ -1,5 +1,52 @@
 # Changelog
 
+## Unreleased — Scaffold manifests and structural diff
+
+- New `tine agent scaffold [--harness H] [--root DIR] [--json]`: a per-file
+  scaffold manifest (`opentine.scaffold-manifest/1`) of a harness's
+  instruction files and their `@path` imports, settings, hooks, skills,
+  commands, agents, rules and MCP configuration, with a tree digest. The file
+  lists per harness come from the existing harness code. Symlinks are recorded
+  and never followed out of the root, symlinked directories are not descended
+  into, FIFOs and devices are never opened, and imports outside the root are
+  named but not read. See `docs/SCAFFOLD.md`.
+- `tine agent scaffold --record RUN --key KEY --repo PATH` signs the manifest
+  onto a stored run as an existing attestation under the
+  `opentine.scaffold-manifest/1` claim convention, held as
+  `scaffold-manifest:RUN` (never released). A manifest the credential
+  scrubber would alter is refused (`scaffold.redaction`). Harness captures
+  also record `metadata.scaffold` with the tree digest.
+- `tine agent scaffold-diff BEFORE AFTER` compares two manifests path by path;
+  editing one skill file is a one-file change.
+- `tine agent scaffold-pin --harness H --glob G... --key KEY` signs a glob list
+  (`opentine.scaffold-files/1`) that replaces the defaults, with a pinned
+  `policy`-role key that is not an `optimizer` key. A filed list that does not
+  verify is refused (`scaffold.files-unpinned`), never ignored.
+- `tine mcp-proxy` pins the first complete `tools/list` of a session and
+  records a `tool_def_digest` (over a canonical, lossless form of the
+  definition, computed before redaction) and the server's `serverInfo` on
+  each `tools/call` step. A changed definition is
+  `advisory:mcp.tool-def-changed` and a call to a tool never listed is
+  `advisory:mcp.tool-unpinned`; both are advice by default. New
+  `--tool-defs block` (stdio) refuses such calls with JSON-RPC error `-32004`.
+- The stdio relay hands each finished line to the recorder before writing it
+  on, so a reply can no longer be recorded before the request it answers.
+- `python -m opentine.mcp_server` now speaks MCP 2026-07-28 and keeps
+  2025-11-25. An `initialize` asking for a newer version than 2025-11-25 is
+  refused with the supported versions instead of being answered with
+  2025-11-25. `serverInfo.version` is the OpenTine version.
+- Fixed: a padded base64 value whose text before the `=` padding ended like a
+  credential name (for example `...Pw==`; about 1 in 140 base64-encoded 64-byte values)
+  was rewritten by the scrubber on every redacted v3 write (attestation
+  claims, ingest records, stored runs and annotations), so a provider
+  signature or blob stored in a repository could stop verifying. Such values
+  are now kept byte for byte; real credential assignments are still redacted.
+  The other record writers (probe calibrations, interpretability custody,
+  collusion verdicts, artifact provenance, ingest batches and segments) were
+  audited: they store only hex digests and fingerprints, and the RL audit
+  checkpoint fix from 0.87.1 is unchanged. Each write path has a regression
+  test.
+
 ## 0.87.1 — Release pipeline and Windows test fixes (2026-11-27)
 
 0.87.0 was merged but never tagged or published, because CI on main failed.
