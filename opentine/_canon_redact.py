@@ -207,6 +207,11 @@ def _redact(value: Any, _depth: int = 0) -> Any:
         return redacted
     if isinstance(value, str) and (":" in value or "=" in value):
         label, separator, candidate = _split_assignment(value)
+        if separator == "=" and not candidate.strip("= \t"):
+            # 0.88: nothing follows but padding, so nothing can be hidden: a base64
+            # signature or blob whose text before its "=" padding ends like a
+            # credential name ("...Pw==") stays byte for byte, so it still verifies.
+            return value
         name = _field_name(label)
         headers = {"authorization", "proxy_authorization", "cookie", "set_cookie"}
         words = candidate.strip().casefold().split()
