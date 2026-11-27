@@ -10,7 +10,7 @@
 # /run/secrets/review-runner.key; model credentials arrive as the environment
 # variables .tine/runner.toml names. This repository does not publish the
 # image; build it yourself.
-FROM docker.io/library/python:3.12.7-slim-bookworm
+FROM docker.io/library/python:3.15.1-slim-bookworm
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends git \
