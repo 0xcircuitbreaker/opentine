@@ -150,6 +150,10 @@ def cmd_hook(args: argparse.Namespace) -> None:
                 console.print(json.dumps(updated.get("hooks", {}), indent=2), markup=False)
                 continue
             backup = write_config(path, updated)
+            if repo is not None:  # 0.85: a hook file inside the repository is a default pin
+                from opentine._integrity_defaults import pin
+
+                pin(repo.parent, path, "hook")
             done = "installed" if args.action == "install" else "removed"
             note = f" (backup: {_terminal(backup)})" if backup else ""
             console.print(f"  {name:<12} {done:<14} {_terminal(path)}{note}")

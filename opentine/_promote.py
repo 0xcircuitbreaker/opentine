@@ -188,7 +188,7 @@ def promote(key: Any, policy: dict[str, Any], candidate: str, label: str, *, sta
     _move(state, record, "promote", candidate, candidate, decision, at)
     return {"action": "promote", "label": label, "candidate": candidate, "previous": previous,
             "current": candidate, "out": out.as_posix(), "inputs": inputs, "stats": stats,
-            "refusals": []}  # fmt: skip
+            "refusals": [], "advisories": evidence["advisories"]}  # fmt: skip
 
 
 def revert(key: Any, policy: dict[str, Any], candidate: str, label: str, *, state: Path,

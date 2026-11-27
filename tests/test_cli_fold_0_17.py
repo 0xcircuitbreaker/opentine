@@ -62,9 +62,10 @@ PAIRS = (
     (["ls", "--cost-min", "0.1", "--json"], ["log", "--cost-min", "0.1", "--json"]),
     (["cost", "aaa00001"], ["show", "aaa00001", "--cost"]),
     (["cost", "aaa00001", "--json"], ["show", "aaa00001", "--cost", "--json"]),
-    (["price", "bbb00001"], ["show", "bbb00001", "--price"]),
+    # 0.85: `tine pricing reprice` is the canonical spelling of `tine price`.
+    (["pricing", "reprice", "bbb00001"], ["show", "bbb00001", "--price"]),
     (
-        ["price", "bbb00001", "--at", "2026-07-15", "--json"],
+        ["pricing", "reprice", "bbb00001", "--at", "2026-07-15", "--json"],
         ["show", "bbb00001", "--price", "--at", "2026-07-15", "--json"],
     ),
 )

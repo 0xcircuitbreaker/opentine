@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-rescore-report-1.schema.json",
+  "title": "opentine.rescore-report/1",
+  "description": "A signed agree/disagree report for an isolated re-run of an eval's recorded scorer. A file convention, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "eval",
+    "dataset",
+    "scorer_version",
+    "closure",
+    "rescored_closure",
+    "closure_agree",
+    "rows",
+    "agreed",
+    "disagreed",
+    "verdict",
+    "isolation",
+    "created_at",
+    "signer",
+    "signature"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.rescore-report/1"
+    },
+    "eval": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "dataset": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "scorer_version": {
+      "type": "string",
+      "pattern": "^sc1\\+sha256:[0-9a-f]{64}$"
+    },
+    "closure": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "rescored_closure": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "closure_agree": {
+      "type": "boolean"
+    },
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "item",
+          "reported",
+          "rescored",
+          "agree"
+        ],
+        "properties": {
+          "item": {
+            "type": "string"
+          },
+          "reported": {
+            "type": "string",
+            "pattern": "^(0|1|0\\.[0-9]{0,5}[1-9])$"
+          },
+          "rescored": {
+            "type": "string",
+            "pattern": "^(0|1|0\\.[0-9]{0,5}[1-9])$"
+          },
+          "agree": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "agreed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "disagreed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "verdict": {
+      "enum": [
+        "agree",
+        "disagree"
+      ]
+    },
+    "isolation": {
+      "enum": [
+        "full",
+        "partial"
+      ]
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "signer": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "signature": {
+      "$ref": "tine-sig-3.schema.json"
+    }
+  }
+}

@@ -159,7 +159,8 @@ the filesystem, network, shell and Python policies in the set are recorded on
 the run, not enforced. Passing `isolated_profile()` or `secure_profile()` to
 `Agent` does not sandbox its tools. A tool policy takes effect only when it is
 given to the tool itself (for example the `policy=` argument of the shell,
-filesystem and Python tools).
+filesystem and Python tools). The three profile helpers are deprecated
+from 0.85 (they warn; removal in 1.0, see [DEPRECATION](DEPRECATION.md)).
 `ShellPolicy(sandbox="auto"|"bwrap"|"landlock"|"sandbox-exec"|"oci"|"none")`
 (0.41, default `"none"`) runs shell-tool commands under an OS sandbox, with
 `sandbox_network` and `sandbox_image` (for `oci`); a named backend that is

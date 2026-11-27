@@ -7,7 +7,10 @@
 named trust policy's portable fields or ``--pin`` fingerprints, an
 ``opentine-witness-network/1`` registry, signed-note log keys and
 ``opentine.admission-policy`` files, and (0.59) the key roles of a
-``.tine/key-roles.toml``, which only grant powers when signed this way. ``verify FILE --owner-vkey V
+``.tine/key-roles.toml``, which only grant powers when signed this way. 0.85:
+``--oversight FILE`` (a JSON section) and ``--oversight-policy FILE`` (an
+``oversight.toml``: its sha256 and routed sources) pin the oversight policy so
+an older signed copy cannot be put back. ``verify FILE --owner-vkey V
 [--min-serial N]`` checks one against the owner key pinned out of band and
 exits 4 when it does not hold. Both take ``--json`` (``tine-cli-trust-bundle/1``).
 """
@@ -47,6 +50,16 @@ def add_bundle_parser(group_sub: argparse._SubParsersAction) -> None:
                         help="opentine.admission-policy document (repeatable)")  # fmt: skip
     create.add_argument("--key-roles", metavar="FILE",
                         help="Sign these key roles (a key-roles.toml) into it")  # fmt: skip
+    create.add_argument(
+        "--oversight",
+        metavar="FILE",
+        help="Pin this oversight section (JSON: tiers, routes, policy_sha256)",
+    )
+    create.add_argument(
+        "--oversight-policy",
+        metavar="FILE",
+        help="Pin this oversight.toml: its sha256 and the sources it routes",
+    )
     create.add_argument("--expires", metavar="TIME", help="RFC 3339 expiry time")
     create.add_argument("--out", metavar="FILE", help="Write the bundle here (else stdout)")
     create.add_argument("--json", action="store_true", help="Emit a JSON object instead")
@@ -113,7 +126,30 @@ def _payload(args: argparse.Namespace) -> dict[str, Any]:
 
         roles = parse(_read(args.key_roles))
         payload["key_roles"] = {"version": 1, "roles": {r: k for r, k in roles.items() if k}}
+    if args.oversight or args.oversight_policy:
+        payload["oversight"] = _oversight(args)
     return payload
+
+
+def _oversight(args: argparse.Namespace) -> dict[str, Any]:
+    """The ``oversight`` section (0.85): a JSON file, and/or pins taken from a policy file."""
+    import hashlib
+
+    from opentine._json_shallow import loads
+
+    section: dict[str, Any] = {"version": 1}
+    if args.oversight:
+        section = loads(_read(args.oversight))
+        if not isinstance(section, dict):
+            raise ValueError(f"{args.oversight}: the oversight section is a JSON object")
+    if args.oversight_policy:
+        from opentine._oversight_policy import parse
+
+        data = _read(args.oversight_policy)
+        routes = {r["source"] for r in parse(data)["routes"]}
+        section = {**section, "policy_sha256": hashlib.sha256(data).hexdigest(),
+                   "routes": sorted(routes | set(section.get("routes", [])))}  # fmt: skip
+    return section
 
 
 def summary(command: str, note: bytes, payload: dict[str, Any], owner: str) -> dict[str, Any]:

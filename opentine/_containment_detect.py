@@ -15,7 +15,9 @@ hard failure, never a block):
   ``setsid``, ``disown``, a trailing ``&``, ``systemd-run``, ``docker run -d``);
 * ``persistence``: cron, systemd units, shell start-up files, launch agents;
 * ``limit-edit``: edits to the sandbox (seccomp, mounts, capabilities), to key
-  roles or the trust bundle, or to budgets and limits.
+  roles or the trust bundle, or to budgets and limits; from 0.85 also to the
+  oversight machinery (oversight and protected lists, monitor, policy, agent
+  hook and MCP proxy config) and setting or unsetting ``OPENTINE_*``/``TINE_*``.
 
 ``tine containment scan RUN --key KEY`` signs each finding as an
 ``opentine.containment-finding/1`` claim on the run and holds it
@@ -66,7 +68,17 @@ PATTERNS: dict[str, re.Pattern[str]] = {
     ),
     "limit-edit": re.compile(
         r"seccomp|--privileged|--cap-add|ulimit|cgroup|key-roles\.toml|trust-bundle|"
-        r"sandbox[-_.]?polic|\bbudget\b|containment budget|\blimits?\.(json|toml|ya?ml)",
+        r"sandbox[-_.]?polic|\bbudget\b|containment budget|\blimits?\.(json|toml|ya?ml)|"
+        # 0.85: the oversight machinery and the variables that switch it off
+        r"oversight(\.sig)?\.(toml|json)|protected\.toml|\.tine/integrity/|"
+        r"\bmonitors?[-_.]?\w*\.(toml|json|ya?ml)|\.claude/settings(\.local)?\.json|"
+        r"\.claude/hooks/|\.codex/(hooks\.json|config\.toml)|\.gemini/settings\.json|"
+        r"\.cursor/(hooks|mcp)\.json|\.mcp\.json|disableAllHooks|mcp-proxy[-_.]?\w*\.(toml|json)|"
+        r"\w*polic(y|ies)\.(toml|json)|"
+        r"\b(export\s+|unset\s+|env\s+-u\s*|environ\W+)(OPENTINE|TINE)_[A-Z0-9_]+|"
+        r"(^|[\s;&|])(OPENTINE|TINE)_[A-Z0-9_]+=|"
+        r"\b(unset|export|declare|typeset|local)\s+([-+][a-z]+\s+)+(OPENTINE|TINE)_|"
+        r"\benv\s+(-[a-z]*i\b|--ignore-environment\b)|environ\.clear\(",
         re.I,
     ),
 }

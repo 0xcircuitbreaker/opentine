@@ -95,6 +95,7 @@
                   "fail:protected-list-unsigned",
                   "advisory:test-deleted",
                   "advisory:holdout-read",
+                  "advisory:protected-read",
                   "advisory:test-skipped-added",
                   "advisory:special-casing",
                   "advisory:visible-holdout-gap",

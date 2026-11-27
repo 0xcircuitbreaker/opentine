@@ -84,7 +84,46 @@ pinned file, against the list:
 - a write or delete of the trust root itself -- `.tine/protected.toml`,
   `.tine/key-roles.toml`, `.tine/trust-bundle.note` or anything under
   `.tine/integrity/` (the list's pin and the filed taints) -- is `fail:protected-surface-modified` on the
-  `protected-list` surface whether or not the list names them.
+  `protected-list` surface whether or not the list names them;
+- (0.85) a shell command that sets or unsets an `OPENTINE_*` or `TINE_*`
+  variable (`export`, `NAME=value cmd`, `unset`, `env -u`, `os.environ[...]`)
+  is a write to `env:NAME`.
+
+### The oversight machinery is protected by default (0.85)
+
+The kinds `monitor`, `oversight`, `policy`, `instrumentation`, `skill`,
+`selector`, `reward`, `hook` and `proxy` join `grader`, `test`, `holdout`,
+`sandbox` and `scorer`. Whatever the list says, `tine integrity check` adds
+these surfaces (a list surface with the same name keeps its own globs):
+
+| Surface | Kind | Globs |
+|---|---|---|
+| `oversight-policy` | `oversight` | `.tine/oversight.toml`, `.tine/oversight.sig.json` |
+| `monitor-config` | `monitor` | `.tine/monitor*.toml`, `.tine/monitor*.json`, `.tine/monitors/**`, `monitors/**` |
+| `policy-files` | `policy` | `.tine/policy/**`, `.tine/policies/**`, `.tine/*policy*.toml`, `.tine/*policy*.json` |
+| `agent-hooks` | `hook` | `.claude/settings.json`, `.claude/settings.local.json`, `.claude/hooks/**`, `.codex/hooks.json`, `.codex/config.toml`, `.gemini/settings.json`, `.cursor/hooks.json`, `.hermes/**` |
+| `proxy-config` | `proxy` | `.mcp.json`, `.cursor/mcp.json`, `.tine/mcp-proxy*`, `.tine/proxy*` |
+| `monitor-env` | `monitor` | `env:OPENTINE_*`, `env:TINE_*` |
+
+A write or delete tool call on one is `fail:protected-surface-modified`, and the
+run's scores are tainted as for a grader edit.
+
+**Default pins.** `tine oversight sign-policy`, `tine mcp-proxy --monitor CONFIG`
+and `tine hook install` record the sha256 of the file they signed, loaded or
+wrote in `.tine/integrity/defaults.json` when it lies inside the repository
+(a user-level hook file outside it is not pinned; the containment `limit-edit`
+detector still sees edits to it). A pinned file whose bytes changed is a
+`fail:` like any pin, even when no recorded tool call touched it. The file is a
+control file, so a run that writes it trips the check. `tine integrity pin`
+folds the default surfaces and their pins into `.tine/protected.toml`; after a
+legitimate edit, re-run the command that pins the file (or `tine integrity pin`)
+and re-sign the list with a policy-role key. Where both pin a path, the signed
+list wins.
+
+**Protected reads.** A read tool call on a `grader`, `scorer`, `test` or
+`monitor` surface is `advisory:protected-read` (a holdout read stays
+`advisory:holdout-read`). It is reported, never blocks by default, and blocks
+under `--strict`.
 
 ### How much the detectors catch
 
@@ -324,3 +363,9 @@ vector family. `tests/test_060_integrity.py` regenerates the fixture from
   attestation names a stored object), and deleting it un-taints that run.
 - Observation of edits made outside captured tool calls is limited to the
   pinned digests on disk at check time.
+
+Clearing the whole environment from a run (`env -i`, `os.environ.clear()`) and
+removing a variable with flags (`unset -v`, `export -n`, `declare +x`) count as
+writes to every `OPENTINE_*`/`TINE_*` variable. Default pins in
+`.tine/integrity/defaults.json` only name plain paths inside the repository;
+an absolute path, a drive, a `..` or an `env:` name drops the whole entry.

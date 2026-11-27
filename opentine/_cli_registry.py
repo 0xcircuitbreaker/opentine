@@ -62,10 +62,15 @@ GROUPS: dict[str, tuple[str, dict[tuple[str, ...], tuple[str, ...]]]] = {
         "Agent identities: refs, lineage, signing keys",
         {(v,): (v,) for v in ("who", "actions", "touched", "blame", "audit")},
     ),
-}
+    # 0.85: one canonical noun each for keys, plugins and pricing.
+    "key": ("Signing keys: encrypt, show, rotate, revoke, delegate, lint",
+            {("lint",): ("keys", "lint")}),
+    "plugins": ("Plugins: list, check, allow, export", {("export",): ("plugin", "export")}),
+    "pricing": ("Pricing catalog and post-hoc repricing", {("reprice",): ("price",)}),
+}  # fmt: skip
 
 # Groups that are also a pre-0.16 verb: the words are added to that verb's parser.
-EXTENDED: frozenset[str] = frozenset({"agent"})
+EXTENDED: frozenset[str] = frozenset({"agent", "key", "plugins", "pricing"})
 
 # A flag that swaps the target verb: ``tine repo migrate --to-v3 X`` -> ``migrate-v3 X``.
 SWITCHES: dict[tuple[str, ...], dict[str, tuple[str, ...]]] = {
@@ -80,8 +85,13 @@ NODES: dict[tuple[str, ...], str] = {
 
 # Old top-level verb -> its new spelling. A verb listed here prints a one-line
 # stderr notice when spelled the old way (OPENTINE_NO_DEPRECATION=1 silences it).
-# Empty in 0.16: old spellings keep working silently.
-DEPRECATED: dict[str, str] = {}
+# Empty in 0.16; 0.85 names the canonical noun for keys, plugins and pricing (the
+# old spellings keep working, docs/DEPRECATION.md has the removal versions).
+DEPRECATED: dict[str, str] = {
+    "keys": "tine key lint",
+    "plugin": "tine plugins export",
+    "price": "tine pricing reprice",
+}
 
 
 def advanced(all_commands) -> list[str]:

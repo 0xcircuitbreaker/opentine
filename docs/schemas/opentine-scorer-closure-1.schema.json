@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-scorer-closure-1.schema.json",
+  "title": "opentine.scorer-closure/1",
+  "description": "An isolated scorer's closure (scorer.json beside the verdicts): every non-stdlib module and data file it loaded, hashed by the parent, plus interpreter, lockfile, contract, isolation level and limits. Its sc1+sha256 pin is the signed scorer_version. A claim convention, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "target",
+    "python",
+    "modules",
+    "data",
+    "inputs",
+    "lockfile",
+    "contract",
+    "isolation",
+    "limits"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.scorer-closure/1"
+    },
+    "target": {
+      "type": "string",
+      "pattern": "^python:"
+    },
+    "python": {
+      "type": "string"
+    },
+    "modules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "sha256"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      }
+    },
+    "data": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "file",
+          "sha256"
+        ],
+        "properties": {
+          "file": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      }
+    },
+    "inputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "file",
+          "sha256"
+        ],
+        "properties": {
+          "file": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      }
+    },
+    "lockfile": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "contract": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "isolation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "level",
+        "network",
+        "limits",
+        "env"
+      ],
+      "properties": {
+        "level": {
+          "enum": [
+            "full",
+            "partial"
+          ]
+        },
+        "network": {
+          "enum": [
+            "namespace",
+            "audit"
+          ]
+        },
+        "limits": {
+          "type": "boolean"
+        },
+        "env": {
+          "const": "empty"
+        }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cpu_seconds",
+        "memory_mb",
+        "timeout_seconds",
+        "output_bytes"
+      ],
+      "properties": {
+        "cpu_seconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "memory_mb": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "timeout_seconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "output_bytes": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
+  }
+}

@@ -131,6 +131,9 @@ def check_run(root: Path, run: str, *, strict: bool = False) -> dict[str, Any]:
             seen = touched(Repo.open(root).load_run(run), Path(root))
         except Exception:  # noqa: BLE001 - not stored here: only the pins are judged
             seen = []
+        from opentine._integrity_defaults import merged
+
+        protected = merged(protected, Path(root))  # 0.85: the oversight machinery too
         findings = check(protected, {"touched": seen, "digests": digests(protected, root)})
     hard = blocking(findings, strict=strict)
     return {"ok": not hard, "run": run, "protected_sha256": digest, "touched": seen,

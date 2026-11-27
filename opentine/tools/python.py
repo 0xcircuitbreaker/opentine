@@ -55,7 +55,16 @@ def execute(code: str, timeout: int = 30, policy: PythonPolicy | None = None) ->
 
 
 def execute_unsafe_legacy(code: str, timeout: int = 30) -> str:
-    """Compatibility escape hatch for callers that deliberately opt out."""
+    """Compatibility escape hatch for callers that deliberately opt out.
+
+    Deprecated since 0.85 (removal in 1.0): use :func:`execute` with a
+    ``PythonPolicy``; see docs/DEPRECATION.md.
+    """
+    import warnings
+
+    warnings.warn("opentine.tools.python.execute_unsafe_legacy is deprecated since 0.85 and "
+                  "is removed in 1.0; use execute() with a PythonPolicy",
+                  DeprecationWarning, stacklevel=2)  # fmt: skip
     with tempfile.NamedTemporaryFile(
         mode="w", suffix=".py", delete=False, encoding="utf-8", newline=""
     ) as f:

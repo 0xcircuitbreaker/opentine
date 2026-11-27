@@ -46,6 +46,8 @@ class Scorer:
     func: Callable[[dict[str, Any], Any], tuple[float, str]]
     config: dict[str, Any] = field(default_factory=dict)
     spent: list[float] = field(default_factory=list)  # llm-judge: each call's cost in USD
+    # 0.85: scores every (item, output) pair at once (the isolated runner); may set version
+    batch: Callable[[list[tuple[dict[str, Any], Any]]], list[float]] | None = None
 
     def __call__(self, item: dict[str, Any], output: Any) -> tuple[float, str]:
         """``(score in 0..1, judge run or "")`` for *output* against *item*."""

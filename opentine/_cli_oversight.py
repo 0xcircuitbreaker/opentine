@@ -139,6 +139,9 @@ def _body(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[str
         doc = _oversight_policy.sign(ed25519_private(args.key), data, args.at or _oversight.now())
         path = repo.path / _oversight_policy.PIN_NAME
         path.write_bytes((json.dumps(doc, indent=2, sort_keys=True) + "\n").encode("utf-8"))
+        from opentine._integrity_defaults import pin  # 0.85: the policy is a default pin
+
+        pin(Path(repo.path).parent, Path(repo.path) / _oversight_policy.FILE_NAME, "oversight")
         body, lines = _policy(repo)
         return body, [f"signed {path.as_posix()}", *lines]
     if verb in DECIDE:
