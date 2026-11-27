@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.86.1 — Killed-writer durability fixes (2026-11-27)
+
+- `tine fsck` accepts a `.tpk` with no `.tidx` as unpublished staging left by a
+  killed writer: its bytes must still hash to its name and start with a pack
+  magic. Only pack staging names (`.<digest>.(tpk|tidx|pack).<suffix>`) are
+  skipped, not every dot-file in `packs/`.
+- `tine gc` reaps unpublished `.tpk` files older than the reap age. The reaper
+  renames the body aside first and deletes it only if it is the same file it
+  aged and no `.tidx` has appeared, so it can never delete a pack a writer has
+  just published.
+- Batched loose-object flushes write objects in staging order, so links land
+  before the objects that point at them.
+- Object lookups stay linear when killed writers leave many packs behind, and a
+  plain `tine gc` folds small packs so the pack count stays bounded.
+
 ## 0.86.0 — Promotion discipline (2026-11-27)
 
 - `tine eval plan` signs a pre-registered analysis plan, an
