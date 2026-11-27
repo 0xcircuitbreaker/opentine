@@ -18,11 +18,19 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from opentine._cli_deprecated import SignKeyAction
 from opentine._cli_errors import ERROR, USAGE, VERIFICATION_FAILED, fail
 
 
 def add_record_args(parser: Any) -> None:
-    parser.add_argument("--sign-key", metavar="KEY", help="record: sign the fleet record")
+    parser.add_argument(
+        "--key",
+        "--sign-key",
+        dest="sign_key",
+        action=SignKeyAction,
+        metavar="KEY",
+        help="record: sign the fleet record",
+    )
     parser.add_argument("--out", metavar="FILE", help="record: where --sign-key writes")
     parser.add_argument("--attest", metavar="OUT", help="record: write a fleet/v1 DSSE envelope")
     parser.add_argument("--attest-key", metavar="KEY", help="record: Ed25519 key for --attest")

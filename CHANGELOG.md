@@ -42,6 +42,54 @@
   `opentine-rescore-report-1` (conventions, not object kinds);
   `tine-cli-promote-1` gains `advisories`. No new object kind or
   `tine verify` code.
+- A trust bundle that pins only the oversight policy digest now makes
+  `promote` refuse an older signed policy that dropped the promotion route.
+  Clearing the environment (`env -i`, `os.environ.clear()`) and flagged
+  removals (`unset -v`, `export -n`, `declare +x`) of `OPENTINE_*`/`TINE_*`
+  count as protected edits, and default pins outside the repository are dropped.
+- The oversight machinery is a protected surface by default. New
+  `.tine/protected.toml` kinds: `monitor`, `oversight`, `policy`,
+  `instrumentation`, `skill`, `selector`, `reward`, `hook` and `proxy`.
+  `tine integrity check` always adds surfaces for `.tine/oversight.toml`,
+  monitor config, policy files, agent hook settings (`.claude/settings*.json`,
+  `.codex/hooks.json`, `.gemini/settings.json`, ...), MCP and proxy config, and
+  the `OPENTINE_*`/`TINE_*` environment variables. A run whose shell command
+  sets or unsets one of those variables is a write to `env:NAME`. Writing or
+  deleting any of these is `fail:protected-surface-modified`, and the run's
+  scores are tainted. `tine oversight sign-policy`, `tine mcp-proxy --monitor`
+  and `tine hook install` record default pins in `.tine/integrity/defaults.json`
+  for the file they handle when it is inside the repository. `tine integrity
+  pin` folds them into the list, so re-signing the list is the re-pin after a
+  legitimate edit (docs/INTEGRITY.md).
+- `advisory:protected-read` (a `tine integrity` code) flags reads of grader,
+  scorer, test and monitor surfaces. Like other advisories it never blocks by
+  default and blocks under `--strict`. The shared py/ts fixture and the TS port
+  cover it.
+- The containment `limit-edit` detector also matches edits to the oversight
+  and protected lists, monitor, policy, hook and proxy config, and to
+  `OPENTINE_*`/`TINE_*` variables.
+- The trust bundle's `oversight` section can pin `routes` (sources that must
+  keep a route) and `policy_sha256`. If an older signed `oversight.toml` without
+  the pinned `promotion` route is restored, the policy is unpinned and `tine
+  promote` refuses with `promote.oversight-insufficient`. The new `tine trust
+  bundle create --oversight FILE | --oversight-policy FILE` flags write this
+  section (docs/OVERSIGHT.md).
+- Deprecations, each kept working until 1.0 (table in docs/DEPRECATION.md):
+  - `tine keys lint` becomes `tine key lint`, `tine plugin export` becomes
+    `tine plugins export`, and `tine price` becomes `tine pricing reprice`. The
+    old spellings print one stderr notice.
+  - `--key` is the signing-key flag everywhere. `--sign-key` still works and
+    prints a notice, except on `tine verify`, which keeps `--sign-key`.
+  - These Python names raise `DeprecationWarning`:
+    `tools.python.execute_unsafe_legacy`; the `opentine.policies` profiles
+    `secure_profile`, `dev_profile` and `isolated_profile`;
+    `billing.engine.now_utc`; `repository.ops.linked_objects`; and
+    `remote.backend.valid_ref`.
+  - The `[crypto]` and `[compat]` extras are deprecated but still installable.
+  - Legacy format writers are unchanged.
+- Compatibility: no new object kind or `tine verify` code. New `tine
+  integrity` and containment findings can now fail runs that edit the files
+  listed above. The CLI compat table gains rows for the canonical spellings.
 
 ## 0.84.1 — Cleanup and security pass (2026-11-27)
 

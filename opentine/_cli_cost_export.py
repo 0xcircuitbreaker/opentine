@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from opentine import _cost_export
+from opentine._cli_deprecated import SignKeyAction
 from opentine._cli_errors import USAGE, VERIFICATION_FAILED, fail
 
 
@@ -19,7 +20,14 @@ def add_cost_export_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--statement", metavar="PATH", help="Write a tine-cost-statement/1 (with --sign-key)"
     )
-    parser.add_argument("--sign-key", metavar="KEY", help="--statement: Ed25519 key file")
+    parser.add_argument(
+        "--key",
+        "--sign-key",
+        dest="sign_key",
+        action=SignKeyAction,
+        metavar="KEY",
+        help="--statement: Ed25519 key file",
+    )
     parser.add_argument("--signer", help="--statement: the signer name to record")
     parser.add_argument(
         "--verify-statement", metavar="PATH", help="Check a cost statement against this run"

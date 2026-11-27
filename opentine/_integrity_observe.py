@@ -4,7 +4,9 @@
 (``file_path``, ``path``, ``notebook_path``, ``filename``, ``target_file``) is a
 ``write``, ``delete`` or ``read`` by the tool's name; a shell tool's command is
 split for ``rm``/``git rm``/``unlink`` (delete), ``>``/``>>``/``tee``/``sed -i``
-(write) and ``cat``/``head``/``tail``/``less`` (read) targets. Paths are made
+(write) and ``cat``/``head``/``tail``/``less`` (read) targets; setting or
+unsetting an ``OPENTINE_*``/``TINE_*`` variable is a write to ``env:NAME``
+(0.85). Paths are made
 relative to the repository root and written as posix. :func:`digests` hashes
 every pinned file under the root (``None`` when it is gone). Both feed
 :func:`opentine._integrity.check`.
@@ -19,6 +21,7 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
 from opentine._integrity import normalize
+from opentine._integrity_defaults import env_touches
 
 PATH_KEYS = ("file_path", "path", "notebook_path", "filename", "target_file", "file",
              "dest", "destination", "target", "source", "src", "new_path", "old_path",
@@ -153,6 +156,7 @@ def touched(run: Any, root: Path) -> list[dict[str, str]]:
         if name in SHELL_TOOLS:
             command = next((args[k] for k in SHELL_ARGS if isinstance(args.get(k), str)), "")
             hits = _shell(command)
+            out.update((f"env:{n}", "write", str(index)) for n in env_touches(command))
         else:
             op = ("write" if name in WRITE_TOOLS else "delete" if name in DELETE_TOOLS
                   else "read" if name in READ_TOOLS else _guess(name))  # fmt: skip
@@ -172,6 +176,8 @@ def digests(protected: dict[str, Any], root: Path) -> dict[str, str | None]:
     out: dict[str, str | None] = {}
     for surface in protected["surfaces"]:
         for path in surface["pins"]:
+            if path.startswith("env:"):
+                continue
             try:
                 out[path] = hashlib.sha256((Path(root) / path).read_bytes()).hexdigest()
             except (FileNotFoundError, IsADirectoryError, NotADirectoryError):

@@ -125,6 +125,15 @@ directory-descriptor writer; control files are refused without
 or unreadable at capture) are left alone; a file stored redacted is refused.
 `--json` reports `restore`, `remove`, `unchanged`, `refused` and `kept`.
 
+## Deprecated spellings (0.85)
+
+`tine keys lint`, `tine plugin export` and `tine price RUN` are deprecated
+spellings of `tine key lint`, `tine plugins export` and `tine pricing reprice
+RUN`. `--sign-key` is deprecated in favour of `--key` (except on `tine verify`).
+Each old spelling still works with the same output and exit code and prints one
+notice on stderr (`OPENTINE_NO_DEPRECATION=1` silences it). Removal versions are
+in [DEPRECATION](DEPRECATION.md#8-current-deprecations).
+
 ## Commands documented elsewhere
 
 This reference does not repeat every command. These are documented in other

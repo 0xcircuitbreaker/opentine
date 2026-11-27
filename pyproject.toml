@@ -29,6 +29,7 @@ openai = ["openai>=1.75.0"]
 google = ["google-genai>=2.8.0"]
 # Kimi, DeepSeek, Qwen, GLM, Grok, Groq, Together, Mistral/Ministral,
 # OpenRouter, and Hermes use the OpenAI SDK transport.
+# Deprecated since 0.85 (still installable; removal in 1.0): install [openai] instead.
 compat = ["openai>=1.75.0"]
 # Ollama uses httpx (core dep) directly — no extra package needed
 # MCP server (opentine.mcp_server) needs the mcp package
@@ -38,7 +39,8 @@ mcp = ["mcp>=1.28.1,<3"]
 # both. opentine.integrations imports cleanly without it — only running a
 # handler against a real framework needs the package.
 langchain = ["langchain-core>=0.3"]
-# Retained as a compatibility extra; signed catalogs and encrypted remotes use it in core.
+# Deprecated since 0.85 (still installable; removal in 1.0): cryptography is a core
+# dependency, so this extra adds nothing.
 crypto = ["cryptography>=48.0.1"]
 # zstd storage compression: stdlib compression.zstd on 3.14, the PEP 784 backport before.
 zstd = ["backports.zstd>=1.0; python_version < '3.14'"]

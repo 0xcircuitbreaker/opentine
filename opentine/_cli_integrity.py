@@ -57,23 +57,34 @@ def _key(args: argparse.Namespace):
 
 def _pin(root: Path) -> dict:
     from opentine._integrity import parse
+    from opentine._integrity_defaults import merged
     from opentine._integrity_observe import pins
     from opentine._integrity_run import LIST
 
     path = root / LIST
-    protected = parse(path.read_bytes())
+    protected = merged(parse(path.read_bytes()), root)  # 0.85: default surfaces folded in
     found = pins(protected, root)
+    for surface in protected["surfaces"]:  # literal .tine files (pins() skips .tine)
+        for glob in surface["globs"]:
+            if glob.startswith(".tine/") and "*" not in glob and (root / glob).is_file():
+                found[surface["name"]][glob] = _sha(root / glob)
     lines = ["version = 1"]
     for surface in protected["surfaces"]:
         globs = ", ".join(json.dumps(g) for g in surface["globs"])
         lines += ["", "[[surface]]", f'name = "{surface["name"]}"',
                   f'kind = "{surface["kind"]}"', f"globs = [{globs}]",
                   "[surface.pins]"]  # fmt: skip
-        lines += [f'{json.dumps(p)} = "{d}"' for p, d in found[surface["name"]].items()]
+        lines += [f'{json.dumps(p)} = "{d}"' for p, d in sorted(found[surface["name"]].items())]
     with open(path, "w", encoding="utf-8", newline="\n") as handle:
         handle.write("\n".join(lines) + "\n")
     return {"ok": True, "pins": sum(len(v) for v in found.values()),
             "list": path.as_posix(), "signed": False}  # fmt: skip
+
+
+def _sha(path: Path) -> str:
+    import hashlib
+
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _detected(path: str) -> list[dict[str, str]]:

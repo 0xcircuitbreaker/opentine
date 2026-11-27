@@ -7,7 +7,9 @@ with pinned sha256 digests::
     version = 1
     [[surface]]
     name = "graders"
-    kind = "grader"            # grader | test | holdout | sandbox | scorer
+    kind = "grader"            # grader | test | holdout | sandbox | scorer, and (0.85)
+                               # monitor | oversight | policy | instrumentation | skill
+                               # | selector | reward | hook | proxy
     globs = ["evals/graders/**"]
     [surface.pins]
     "evals/graders/judge.py" = "<64 hex>"
@@ -22,7 +24,9 @@ pinned file -- against that list. It takes plain data, so the TS port
                                      its pin (or it is gone), or a write or
                                      delete tool call targets a protected path;
 ``advisory:test-deleted``            a delete tool call on a ``test`` surface;
-``advisory:holdout-read``            a read tool call on a ``holdout`` surface.
+``advisory:holdout-read``            a read tool call on a ``holdout`` surface;
+``advisory:protected-read``          (0.85) a read tool call on a ``grader``,
+                                     ``scorer``, ``test`` or ``monitor`` surface.
 
 Only ``fail:`` blocks; an ``advisory:`` is reported and never blocks by default.
 These are ``tine integrity`` codes; ``tine verify`` and the pyz are unchanged.
@@ -34,10 +38,13 @@ import re
 import tomllib
 from typing import Any
 
-KINDS = ("grader", "test", "holdout", "sandbox", "scorer")
+KINDS = ("grader", "test", "holdout", "sandbox", "scorer", "monitor", "oversight", "policy",
+         "instrumentation", "skill", "selector", "reward", "hook", "proxy")  # fmt: skip
 MODIFIED = "fail:protected-surface-modified"
 TEST_DELETED = "advisory:test-deleted"
 HOLDOUT_READ = "advisory:holdout-read"
+PROTECTED_READ = "advisory:protected-read"
+READ_KINDS = ("grader", "scorer", "test", "monitor")
 OPS = ("write", "delete", "read")
 _HEX = re.compile(r"[0-9a-f]{64}")
 _NAME = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}")
@@ -196,6 +203,8 @@ def check(protected: dict[str, Any], observations: dict[str, Any]) -> list[dict[
                 add(TEST_DELETED, name, path, f"test deleted at step {step}")
             if op == "read" and surface["kind"] == "holdout":
                 add(HOLDOUT_READ, name, path, f"holdout read at step {step}")
+            if op == "read" and surface["kind"] in READ_KINDS:
+                add(PROTECTED_READ, name, path, f"{surface['kind']} read at step {step}")
     return [found[k] for k in sorted(found)]
 
 
@@ -204,6 +213,7 @@ def blocking(findings: list[dict[str, str]], *, strict: bool = False) -> list[di
     return [f for f in findings if f["level"] == "fail" or (strict and f["level"] == "advisory")]
 
 
-__all__ = ["CONTROL", "HOLDOUT_READ", "KINDS", "MODIFIED", "OPS", "TEST_DELETED", "ProtectedError",
+__all__ = ["CONTROL", "HOLDOUT_READ", "KINDS", "MODIFIED", "OPS", "PROTECTED_READ", "READ_KINDS",
+           "TEST_DELETED", "ProtectedError",
            "blocking", "check", "fold", "glob_regex", "matches", "normalize", "parse",
            "surfaces_of"]  # fmt: skip
