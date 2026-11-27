@@ -59,7 +59,7 @@ def import_paths(target: str) -> tuple[list[str], Path]:
 
 
 def run_child(target: str, pairs: list[tuple[dict[str, Any], Any]], *, inputs: list[Path],
-              limits: dict[str, int]) -> dict[str, Any]:  # fmt: skip
+              limits: dict[str, int], tolerate: bool = False) -> dict[str, Any]:  # fmt: skip
     """The child's report for *pairs*; refuses on any breach."""
     from opentine.tools._process import run_bounded
 
@@ -70,7 +70,8 @@ def run_child(target: str, pairs: list[tuple[dict[str, Any], Any]], *, inputs: l
         location = str(Path(location).resolve())
     request = {"nonce": nonce, "target": f"{location}:{func}", "paths": paths,
                "inputs": [str(p.resolve()) for p in inputs], "limits": limits,
-               "pairs": [[item, output] for item, output in pairs]}  # fmt: skip
+               "pairs": [[item, output] for item, output in pairs],
+               "tolerate": tolerate}  # fmt: skip
     work = Path(tempfile.mkdtemp(prefix="tine-scorer-"))
     try:
         (work / "request.json").write_bytes(json.dumps(request).encode("utf-8"))
@@ -164,7 +165,8 @@ def _unbatched(_item: dict[str, Any], _output: Any) -> tuple[float, str]:
 
 
 def isolated(spec: str, *, inputs: list[Path] | None = None, limits: dict[str, int] | None = None,
-             lockfile: Path | None = None, expect: str | None = None) -> Scorer:  # fmt: skip
+             lockfile: Path | None = None, expect: str | None = None,
+             tolerate: bool = False) -> Scorer:  # fmt: skip
     """A ``python:`` scorer whose batch runs in the child; its version is the closure pin."""
     if not spec.startswith("python:") or spec.count(":") < 2:
         raise ScorerError("--isolate runs python:MODULE:FUNC or python:FILE.py:FUNC scorers")
@@ -176,7 +178,7 @@ def isolated(spec: str, *, inputs: list[Path] | None = None, limits: dict[str, i
     scorer = Scorer("python", "pending", _unbatched)
 
     def batch(pairs: list[tuple[dict[str, Any], Any]]) -> list[float]:
-        report = run_child(spec, pairs, inputs=files, limits=bounds)
+        report = run_child(spec, pairs, inputs=files, limits=bounds, tolerate=tolerate)
         doc = describe(spec, report, inputs=files, limits=bounds, lockfile=lockfile,
                        contract=scorer.config.get("contract"))  # fmt: skip
         found = closure.closure_digest(doc)
@@ -184,7 +186,7 @@ def isolated(spec: str, *, inputs: list[Path] | None = None, limits: dict[str, i
             detail = f"the scorer's closure is {found}, the pin says {expect}"
             raise ScorerRefused("scorer.closure-mismatch", detail)
         scorer.version, scorer.config["closure"] = closure.pin(doc), doc
-        return [float(s) for s in report["scores"]]
+        return [None if s is None else float(s) for s in report["scores"]]  # 0.86: errored
 
     scorer.batch = batch
     return scorer

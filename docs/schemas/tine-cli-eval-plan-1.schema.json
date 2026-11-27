@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-eval-plan-1.schema.json",
+  "title": "tine eval plan --json",
+  "description": "A signed opentine.eval-plan/1 written to `path`; the seed secret its commitment opens with is in `secret_path` (keep it from the optimizer).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "command",
+    "schema",
+    "ok",
+    "plan",
+    "signer",
+    "plan_sha256",
+    "path",
+    "secret_path"
+  ],
+  "properties": {
+    "command": {
+      "const": "eval plan"
+    },
+    "schema": {
+      "const": "tine-cli-eval-plan/1"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "dataset",
+        "metric",
+        "reducer",
+        "epochs",
+        "test",
+        "alpha",
+        "resamples",
+        "correction",
+        "max_candidates",
+        "cluster_key",
+        "mde",
+        "min_coverage",
+        "seed_commitment"
+      ],
+      "properties": {
+        "schema": {
+          "const": "opentine.eval-plan/1"
+        },
+        "dataset": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "metric": {
+          "enum": [
+            "score",
+            "pass_rate"
+          ]
+        },
+        "reducer": {
+          "enum": [
+            "mean",
+            "pass@k",
+            "pass^k"
+          ]
+        },
+        "epochs": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "test": {
+          "enum": [
+            "paired-bootstrap",
+            "permutation"
+          ]
+        },
+        "alpha": {
+          "type": "string",
+          "pattern": "^(0|1|0\\.[0-9]*[1-9])$"
+        },
+        "resamples": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "correction": {
+          "enum": [
+            "holm",
+            "bonferroni"
+          ]
+        },
+        "max_candidates": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "cluster_key": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "mde": {
+          "type": "string",
+          "pattern": "^(0|1|0\\.[0-9]*[1-9])$"
+        },
+        "min_coverage": {
+          "type": "string",
+          "pattern": "^(0|1|0\\.[0-9]*[1-9])$"
+        },
+        "seed_commitment": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "signer": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "plan_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "path": {
+      "type": "string"
+    },
+    "secret_path": {
+      "type": "string"
+    }
+  }
+}

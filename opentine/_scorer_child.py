@@ -1,20 +1,17 @@
 """The isolated scorer child (0.85): run as ``python -I _scorer_child.py`` by the parent.
 
-Stdlib only, and nothing from :mod:`opentine` is imported before the scorer, so
-the child holds no signing key and no repository handle. It reads one JSON
-request file (its first argument, removed once read): ``nonce``, ``target``,
-``paths``, ``inputs``, ``limits`` and ``pairs``. Then, before the scorer is imported:
-
-* lowers its CPU, memory, file-size and open-file limits, soft and hard (POSIX);
-* on Linux, moves into a fresh user and network namespace, so it has no
-  network interface to reach (``network: namespace``); elsewhere, or when the
-  kernel refuses, sockets are refused by the audit hook only (``network: audit``);
-* empties ``os.environ`` and watches it: a read from non-stdlib code is a breach;
-* installs an audit hook refusing sockets, processes, ``ctypes``, writes and reads
-  outside the interpreter, the import paths and the inputs passed explicitly.
-
-It prints ``nonce`` + JSON: ``scores``, ``breaches``, ``modules`` and ``data``. That
-report is the scorer's word: the parent pins the scorer's whole directory itself.
+Stdlib only; nothing from :mod:`opentine` is imported before the scorer, so the
+child holds no signing key and no repository handle. It reads one JSON request
+file (removed once read): ``nonce``, ``target``, ``paths``, ``inputs``, ``limits``,
+``pairs`` and (0.86) ``tolerate``. Then, before the scorer is imported, it lowers
+its CPU, memory, file-size and open-file limits (POSIX); on Linux it moves into
+fresh user and network namespaces (``network: namespace``), elsewhere sockets are
+refused by the audit hook only (``network: audit``); it empties and watches
+``os.environ`` (a read from non-stdlib code is a breach); and its audit hook
+refuses sockets, processes, ``ctypes``, writes, and reads outside the interpreter,
+the import paths and the inputs. It prints ``nonce`` + JSON: ``scores`` (``null``
+for an item whose scorer raised, when tolerated), ``breaches``, ``modules`` and
+``data``: the scorer's word; the parent pins the scorer's whole directory itself.
 """
 
 import json
@@ -170,12 +167,8 @@ def main():
         if not _under(real, allowed):
             record("file-read", path)
             raise PermissionError(f"isolated scorer: reading {path} is refused")
-        if (
-            event == "open"
-            and not _stdlib(real)
-            and os.path.isfile(real)
-            and not _under(real, [_norm(sys.pycache_prefix)])
-        ):
+        cached = _under(real, [_norm(sys.pycache_prefix)])
+        if event == "open" and not cached and not _stdlib(real) and os.path.isfile(real):
             data.add(os.path.realpath(path))
 
     sys.stdout.flush()
@@ -191,7 +184,12 @@ def main():
     try:
         func = _load(request["target"])
         for item, output in request["pairs"]:
-            scores.append(_coerce(func(output, item)))
+            try:
+                scores.append(_coerce(func(output, item)))
+            except Exception:  # noqa: BLE001 - 0.86: an errored item, when tolerated
+                if not request.get("tolerate"):
+                    raise
+                scores.append(None)
     except BaseException as exc:  # noqa: BLE001 - report it; the parent decides
         error = f"{type(exc).__name__}: {exc}"[:500]
     modules = {}

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-eval-reveal-1.schema.json",
+  "title": "tine eval reveal --json",
+  "description": "A signed opentine.eval-plan-reveal/1 written to `path`; `seed` is the analysis seed derived from the secret and the plan digest.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "command",
+    "schema",
+    "ok",
+    "plan_sha256",
+    "seed",
+    "path"
+  ],
+  "properties": {
+    "command": {
+      "const": "eval reveal"
+    },
+    "schema": {
+      "const": "tine-cli-eval-reveal/1"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "plan_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "path": {
+      "type": "string"
+    }
+  }
+}

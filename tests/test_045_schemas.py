@@ -362,6 +362,38 @@ DRIVEN = (
     (("oversight", "policy", "--repo", "repo", "--json"), "tine-cli-oversight-1"),  # 0.64
     (("eval", "lint", "sc.py", "--json"), "tine-cli-eval-lint-1"),  # 0.85
     (
+        (
+            "eval",
+            "plan",
+            "repo/d.jsonl",
+            "--key",
+            "purge.key",
+            "--out",
+            "p.json",
+            "--secret-out",
+            "p.secret",
+            "--max-candidates",
+            "3",
+            "--json",
+        ),
+        "tine-cli-eval-plan-1",
+    ),  # 0.86 fmt: skip
+    (
+        (
+            "eval",
+            "reveal",
+            "pl.json",
+            "--secret",
+            "pl.secret",
+            "--key",
+            "purge.key",
+            "--out",
+            "pl.reveal",
+            "--json",
+        ),
+        "tine-cli-eval-reveal-1",
+    ),  # 0.86 fmt: skip
+    (
         ("eval", "rescore", "es", "--dataset", "repo/d.jsonl", "--key", "purge.key", "--json"),
         "tine-cli-eval-rescore-1",
     ),  # 0.85
@@ -447,6 +479,9 @@ def test_every_driven_json_output_validates(monkeypatch, capsys, room, argv, exp
         for side in ("ea", "eb"):
             _tine(monkeypatch, capsys, "eval", "run", "repo/d.jsonl", "--scorer", "exact",
                   "--key", "purge.key", "--out", side, "--json")  # fmt: skip
+    if argv[:2] == ("eval", "reveal"):  # 0.86: a plan to reveal
+        _tine(monkeypatch, capsys, "eval", "plan", "repo/d.jsonl", "--key", "purge.key",
+              "--out", "pl.json", "--secret-out", "pl.secret", "--max-candidates", "2")  # fmt: skip
     if argv[:2] in (("eval", "lint"), ("eval", "rescore")):  # 0.85: an isolated scorer
         (room / "sc.py").write_bytes(b"def score(output, item):\n    return output == '1'\n")
         if argv[1] == "rescore":

@@ -37,6 +37,9 @@ def add_eval_parsers(sub: Any) -> None:
     from opentine._cli_eval_scorer import add_run_args, add_verbs
 
     add_run_args(run)  # 0.85: --isolate, --contract, closure pins
+    from opentine import _cli_eval_plan as planning
+
+    planning.add_run_args(run)  # 0.86: --epochs, --cluster-key, --plan, --continue-on-error
     verify = verbs.add_parser("verify", help="Verify an eval folder's verdicts offline")
     verify.add_argument("eval_dir", metavar="DIR")
     compare = verbs.add_parser("compare", help="Diff two evals item by item (both verified)")
@@ -62,6 +65,7 @@ def add_eval_parsers(sub: Any) -> None:
     ci.add_argument("--repo", default=".", help="The directory holding .tine/")
     ci.add_argument("--created-at", metavar="TIME", help="YYYY-MM-DDTHH:MM:SSZ (default: now)")
     add_verbs(verbs)  # 0.85: rescore, lint
+    planning.add_verbs(verbs)  # 0.86: plan, reveal
     for verb in (verify, compare):
         verb.add_argument("--pubkey", metavar="PUB", help="Trusted Ed25519 public key")
     for verb in (run, verify, compare, ci):
@@ -78,8 +82,10 @@ def _pubkey(args: argparse.Namespace) -> bytes | None:
 def _outputs(path: str | None) -> dict[str, dict[str, Any]] | None:
     if not path:
         return None
+    from opentine._eval_coverage import keyed_outputs
+
     rows = [json.loads(line) for line in Path(path).read_text("utf-8").splitlines() if line.strip()]
-    return {str(row["id"]): row for row in rows}
+    return keyed_outputs(rows)  # 0.86: an "epoch" names ID@eK
 
 
 def _run(args: argparse.Namespace) -> dict[str, Any]:
@@ -100,9 +106,13 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         from opentine._eval_holdout import refuse_touched
 
         refuse_touched(args, read_jsonl(Path(args.dataset)), _outputs(args.outputs))
-    summary = run_eval(read_jsonl(Path(args.dataset)), scorer, key, Path(args.out),
+    from opentine._cli_eval_plan import run_options
+
+    items = read_jsonl(Path(args.dataset))
+    summary = run_eval(items, scorer, key, Path(args.out),
                        threshold=args.threshold, outputs=_outputs(args.outputs),
-                       default_run=args.default_run, created_at=args.created_at)  # fmt: skip
+                       default_run=args.default_run, created_at=args.created_at,
+                       **run_options(args, items))  # fmt: skip
     found = scorer.config.get("closure")
     if found is not None:
         from opentine._scorer_closure import closure_digest
@@ -134,10 +144,10 @@ def _human(verb: str, row: dict[str, Any]) -> None:
     for item in row.get("advisories", []):
         console.print(f"ADVISORY {item['code']}: {item['detail']}", highlight=False, markup=False)
 
-    if verb in ("rescore", "lint"):
-        from opentine._cli_eval_scorer import human
+    if verb in ("rescore", "lint", "plan", "reveal"):
+        from opentine import _cli_eval_plan, _cli_eval_scorer
 
-        human(row)
+        (_cli_eval_plan if verb in _cli_eval_plan.VERBS else _cli_eval_scorer).human(row)
         return
     if verb == "ci":
         for item in row["evals"]:
@@ -188,10 +198,11 @@ def cmd_eval(args: argparse.Namespace) -> None:
     try:
         if verb == "run":
             row = {"ok": True, **_run(args)}
-        elif verb in ("rescore", "lint"):
-            from opentine._cli_eval_scorer import run_verb
+        elif verb in ("rescore", "lint", "plan", "reveal"):
+            from opentine import _cli_eval_plan, _cli_eval_scorer
 
-            row = run_verb(args)
+            source = _cli_eval_plan if verb in _cli_eval_plan.VERBS else _cli_eval_scorer
+            row = source.run_verb(args)
         elif verb == "ci":
             row = _ci(args)
         elif verb == "verify":
