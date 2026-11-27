@@ -79,6 +79,11 @@ def _secret_field(name: str, credential_names: set[str], suffixes: tuple[str, ..
 
 
 _LOOSE_NAMES = frozenset({"pass", "auth"})
+#: A whole string of padded base64 (a signature, a digest, an opaque provider blob).
+#: Its only ``=`` is the padding, so the "assignment" split has no value to hide:
+#: about one random blob in 200 ends in ``...pw=`` or ``...Pw==`` and read as a
+#: credential name with an empty value, and appending a marker corrupted it (0.88).
+_PADDED_B64 = re.compile(r"[A-Za-z0-9+/_-]{16,}={1,2}")
 _AUTH_MODES = frozenset({"", "none", "basic", "bearer", "oauth", "oauth2", "api_key", "token"})
 
 
@@ -206,6 +211,8 @@ def _redact(value: Any, _depth: int = 0) -> Any:
             redacted.append(_redact(item, _depth + 1))
         return redacted
     if isinstance(value, str) and (":" in value or "=" in value):
+        if _PADDED_B64.fullmatch(value):
+            return value
         label, separator, candidate = _split_assignment(value)
         name = _field_name(label)
         headers = {"authorization", "proxy_authorization", "cookie", "set_cookie"}
