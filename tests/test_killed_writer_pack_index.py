@@ -7,13 +7,14 @@ renamed) is the nightly kill-writers stress failure.
 
 from __future__ import annotations
 
+import hashlib
 import os
 import time
 
 import pytest
 
 from opentine import Run, StepKind, _codec
-from opentine.repository import Repo, _storage, _write_batch
+from opentine.repository import Repo, _reap, _storage, _write_batch
 from opentine.repository._gc import gc
 from opentine.repository._pack_write import build_pack
 
@@ -85,6 +86,44 @@ def test_a_killed_writers_pack_staging_file_passes_fsck(tmp_path):
     assert Repo.open(repo.path).fsck().ok
     _age(staging)
     assert gc(repo).reaped_temp == 1
+
+
+def test_reaping_a_stale_body_never_removes_one_a_writer_just_published(tmp_path, monkeypatch):
+    """A writer republishing the same digest between reap's age check and its unlink."""
+    repo = Repo.init(tmp_path / "r")
+    digest, body, index = build_pack(_objects(repo), _codec.default_codec(), None)
+    stale = repo.path / "packs" / f"{digest}.tpk"
+    stale.write_bytes(body)
+    _age(stale)
+    real = os.lstat
+
+    def lstat(path, *args, **kwargs):
+        info = real(path, *args, **kwargs)
+        if str(path) == str(stale):
+            monkeypatch.setattr(os, "lstat", real)
+            _write_batch.publish_pack(repo.path, digest, body, index)
+        return info
+
+    monkeypatch.setattr(os, "lstat", lstat)
+    _reap.reap_temp(repo.path)
+    monkeypatch.undo()
+    assert stale.exists() and stale.with_suffix(".tidx").exists()
+    assert Repo.open(repo.path).fsck().ok
+
+
+def test_an_unpublished_body_must_be_a_pack(tmp_path):
+    repo = Repo.init(tmp_path / "r")
+    data = b"smuggled bytes named by their own hash"
+    (repo.path / "packs" / f"{hashlib.sha256(data).hexdigest()}.tpk").write_bytes(data)
+    assert not Repo.open(repo.path).fsck().ok
+
+
+@pytest.mark.parametrize("name", [".secret.abcdefgh", ".notes.txt.ikqn47gg.tmp"])
+def test_only_pack_staging_names_are_skipped(tmp_path, name):
+    repo = Repo.init(tmp_path / "r")
+    (repo.path / "packs" / name).write_bytes(b"hidden " * 100)
+    errors = Repo.open(repo.path).fsck().errors
+    assert any(name in error for error in errors), errors
 
 
 def _run(n: int) -> Run:

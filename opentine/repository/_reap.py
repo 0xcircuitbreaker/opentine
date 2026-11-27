@@ -36,6 +36,29 @@ def _unpublished_pack(directory: str, name: str) -> bool:
     )
 
 
+def _reap_pack(path: str, seen: os.stat_result) -> bool:
+    """Remove the stale pack body *seen* at *path*, never one a writer has since put there.
+
+    Unlinking by name could delete a body a concurrent writer just renamed over
+    the stale one (same digest) and is about to publish. Rename it aside first:
+    whatever was taken is restored unless it is the stale file and still unpublished.
+    """
+    aside = f"{os.path.dirname(path)}/.{os.path.basename(path)}.reap{os.urandom(2).hex()}"
+    os.rename(path, aside)
+    taken = os.lstat(aside)
+    if (taken.st_dev, taken.st_ino) == (seen.st_dev, seen.st_ino) and not os.path.lexists(
+        path[:-4] + ".tidx"
+    ):
+        _winretry.unlink(Path(aside))
+        return True
+    try:
+        os.link(aside, path)  # same digest, same bytes; a newer copy wins if present
+    except FileExistsError:
+        pass
+    os.unlink(aside)
+    return False
+
+
 def is_staging(name: str) -> bool:
     return _STAGING.fullmatch(name) is not None
 
@@ -46,14 +69,19 @@ def reap_temp(tine: Path, *, min_age: float = REAP_AGE) -> int:
     for directory, dirs, files in os.walk(tine):  # never follows directory links
         dirs[:] = [name for name in dirs if not os.path.islink(os.path.join(directory, name))]
         for name in files:
-            if not (is_staging(name) or _unpublished_pack(directory, name)):
+            pack = _unpublished_pack(directory, name)
+            if not (pack or is_staging(name)):
                 continue
             path = os.path.join(directory, name)
             try:
                 info = os.lstat(path)
                 if os.path.islink(path) or info.st_mtime > cutoff:
                     continue
-                _winretry.unlink(Path(path))
+                if pack:
+                    if not _reap_pack(path, info):
+                        continue
+                else:
+                    _winretry.unlink(Path(path))
             except OSError:  # renamed or removed by its writer meanwhile
                 continue
             reaped += 1
