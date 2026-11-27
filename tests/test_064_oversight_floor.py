@@ -56,3 +56,12 @@ def test_a_pinned_tier_the_policy_lacks_leaves_it_unpinned(repo):  # noqa: F811
 def test_a_malformed_oversight_section_is_refused_by_the_bundle(repo):  # noqa: F811
     with pytest.raises(_trust_bundle.BundleError):
         _pin(repo.path, {"version": 1, "tiers": {"high": {"k": 0}}})
+
+
+def test_deleting_the_policy_file_does_not_lift_pinned_floors(repo):  # noqa: F811
+    _pin(repo.path, {"version": 1, "tiers": {"high": {"k": 3}}})
+    assert _codes(repo) == ["promote.oversight-insufficient"]
+    (repo.path / "oversight.toml").unlink()
+    (repo.path / "oversight.sig.json").unlink()
+    assert _oversight_policy.load(repo.path)["floors"] is True
+    assert _codes(repo) == ["promote.oversight-insufficient"]

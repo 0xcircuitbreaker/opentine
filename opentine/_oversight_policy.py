@@ -173,7 +173,8 @@ def load(store: Path | None) -> dict[str, Any]:
         return out
     try:
         data = (Path(store) / FILE_NAME).read_bytes()
-    except FileNotFoundError:
+    except FileNotFoundError:  # floors pinned in the trust bundle survive the file's removal
+        out["floors"] = _floor.pinned_tiers(Path(store)) is not None
         return out
     out["policy"] = parse(data)
     out["roles"], out["role_status"] = roles(Path(store))

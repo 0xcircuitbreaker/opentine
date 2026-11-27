@@ -51,6 +51,9 @@ object kind or `tine verify` code.
   or forks the chain is denied (fail closed). An orphan policy dated before
   the owner's could otherwise become the "first" policy and, in a repository
   without pinned roles, lift every cap.
+- Security: deleting `.tine/oversight.toml` (and its signature) no longer
+  turns off the oversight gate when the owner-signed trust bundle pins tier
+  floors: promotion is refused with `promote.oversight-insufficient`.
 
 ## 0.84.0 — RL-scale capture audits and provenance trailers (2026-11-26)
 
