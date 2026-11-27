@@ -275,6 +275,7 @@ BINARY_DEPENDENT_TEST_MODULES = {
     "tests/_mirror_fixture.py": "git",
     "tests/test_055_mirror_refusals.py": "git",
     "tests/test_056_onboarding.py": "git",
+    "tests/test_085_sec_git_hardening.py": "git",
     "tests/test_cli_replay_verify_harness.py": "sh",
     "tests/test_release_workflow.py": "bash",
     "tests/test_036_push_preview.py": "git",

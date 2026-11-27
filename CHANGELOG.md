@@ -37,6 +37,11 @@ object kind or `tine verify` code.
   `crypto`-extra skips for core dependencies, so a broken install fails
   instead of skipping. No temp directories leaked into the system temp dir, and
   no direct `os.environ` writes.
+- Security: `tine code-graph` (and the MCP code map) lists files with the
+  hardened git call, and `tine review run` builds its diff the same way plus
+  `--no-textconv`, so a target repository's `core.fsmonitor`, textconv driver
+  or global attributes never run a command. `tine init`'s work-tree probe uses
+  the same helper.
 
 ## 0.84.0 — RL-scale capture audits and provenance trailers (2026-11-26)
 

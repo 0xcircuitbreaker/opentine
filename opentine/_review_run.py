@@ -21,7 +21,6 @@ counted, never guessed at.
 from __future__ import annotations
 
 import json
-import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -45,11 +44,15 @@ def context(root: Path, base: str | None, diff_file: str | None) -> str:
     else:
         if base and base.startswith("-"):
             raise ValueError("--base must name a revision, not an option")
-        argv = ["git", "-C", root.as_posix(), "diff", "--no-color", "--no-ext-diff"]
-        done = subprocess.run([*argv, base or "HEAD"], capture_output=True, check=False)
-        if done.returncode != 0:
-            raise ValueError(f"git diff failed: {done.stderr.decode('utf-8', 'replace').strip()}")
-        raw = done.stdout[:MAX_CONTEXT]
+        from opentine._git_link import GitLinkError, git_raw
+
+        try:  # hardened: no fsmonitor, textconv, external diff or GIT_* env from the repo
+            out = git_raw(
+                root, "diff", "--no-color", "--no-ext-diff", "--no-textconv", base or "HEAD"
+            )
+        except GitLinkError as exc:
+            raise ValueError(f"git diff failed: {exc}") from None
+        raw = out[:MAX_CONTEXT]
     return redact_blob(raw).decode("utf-8", "replace")
 
 
