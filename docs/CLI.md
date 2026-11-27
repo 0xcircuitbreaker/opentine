@@ -2153,7 +2153,8 @@ docs/UPLIFT.md.
 
 | Command | What it does |
 | --- | --- |
-| `tine budget sign-policy SUBJECT --serial N [--tokens N] [--gpu-hours N] [--wall-clock-s N] [--egress-bytes N] [--money-usd N] [--on-limit deny\|escalate] --key KEY --out PATH` | Writes a signed `opentine-budget-policy/1` for `loop:NAME` or `agent:NAME` |
+| `tine budget sign-policy SUBJECT --serial N [--tokens N] [--gpu-hours N] [--wall-clock-s N] [--egress-bytes N] [--money-usd N] [--allow-model NAME]... [--model-alias A=NAME]... [--judge-tokens N] [--judge-money-usd N] [--max-output-tokens N] [--on-limit deny\|escalate] --key KEY --out PATH` | Writes a signed `opentine-budget-policy/1` for `loop:NAME` or `agent:NAME` |
+| `tine record --budget SUBJECT --budget-key KEY [--repo PATH] -- CMD...` | Records the run and enforces SUBJECT's budget and model allowlist on each model call; refusals are signed `deny` ledger entries (docs/BUDGETS.md) |
 | `tine budget apply PATH --key KEY [--repo PATH]` | Appends the policy to the subject's ledger; it takes effect only if it lowers limits or a pinned `policy`-role key signed the raise, with a higher serial; a refused policy is flagged for oversight and exits 1 |
 | `tine budget record SUBJECT RUN... --key KEY [--gpu-hours N] [--egress-bytes N] [--repo PATH]` | Appends each run's recorded cost (the `tine cost` aggregate) as a signed, held `spend` entry |
 | `tine budget status SUBJECT [--key KEY] [--at TIME] [--repo PATH]` | Policy in force, totals, remaining and findings |
@@ -2318,6 +2319,9 @@ Node. See docs/TRENDS.md.
 | `tine integrity pin --repo PATH` | Writes the current sha256 of every file `.tine/protected.toml` covers into its pins; the list must be signed again |
 | `tine integrity sign --key KEY [--at TIME] --repo PATH` | Pins the list's bytes with an `opentine.integrity.protected/1` attestation; only a `policy`-role, non-optimizer key counts |
 | `tine integrity check RUN [--strict] [--key KEY] [--at TIME] --repo PATH` | Judges the run's tool calls and every pinned digest; exit 1 on `fail:protected-surface-modified`, `fail:protected-list-unsigned` or `fail:protected-list-missing`; `advisory:test-deleted` and `advisory:holdout-read` block only with `--strict`; `--key` files a signed `opentine.integrity.taint` for a failing run |
+
+| `tine integrity region-pin --glob GLOB... --key KEY [--at TIME] --repo PATH` | (0.87) Signs the locked code outside EVOLVE-BLOCK regions of the files under the globs as an `opentine.integrity.regions/1` attestation in `.tine/integrity/regions.json`; only a `policy`-role, non-optimizer key may pin |
+| `tine integrity region-check --repo PATH` | (0.87) Judges the working tree against the region pin; exit 1 on `fail:region-outside-modified`, `fail:region-file-added`, `fail:region-file-removed`, `fail:region-marker-invalid`, `fail:regions-pin-missing` or `fail:regions-pin-unsigned`. `integrity check` adds these when a pin is filed |
 
 `--json` prints `tine-cli-integrity/1`. A tainted run is refused by `tine
 promote` (`promote.score-tainted`) and reported by `tine lineage check|why`

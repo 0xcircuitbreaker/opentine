@@ -5,7 +5,8 @@ the policy in force, the totals spent and findings; :func:`check` adds the
 decision for the *next* action and records flags for oversight.
 
 * Totals count every held ``spend`` entry, signed or not, chained or forked
-  (fail safe: a bad entry can hide no spend). A run recorded more than once
+  (fail safe: a bad entry can hide no spend), folded by
+  :func:`opentine._budget_spend.fold`. A run recorded more than once
   counts once, with the largest value of each unit, so the ledger still equals
   the ``tine cost`` export. ``money_usd`` is the
   ``math.fsum`` of the recorded ``cost.total_cost`` values, the number
@@ -24,22 +25,15 @@ decision for the *next* action and records flags for oversight.
 
 from __future__ import annotations
 
-import math
 from typing import Any
 
-from opentine import _budget_ledger, _budget_policy
+from opentine import _budget_ledger, _budget_policy, _budget_spend
 from opentine._budget_policy import LIMITS
-
-UNITS = ("tokens", "input_tokens", "output_tokens", "money_usd", "gpu_hours", "egress_bytes")
+from opentine._budget_spend import UNITS
 
 
 def _finding(level: str, code: str, entry: str | None, message: str) -> dict[str, Any]:
     return {"level": level, "code": f"{level}:{code}", "entry": entry, "message": message}
-
-
-def _number(value: Any) -> float:
-    ok = isinstance(value, (int, float)) and not isinstance(value, bool)
-    return float(value) if ok and math.isfinite(value) and value >= 0 else 0.0
 
 
 def _roles(repo: Any) -> dict[str, Any]:
@@ -90,7 +84,6 @@ def status(repo: Any, subject: str, *, now_ms: int) -> dict[str, Any]:
     findings: list[dict[str, Any]] = []
     policy: dict[str, Any] | None = None
     started: int | None = None
-    per_run: dict[str, dict[str, float]] = {}
     flagged = set()
     owner_serial = 0
     for oid in _budget_ledger.forks(rows):
@@ -99,17 +92,7 @@ def status(repo: Any, subject: str, *, now_ms: int) -> dict[str, Any]:
     for row in rows:
         value = row["value"]
         findings += _signer_findings(row, roles)
-        if value.get("entry") == "spend":
-            cost = value.get("cost") if isinstance(value.get("cost"), dict) else {}
-            got = {"tokens": cost.get("total_tokens"), "input_tokens": cost.get("input_tokens"),
-                   "output_tokens": cost.get("output_tokens"), "money_usd": cost.get("total_cost"),
-                   "gpu_hours": value.get("gpu_hours"),
-                   "egress_bytes": value.get("egress_bytes")}  # fmt: skip
-            run = value.get("run") if isinstance(value.get("run"), str) else row["id"]
-            seen = per_run.setdefault(run, dict.fromkeys(UNITS, 0.0))
-            for unit in UNITS:  # a run recorded twice counts once: the largest value
-                seen[unit] = max(seen[unit], _number(got[unit]))
-        elif value.get("entry") == "policy":
+        if value.get("entry") == "policy":
             doc = value.get("policy")
             try:
                 code = _budget_policy.judge(doc, policy, roles, owner_serial)
@@ -129,11 +112,8 @@ def status(repo: Any, subject: str, *, now_ms: int) -> dict[str, Any]:
                 owner_serial = max(owner_serial, policy["serial"])
         elif value.get("entry") == "flag" and isinstance(value.get("about"), str):
             flagged.add((value.get("code"), value["about"]))
-    totals: dict[str, Any] = {u: math.fsum(r[u] for r in per_run.values()) for u in UNITS}
-    for unit in ("tokens", "input_tokens", "output_tokens", "egress_bytes"):
-        totals[unit] = int(totals[unit])
+    totals = _budget_spend.fold(rows)
     totals["wall_clock_s"] = max(0, (now_ms - started) // 1000) if started is not None else 0
-    totals["runs"] = len(per_run)
     limits = policy["limits"] if policy else {n: None for n in LIMITS}
     over = [n for n in LIMITS if limits[n] is not None and totals[n] >= limits[n]]
     decision = "allow" if not over else policy["on_limit"]  # type: ignore[index]

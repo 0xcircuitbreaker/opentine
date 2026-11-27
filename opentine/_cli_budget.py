@@ -37,6 +37,25 @@ def add_budget_parser(subparsers: argparse._SubParsersAction) -> None:
                           help=f"Limit: {name}")  # fmt: skip
     sign.add_argument("--on-limit", choices=("deny", "escalate"), default="deny",
                       help="At the limit: refuse, or refuse and route to oversight")  # fmt: skip
+    sign.add_argument(
+        "--allow-model",
+        action="append",
+        default=None,
+        metavar="NAME",
+        help="Model the tine record proxy lets through (repeat; NAME* is a prefix)",
+    )
+    sign.add_argument("--model-alias", action="append", default=[], metavar="ALIAS=NAME",
+                      help="Treat ALIAS as NAME when matching models (repeat)")  # fmt: skip
+    sign.add_argument("--judge-tokens", type=int, metavar="N",
+                      help="Cap on tokens of calls tagged judge or scorer")  # fmt: skip
+    sign.add_argument("--judge-money-usd", type=float, metavar="N",
+                      help="Cap on money of calls tagged judge or scorer")  # fmt: skip
+    sign.add_argument(
+        "--max-output-tokens",
+        type=int,
+        metavar="N",
+        help="Output assumed for a call that names no limit (default 32768)",
+    )
     sign.add_argument("--out", required=True, metavar="PATH", help="Where to write the policy")
     apply = verbs.add_parser("apply", help="Put a signed policy on its subject's ledger")
     apply.add_argument("policy", metavar="PATH", help="An opentine-budget-policy/1 file")

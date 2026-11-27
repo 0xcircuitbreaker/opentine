@@ -1,5 +1,61 @@
 # Changelog
 
+## 0.87.0 — Model-path controls and region pins (2026-11-27)
+
+- `tine record --budget SUBJECT --budget-key KEY --repo PATH` enforces the
+  subject's budget policy inside the record proxy, reusing the policy, ledger
+  and decision behind `tine budget gate` and `tine mcp-proxy --budget`.
+  Without `--budget`, nothing changes.
+- New optional `model_path` section in budget policies (`tine budget
+  sign-policy --allow-model`, `--model-alias`, `--judge-tokens`,
+  `--judge-money-usd`, `--max-output-tokens`): a model allowlist matched
+  after canonicalisation (NFKC, case, whitespace, provider and routing
+  prefixes, aliases), a separate cap for calls tagged
+  `X-Opentine-Call-Role: judge|scorer`, and the output assumed for calls that
+  name no limit. Widening it needs a pinned `policy`-role key, like raising a
+  limit. A policy without the section keeps its digest.
+- The proxy reserves a pessimistic estimate on the ledger before forwarding
+  each call, under a cross-process ledger lock, so concurrent calls cannot
+  pass a cap together. It then settles the call from the provider's reported
+  usage, or at the estimate when the reply has no usage or a stream is cut
+  short. Inline Anthropic and Gemini batches and streaming replies are
+  covered. Upload-based batches, unparseable or duplicate-key bodies and path
+  traversals are refused.
+- Each refusal is a signed, held `deny` ledger entry (a new entry of the
+  `opentine.budget-ledger/1` claim convention). The proxy fails closed:
+  calls are refused when the ledger is unreachable or no policy is in force.
+- Any change to `model_path.aliases` needs a pinned policy-role key, with or
+  without an allowlist, because aliases also choose the price. `count_tokens`
+  calls are free only at their exact endpoint.
+- Ledger appends from every writer are serialised by `budget-ledger.lock`.
+  `tine budget status` reports `judge_tokens` and `judge_money_usd`.
+- Region pins: `EVOLVE-BLOCK-START` / `EVOLVE-BLOCK-END` comment lines mark the
+  code an optimizer may change. `tine integrity region-pin --glob G --key KEY`
+  signs the baseline (per file: the digest of each locked segment outside the
+  regions, the region count, and the file set) as an
+  `opentine.integrity.regions/1` claim on an existing attestation, signed by a
+  pinned `policy`-role key that is not an optimizer key.
+- `tine integrity region-check` (and `tine integrity check` when a pin is
+  filed) reports edits outside regions, added and removed files, and marker
+  tampering: unbalanced, nested, moved, renamed or look-alike markers, markers
+  inside Python strings, CRLF and Unicode normalisation changes. Bytes are
+  compared unnormalised; a symlink is pinned as its target text.
+- In `.py` files a marker inside an open bracket, or an END marker right after
+  a decorator line, is a marker error: such a region would change what the
+  locked lines after it mean without changing their bytes. A FIFO or device
+  under the globs is pinned by its file type and never opened.
+- `tine promote` reads a new policy key `regions`: `"advisory"` by default
+  (`advisory:regions.outside-modified`, never blocking), `"required"` under
+  `profile = "rsi"`, where any finding refuses `promote.region-modified` and a
+  missing or unsigned pin refuses `promote.regions-unpinned`.
+  **Upgrade note:** existing `profile = "rsi"` users must file a region pin
+  (`tine integrity region-pin`) before their next promotion. See
+  `docs/REGION-PINS.md`.
+- New end-to-end acceptance test: `tine record --budget` refusing a model
+  outside the allowlist, a judge call over its cap and a call over the token
+  cap with signed, held deny entries, and `tine integrity region-pin` /
+  `region-check` through the CLI.
+
 ## 0.86.1 — Killed-writer durability fixes (2026-11-27)
 
 - `tine gc` no longer fails when another process (a live recorder) still holds

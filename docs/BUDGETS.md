@@ -144,3 +144,101 @@ monitor, the budget check runs first.
 Spend is recorded after each step (`tine budget record`). The step that
 crosses a limit completes, and the next action is refused, so the subject is
 denied within one step.
+
+## The model path: `tine record --budget`
+
+```sh
+tine budget sign-policy agent:bot --serial 2 --tokens 500000 --money-usd 10 \
+  --allow-model gpt-4o-mini --allow-model 'claude-haiku-4*' \
+  --model-alias fast=gpt-4o-mini --judge-tokens 50000 --judge-money-usd 1 \
+  --key policy.key --out policy.json
+tine budget apply policy.json --key runner.key --repo .
+tine record --budget agent:bot --budget-key runner.key --repo . -- python agent.py
+```
+
+With `--budget`, the `tine record` proxy checks every model call against the
+subject's ledger before forwarding it. It uses the same policy, ledger, lock
+and decision as the hook and MCP gates. Without `--budget`, the proxy behaves
+as before.
+
+The policy's optional `model_path` section (`--allow-model`,
+`--model-alias`, `--judge-tokens`, `--judge-money-usd`, `--max-output-tokens`)
+adds the following. Widening the allowlist, lowering `max_output_tokens`,
+raising or removing a judge cap, or adding or changing any alias (aliases
+also choose the price, so this holds even without an allowlist) is a
+`budget.limit-raise` unless a pinned policy-role key signs it.
+
+- **Allowlist.** Each model a call names (the body's `model`, a Gemini
+  `models/NAME:method` path segment, an Azure deployment, every entry of a
+  gateway's `models` fallback list, every request of an inline batch) is
+  canonicalised and then matched. Canonicalisation applies Unicode
+  NFKC, folds case, removes all whitespace, strips provider and routing
+  prefixes (`openai/`, `models/`, `us.anthropic.`, ...) and then applies the
+  policy's aliases. A trailing `*` in an allowlist entry matches a prefix. A
+  model name with any other character never matches.
+- **Reservation.** Before forwarding a call, the proxy appends a `spend`
+  entry with `phase: "reserve"` holding a pessimistic estimate. Input tokens
+  are estimated as the request's byte length. Output tokens are the largest
+  output limit the request names (or `max_output_tokens`, default 32768),
+  times the largest fan-out it names (`n`, `best_of`, `candidateCount` or
+  `candidate_count`; Gemini's `generationConfig` and `generation_config` are
+  both read). Money is the catalog price of that usage. The
+  read, the decision and the append happen under one lock
+  (`budget-ledger.lock` in the repository, held across processes), so
+  concurrent calls cannot both pass a cap that only one of them fits under.
+  A call is refused when the totals plus its estimate would exceed `tokens` or
+  `money_usd`.
+- **Settlement.** After the reply, a `phase: "settle"` entry records the usage
+  the provider reported, priced from the catalog at the dearest of the
+  models asked for and the model the reply names. A reply with no usage, or
+  with a usage field that is not a whole number of at least zero, settles at
+  the estimate, and so does a stream cut before its end-of-stream event (read
+  as a whole SSE line, so text the model writes cannot imitate it). A call that never reached the provider settles at zero. A settle
+  entry replaces its reservation only when the same key signed both and every
+  entry for that call is signed. Otherwise the larger value counts, so a
+  forged settle entry cannot hide spend.
+- **Judge spend.** A call that sends `X-Opentine-Call-Role: judge` (or
+  `scorer`) also counts toward `model_path.judge`. That cap refuses only
+  tagged calls, and their spend still counts toward the subject's overall
+  limits. The header is not forwarded. `tine budget status` shows
+  `judge_tokens` and `judge_money_usd`.
+
+Each refusal is a signed, held `deny` ledger entry with `code`, `detail`,
+`about` (the policy entry in force), `model`, `path`, `role`, `run` and
+`call`. The child receives HTTP 403 with
+`{"error": {"type": "opentine_budget", "code", "message", "entry"}}`, and the
+recorded run keeps the refused call as an errored model step. These are the
+command-level codes:
+
+| code | meaning |
+|---|---|
+| `budget.no-policy` | no policy in force for the subject |
+| `budget.limit-reached` | a limit is reached, or the ledger forked |
+| `budget.model-not-allowed` | a named model is not on the allowlist |
+| `budget.model-unidentified` | an allowlist is set and the call names no model |
+| `budget.call-unverifiable` | the body is not one JSON object (or repeats a key), the path traverses, the batch is upload-based (`/batches`, `/files`, `/uploads`), or an output limit or fan-out is invalid |
+| `budget.model-unpriced` | a money cap is set and the catalog has no price for the model |
+| `budget.would-exceed` / `budget.judge-would-exceed` | the estimate does not fit the remaining cap |
+| `budget.ledger-unreachable` | the ledger could not be read or written (HTTP 503) |
+
+The proxy fails closed. If a ledger or policy error makes a call impossible to
+decide, the call is refused. If even the `deny` entry cannot be written, the
+child gets HTTP 503 and the refusal is kept only in the recorded run. Requests
+with no body and `GET`, `HEAD`, `OPTIONS` and `DELETE` requests carry no model
+spend and are forwarded ungated. `count_tokens` / `countTokens` calls are
+checked against the allowlist but reserve nothing.
+
+### Limits
+
+- The proxy sees only the calls the child sends through it. A child that
+  ignores its base-URL variables, or opens its own connection, is not stopped.
+  Pair `--budget` with network containment (docs/CONTAINMENT.md) when that
+  matters.
+- The input estimate counts bytes in the request. Context the provider holds
+  server-side (`previous_response_id`, cached contents, assistants threads) is
+  not in the request, so that call's reservation can be low. Its settlement
+  uses the reported usage.
+- An OpenAI-style batch that refers to an uploaded file cannot be checked, so
+  it is refused under any policy.
+- Canonicalisation cannot tell two different models served under the same
+  name apart.

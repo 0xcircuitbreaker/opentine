@@ -11,7 +11,15 @@ claim convention ``opentine.budget-ledger/1``::
   ``gpu_hours`` and ``egress_bytes``;
 * ``policy``: ``policy``, a signed ``opentine-budget-policy/1`` document;
 * ``flag``: ``code``, ``detail`` and ``about`` (the entry it flags): an
-  integrity violation or a reached limit routed to the oversight queue.
+  integrity violation or a reached limit routed to the oversight queue;
+* ``deny`` (0.87): ``code``, ``detail`` and ``about`` (the policy entry in
+  force), plus ``model``, ``path``, ``role``, ``run`` and ``call``: a model call
+  the ``tine record`` proxy refused (:mod:`opentine._record_budget`).
+
+A ``spend`` entry written by the proxy also carries ``call``, ``phase``
+(``reserve`` or ``settle``), ``role``, ``model`` and ``source``
+(:mod:`opentine._budget_spend`). Appends are serialised by
+:mod:`opentine._budget_lock`.
 
 ``target_id`` is an anchor blob naming the subject and ``previous_id`` the
 entry before it, so ids chain like oversight decisions. Every entry is held
@@ -28,7 +36,7 @@ from opentine._utc import rfc3339_utc
 from opentine.kernel import canonical_json
 
 CONVENTION = "opentine.budget-ledger/1"
-ENTRIES = ("spend", "policy", "flag")
+ENTRIES = ("spend", "policy", "flag", "deny")
 
 
 def rfc3339(ms: int) -> str:
@@ -57,14 +65,22 @@ def held_ids(repo: Any, prefix: str, subject: str | None = None) -> list[str]:
 def append(repo: Any, subject: str, entry: str, fields: dict[str, Any], key: Any, *,
            at_ms: int) -> str:  # fmt: skip
     """Sign, store and hold one entry after the current head; its annotation id."""
+    from opentine._budget_lock import locked
     from opentine._budget_policy import subject as check_subject
-    from opentine._signing_pins import key_fingerprint
-    from opentine.attest_signing import sign_attestation
-    from opentine.repository._holds import BUDGET_FLAG, BUDGET_LEDGER
 
     check_subject(subject)
     if entry not in ENTRIES:
         raise ValueError(f"a ledger entry is one of {', '.join(ENTRIES)}")
+    with locked(repo):
+        return _append(repo, subject, entry, fields, key, at_ms)
+
+
+def _append(repo: Any, subject: str, entry: str, fields: dict[str, Any], key: Any,
+            at_ms: int) -> str:  # fmt: skip
+    from opentine._signing_pins import key_fingerprint
+    from opentine.attest_signing import sign_attestation
+    from opentine.repository._holds import BUDGET_FLAG, BUDGET_LEDGER
+
     rows = entries(repo, subject)
     value = {"convention": CONVENTION, "subject": subject, "entry": entry,
              "at": rfc3339(at_ms), "at_ms": int(at_ms), **fields}  # fmt: skip

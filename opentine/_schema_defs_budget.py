@@ -21,14 +21,21 @@ _LIMIT_MAP = closed(list(_LIMITS), {n: opt(NUM) for n in _LIMITS})
 _FINDING = closed(["level", "code", "entry", "message"], {
     "level": {"enum": ["fail", "advisory"]}, "code": STR, "entry": opt(_ANN),
     "message": STR})  # fmt: skip
-_TOTALS = closed([*_LIMITS, "input_tokens", "output_tokens", "runs"], {
+_TOTALS = closed([*_LIMITS, "input_tokens", "output_tokens", "runs", "judge_tokens",
+                  "judge_money_usd"], {
     **{n: NUM for n in _LIMITS}, "input_tokens": INT, "output_tokens": INT,
-    "runs": INT})  # fmt: skip
+    "runs": INT, "judge_tokens": INT, "judge_money_usd": NUM})  # fmt: skip
+_NAMES = {"type": "array", "items": STR}
+_MODEL_PATH = {"type": "object", "additionalProperties": False, "properties": {
+    "allow": opt(_NAMES), "aliases": {"type": "object", "additionalProperties": STR},
+    "judge": {"type": "object", "additionalProperties": False,
+              "properties": {"tokens": opt(NUM), "money_usd": opt(NUM)}},
+    "max_output_tokens": INT}}  # fmt: skip
 _POLICY = closed(["schema", "subject", "serial", "limits", "on_limit", "issued_at", "sha256",
                   "signer", "entry"], {
     "schema": {"const": "opentine-budget-policy/1"}, "subject": _SUBJECT, "serial": INT,
     "limits": _LIMIT_MAP, "on_limit": {"enum": ["deny", "escalate"]}, "issued_at": STR,
-    "sha256": FPR, "signer": opt(FPR), "entry": _ANN})  # fmt: skip
+    "sha256": FPR, "signer": opt(FPR), "entry": _ANN, "model_path": _MODEL_PATH})  # fmt: skip
 _STATUS = closed(["subject", "roles", "policy", "totals", "remaining", "over", "decision",
                   "entries", "head", "findings"], {
     "subject": _SUBJECT, "roles": {"enum": ["pinned", "unpinned", "absent"]},
@@ -64,12 +71,15 @@ POLICY_DOC = closed(["schema", "subject", "serial", "limits", "on_limit", "issue
     "limits": {"type": "object", "additionalProperties": False,
                "properties": {n: opt(NUM) for n in _LIMITS}},
     "on_limit": {"enum": ["deny", "escalate"]}, "issued_at": TIME,
-    "signature": SIG})  # fmt: skip
+    "signature": SIG, "model_path": _MODEL_PATH})  # fmt: skip
 LEDGER_VALUE = closed(["convention", "subject", "entry", "at", "at_ms"], {
     "convention": {"const": "opentine.budget-ledger/1"}, "subject": _SUBJECT,
-    "entry": {"enum": ["spend", "policy", "flag"]}, "at": TIME, "at_ms": INT,
+    "entry": {"enum": ["spend", "policy", "flag", "deny"]}, "at": TIME, "at_ms": INT,
     "run": STR, "cost": OBJ, "gpu_hours": NUM, "egress_bytes": INT,
-    "policy": OBJ, "code": STR, "detail": STR, "about": opt(_ANN)})  # fmt: skip
+    "policy": OBJ, "code": STR, "detail": STR, "about": opt(_ANN),
+    "call": {"type": ["integer", "string"]}, "phase": {"enum": ["reserve", "settle"]},
+    "role": {"enum": ["agent", "judge", "scorer"]}, "model": STR, "source": STR,
+    "path": STR})  # fmt: skip
 
 SCHEMAS: dict[str, dict[str, Any]] = {
     "tine-cli-budget-1": doc("tine-cli-budget-1", "tine budget ... --json",

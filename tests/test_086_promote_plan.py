@@ -167,14 +167,16 @@ def test_hidden_candidates_cannot_lower_the_committed_count(room, capsys):
 def test_the_rsi_profile_requires_a_plan_and_pinned_eval_signers(room, capsys):
     from tests.key_roles_helpers import pin_roles
     from tests.promote_helpers import EVALER, fingerprint
+    from tests.regions_helpers import pin_regions, policy_role
 
     code, row = room.promote(capsys, *room.pair(), profile="rsi")
     assert code == 1 and {"promote.plan-missing", "promote.eval-signer-role"} <= _codes(row)
     store = room.repo / ".tine"
     (store / "key-roles.toml").write_bytes(
-        f'version = 1\n[roles]\nscorer = ["{fingerprint(EVALER)}"]\n'.encode()
+        (f'version = 1\n[roles]\nscorer = ["{fingerprint(EVALER)}"]\n' + policy_role()).encode()
     )
     pin_roles(store)
+    pin_regions(room.repo)  # 0.87: rsi requires a signed region pin
     plan, reveal = write_plan(room.base, room.rows)
     code, row = room.promote(capsys, *room.pair(plan=plan), *_plan_args(plan, reveal),
                              profile="rsi")  # fmt: skip

@@ -31,7 +31,16 @@ LIMITS = ("tokens", "gpu_hours", "wall_clock_s", "egress_bytes", "money_usd")
 INTEGER = ("tokens", "wall_clock_s", "egress_bytes")
 ON_LIMIT = ("deny", "escalate")
 SUBJECT = re.compile(r"^(loop|agent):[a-z0-9][a-z0-9._-]{0,63}$")
-_KEYS = {"schema", "subject", "serial", "limits", "on_limit", "issued_at", "signature"}
+_KEYS = {
+    "schema",
+    "subject",
+    "serial",
+    "limits",
+    "on_limit",
+    "issued_at",
+    "signature",
+    "model_path",
+}
 
 
 class BudgetError(ValueError):
@@ -71,15 +80,24 @@ def body(doc: Any) -> dict[str, Any]:
         raise BudgetError("on_limit is deny or escalate")
     if not isinstance(doc.get("issued_at"), str):
         raise BudgetError("issued_at is an RFC 3339 time")
-    return {"schema": SCHEMA, "subject": subject(doc.get("subject")), "serial": serial,
-            "limits": {n: _limit(n, limits.get(n)) for n in LIMITS},
-            "on_limit": doc["on_limit"], "issued_at": doc["issued_at"]}  # fmt: skip
+    out = {"schema": SCHEMA, "subject": subject(doc.get("subject")), "serial": serial,
+           "limits": {n: _limit(n, limits.get(n)) for n in LIMITS},
+           "on_limit": doc["on_limit"], "issued_at": doc["issued_at"]}  # fmt: skip
+    if "model_path" in doc:  # 0.87, optional: a policy without it keeps its digest
+        from opentine._model_path import ModelPathError, section
+
+        try:
+            out["model_path"] = section(doc["model_path"])
+        except ModelPathError as exc:
+            raise BudgetError(str(exc)) from None
+    return out
 
 
 def build(subject_: str, limits: dict[str, Any], *, serial: int, on_limit: str,
-          issued_at: str) -> dict[str, Any]:  # fmt: skip
-    return body({"schema": SCHEMA, "subject": subject_, "serial": serial, "limits": limits,
-                 "on_limit": on_limit, "issued_at": issued_at})  # fmt: skip
+          issued_at: str, model_path: dict[str, Any] | None = None) -> dict[str, Any]:  # fmt: skip
+    doc = {"schema": SCHEMA, "subject": subject_, "serial": serial, "limits": limits,
+           "on_limit": on_limit, "issued_at": issued_at}  # fmt: skip
+    return body(doc if model_path is None else {**doc, "model_path": model_path})
 
 
 def sign(doc: dict[str, Any], key: Any) -> dict[str, Any]:
@@ -145,7 +163,12 @@ def judge(doc: Any, current: dict[str, Any] | None, roles: dict[str, Any],
     floor = owner_serial if who in pinned else (current or {}).get("serial", 0)
     if clean["serial"] <= floor:
         return "budget.policy-rollback"
-    if current is None or not raises(current["limits"], clean["limits"]):
+    from opentine._model_path import widens
+
+    if current is None or not (
+        raises(current["limits"], clean["limits"])
+        or widens(current.get("model_path"), clean.get("model_path"))
+    ):
         return None
     return None if who in pinned else "budget.limit-raise"
 

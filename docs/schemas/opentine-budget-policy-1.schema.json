@@ -94,6 +94,61 @@
     },
     "signature": {
       "$ref": "tine-sig-3.schema.json"
+    },
+    "model_path": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "allow": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "aliases": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "judge": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "tokens": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "money_usd": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "max_output_tokens": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
     }
   }
 }

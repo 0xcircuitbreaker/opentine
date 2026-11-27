@@ -38,6 +38,9 @@ def check_policy(policy: dict[str, Any]) -> None:
     policy["require_plan"] = plan
     policy["require_signer_roles"] = profile == "rsi"  # 0.86: pinned scorer keys only
     policy["require_lineage"] = profile == "rsi"  # 0.86: hidden candidates fail closed
+    from opentine._regions_pin import check_policy as regions
+
+    regions(policy)  # 0.87: EVOLVE-BLOCK region pins, required under rsi
 
 
 def in_process(folder: Path) -> bool:

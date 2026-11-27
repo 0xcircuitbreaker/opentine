@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opentine.com/schemas/tine-cli-integrity-1.schema.json",
-  "title": "tine integrity check|pin|sign --json",
-  "description": "Protected surfaces of a self-improving agent loop. `check` judges one run's tool calls (`touched`) and every pinned digest against the signed `.tine/protected.toml`; `findings` carry `fail:` codes (hash, signature and policy facts, which block: `ok` is false and the exit 1) and `advisory:` codes (reported, blocking only with `--strict`); `--record` adds the advisory reward-hack detectors over a run record. `taint` names the signed `opentine.integrity.taint` attestation filed with `--key`, and `hold` the object id of the same attestation held as `integrity-taint:RUN` (0.59), which `tine hold release` refuses. `pin` writes current digests into the list (`signed` false: re-sign it); `sign` pins the list's bytes with a policy-role key. `scan` (0.60) lists where registered canaries occur (`ok` false when any does); `counts` shows how many objects were read and how many answered from the content-addressed index.",
+  "title": "tine integrity VERB --json",
+  "description": "Protected surfaces of a self-improving agent loop. `check` judges one run's tool calls (`touched`) and every pinned digest against the signed `.tine/protected.toml`; `findings` carry `fail:` codes (hash, signature and policy facts, which block: `ok` is false and the exit 1) and `advisory:` codes (reported, blocking only with `--strict`); `--record` adds the advisory reward-hack detectors over a run record. `taint` names the signed `opentine.integrity.taint` attestation filed with `--key`, and `hold` the object id of the same attestation held as `integrity-taint:RUN` (0.59), which `tine hold release` refuses. `pin` writes current digests into the list (`signed` false: re-sign it); `sign` pins the list's bytes with a policy-role key. `scan` (0.60) lists where registered canaries occur (`ok` false when any does); `counts` shows how many objects were read and how many answered from the content-addressed index. `region-pin` (0.87) signs the code outside EVOLVE-BLOCK regions of the files under `--glob` (an `opentine.integrity.regions/1` claim); `region-check` judges the working tree against it (`fail:region-*` and `fail:regions-pin-*` findings; `check` adds them when a pin is filed).",
   "oneOf": [
     {
       "type": "object",
@@ -103,7 +103,13 @@
                   "advisory:fabricated-tool-evidence",
                   "advisory:conftest-tampered",
                   "advisory:timing-fake",
-                  "advisory:env-answer-leak"
+                  "advisory:env-answer-leak",
+                  "fail:region-outside-modified",
+                  "fail:region-file-added",
+                  "fail:region-file-removed",
+                  "fail:region-marker-invalid",
+                  "fail:regions-pin-missing",
+                  "fail:regions-pin-unsigned"
                 ]
               },
               "surface": {
@@ -370,6 +376,147 @@
               }
             }
           }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "baseline_sha256",
+        "files",
+        "regions",
+        "signer",
+        "pin"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-integrity/1"
+        },
+        "command": {
+          "const": "integrity region-pin"
+        },
+        "ok": {
+          "const": true
+        },
+        "baseline_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "files": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "regions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "signer": {
+          "type": "string"
+        },
+        "pin": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "ok",
+        "baseline_sha256",
+        "files",
+        "findings",
+        "blocking"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-integrity/1"
+        },
+        "command": {
+          "const": "integrity region-check"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "baseline_sha256": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "files": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "level",
+              "code",
+              "surface",
+              "path",
+              "detail"
+            ],
+            "properties": {
+              "level": {
+                "enum": [
+                  "fail",
+                  "advisory"
+                ]
+              },
+              "code": {
+                "enum": [
+                  "fail:protected-surface-modified",
+                  "fail:protected-list-missing",
+                  "fail:protected-list-unsigned",
+                  "advisory:test-deleted",
+                  "advisory:holdout-read",
+                  "advisory:protected-read",
+                  "advisory:test-skipped-added",
+                  "advisory:special-casing",
+                  "advisory:visible-holdout-gap",
+                  "advisory:judge-ground-truth-disagree",
+                  "advisory:fabricated-tool-evidence",
+                  "advisory:conftest-tampered",
+                  "advisory:timing-fake",
+                  "advisory:env-answer-leak",
+                  "fail:region-outside-modified",
+                  "fail:region-file-added",
+                  "fail:region-file-removed",
+                  "fail:region-marker-invalid",
+                  "fail:regions-pin-missing",
+                  "fail:regions-pin-unsigned"
+                ]
+              },
+              "surface": {
+                "type": "string"
+              },
+              "path": {
+                "type": "string"
+              },
+              "detail": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "blocking": {
+          "type": "integer",
+          "minimum": 0
         }
       }
     }

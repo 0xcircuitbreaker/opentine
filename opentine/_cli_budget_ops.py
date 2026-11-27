@@ -26,8 +26,36 @@ def _lines(status: dict[str, Any]) -> list[str]:
         if name in _budget_policy.LIMITS:
             cap = (policy or {}).get("limits", {}).get(name)
             lines.append(f"  {name}: {used}" + (f" of {cap}" if cap is not None else ""))
+    rules = (policy or {}).get("model_path")
+    if rules:
+        allow = "any" if rules["allow"] is None else ", ".join(rules["allow"]) or "none"
+        lines.append(f"  models: {allow}")
+        for unit in ("tokens", "money_usd"):
+            cap = rules["judge"].get(unit)
+            used = status["totals"]["judge_" + unit]
+            lines.append(f"  judge_{unit}: {used}" + (f" of {cap}" if cap is not None else ""))
     lines += [f"  {f['code']}: {f['message']}" for f in status["findings"]]
     return lines
+
+
+def _model_path(args: argparse.Namespace) -> dict[str, Any] | None:
+    """The ``model_path`` section the sign-policy flags ask for (0.87), or ``None``."""
+    aliases = {}
+    for item in getattr(args, "model_alias", None) or []:
+        alias, sep, name = item.partition("=")
+        if not sep:
+            raise ValueError(f"--model-alias wants ALIAS=NAME, not {item!r}")
+        aliases[alias] = name
+    judge = {"tokens": getattr(args, "judge_tokens", None),
+             "money_usd": getattr(args, "judge_money_usd", None)}  # fmt: skip
+    section: dict[str, Any] = {"allow": getattr(args, "allow_model", None), "aliases": aliases,
+                               "judge": judge}  # fmt: skip
+    if getattr(args, "max_output_tokens", None) is not None:
+        section["max_output_tokens"] = args.max_output_tokens
+    if section["allow"] is None and not aliases and set(judge.values()) == {None} and (
+            "max_output_tokens" not in section):  # fmt: skip
+        return None
+    return section
 
 
 def _sign(args: argparse.Namespace, now_ms: int) -> tuple[dict[str, Any], list[str], int]:
@@ -37,8 +65,8 @@ def _sign(args: argparse.Namespace, now_ms: int) -> tuple[dict[str, Any], list[s
     limits = {n: (int(v) if v is not None and n in _budget_policy.INTEGER else v)
               for n, v in limits.items()}  # fmt: skip
     doc = _budget_policy.build(args.subject, limits, serial=args.serial,
-                               on_limit=args.on_limit,
-                               issued_at=_budget_ledger.rfc3339(now_ms))  # fmt: skip
+                               on_limit=args.on_limit, issued_at=_budget_ledger.rfc3339(now_ms),
+                               model_path=_model_path(args))  # fmt: skip
     signed = _budget_policy.sign(doc, ed25519_private(args.key))
     path = Path(args.out)
     path.write_bytes((json.dumps(signed, indent=2, sort_keys=True) + "\n").encode("utf-8"))
@@ -100,7 +128,7 @@ def _ledger(repo: Any, subject: str, now_ms: int) -> tuple[dict[str, Any], list[
             cost = value.get("cost") if isinstance(value.get("cost"), dict) else {}
             item.update(run=value.get("run"), money_usd=cost.get("total_cost"),
                         tokens=cost.get("total_tokens"))  # fmt: skip
-        elif value.get("entry") == "flag":
+        elif value.get("entry") in ("flag", "deny"):
             item.update(code=value.get("code"), about=value.get("about"))
         rows.append(item)
     lines = [f"{r['entry']:6} {r['id']} {r.get('run') or r.get('code') or ''}".rstrip()

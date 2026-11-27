@@ -131,21 +131,21 @@ def promote(key: Any, policy: dict[str, Any], candidate: str, label: str, *, sta
                               baseline=baseline, evals=evals, holdout=holdout,
                               approval_files=approvals, spent=spent,
                               promoter=_who(key), sequence=len(record["history"]))  # fmt: skip
-    from opentine._promote_guards import guards
+    from opentine._integrity_run import promote_refusals
+    from opentine._promote_guards import guards, late
+    from opentine._promote_holdout import refusals as sealed
     from opentine._promote_pins import policy_pin
+    from opentine._regions_pin import promote_findings as regions
 
     pin, unsigned = policy_pin(repo_path, policy, _who(key), list(policy_attestations))
-    from opentine._integrity_run import promote_refusals
-
     refusals = unsigned + guards(repo_path, _who(key), loop, candidate) + refusals
     refusals += promote_refusals(repo_path, candidate)
-    from opentine._promote_holdout import refusals as sealed
-
     refusals += sealed(list(sealed_holdouts), canary_lengths, repo_path, candidate,
                        policy=policy, advisories=evidence["advisories"])  # fmt: skip
-    from opentine._promote_guards import late
-
     refusals += late(repo_path, candidate, label, record, evals)  # 0.61 memory, 0.64 oversight
+    held, advised = regions(policy, repo_path)  # 0.87: EVOLVE-BLOCK region pins
+    refusals += held
+    evidence["advisories"] += advised
     more, advice, plan_row = planned(policy, record, candidate, baseline, evals, holdout, plan,
                                      reveal, lineage, repo_path)  # fmt: skip
     refusals += more  # 0.86: pre-registered, selection-adjusted

@@ -9,6 +9,8 @@ by a signed ``opentine.integrity.taint`` attestation. ``pin`` writes the
 current digests of every protected file into the list (which must then be
 re-signed); ``sign`` pins the list's bytes with a ``policy``-role key.
 ``scan`` (0.60) finds registered canaries (:mod:`opentine._canary_scan`).
+``region-pin`` / ``region-check`` (0.87) sign and check the EVOLVE-BLOCK region
+pin (:mod:`opentine._regions_pin`); ``check`` adds its findings when one is filed.
 """
 
 from __future__ import annotations
@@ -31,6 +33,10 @@ def add_integrity_parser(subparsers: argparse._SubParsersAction) -> None:
     pin = verbs.add_parser("pin", help="Write current digests of protected files into the list")
     sign = verbs.add_parser("sign", help="Sign the protected list with a policy-role key")
     scan = verbs.add_parser("scan", help="Find registered canaries in runs, prompts, memory, packs")
+    rpin = verbs.add_parser("region-pin", help="Sign the locked code outside EVOLVE-BLOCK regions")
+    rpin.add_argument("--glob", action="append", default=[], metavar="GLOB",
+                      help="Files the pin covers (repeatable)")  # fmt: skip
+    rcheck = verbs.add_parser("region-check", help="Check the working tree against the region pin")
     scan.add_argument(
         "--file",
         action="append",
@@ -38,13 +44,13 @@ def add_integrity_parser(subparsers: argparse._SubParsersAction) -> None:
         metavar="PATH",
         help="Also search this file (an exported pack or bundle) as raw bytes",
     )
-    for p in (check, pin, sign, scan):
+    for p in (check, pin, sign, scan, rpin, rcheck):
         p.add_argument("--repo", default=".", metavar="PATH", help="Repository root")
         p.add_argument("--json", action="store_true", help="Machine-readable output")
     check.add_argument("run", help="The run (run:sha256:HEX)")
     check.add_argument("--strict", action="store_true", help="Advisory findings block too")
     check.add_argument("--record", metavar="PATH", help="Run record: also run the detectors")
-    for p in (check, sign):
+    for p in (check, sign, rpin):
         p.add_argument("--key", metavar="KEY", help="Ed25519 key (check: signs the taint)")
         p.add_argument("--at", metavar="TIME", help="YYYY-MM-DDTHH:MM:SSZ (default: now)")
 
@@ -111,15 +117,28 @@ def _row(args: argparse.Namespace) -> dict:
         from opentine._canary_scan import scan
 
         return scan(root, args.file)
+    if command in ("region-pin", "region-check"):
+        from opentine import _regions_pin as regions
+
+        if command == "region-check":
+            return regions.check(root)
+        if not args.key:
+            raise error("integrity region-pin needs --key", USAGE, prefix="integrity: ")
+        return regions.pin(root, args.glob, _key(args), args.at or _now())
     if command == "sign":
         if not args.key:
             raise error("integrity sign needs --key", USAGE, prefix="integrity: ")
         return {"ok": True, **run.sign_list(root, _key(args), args.at or _now())}
     row = run.check_run(root, args.run, strict=args.strict)
     if args.record:
+        row["findings"] += _detected(args.record)
+    from opentine._regions_pin import PIN, check
+
+    if (root / PIN).is_file():  # 0.87: a filed region pin is judged too
+        row["findings"] += check(root)["findings"]
+    if args.record or (root / PIN).is_file():
         from opentine._integrity import blocking
 
-        row["findings"] += _detected(args.record)
         hard = blocking(row["findings"], strict=args.strict)
         row["ok"], row["blocking"] = not hard, len(hard)
     if args.key and any(f["level"] == "fail" for f in row["findings"]):
@@ -151,6 +170,12 @@ def cmd_integrity(args: argparse.Namespace) -> None:
     elif command == "pin":
         console.print(_terminal(f"PINNED {row['pins']} files in {row['list']}; re-sign it"),
                       markup=False)  # fmt: skip
+    elif command in ("region-check", "region-pin"):
+        verdict = "PINNED" if command == "region-pin" else ("OK" if row["ok"] else "MODIFIED")
+        console.print(_terminal(f"{verdict} {row['baseline_sha256']} ({row['files']} files)"),
+                      markup=False)  # fmt: skip
+        for f in row.get("findings", []):
+            console.print(_terminal(f"  {f['code']} {f['path']}: {f['detail']}"), markup=False)
     elif command == "scan":
         verdict = "CLEAN" if row["ok"] else "CANARY FOUND"
         console.print(_terminal(f"{verdict} {row['counts']}"), markup=False)

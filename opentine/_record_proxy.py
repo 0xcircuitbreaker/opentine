@@ -44,6 +44,8 @@ _HOP = {
     "connection", "keep-alive", "proxy-authenticate", "proxy-authorization", "te",
     "trailers", "transfer-encoding", "upgrade", "host", "content-length", "accept-encoding",
 }  # fmt: skip
+#: The call-role tag (judge, scorer) read by a budget gate and not forwarded under one.
+ROLE_HEADER = "x-opentine-call-role"
 #: The most of one exchange kept for the recorder; the child still gets every byte.
 MAX_CAPTURE = 16 * 1024 * 1024
 
@@ -123,6 +125,13 @@ class _Handler(GuardedHandler):
         started = time.monotonic()
         record: dict[str, Any] = {"upstream": name, "path": "/" + rest, "request": body}
         record["started"] = started
+        gate, ticket = self.server.gate, None
+        if gate is not None:  # 0.87: --budget; see opentine._record_budget
+            decision = self._admit(gate, name, rest, body)
+            if not decision["ok"]:
+                self._refuse(decision, record, started)
+                return
+            ticket = decision["ticket"]
         try:
             self._forward(self.server.bases[name], rest, body, record)
         except (OSError, http.client.HTTPException) as exc:
@@ -136,7 +145,31 @@ class _Handler(GuardedHandler):
                 self.send_header("Content-Length", str(len(payload)))
                 self.end_headers()
                 self.wfile.write(payload.encode())
+        finally:
+            if gate is not None:
+                gate.settle(ticket, record)
         record["duration"] = time.monotonic() - started
+        self.server.capture(record)
+
+    def _admit(self, gate: Any, name: str, rest: str, body: bytes) -> dict[str, Any]:
+        from opentine._record_budget import role_of
+
+        _, _, provider, dialect = UPSTREAMS[name]
+        role = role_of(self.headers.get_all(ROLE_HEADER) or [])
+        return gate.admit(provider, dialect, self.command, "/" + rest, body, role)
+
+    def _refuse(self, decision: dict[str, Any], record: dict[str, Any], started: float) -> None:
+        from opentine._record_budget import refusal
+
+        payload = refusal(decision)
+        self.send_response(decision["status"])
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
+        record.update(status=decision["status"], content_type="application/json",
+                      response=payload, denied=decision["code"],
+                      duration=time.monotonic() - started)  # fmt: skip
         self.server.capture(record)
 
     def _forward(self, base: str, rest: str, body: bytes, record: dict[str, Any]) -> None:
@@ -146,7 +179,8 @@ class _Handler(GuardedHandler):
             http.client.HTTPSConnection if target.scheme == "https" else http.client.HTTPConnection
         )
         connection = kind(target.netloc, timeout=600)
-        headers = {k: v for k, v in self.headers.items() if k.lower() not in _HOP}
+        hop = _HOP if self.server.gate is None else _HOP | {ROLE_HEADER}
+        headers = {k: v for k, v in self.headers.items() if k.lower() not in hop}
         headers["Accept-Encoding"] = "identity"  # so the recorder can read what it relays
         try:
             connection.request(self.command, path, body=body or None, headers=headers)
@@ -176,9 +210,11 @@ class _Handler(GuardedHandler):
 class RecordingServer(LingeringGuardedServer):
     max_clients = 64  # long-lived streams: a wider cap, still bounded
 
-    def __init__(self, bases: dict[str, str], on_record: Callable[[dict[str, Any]], None]):
+    def __init__(self, bases: dict[str, str], on_record: Callable[[dict[str, Any]], None],
+                 gate: Any = None):  # fmt: skip
         super().__init__(("127.0.0.1", 0), _Handler)
         self.bases = bases
+        self.gate = gate
         self._on_record = on_record
         self._lock = threading.Lock()
 
@@ -192,8 +228,10 @@ class RecordingServer(LingeringGuardedServer):
 
 
 def start(
-    on_record: Callable[[dict[str, Any]], None], overrides: dict[str, str] | None = None
+    on_record: Callable[[dict[str, Any]], None],
+    overrides: dict[str, str] | None = None,
+    gate: Any = None,
 ) -> RecordingServer:
-    server = RecordingServer(upstream_bases(dict(os.environ), overrides), on_record)
+    server = RecordingServer(upstream_bases(dict(os.environ), overrides), on_record, gate)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     return server

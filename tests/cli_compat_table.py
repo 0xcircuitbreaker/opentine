@@ -5414,6 +5414,28 @@ ROWS: tuple[tuple, ...] = (
         {"command": "integrity", "integrity_command": "sign", "key": "k"},
     ),
     (
+        "plain:integrity region-pin --glob evolve/** --key k --json",
+        "plain",
+        ["integrity", "region-pin", "--glob", "evolve/**", "--key", "k", "--json"],
+        "opentine._cli_integrity:cmd_integrity",
+        False,
+        {
+            "command": "integrity",
+            "integrity_command": "region-pin",
+            "glob": ["evolve/**"],
+            "key": "k",
+            "json": True,
+        },
+    ),  # 0.87
+    (
+        "plain:integrity region-check --repo r",
+        "plain",
+        ["integrity", "region-check", "--repo", "r"],
+        "opentine._cli_integrity:cmd_integrity",
+        False,
+        {"command": "integrity", "integrity_command": "region-check", "repo": "r"},
+    ),  # 0.87
+    (
         "plain:monitor backtest m --runs r --require-reproduced",
         "plain",
         ["monitor", "backtest", "m", "--runs", "r", "--require-reproduced"],
