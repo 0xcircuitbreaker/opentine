@@ -17,6 +17,7 @@ from pathlib import Path
 from opentine import _codec
 from opentine.kernel import KernelError
 from opentine.repository import _winretry
+from opentine.repository._autopack import merge_candidates, pack_sizes
 from opentine.repository._autopack_format import pinned
 from opentine.repository._config import (
     STORAGE_V3,
@@ -56,10 +57,7 @@ class GcResult:
 
 
 def footprint(tine: Path) -> tuple[int, int]:
-    """(file bytes, allocated disk bytes) of objects, packs, refs, reflogs and state.
-
-    Refs and reflogs count since 0.14: after a gc they are most of the disk.
-    """
+    """(file bytes, allocated disk bytes) of objects, packs, refs (0.14), reflogs, state."""
     total = disk = 0
     for name in FOOTPRINT_DIRS:
         for directory, _, files in os.walk(internal_path(tine, name)):
@@ -160,7 +158,7 @@ def gc(
 ) -> GcResult:
     """Pack loose objects (*min_age* s old or older); never delete one (``--prune=now``: prune).
 
-    ``repack`` also rewrites every pack; *merge_packs* rewrites just those.
+    ``repack`` also rewrites every pack; *merge_packs* those (None: autopack's small ones).
     ``upgrade`` moves the repository to storage version 3 and rewrites every
     pack in that format; ``downgrade`` rewrites every pack in the version-1
     pack format and returns the descriptor to version 2 (what 0.11-0.12 read).
@@ -180,6 +178,8 @@ def gc(
         if upgrade:  # descriptor first: a crash leaves a v3 repo holding v1 packs
             set_storage_version(repo, STORAGE_V3, chosen)
         args = (repo, rewrite, chosen, level, keep_transfer_packs)
+        if merge_packs is None:  # each gc writes a pack: fold the small ones, bounded count
+            merge_packs = [] if rewrite else merge_candidates(pack_sizes(repo.path))
         result = _gc_locked(*args, (min_age, own), merge_packs, 1 if downgrade else None)
         if downgrade:  # descriptor last: until then 0.12 must keep refusing
             set_storage_version(repo, STORAGE_VERSION, chosen)

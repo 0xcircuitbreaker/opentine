@@ -141,7 +141,7 @@ def merge_candidates(sizes: dict[str, int]) -> list[str]:
     return chosen if len(chosen) > 1 else []
 
 
-def _pack_sizes(root) -> dict[str, int]:
+def pack_sizes(root) -> dict[str, int]:
     sizes: dict[str, int] = {}
     directory = internal_path(root, "packs")
     try:
@@ -165,7 +165,7 @@ def maybe_autopack(repo, *, min_age: float = MIN_AGE, own: frozenset[str] = froz
         limit = threshold(repo)
         if limit is None or getattr(repo, "_storage_codec", None) is None:
             return None
-        merge = merge_candidates(_pack_sizes(repo.path))  # 0.40: run packs pile up too
+        merge = merge_candidates(pack_sizes(repo.path))  # 0.40: run packs pile up too
         if not merge and not due(repo.path, min_age, limit, byte_threshold(repo), own):
             return None
         from opentine.repository._autopack_format import adopt_current_format
@@ -199,10 +199,10 @@ def after_write(repo, *, own: bool = False) -> None:
         elif len(mine) >= (state.get("_autopack_limit") or DEFAULT_THRESHOLD):
             state["_autopack_limit"] = threshold(repo)
             if state["_autopack_limit"] is not None:
-                before = set(_pack_sizes(repo.path))
+                before = set(pack_sizes(repo.path))
                 if maybe_autopack(repo, own=frozenset(mine)) is not None:
                     hot = state.setdefault("_autopack_hot", set())
-                    hot.update(set(_pack_sizes(repo.path)) - before)
+                    hot.update(set(pack_sizes(repo.path)) - before)
             mine.clear()  # packed, or left to the cold-object path (gc busy)
             return
         written = state.get("_autopack_writes", 0)
@@ -231,7 +231,7 @@ def settle(repo) -> None:
     written by anything else are left alone. Never raises.
     """
     state = repo.__dict__
-    hot = state.pop("_autopack_hot", set()) & set(_pack_sizes(repo.path))
+    hot = state.pop("_autopack_hot", set()) & set(pack_sizes(repo.path))
     mine = frozenset(state.get("_autopack_own", ()))
     try:
         if not hot or threshold(repo) is None:
