@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-eval-rescore-1.schema.json",
+  "title": "tine eval rescore --json",
+  "description": "An isolated eval's recorded scorer re-run under isolation on the named outputs; `report` is the signed opentine.rescore-report/1 and `ok` is its verdict == agree.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "command",
+    "schema",
+    "ok",
+    "report",
+    "path"
+  ],
+  "properties": {
+    "command": {
+      "const": "eval rescore"
+    },
+    "schema": {
+      "const": "tine-cli-eval-rescore/1"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "report": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "convention",
+        "eval",
+        "dataset",
+        "scorer_version",
+        "closure",
+        "rescored_closure",
+        "closure_agree",
+        "rows",
+        "agreed",
+        "disagreed",
+        "verdict",
+        "isolation",
+        "created_at",
+        "signer",
+        "signature"
+      ],
+      "properties": {
+        "convention": {
+          "const": "opentine.rescore-report/1"
+        },
+        "eval": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "dataset": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "scorer_version": {
+          "type": "string",
+          "pattern": "^sc1\\+sha256:[0-9a-f]{64}$"
+        },
+        "closure": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "rescored_closure": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "closure_agree": {
+          "type": "boolean"
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "item",
+              "reported",
+              "rescored",
+              "agree"
+            ],
+            "properties": {
+              "item": {
+                "type": "string"
+              },
+              "reported": {
+                "type": "string",
+                "pattern": "^(0|1|0\\.[0-9]{0,5}[1-9])$"
+              },
+              "rescored": {
+                "type": "string",
+                "pattern": "^(0|1|0\\.[0-9]{0,5}[1-9])$"
+              },
+              "agree": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "agreed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "disagreed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "verdict": {
+          "enum": [
+            "agree",
+            "disagree"
+          ]
+        },
+        "isolation": {
+          "enum": [
+            "full",
+            "partial"
+          ]
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "signer": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "signature": {
+          "$ref": "tine-sig-3.schema.json"
+        }
+      }
+    },
+    "path": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

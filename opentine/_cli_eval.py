@@ -34,6 +34,9 @@ def add_eval_parsers(sub: Any) -> None:
         help="Sealed holdout DATASET came from: refuse runs that touched it",
     )
     run.add_argument("--repo", default=".", help="Repository holding the scored runs")
+    from opentine._cli_eval_scorer import add_run_args, add_verbs
+
+    add_run_args(run)  # 0.85: --isolate, --contract, closure pins
     verify = verbs.add_parser("verify", help="Verify an eval folder's verdicts offline")
     verify.add_argument("eval_dir", metavar="DIR")
     compare = verbs.add_parser("compare", help="Diff two evals item by item (both verified)")
@@ -58,6 +61,7 @@ def add_eval_parsers(sub: Any) -> None:
     ci.add_argument("--out", metavar="DIR", help="Where eval folders go (default .tine/evals)")
     ci.add_argument("--repo", default=".", help="The directory holding .tine/")
     ci.add_argument("--created-at", metavar="TIME", help="YYYY-MM-DDTHH:MM:SSZ (default: now)")
+    add_verbs(verbs)  # 0.85: rescore, lint
     for verb in (verify, compare):
         verb.add_argument("--pubkey", metavar="PUB", help="Trusted Ed25519 public key")
     for verb in (run, verify, compare, ci):
@@ -86,19 +90,26 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
 
     prompt = Path(args.judge_prompt).read_text("utf-8") if args.judge_prompt else None
     rubric = Path(args.judge_rubric).read_bytes().decode("utf-8") if args.judge_rubric else None
-    scorer = (
+    from opentine._cli_eval_scorer import build
+
+    scorer, advisories = build(args, lambda: (
         parse(args.scorer, prompt=prompt, rubric=rubric)
-        if args.scorer.startswith("llm-judge:")
-        else parse(args.scorer)
-    )
+        if args.scorer.startswith("llm-judge:") else parse(args.scorer)))  # fmt: skip
     key = ed25519_private_from_file(args.key, signer=False)
     if args.holdout:
         from opentine._eval_holdout import refuse_touched
 
         refuse_touched(args, read_jsonl(Path(args.dataset)), _outputs(args.outputs))
-    return run_eval(read_jsonl(Path(args.dataset)), scorer, key, Path(args.out),
-                    threshold=args.threshold, outputs=_outputs(args.outputs),
-                    default_run=args.default_run, created_at=args.created_at)  # fmt: skip
+    summary = run_eval(read_jsonl(Path(args.dataset)), scorer, key, Path(args.out),
+                       threshold=args.threshold, outputs=_outputs(args.outputs),
+                       default_run=args.default_run, created_at=args.created_at)  # fmt: skip
+    found = scorer.config.get("closure")
+    if found is not None:
+        from opentine._scorer_closure import closure_digest
+
+        summary["closure"] = closure_digest(found)
+        summary["isolation"] = found["isolation"]["level"]
+    return {**summary, "advisories": advisories}
 
 
 def _ci(args: argparse.Namespace) -> dict[str, Any]:
@@ -120,7 +131,14 @@ def _human(verb: str, row: dict[str, Any]) -> None:
         console.print(f"REFUSED {item['code']}: {item['detail']}", highlight=False, markup=False)
     if "refusals" in row:
         return
+    for item in row.get("advisories", []):
+        console.print(f"ADVISORY {item['code']}: {item['detail']}", highlight=False, markup=False)
 
+    if verb in ("rescore", "lint"):
+        from opentine._cli_eval_scorer import human
+
+        human(row)
+        return
     if verb == "ci":
         for item in row["evals"]:
             head = "PASS" if item["ok"] else "FAIL"
@@ -165,10 +183,15 @@ def cmd_eval(args: argparse.Namespace) -> None:
     errors = (DatasetError, ScorerError, EvalVerdictError, PassphraseUnavailable, SignatureError,
               OSError, ValueError, KeyError, ImportError)  # fmt: skip
     from opentine._eval_holdout import HoldoutTouched
+    from opentine._scorer_isolated import ScorerRefused
 
     try:
         if verb == "run":
             row = {"ok": True, **_run(args)}
+        elif verb in ("rescore", "lint"):
+            from opentine._cli_eval_scorer import run_verb
+
+            row = run_verb(args)
         elif verb == "ci":
             row = _ci(args)
         elif verb == "verify":
@@ -181,6 +204,8 @@ def cmd_eval(args: argparse.Namespace) -> None:
             row = compare(Path(args.left), Path(args.right), public_key=_pubkey(args))
     except HoldoutTouched as exc:
         row = {"ok": False, "refusals": exc.refusals}
+    except ScorerRefused as exc:  # 0.85: isolation breach, closure mismatch, contract
+        row = {"ok": False, "refusals": exc.refusals()}
     except errors as exc:
         fail(exc, ERROR, prefix=f"eval {verb}: ", cause=exc)
     if args.json:

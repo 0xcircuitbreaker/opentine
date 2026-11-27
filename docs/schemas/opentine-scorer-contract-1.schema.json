@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-scorer-contract-1.schema.json",
+  "title": "opentine.scorer-contract/1",
+  "description": "An evaluator invariant contract: determinism, anchors with known scores, output shape, length bounds and a length relation to an item field. A file convention, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.scorer-contract/1"
+    },
+    "deterministic": {
+      "type": "boolean"
+    },
+    "anchors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "item",
+          "output",
+          "score"
+        ],
+        "properties": {
+          "item": {
+            "type": "object"
+          },
+          "output": {},
+          "score": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "output_schema": {},
+    "output_length": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "properties": {
+        "min": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "length_relation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "field",
+        "relation"
+      ],
+      "properties": {
+        "field": {
+          "type": "string"
+        },
+        "relation": {
+          "enum": [
+            "eq",
+            "le",
+            "ge"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -96,6 +96,7 @@ approvers = ["sha256:<key fingerprint>"]
 min_approvals = 1
 require_holdout = true
 eval_signers = ["sha256:<key fingerprint>"]   # the keys trusted to sign verdicts
+scorer_isolation = "advisory"  # 0.85: or "required"; profile = "rsi" implies "required"
 ```
 
 ### What the gate checks
@@ -123,6 +124,7 @@ A label moves only when every check passes. Each refusal names its reason:
 | `promote.key-separation` | the repository's key-role policy (`.tine/key-roles.toml`, see `tine keys lint`) lists the promoting key in a scorer, dataset, verdict or approver role; with no policy file nothing is refused |
 | `promote.loop-stopped` | `--loop LOOP`, or the candidate run's metadata (`opentine.loop`, or `opentine.task` naming a loop generation), names a stopped loop (`tine loop stop`: its coord record or the hold that keeps the stop); `--revert` stays allowed |
 | `promote.label-policy` | the admission policy does not cover `labels/LABEL`, or its `subjects` do not list the promoting key |
+| `promote.scorer-in-process` | (0.85) an eval ran a `python:` or `plugin:` scorer without `--isolate` while the policy sets `scorer_isolation = "required"` or `profile = "rsi"`; otherwise the same finding is the advisory `advisory:scorer.in-process` in the output's `advisories` (docs/SCORER-ISOLATION.md) |
 | `promote.already-current` | the run already holds the label |
 | `promote.not-current` | the run to revert does not hold the label |
 

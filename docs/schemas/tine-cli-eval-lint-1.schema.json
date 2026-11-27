@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-eval-lint-1.schema.json",
+  "title": "tine eval lint --json",
+  "description": "Introspection lint findings (`advisory:introspection.*`); advisory, so `ok` is false only under --strict with a finding.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "command",
+    "schema",
+    "ok",
+    "files",
+    "findings"
+  ],
+  "properties": {
+    "command": {
+      "const": "eval lint"
+    },
+    "schema": {
+      "const": "tine-cli-eval-lint/1"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "files": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "file",
+          "line",
+          "code",
+          "detail"
+        ],
+        "properties": {
+          "file": {
+            "type": "string"
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^advisory:introspection\\.[a-z-]+$"
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
