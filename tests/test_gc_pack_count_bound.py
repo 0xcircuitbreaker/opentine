@@ -32,6 +32,9 @@ def test_repeated_gc_merges_small_packs(tmp_path):
 
 
 def test_lookups_across_many_packs_stop_probing_every_index(tmp_path, monkeypatch):
+    # put_run's auto-pack hook merges small packs once more than MAX_PACKS exist,
+    # whenever its rescan interval has passed (a slow runner: Windows CI kept 6).
+    monkeypatch.setenv("OPENTINE_AUTO_PACK", "0")
     repo = Repo.init(tmp_path / "repo")
     for n in range(2 * MANY_PACKS):
         run = Run(id=f"r{n}", model_info="mock/test")
@@ -39,7 +42,7 @@ def test_lookups_across_many_packs_stop_probing_every_index(tmp_path, monkeypatc
         repo.put_run(run, ref=f"heads/r{n}")
         gc(repo, merge_packs=[])  # explicit: no merge, so packs pile up
     packs = len(pack_sizes(repo.path))
-    assert packs > MANY_PACKS
+    assert packs == 2 * MANY_PACKS
     probes = []
     for cls in (LegacyIndex, MappedIndex):
         original = cls.find
