@@ -18,11 +18,12 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
 from opentine._cli_errors import ERROR, USAGE, VERIFICATION_FAILED, fail
+from opentine._utc import rfc3339_utc
 
 
 def add_delegate_parsers(verbs: Any) -> None:
@@ -64,7 +65,7 @@ def _fingerprint(value: str) -> str:
 
 
 def _now() -> str:
-    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return rfc3339_utc()
 
 
 def _issue(args: argparse.Namespace) -> dict[str, Any]:

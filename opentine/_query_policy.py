@@ -16,16 +16,14 @@ from __future__ import annotations
 
 from typing import Any
 
+from opentine._query_values import text as _text
+
 COLUMNS: dict[str, tuple[str, ...]] = {
     "policy_admissions": ("oid", "target", "signer", "signed", "subject", "decision", "policy",
                           "policy_digest", "input_digest", "at"),
 }  # fmt: skip
 ROLES_FOR = {"policy_admissions": ("policy",)}
 TABLES = ("policy_admissions",)
-
-
-def _text(value: Any) -> str | None:
-    return value if isinstance(value, str) else None
 
 
 def attestation_rows(oid: str, payload: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:

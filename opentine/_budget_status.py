@@ -71,6 +71,18 @@ def _signer_findings(row: dict[str, Any], roles: dict[str, Any]) -> list[dict[st
     return []
 
 
+def _policy_forked(rows: list[dict[str, Any]]) -> bool:
+    """Whether a policy entry is an orphan or shares its parent with another entry."""
+    ids = {r["id"] for r in rows}
+    children: dict[Any, int] = {}
+    for row in rows:
+        children[row["previous"]] = children.get(row["previous"], 0) + 1
+    return any(r["value"].get("entry") == "policy"
+               and (children[r["previous"]] > 1 or (r["previous"] is not None
+                                                    and r["previous"] not in ids))
+               for r in rows)  # fmt: skip
+
+
 def status(repo: Any, subject: str, *, now_ms: int) -> dict[str, Any]:
     _budget_policy.subject(subject)
     rows = _budget_ledger.entries(repo, subject)
@@ -125,6 +137,8 @@ def status(repo: Any, subject: str, *, now_ms: int) -> dict[str, Any]:
     limits = policy["limits"] if policy else {n: None for n in LIMITS}
     over = [n for n in LIMITS if limits[n] is not None and totals[n] >= limits[n]]
     decision = "allow" if not over else policy["on_limit"]  # type: ignore[index]
+    if _policy_forked(rows):  # which policy is in force depends on a fork: fail closed
+        decision = "deny"
     if policy is None:
         findings.append(_finding("advisory", "budget.no-policy", None,
                                  "no budget policy is in force: nothing is capped"))  # fmt: skip

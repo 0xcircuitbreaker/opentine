@@ -125,6 +125,18 @@ directory-descriptor writer; control files are refused without
 or unreadable at capture) are left alone; a file stored redacted is refused.
 `--json` reports `restore`, `remove`, `unchanged`, `refused` and `kept`.
 
+## Commands documented elsewhere
+
+This reference does not repeat every command. These are documented in other
+files (`tine COMMAND --help` lists each one's flags):
+
+| Commands | Where |
+| --- | --- |
+| `tine tag`, `tine fork`, `tine diff`, `tine resume` | [GETTING_STARTED.md](GETTING_STARTED.md), [README.md](../README.md) |
+| `tine repo-log`, `tine repo-show`, `tine repo-diff`, `tine repo-verify`, `tine repo-fork`, `tine repo-resume`, `tine context`, `tine object` | [REPOSITORY.md](REPOSITORY.md) |
+| `tine pricing` | [PRICING.md](PRICING.md) |
+| `tine bisect`, `tine media`, `tine rebase`, `tine cherry-pick` | [README.md](../README.md) |
+
 ## Errors, `--json` and exit codes (0.36)
 
 Every leaf subcommand accepts `--json`. Commands with their own JSON payload

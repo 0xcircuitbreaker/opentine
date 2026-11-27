@@ -30,6 +30,7 @@ from typing import Any
 from opentine import _mirror_git as gitio
 from opentine import _mirror_state, _project
 from opentine._mirror_fetch import remove_tree
+from opentine._utc import rfc3339_utc
 from opentine.remote import _mirror_secret, _project_store
 from opentine.remote.backend import valid_tenant
 
@@ -219,7 +220,7 @@ def sync(root: Path, tenant: str, cfg: dict[str, Any], *, force: bool = False,
 
 
 def _stamp(epoch: float) -> str:
-    return datetime.fromtimestamp(epoch, UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return rfc3339_utc(epoch)
 
 
 def due(root: Path, cfg: dict[str, Any], now: float) -> list[str]:

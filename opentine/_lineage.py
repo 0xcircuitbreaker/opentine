@@ -149,16 +149,9 @@ def record(key: Any, *, run: str, artifacts: dict[str, str | None], store: Path,
             "evals": rows, "decision": cited}  # fmt: skip
 
 
-def _unique(pairs: list) -> dict:
-    keys = [k for k, _ in pairs]
-    if len(set(keys)) != len(keys):
-        raise ValueError("duplicate key")  # one reader, one meaning: no last-wins laundering
-    return dict(pairs)
-
-
 def loads(raw: bytes | str) -> Any:
     text = raw.decode("utf-8") if isinstance(raw, bytes) else raw
-    return _json_shallow.loads(text, object_pairs_hook=_unique)
+    return _json_shallow.loads(text, object_pairs_hook=_json_shallow.unique_pairs)
 
 
 def signed(payload: Any) -> bool:

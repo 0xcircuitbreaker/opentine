@@ -45,13 +45,12 @@ from opentine import Run, RunStatus, StepKind, cli
 from opentine._cli_flags import FLAG_DEFAULTS, KEY_MATERIAL_FLAGS
 from opentine._cli_parser import _build_parser
 from opentine._format_v4 import write_format
-from opentine.signing import HAS_ED25519, generate_ed25519
+from opentine.signing import generate_ed25519
 
 ROOT = Path(__file__).resolve().parents[1]
 LEGACY = ROOT / "tests" / "fixtures" / "golden_v0_linear.tine"
 KEY_ENV = "TINE_ROUND11_KEY"
 HMAC_KEY = "r" * 40
-needs_ed25519 = pytest.mark.skipif(not HAS_ED25519, reason="ed25519 needs the crypto extra")
 
 
 # --------------------------------------------------------------------------- #
@@ -86,11 +85,10 @@ def workspace(monkeypatch, tmp_path: Path) -> Path:
         (tmp_path / "hmac.key").write_bytes(HMAC_KEY.encode() + b"\n")
         (tmp_path / "adir").mkdir()
         shutil.copy(LEGACY, tmp_path / "legacy.tine")
-        if HAS_ED25519:
-            seed, public = generate_ed25519()
-            (tmp_path / "ed.hex").write_text(seed + "\n", encoding="utf-8")
-            (tmp_path / "ed.pub").write_text(public + "\n", encoding="utf-8")
-            run.save(tmp_path / "ed.tine", sign_key=seed, sign_algorithm="ed25519")
+        seed, public = generate_ed25519()
+        (tmp_path / "ed.hex").write_text(seed + "\n", encoding="utf-8")
+        (tmp_path / "ed.pub").write_text(public + "\n", encoding="utf-8")
+        run.save(tmp_path / "ed.tine", sign_key=seed, sign_algorithm="ed25519")
     return tmp_path
 
 
@@ -212,7 +210,6 @@ def test_keygen_without_force_still_prints_a_keypair(workspace, monkeypatch, cap
     assert code == 0 and "private (seed hex)" in out and "public (hex)" in out
 
 
-@needs_ed25519
 def test_keygen_still_honours_force_for_a_real_destination(workspace, monkeypatch, capsys):
     (workspace / "k.hex").write_text("occupied\n", encoding="utf-8")
 
@@ -247,8 +244,6 @@ CONFLICTS = [
 def test_verify_refuses_two_pieces_of_key_material(
     workspace, monkeypatch, capsys, first, second, ed
 ):
-    if ed and not HAS_ED25519:
-        pytest.skip("ed25519 needs the crypto extra")
 
     code, out = _invoke(monkeypatch, capsys, "verify", "signed.tine", *first, *second)
 
@@ -262,8 +257,6 @@ def test_verify_hmac_artifact_no_longer_reports_ok_while_ignoring_a_pinned_key(
     workspace, monkeypatch, capsys
 ):
     """The downgrade: an ed25519 pin plus a leaked HMAC key used to exit 0 on HMAC."""
-    if not HAS_ED25519:
-        pytest.skip("ed25519 needs the crypto extra")
     code, out = _invoke(
         monkeypatch, capsys, "verify", "signed.tine", "--pubkey", "ed.pub", "--key-env", KEY_ENV
     )
@@ -281,7 +274,6 @@ def test_verify_still_honours_each_key_flag_on_its_own(workspace, monkeypatch, c
     assert "SIGNATURE OK" in out and "alg=hmac-sha256" in out
 
 
-@needs_ed25519
 @pytest.mark.parametrize(
     ("extra", "marker"),
     [(["--pubkey", "ed.pub"], "SIGNATURE OK"), (["--trust-embedded-key"], "TOFU")],
@@ -545,8 +537,6 @@ EXEMPT = """
 def test_no_flag_of_these_commands_is_silently_ignored(
     workspace, monkeypatch, capsys, base, extra, expectation
 ):
-    if not HAS_ED25519 and any("ed" in part for part in base + extra):
-        pytest.skip("ed25519 needs the crypto extra")
     data = json.loads((workspace / "source.tine").read_text(encoding="utf-8"))
     data["metadata"]["integrity"]["digest"] = "0" * 64
     (workspace / "tampered.tine").write_text(json.dumps(data), encoding="utf-8")

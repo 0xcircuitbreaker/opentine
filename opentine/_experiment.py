@@ -24,11 +24,11 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from opentine import _signed_doc
+from opentine._utc import rfc3339_utc
 from opentine.kernel import canonical_json
 
 CONVENTION = "opentine.experiment-manifest/1"
@@ -46,7 +46,7 @@ MAX_ROWS = 100_000
 
 
 def now() -> str:
-    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return rfc3339_utc()
 
 
 def _num(value: Any) -> bool:

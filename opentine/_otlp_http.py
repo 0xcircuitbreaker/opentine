@@ -18,10 +18,9 @@ import ipaddress
 import json
 import threading
 import zlib
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 
-from opentine._http_linger import LingeringCloseMixin
+from opentine._http_guard import GuardedHandler, LingeringGuardedServer
 from opentine._otlp_collect import OtlpCollector
 from opentine.trace._import_guard import shape_checked
 
@@ -99,9 +98,8 @@ def _host_name(header: str) -> str:
 DRAIN_BYTES = 1 << 20  # an unread body up to this is read off before any refusal
 
 
-class OtlpHandler(BaseHTTPRequestHandler):
+class OtlpHandler(GuardedHandler):
     server_version = "OpenTineOTLP/1"
-    timeout = 30
     collector: OtlpCollector
     max_bytes: int
 
@@ -204,8 +202,8 @@ class OtlpHandler(BaseHTTPRequestHandler):
             self._reply(200, {})
 
 
-class OtlpServer(LingeringCloseMixin, ThreadingHTTPServer):
-    daemon_threads = True
+class OtlpServer(LingeringGuardedServer):
+    max_clients = 64
 
     def __init__(self, address: tuple[str, int], collector: OtlpCollector, max_bytes: int) -> None:
         handler = type("_Handler", (OtlpHandler,), {"collector": collector, "max_bytes": max_bytes})

@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import os
 import re
-import subprocess
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -69,10 +68,14 @@ IMPORTS["typescript"] = IMPORTS["javascript"]
 
 def files(root: Path) -> list[str]:
     """Repository-relative POSIX paths of the source files under *root*."""
-    done = subprocess.run(["git", "-C", root.as_posix(), "ls-files", "-z"],
-                          capture_output=True, check=False)  # fmt: skip
-    if done.returncode == 0:
-        names = [n for n in done.stdout.decode("utf-8", "replace").split("\0") if n]
+    from opentine._git_link import GitLinkError, git_raw
+
+    try:  # hardened: no fsmonitor, hooks, attributes or GIT_* env from the target repo
+        out: bytes | None = git_raw(root, "ls-files", "-z", timeout=30)
+    except GitLinkError:
+        out = None
+    if out is not None:
+        names = [n for n in out.decode("utf-8", "replace").split("\0") if n]
     else:
         names = []
         for folder, dirs, found in os.walk(root):

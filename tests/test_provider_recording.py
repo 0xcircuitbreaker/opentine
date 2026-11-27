@@ -31,6 +31,9 @@ from opentine.trace import _genai_semconv as semconv
 from opentine.trace import otel_genai_events, to_otel_genai
 from opentine.trace.recorder import Recorder
 
+#: Pins the deprecated v2 writer (tests/conftest.py legacy_v2_writer).
+pytestmark = pytest.mark.usefixtures("legacy_v2_writer")
+
 COMPAT = Path(__file__).parent / "fixtures" / "compat"
 RELEASED = sorted(path.name for path in COMPAT.iterdir() if (path / "artifact.tine").is_file())
 
@@ -234,10 +237,3 @@ def test_two_runs_with_no_provider_do_not_diff_on_it(tmp_path, capsys):
 
     changed = json.loads(capsys.readouterr().out)["changed"]
     assert [change["fields"] for change in changed] == [["model"]]
-
-
-@pytest.fixture(autouse=True)
-def _legacy_v2_writer(monkeypatch):
-    """0.26 writes format v4 by default. This module inspects the v2 file layout
-    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
-    monkeypatch.setenv("OPENTINE_FORMAT", "2")

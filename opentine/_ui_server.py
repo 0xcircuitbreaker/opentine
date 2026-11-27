@@ -21,13 +21,13 @@ from __future__ import annotations
 
 import json
 import threading
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import ThreadingHTTPServer
 from importlib import resources
 from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, unquote, urlsplit
 
-from opentine._http_linger import LingeringHTTPServer
+from opentine._http_guard import GuardedHandler, LingeringGuardedServer
 
 HOST = "127.0.0.1"
 CSP = (
@@ -177,7 +177,7 @@ def api(catalog: Catalog, path: str, query: dict[str, list[str]]) -> tuple[int, 
     return 404, {"error": "not found"}
 
 
-class Handler(BaseHTTPRequestHandler):
+class Handler(GuardedHandler):
     server_version = "tine-ui"
     sys_version = ""
     catalog: Catalog
@@ -236,9 +236,7 @@ class Handler(BaseHTTPRequestHandler):
 
 def make_server(catalog: Catalog, port: int = 0) -> ThreadingHTTPServer:
     handler = type("BoundHandler", (Handler,), {"catalog": catalog})
-    server = LingeringHTTPServer((HOST, port), handler)
-    server.daemon_threads = True
-    return server
+    return LingeringGuardedServer((HOST, port), handler)
 
 
 __all__ = ["CSP", "HOST", "Catalog", "api", "artifact_bytes", "asset", "make_server",

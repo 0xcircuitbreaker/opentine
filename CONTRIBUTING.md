@@ -84,11 +84,12 @@ uv run python scripts/wheel_smoke.py
 ```
 
 With Docker available, `uv run python scripts/ci_docker.py` rehearses the Ubuntu
-lane — lint, format check, the same deselected `pytest` run, `uv build`, and the
-wheel smoke test — in one container per Python version, defaulting to 3.11, 3.12,
-and 3.13. `--python VERSION` is repeatable and replaces that default set. It does
-not run the architecture, release-inventory, or `twine` gates, and GitHub Actions
-remains authoritative for macOS and Windows.
+lane — the locked install, lint, the architecture and copy checks, format check,
+the parallel and serial `pytest` passes, `uv build`, the release inventory,
+`twine check` and the wheel smoke test — in one container per Python version,
+defaulting to 3.11, 3.12, 3.13 and 3.14. `--python VERSION` is repeatable and
+replaces that default set. GitHub Actions remains authoritative for macOS and
+Windows.
 
 ## The standing rules
 
@@ -195,4 +196,4 @@ issue.
 | `tests/` | The suite, including the compat fixtures and the meta-tests described above. |
 | `examples/` | Runnable scripts; four of them run offline. |
 | `docs/` | [CONCEPTS.md](docs/CONCEPTS.md), [GETTING_STARTED.md](docs/GETTING_STARTED.md), [CAPTURE.md](docs/CAPTURE.md), [API.md](docs/API.md), [REPOSITORY.md](docs/REPOSITORY.md), [TINE_FORMAT.md](docs/TINE_FORMAT.md), [PRICING.md](docs/PRICING.md), [SECURITY_MODEL.md](docs/SECURITY_MODEL.md), [RELEASING.md](docs/RELEASING.md), [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md). |
-| `scripts/` | The gates: `check_architecture.py`, `check_release_inventory.py`, `wheel_smoke.py`, `ci_docker.py`, `gen_compat_fixtures.py`, `sign_pricing_catalog.py`. |
+| `scripts/` | The gates CI runs: `check_architecture.py`, `check_copy.py`, `check_parity.py`, `check_release_inventory.py`, `ci_plan.py`, `wheel_smoke.py`, and (through the tests) `check_api_contract.py` and `gen_schemas.py`. Release and manual tools: `check_release_gates.py` (see [RELEASING.md](docs/RELEASING.md)), `ci_docker.py`, `gen_compat_fixtures.py`, `sign_pricing_catalog.py`. How CI shards the suite and how to refresh `tests/test_durations.json` is in [CI-RUNNERS.md](docs/CI-RUNNERS.md). |

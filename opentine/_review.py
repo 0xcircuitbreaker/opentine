@@ -26,12 +26,12 @@ towards the gate status. :func:`check`, :func:`check_gate` and
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from typing import Any
 
 from opentine._review_rules import BUNDLE_KIND, FIELDS, GATE_KIND, KIND, gate_body, review_body
 from opentine._signed_record import RecordError, check_signature
 from opentine._signed_record import sign as _sign
+from opentine._utc import rfc3339_utc
 from opentine.kernel import ObjectEnvelope, canonical_json
 
 DOMAIN = b"opentine.review.v1:"
@@ -41,7 +41,7 @@ MAX_DECISIONS = 10_000
 
 
 def now() -> str:
-    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return rfc3339_utc()
 
 
 def digest(record: dict[str, Any]) -> str:

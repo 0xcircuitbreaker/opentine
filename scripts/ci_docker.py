@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_PYTHONS = ("3.11", "3.12", "3.13")
+DEFAULT_PYTHONS = ("3.11", "3.12", "3.13", "3.14")
 
 
 def parse_args() -> argparse.Namespace:
@@ -57,14 +57,21 @@ def container_script() -> str:
 set -euo pipefail
 python --version
 python -m venv /tmp/uv-bootstrap
-/tmp/uv-bootstrap/bin/python -m pip install --disable-pip-version-check --no-input uv
+/tmp/uv-bootstrap/bin/python -m pip install --disable-pip-version-check --no-input uv==0.11.12
 export PATH="/tmp/uv-bootstrap/bin:$PATH"
 uv --version
-uv sync --extra dev
+uv sync --locked --all-extras
 uv run ruff check .
+uv run python scripts/check_architecture.py
 uv run ruff format --check .
-uv run pytest tests -m "not live and not live_harness" -v -o cache_dir=/tmp/pytest-cache
+uv run python scripts/check_copy.py
+uv run pytest tests -m "not live and not live_harness and not serial" -n auto --dist loadgroup \
+    -o cache_dir=/tmp/pytest-cache
+uv run pytest tests -m "not live and not live_harness and serial" -p no:xdist \
+    -o cache_dir=/tmp/pytest-cache || test $? -eq 5
 uv build --sdist --wheel --out-dir "$OPENTINE_WHEEL_SMOKE_DIST"
+uv run python scripts/check_release_inventory.py "$OPENTINE_WHEEL_SMOKE_DIST"
+uv run python -m twine check "$OPENTINE_WHEEL_SMOKE_DIST"/*
 uv run python scripts/wheel_smoke.py
 """.strip()
 

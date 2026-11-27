@@ -253,7 +253,7 @@ A signed overlay older than the newest signed catalog already in use (bundled or
 installed) is skipped with a notice too: every release catalog ever shipped still
 verifies under the release key, so an old one checked into a project would
 otherwise roll prices back. Two different catalogs signed with the same
-`generated_at` cannot replace each other, at load or at `tine pricing install`.
+`generated_at` cannot replace each other, at load or at `tine pricing update`.
 A rate card's `currency` must be an ISO 4217 code (`USD`, three capitals).
 
 An overlay carries its own `catalog_id`, so recompute it after any edit. The

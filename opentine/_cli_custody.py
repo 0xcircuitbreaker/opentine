@@ -13,7 +13,6 @@ broken; ``--pubkey`` pins the actors' key and ``--vkey`` the checkpoint key.
 from __future__ import annotations
 
 import argparse
-import getpass
 import json
 from typing import Any
 
@@ -46,16 +45,10 @@ def add_custody_parser(sub: Any) -> None:
     add_weight_arguments(rec, actions)  # 0.71: checkpoint and weight custody
 
 
-def _actor() -> str:
-    try:
-        return getpass.getuser()
-    except Exception:  # noqa: BLE001 - no login name (containers, services)
-        return "local"
-
-
 def _record(args: argparse.Namespace, base: Any) -> None:
     from opentine import _custody
     from opentine._signing_keys import ed25519_private_from_file
+    from opentine.repository._oplog import _actor
 
     try:
         key = ed25519_private_from_file(args.sign_key)

@@ -29,6 +29,7 @@ from opentine._canon import atomic_write_text
 from opentine._cli_common import _terminal, console
 from opentine._cli_hook_agents import AGENTS, read_config
 from opentine._codec_io import atomic_write_bytes
+from opentine._config_home import config_dir
 from opentine._enable_native import NATIVE
 from opentine._enable_shims import render, with_shims, without_shims
 
@@ -52,8 +53,7 @@ def add_enable_parsers(subparsers: argparse._SubParsersAction) -> None:
 
 
 def _state(name: str) -> Path:
-    home = os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config"
-    return Path(home, "opentine", "enabled", f"{name}.json")
+    return config_dir("enabled", f"{name}.json")
 
 
 def _bytes(path: Path) -> bytes | None:

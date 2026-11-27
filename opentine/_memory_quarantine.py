@@ -30,17 +30,10 @@ TAG = "quarantine"
 
 def curators(repo: Any) -> tuple[set[str], str]:
     """The pinned ``curator`` fingerprints and why others are unverified."""
-    from opentine._key_roles import CURATOR, KeyRoleError
-    from opentine._key_roles_pin import resolve
+    from opentine._key_roles import CURATOR
+    from opentine._key_roles_pin import granting
 
-    try:
-        found = resolve(repo.path)
-    except KeyRoleError as exc:
-        return set(), f"key-role policy: {exc}"
-    if found["status"] != "pinned":
-        return set(), "the curator role is unpinned (no owner-signed trust bundle)"
-    keys = set((found["roles"] or {}).get(CURATOR, []))
-    return keys, "the signer is not a pinned curator key" if keys else "no curator key is pinned"
+    return granting(repo.path, CURATOR)
 
 
 def verification(signer: str, pinned: tuple[set[str], str]) -> str:
@@ -157,8 +150,7 @@ def quarantine(repo: Any, note: str, key: Any, why: str, *, created_at: str | No
     from opentine import _memory
     from opentine._signing_pins import key_fingerprint
     from opentine.repository import _registry_refs as refs
-    from opentine.repository._holds import MEMORY_QUARANTINE, edit_holds, holds_path
-    from opentine.repository._link_touch import touch_links
+    from opentine.repository._holds import MEMORY_QUARANTINE, hold_row
 
     if not why.strip():
         raise ValueError("a quarantine needs --why")
@@ -175,9 +167,7 @@ def quarantine(repo: Any, note: str, key: Any, why: str, *, created_at: str | No
     oid = refs.add_note(repo, signed)
     check = _memory.check(signed)
     held = oid  # the signed note's own blob: the hold keeps it when its ref is deleted
-    touch_links(repo, [held])
-    row = {"oid": held, "target": f"{MEMORY_QUARANTINE}{note[12:]}:{oid[12:]}"}
-    edit_holds(holds_path(repo), lambda rows: [*(r for r in rows if r != row), row])
+    hold_row(repo, held, f"{MEMORY_QUARANTINE}{note[12:]}:{oid[12:]}")
     return {"note": note, "quarantine": oid, "signer": check["signer"], "held": held,
             "verification": verification(check["signer"], curators(repo)),
             "record": signed}  # fmt: skip

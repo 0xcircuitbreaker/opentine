@@ -44,6 +44,9 @@ from opentine._artifact_shapes import validate_run_record
 from opentine.graph import RunStatus
 from opentine.runtime import Agent, _messages_from_transcript
 
+#: Pins the deprecated v2 writer (tests/conftest.py legacy_v2_writer).
+pytestmark = pytest.mark.usefixtures("legacy_v2_writer")
+
 # Values the validator permits wherever it constrains only the container.
 NOT_A_LIST = {"int": 5, "str": "abc", "none": None, "true": True, "float": 1.5, "dict": {"a": 1}}
 NOT_A_MAPPING = {"int": 5, "str": "abc", "none": None, "true": True, "float": 1.5, "list": [1]}
@@ -373,10 +376,3 @@ def test_no_position_raises_a_raw_interpreter_error(case, steps, tmp_path):
             pass
         except RAW as exc:  # pragma: no cover - the regression this file exists for
             pytest.fail(f"{case}/steps={steps} raised {type(exc).__name__}: {exc}")
-
-
-@pytest.fixture(autouse=True)
-def _legacy_v2_writer(monkeypatch):
-    """0.26 writes format v4 by default. This module inspects the v2 file layout
-    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
-    monkeypatch.setenv("OPENTINE_FORMAT", "2")

@@ -14,6 +14,9 @@ from opentine.autosave import Autosaver
 from opentine.core import RunStatus
 from opentine.runtime import Agent
 
+#: Pins the deprecated v2 writer (tests/conftest.py legacy_v2_writer).
+pytestmark = pytest.mark.usefixtures("legacy_v2_writer")
+
 # --- draft marker -----------------------------------------------------------
 
 
@@ -166,10 +169,3 @@ def test_agent_crash_leaves_resumable_draft(tmp_path: Path):
     assert result.draft is True  # the run never completed -> still a draft
     loaded = Run.load(target)
     assert len(loaded.steps) >= 1  # step1 (+ its tool result) survived the crash
-
-
-@pytest.fixture(autouse=True)
-def _legacy_v2_writer(monkeypatch):
-    """0.26 writes format v4 by default. This module inspects the v2 file layout
-    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
-    monkeypatch.setenv("OPENTINE_FORMAT", "2")

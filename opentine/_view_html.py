@@ -20,6 +20,7 @@ import json
 from html import escape
 from typing import Any
 
+from opentine._ui_model import _tool as _tool_name
 from opentine.redaction import redact_text
 
 FIELD_CAP = 64 * 1024
@@ -87,14 +88,6 @@ def _num(value: float) -> str:
 
 def _seconds(value: float) -> str:
     return f"{value:.3f}s"
-
-
-def _tool_name(step: Any) -> str:
-    for source in (step.tool_info, step.inputs):
-        name = source.get("name") if isinstance(source, dict) else None
-        if isinstance(name, str) and name:
-            return name
-    return ""
 
 
 def _block(label: str, value: Any) -> str:

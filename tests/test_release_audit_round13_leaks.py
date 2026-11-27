@@ -23,6 +23,9 @@ from opentine.mcp_repository import register_repository_tools
 from opentine.redaction import redact_blob, redact_text
 from opentine.repository import Repo
 
+#: Pins the deprecated v2 writer (tests/conftest.py legacy_v2_writer).
+pytestmark = pytest.mark.usefixtures("legacy_v2_writer")
+
 SECRET = "sk-ant-SUPERSECRET-LEGACY-0123"
 
 
@@ -188,10 +191,3 @@ def test_resolving_a_blob_aliased_under_another_key_is_also_redacted(tmp_path):
     resolved = repo.inspect(crafted, resolve_blobs=True)
     assert SECRET not in json.dumps(resolved)
     assert SECRET in repo.raw(legacy_blob).decode()  # stored bytes untouched
-
-
-@pytest.fixture(autouse=True)
-def _legacy_v2_writer(monkeypatch):
-    """0.26 writes format v4 by default. This module inspects the v2 file layout
-    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
-    monkeypatch.setenv("OPENTINE_FORMAT", "2")

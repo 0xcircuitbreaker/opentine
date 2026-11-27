@@ -101,17 +101,10 @@ def check_claim(claim: Any) -> list[str]:
 
 def monitors(repo: Any) -> tuple[set[str], str]:
     """The pinned ``monitor`` fingerprints and why another signer is unverified."""
-    from opentine._key_roles import MONITOR, KeyRoleError
-    from opentine._key_roles_pin import resolve
+    from opentine._key_roles import MONITOR
+    from opentine._key_roles_pin import granting
 
-    try:
-        found = resolve(repo.path)
-    except KeyRoleError as exc:
-        return set(), f"key-role policy: {exc}"
-    if found["status"] != "pinned":
-        return set(), "the monitor role is unpinned (no owner-signed trust bundle)"
-    keys = set((found["roles"] or {}).get(MONITOR, []))
-    return keys, "the signer is not a pinned monitor key" if keys else "no monitor key is pinned"
+    return granting(repo.path, MONITOR)
 
 
 def verify(repo: Any, oid: str, pinned: tuple[set[str], str] | None = None) -> dict[str, Any]:
@@ -155,12 +148,9 @@ def record(repo: Any, target: str, claim: dict[str, Any], key: Any) -> str:
 
 
 def hold(repo: Any, oid: str, session: str) -> None:
-    from opentine.repository._holds import MONITOR_VERDICT, edit_holds, holds_path
-    from opentine.repository._link_touch import touch_links
+    from opentine.repository._holds import MONITOR_VERDICT, hold_row
 
-    touch_links(repo, [oid])
-    row = {"oid": oid, "target": f"{MONITOR_VERDICT}{session}"}
-    edit_holds(holds_path(repo), lambda rows: [*(r for r in rows if r != row), row])
+    hold_row(repo, oid, f"{MONITOR_VERDICT}{session}")
 
 
 def held(repo: Any) -> list[str]:

@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from opentine._canon import atomic_write_text
+from opentine._config_home import config_dir
 from opentine.billing import _catalog_trust as _trust
 from opentine.billing._catalog_file import read_regular
 from opentine.billing._catalog_json import parse_catalog_json
@@ -154,8 +155,7 @@ def user_catalog_path() -> Path:
     variable set to "" is present but meaningless, and ``Path("")`` is ``Path(".")``
     — which would make the overlay CWD-relative, and different per process.
     """
-    home = os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config"
-    return Path(home, "opentine", "pricing.json")
+    return config_dir("pricing.json")
 
 
 #: Called with the path of a workspace overlay ``load_catalogs`` ignores (unsigned,

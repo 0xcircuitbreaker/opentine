@@ -8,7 +8,7 @@ An embedder turns text into a fixed-length vector. It is pluggable and local:
   ranks the same on another. It captures spelling overlap, not meaning.
 * ``MODULE:ATTR`` names a Python object importable on this machine with a
   ``name``, a ``dim`` and ``embed(texts) -> list[list[float]]`` -- for example
-  an adapter around a local sentence-transformers or ONNX model (docs/SEARCH.md).
+  an adapter around a local sentence-transformers or ONNX model (docs/PII.md#hybrid-search).
   A spec that looks like a URL is refused: text is never sent anywhere to be
   embedded.
 

@@ -17,7 +17,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from opentine._cli_common import _terminal, console
+from opentine._cli_common import _terminal, console, resolve_run
 from opentine._cli_errors import error
 from opentine._cli_ingest import COMMANDS as INGEST_COMMANDS
 from opentine._cli_ingest import add_ingest_parser
@@ -67,15 +67,6 @@ def add_containment_parser(subparsers: argparse._SubParsersAction) -> None:
         verb.add_argument("--json", action="store_true", help="Print a JSON object")
 
 
-def _run_id(repo: Any, value: str) -> str:
-    from opentine.repository.ops import resolve_target
-
-    try:
-        return resolve_target(repo, value)
-    except KeyError:
-        raise KeyError(f"cannot resolve {value}: no such ref or run") from None
-
-
 def _json(path: str) -> Any:
     return json.loads(Path(path).read_bytes())
 
@@ -89,7 +80,7 @@ def _key(path: str) -> Any:
 def _record(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[str]]:
     from opentine import _containment
 
-    run = _run_id(repo, args.run)
+    run = resolve_run(repo, args.run)
     policy = _json(args.policy)
     oid = _containment.record(repo, run, policy, _key(args.key))
     digest = _containment.digest(policy)
@@ -100,7 +91,7 @@ def _check(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[st
     from opentine import _containment
 
     declared = _containment.digest(_json(args.policy)) if args.policy else args.digest
-    body = _containment.check(repo, _run_id(repo, args.run), declared)
+    body = _containment.check(repo, resolve_run(repo, args.run), declared)
     if args.strict and body["findings"]:
         body["ok"] = False
     lines = [f"{p['policy_digest']} {p['verification']}" for p in body["policies"]]
@@ -112,7 +103,7 @@ def _scan(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[str
     from opentine import _containment, _containment_detect
     from opentine._containment_records import rfc3339
 
-    run = _run_id(repo, args.run)
+    run = resolve_run(repo, args.run)
     found = _containment_detect.scan_run(repo.load_run(run), _containment.allowlist(repo, run))
     recorded: list[str] = []
     if args.key:

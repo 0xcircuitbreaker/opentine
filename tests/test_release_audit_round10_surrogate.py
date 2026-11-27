@@ -32,6 +32,9 @@ from opentine.repo_cli import cmd_repo
 from opentine.repository import Repo
 from opentine.trace.recorder import Recorder
 
+#: Pins the deprecated v2 writer (tests/conftest.py legacy_v2_writer).
+pytestmark = pytest.mark.usefixtures("legacy_v2_writer")
+
 # Exactly what a JS-side JSON.stringify emits for a string sliced mid-emoji.
 LONE_HIGH = json.loads('{"p": "done \\ud83d"}')["p"]
 LONE_LOW = json.loads('{"p": "done \\udc00"}')["p"]
@@ -301,10 +304,3 @@ def test_clean_artifacts_skip_the_walk_entirely(tmp_path):
     assert not surrogate_suspect(target.read_bytes())
     assert not surrogate_suspect(target.read_text())
     assert Run.load(target).user_prompt == "no escapes here"
-
-
-@pytest.fixture(autouse=True)
-def _legacy_v2_writer(monkeypatch):
-    """0.26 writes format v4 by default. This module inspects the v2 file layout
-    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
-    monkeypatch.setenv("OPENTINE_FORMAT", "2")

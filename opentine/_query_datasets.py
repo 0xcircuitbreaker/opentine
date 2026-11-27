@@ -22,6 +22,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from opentine._query_values import text as _text
+
 COLUMNS: dict[str, tuple[str, ...]] = {
     "dataset_versions": ("oid", "target", "signer", "signed", "name", "version", "previous",
                          "selection", "members", "excluded", "mode", "justification",
@@ -32,10 +34,6 @@ COLUMNS: dict[str, tuple[str, ...]] = {
 }  # fmt: skip
 ROLES_FOR = {"dataset_versions": ("curator",), "dataset_tombstones": ("curator",)}
 TABLES = ("dataset_versions", "dataset_tombstones")
-
-
-def _text(value: Any) -> str | None:
-    return value if isinstance(value, str) else None
 
 
 def _tombstone(oid: str, payload: dict[str, Any], claim: dict[str, Any]) -> dict[str, Any]:

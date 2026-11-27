@@ -159,8 +159,7 @@ def record(repo: Any, run: str, claim: dict[str, Any], key: Any) -> str:
     """Sign *claim* onto *run* and hold it under its suite. The attestation id."""
     from opentine._signing_pins import key_fingerprint
     from opentine.repository._attest import attest
-    from opentine.repository._holds import edit_holds, holds_path
-    from opentine.repository._link_touch import touch_links
+    from opentine.repository._holds import hold_row
 
     problems = check_claim(claim)
     if problems:
@@ -180,9 +179,7 @@ def record(repo: Any, run: str, claim: dict[str, Any], key: Any) -> str:
             raise ValueError(f"uplift.unknown-task: {claim['task']} is not in suite {digest}")
     oid = attest(repo, run, claim, signer=signer, key=key, algorithm="ed25519",
                  signed_at=claim["at"])  # fmt: skip
-    touch_links(repo, [oid])
-    row = {"oid": oid, "target": hold_target(digest)}
-    edit_holds(holds_path(repo), lambda held: [*(r for r in held if r != row), row])
+    hold_row(repo, oid, hold_target(digest))
     return oid
 
 

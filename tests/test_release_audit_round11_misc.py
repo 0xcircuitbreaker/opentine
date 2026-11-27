@@ -275,12 +275,13 @@ BINARY_DEPENDENT_TEST_MODULES = {
     "tests/_mirror_fixture.py": "git",
     "tests/test_055_mirror_refusals.py": "git",
     "tests/test_056_onboarding.py": "git",
+    "tests/test_085_sec_git_hardening.py": "git",
     "tests/test_cli_replay_verify_harness.py": "sh",
     "tests/test_release_workflow.py": "bash",
     "tests/test_036_push_preview.py": "git",
+    # git archive v0.34.0 for the 0.34 reader-compat tests (038, 041, 050, 058).
+    "tests/_v034.py": "git",
     "tests/test_048_forge.py": "git",
-    "tests/test_038_tree_snapshots.py": "git",
-    "tests/test_041_post_quantum.py": "git",
     "tests/test_045_prepush_gate_review.py": "git",
     "tests/test_042_line_attribution.py": "git",
     "tests/test_045_blame_attach.py": "git",
@@ -290,8 +291,6 @@ BINARY_DEPENDENT_TEST_MODULES = {
     "tests/test_047_experts.py": "git",
     "tests/test_048_review_run.py": "git",
     "tests/test_055_review_runner.py": "git",
-    "tests/test_050_stress_compat.py": "git",
-    "tests/test_058_pack_defaults.py": "git",
     "tests/test_conformance_drift.py": "git",
     "tests/test_entire_import_0_19.py": "git",
     "tests/test_entire_refs_0_42.py": "git",
@@ -371,8 +370,10 @@ def test_no_shipped_test_module_asserts_it_is_inside_a_git_checkout():
             continue  # this module names .git only to describe the rule
         relative = path.relative_to(ROOT).as_posix()
         found.add(relative)
+        # A module that spawns no binary (BINARY_DEPENDENT_TEST_MODULES) has none to miss.
+        spawns = relative in BINARY_DEPENDENT_TEST_MODULES
         tolerant = 'shutil.which("git")' in source or "except OSError" in source
-        assert tolerant, relative
+        assert tolerant or not spawns, relative
         assert "pytest.skip" in source or "skipif" in source, relative
     assert found == CHECKOUT_AWARE_TEST_MODULES
 

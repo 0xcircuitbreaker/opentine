@@ -18,6 +18,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from opentine._query_values import text as _text
+
 COLUMNS: dict[str, tuple[str, ...]] = {
     "sandbox_policies": ("oid", "target", "signer", "signed", "policy_digest", "recorded_at"),
     "containment_findings": ("oid", "target", "signer", "signed", "category", "step",
@@ -28,10 +30,6 @@ COLUMNS: dict[str, tuple[str, ...]] = {
 ROLES_FOR = {"sandbox_policies": ("runner",), "containment_findings": ("runner",),
              "budget_ledger": ("runner", "policy")}  # fmt: skip
 TABLES = tuple(COLUMNS)
-
-
-def _text(value: Any) -> str | None:
-    return value if isinstance(value, str) else None
 
 
 def _num(value: Any) -> float | None:

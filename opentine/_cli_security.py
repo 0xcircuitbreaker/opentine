@@ -19,6 +19,7 @@ from opentine._cli_verify_report import (
 )
 from opentine._key_hygiene import ed25519_private, hmac_key
 from opentine._key_lifecycle_verify import refuse_out_of_window
+from opentine._repo_cli_keys import verification_armed
 from opentine._signing_pins import apply_pins, normalize_pins, used_key_fingerprint
 from opentine._trust_policy import apply as apply_trust_policy
 from opentine.core import Run, short_id
@@ -98,23 +99,9 @@ def cmd_verify(args: argparse.Namespace) -> None:
     enforce_floor(args, assurance_for(args, path, show=True))
 
 
-def signature_requested(args: argparse.Namespace) -> bool:
-    """Whether any flag arms the authenticity check.
-
-    --trust-embedded-key is itself a request to check authenticity (TOFU), so it
-    arms the check like any key would; leaving it out of this test made
-    `tine verify RUN --trust-embedded-key` exit 0 without verifying anything.
-    repository/_migration.py already treats trust_embedded as a verification request.
-    Spelled once so the human and --json paths can never disagree about it.
-    """
-    return bool(
-        getattr(args, "key_env", None)
-        or getattr(args, "key_file", None)
-        or getattr(args, "pubkey", None)
-        or getattr(args, "trust_embedded_key", False)
-        or getattr(args, "require_signature", False)
-        or getattr(args, "pin", None)
-    )
+#: Whether any flag arms the authenticity check; one definition with ``tine verify``'s
+#: repository path (_repo_cli_keys.verification_armed), so they cannot disagree.
+signature_requested = verification_armed
 
 
 def signature_result(args: argparse.Namespace, path: Path, source: object = None):

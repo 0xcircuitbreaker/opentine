@@ -93,10 +93,6 @@ def parse(stored: bytes) -> tuple[bytes, str, int, int, bytes]:
     return header, base, int(match.group(2)), int(match.group(3)), middle
 
 
-def base_of(stored: bytes) -> str:
-    return parse(stored)[1]
-
-
 def apply(delta: tuple[bytes, str, int, int, bytes], base_raw: bytes) -> bytes:
     """The bytes *delta* rebuilds from *base_raw* (the caller checks them against the id)."""
     header, _, prefix, suffix, middle = delta

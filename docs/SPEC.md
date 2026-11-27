@@ -3911,7 +3911,7 @@ unchanged for older clients.
 <a id="s-8.20"></a>
 ## 8.20 MCP: memory in `recall`, and tasks (0.47.0)
 
-`tine mcp` answers `recall(query, limit)` with the runs the search index
+The MCP server (`python -m opentine.mcp_server`) answers `recall(query, limit)` with the runs the search index
 finds (0.44) and, under `memories`, the memory notes (§4.22) whose topic,
 tags or text contain every word of the query, at most `limit`, each `{scope,
 topic, text, tags, subject, digest, signer, state}`. Only notes that verify

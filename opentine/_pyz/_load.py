@@ -97,10 +97,6 @@ def unwrap(data: bytes, limit: int = MAX_BYTES) -> bytes:
     return out
 
 
-def is_zstd(data: bytes) -> bool:
-    return data.startswith(MAGIC) and len(data) > len(MAGIC) and data[len(MAGIC)] == ZSTD
-
-
 def _pairs(items: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in items:
@@ -183,4 +179,4 @@ def read(path: Any) -> Any:
     return parse(unwrap(data))
 
 
-__all__ = ["REEXPORT", "ZstdRefused", "is_zstd", "parse", "read", "unwrap"]
+__all__ = ["REEXPORT", "ZstdRefused", "parse", "read", "unwrap"]

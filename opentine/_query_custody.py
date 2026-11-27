@@ -22,6 +22,8 @@ from typing import Any
 
 from opentine._query_interp import COLUMNS as _INTERP_COLUMNS
 from opentine._query_interp import ROLES_FOR as _INTERP_ROLES
+from opentine._query_values import integer as _int
+from opentine._query_values import text as _text
 
 COLUMNS: dict[str, tuple[str, ...]] = {
     "weight_custody": ("oid", "target", "signer", "signed", "artifact", "event", "seq", "prev",
@@ -35,14 +37,6 @@ ROLES_FOR = {"weight_custody": ("runner", "policy"),
 _ORGANISM = {"opentine.organism-tag/1": ("tag", "tagged_at"),
              "opentine.organism-approval/1": ("approval", "approved_at"),
              "opentine.organism-untag/1": ("untag", "untagged_at")}  # fmt: skip
-
-
-def _text(value: Any) -> str | None:
-    return value if isinstance(value, str) else None
-
-
-def _int(value: Any) -> int | None:
-    return value if isinstance(value, int) and not isinstance(value, bool) else None
 
 
 def attestation_rows(oid: str, payload: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:

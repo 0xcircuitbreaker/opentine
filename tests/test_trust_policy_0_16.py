@@ -203,7 +203,6 @@ def test_trust_embedded_key_is_not_a_policy_field(ws) -> None:
 
 
 def test_keyless_policy(monkeypatch, tmp_path, capsys) -> None:
-    pytest.importorskip("httpx")
     from tests._sigstore_fakes import (
         IDENTITY,
         ISSUER_URL,

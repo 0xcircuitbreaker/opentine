@@ -118,10 +118,6 @@ def searchable_text(run: Run, limit: int = MAX_INDEX_TEXT_CHARS) -> tuple[str, b
     return " ".join(chunks)[:limit].lower(), truncated
 
 
-def _searchable_text(run: Run) -> str:
-    return searchable_text(run)[0]
-
-
 def run_agent(run: Run) -> str:
     """Which agent produced *run*: harness, transcript source, framework, or ``""``."""
     metadata = run.metadata if isinstance(run.metadata, dict) else {}

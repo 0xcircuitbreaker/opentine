@@ -37,7 +37,7 @@ all of these hold:
   very large serial;
 - if it raises or removes any limit, the signer holds the `policy` role in
   the owner-pinned trust bundle (`tine trust bundle create --key-roles`; see
-  docs/KEYS.md). A policy that only lowers limits needs no role. The first
+  the key-separation section of docs/CLI.md). A policy that only lowers limits needs no role. The first
   policy for a subject only adds caps, so it needs no role either.
 
 A policy that fails any of these checks is refused, and the policy in force

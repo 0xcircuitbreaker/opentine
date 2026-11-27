@@ -80,8 +80,7 @@ def record(repo: Any, run: str, body: dict[str, Any], key: Any) -> str:
     from opentine._policy_input import _roles
     from opentine._signing_pins import key_fingerprint
     from opentine.repository._attest import attest
-    from opentine.repository._holds import edit_holds, holds_path
-    from opentine.repository._link_touch import touch_links
+    from opentine.repository._holds import hold_row
 
     problems = check_claim(body)
     if problems:
@@ -96,9 +95,7 @@ def record(repo: Any, run: str, body: dict[str, Any], key: Any) -> str:
         raise ValueError("policy.signer-role: the signing key is not pinned with the policy role")
     oid = attest(repo, run, body, signer=signer, key=key, algorithm="ed25519",
                  signed_at=body["at"])  # fmt: skip
-    touch_links(repo, [oid])
-    row = {"oid": oid, "target": hold_target(run)}
-    edit_holds(holds_path(repo), lambda held: [*(r for r in held if r != row), row])
+    hold_row(repo, oid, hold_target(run))
     return oid
 
 

@@ -2,6 +2,7 @@
 #
 # Build (from the repository root, so the image runs exactly this tree):
 #   docker build -f deploy/review-runner/Dockerfile -t opentine-review-runner .
+# Dockerfile.dockerignore (BuildKit) limits the context to the package sources.
 # Run: see docs/REVIEW-RUNNERS.md. The same image serves both modes; only
 # RUNNER_MODE differs, and the findings it signs do not depend on it.
 #

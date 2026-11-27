@@ -10,9 +10,8 @@ import pytest
 
 from opentine import Run, RunStatus, StepKind, cli
 from opentine._version import __version__
-from opentine.signing import HAS_ED25519, generate_ed25519
+from opentine.signing import generate_ed25519
 
-needs_ed25519 = pytest.mark.skipif(not HAS_ED25519, reason="ed25519 needs the crypto extra")
 CFF_REQUIRED = ("cff-version", "message", "title", "authors")
 
 
@@ -29,11 +28,10 @@ def room(monkeypatch, tmp_path: Path) -> Path:
     run.add_step(StepKind.done, {"text": "done"})
     run.status = RunStatus.completed
     run.save(tmp_path / "run.tine")
-    if HAS_ED25519:
-        seed, public = generate_ed25519()
-        (tmp_path / "ed.hex").write_text(seed + "\n", encoding="utf-8")
-        (tmp_path / "ed.pub").write_text(public + "\n", encoding="utf-8")
-        run.save(tmp_path / "ed.tine", sign_key=seed, sign_algorithm="ed25519")
+    seed, public = generate_ed25519()
+    (tmp_path / "ed.hex").write_text(seed + "\n", encoding="utf-8")
+    (tmp_path / "ed.pub").write_text(public + "\n", encoding="utf-8")
+    run.save(tmp_path / "ed.tine", sign_key=seed, sign_algorithm="ed25519")
     return tmp_path
 
 
@@ -119,7 +117,6 @@ def test_citation_refuses_an_endpoint(room, capsys):
     assert _invoke(capsys, *argv)[0] == 1
 
 
-@needs_ed25519
 def test_evidence_export_carries_the_attestation(room, capsys):
     argv = ("export", "ed.tine", "--format", "intoto", "--ed25519-key-file", "ed.hex")
     assert _invoke(capsys, *argv, "--output", "a.intoto.jsonl")[0] == 0
@@ -141,7 +138,6 @@ def test_evidence_export_carries_the_attestation(room, capsys):
     assert not (room / "ev2" / "trust").exists()
 
 
-@needs_ed25519
 def test_evidence_export_refuses_one_attestation_for_two_runs(room, capsys):
     argv = ("evidence", "export", "ed.tine", "run.tine", "--out", "ev")
     assert _invoke(capsys, *argv, "--attestation", "a.intoto.jsonl")[0] == 1

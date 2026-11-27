@@ -22,6 +22,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from opentine._json_shallow import unique_pairs
 from opentine.kernel import canonical_json
 
 FORMAT = "opentine-uplift-export/1"
@@ -91,13 +92,6 @@ def dump(export: dict[str, Any]) -> bytes:
     return canonical_json(export) + b"\n"
 
 
-def _pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
-    out = dict(pairs)
-    if len(out) != len(pairs):
-        raise ValueError("duplicate key")  # one reader, one meaning: no last-wins laundering
-    return out
-
-
 def _constant(name: str) -> Any:
     raise ValueError(f"{name} is not a number")
 
@@ -128,7 +122,7 @@ def load(path: str | Path) -> dict[str, Any]:
     suite digest, well-formed rows sorted by oid with no repeats."""
     from opentine import _uplift
 
-    export = json.loads(Path(path).read_bytes(), object_pairs_hook=_pairs,
+    export = json.loads(Path(path).read_bytes(), object_pairs_hook=unique_pairs,
                         parse_constant=_constant)  # fmt: skip
     if not isinstance(export, dict) or export.get("format") != FORMAT:
         raise ValueError(f"{path}: not an {FORMAT} file")

@@ -18,6 +18,9 @@ from opentine.repository import Repo, _annotations, _migration_preflight
 from opentine.repository._migration_preflight import _MemoryRepo
 from opentine.repository.pack import MAGIC, inspect_pack
 
+#: Pins the deprecated v2 writer (tests/conftest.py legacy_v2_writer).
+pytestmark = pytest.mark.usefixtures("legacy_v2_writer")
+
 
 def _artifact(path: Path) -> dict:
     run = Run(id="artifact-shapes")
@@ -342,10 +345,3 @@ def test_v3_compatibility_loader_does_not_collapse_ambiguous_json_blobs(tmp_path
 
     with pytest.raises(ValueError, match="must be a canonical object"):
         repo.load_run(run_id)
-
-
-@pytest.fixture(autouse=True)
-def _legacy_v2_writer(monkeypatch):
-    """0.26 writes format v4 by default. This module inspects the v2 file layout
-    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
-    monkeypatch.setenv("OPENTINE_FORMAT", "2")

@@ -19,13 +19,12 @@ from opentine._artifact_v4 import read_v4, write_v4
 from opentine._format_v4 import is_v4_artifact, write_format
 from opentine._provenance_v4 import valid_upgraded_from
 from opentine.kernel import canonical_json
-from opentine.signing import HAS_ED25519, generate_ed25519
+from opentine.signing import generate_ed25519
 
 ROOT = Path(__file__).resolve().parent.parent
 FIXTURES = ROOT / "tests" / "fixtures"
 VERIFIER = ROOT / "docs" / "conformance" / "minimal_verifier.py"
 EPOCH = "1700000000"
-needs_ed25519 = pytest.mark.skipif(not HAS_ED25519, reason="ed25519 needs the crypto extra")
 COMPAT = (FIXTURES / "compat").rglob("*.tine")
 GOLDEN = sorted(FIXTURES.glob("golden_*.tine")) + sorted(p for p in COMPAT if p.is_file())
 REPOS = sorted(p for p in (FIXTURES / "compat").glob("*/repo") if p.is_dir())
@@ -46,10 +45,9 @@ def room(monkeypatch, tmp_path: Path) -> Path:
     run.status = RunStatus.completed
     with write_format(2):  # the migration sources are v2 files (v4 is the 0.26 default)
         run.save(tmp_path / "src.tine")
-        if HAS_ED25519:
-            seed, public = generate_ed25519()
-            (tmp_path / "ed.pub").write_text(public + "\n", encoding="utf-8")
-            run.save(tmp_path / "signed.tine", sign_key=seed, sign_algorithm="ed25519")
+        seed, public = generate_ed25519()
+        (tmp_path / "ed.pub").write_text(public + "\n", encoding="utf-8")
+        run.save(tmp_path / "signed.tine", sign_key=seed, sign_algorithm="ed25519")
     return tmp_path
 
 
@@ -154,7 +152,6 @@ def test_integers_beyond_2_53_are_refused_never_rounded(room, capsys):
     assert not (room / "big.v4.tine").exists()
 
 
-@needs_ed25519
 def test_a_signed_source_records_a_verified_state(room, capsys):
     argv = ("migrate", "signed.tine", "--to", "v4", "--pubkey", "ed.pub", "-o", "s4.tine")
     assert _tine(capsys, *argv)[0] == 0
@@ -225,7 +222,6 @@ def test_minimal_verifier_agrees_on_v4(room, capsys, monkeypatch):
     assert _agree(capsys, "tampered.tine")["verdict"] == "fail"
 
 
-@needs_ed25519
 def test_minimal_verifier_agrees_on_signed_v4(room, capsys, monkeypatch):
     seed, public = generate_ed25519()
     (room / "k.pub").write_text(public + "\n", encoding="utf-8")

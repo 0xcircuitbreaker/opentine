@@ -22,10 +22,10 @@ import hashlib
 import json
 from collections import deque
 from collections.abc import Callable
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from opentine._utc import rfc3339_utc
 from opentine.remote.interfaces import AdmissionPolicy, Identity
 
 STATEMENT_TYPE = "https://in-toto.io/Statement/v1"
@@ -58,7 +58,7 @@ def build_vsa(
         "predicateType": VSA_TYPE,
         "predicate": {
             "verifier": {"id": verifier},
-            "timeVerified": time_verified or datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "timeVerified": time_verified or rfc3339_utc(),
             "resourceUri": f"tine://{tenant}/{ref}",
             "policy": dict(policy) if policy else {"uri": policy_uri},
             "inputAttestations": [],

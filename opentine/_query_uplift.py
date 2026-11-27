@@ -25,6 +25,9 @@ from fractions import Fraction
 from pathlib import Path
 from typing import Any
 
+from opentine._query_values import integer as _int
+from opentine._query_values import text as _text
+
 COLUMNS: dict[str, tuple[str, ...]] = {
     "uplift_suites": ("oid", "target", "signer", "signed", "digest", "name", "version",
                       "tasks", "at"),
@@ -36,14 +39,6 @@ COLUMNS: dict[str, tuple[str, ...]] = {
 }  # fmt: skip
 ROLES_FOR = {"uplift_suites": ("scorer", "eval"), "uplift_records": ("scorer", "eval")}
 _NO_LENGTHS = {"dataset": None, "lengths": {}}
-
-
-def _text(value: Any) -> str | None:
-    return value if isinstance(value, str) else None
-
-
-def _int(value: Any) -> int | None:
-    return value if isinstance(value, int) and not isinstance(value, bool) else None
 
 
 def attestation_rows(oid: str, payload: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:

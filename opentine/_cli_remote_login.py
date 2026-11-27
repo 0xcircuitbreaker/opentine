@@ -19,6 +19,8 @@ import time
 from pathlib import Path
 from typing import Any
 
+from opentine._config_home import config_dir
+
 GRANT = "urn:ietf:params:oauth:grant-type:device_code"
 MAX_WAIT = 15 * 60
 
@@ -36,9 +38,8 @@ def add_login_parser(actions: argparse._SubParsersAction) -> None:
 
 
 def credential_path(url: str, tenant: str | None) -> Path:
-    home = os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config"
     name = hashlib.sha256(f"{url}\n{tenant or ''}".encode()).hexdigest()[:24]
-    return Path(home, "opentine", "credentials", f"{name}.token")
+    return config_dir("credentials", f"{name}.token")
 
 
 def _http(args):

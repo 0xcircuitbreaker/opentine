@@ -33,9 +33,9 @@ from __future__ import annotations
 
 import re
 import time
-from datetime import UTC, datetime
 from typing import Any
 
+from opentine._utc import rfc3339_utc
 from opentine.coord import _loop_hold
 from opentine.coord._store import history, read, swap
 
@@ -57,7 +57,7 @@ def ref_name(loop: str) -> str:
 
 
 def _rfc3339(ms: int) -> str:
-    return datetime.fromtimestamp(ms / 1000, UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return rfc3339_utc(ms / 1000)
 
 
 def _control_run(repo: Any, loop: str, reason: str) -> str:
@@ -174,9 +174,5 @@ def fence(repo: Any, task: dict[str, Any]) -> None:
                               f"no further generation may take or extend a lease")  # fmt: skip
 
 
-def loop_history(repo: Any, loop: str) -> list[dict[str, Any]]:
-    return history(repo, repo.read_ref(ref_name(loop)))
-
-
-__all__ = ["CONVENTION", "KIND", "LoopStopped", "fence", "loop_history", "loop_state",
+__all__ = ["CONVENTION", "KIND", "LoopStopped", "fence", "loop_state",
            "ref_name", "stop", "verify_stop"]  # fmt: skip

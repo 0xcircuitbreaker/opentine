@@ -23,6 +23,7 @@ from __future__ import annotations
 from typing import Any
 
 from opentine import _query_rl
+from opentine._query_values import text as _text
 
 COLUMNS: dict[str, tuple[str, ...]] = {
     "ingest_policies": ("oid", "target", "signer", "signed", "stream", "rate", "seed_source",
@@ -34,10 +35,6 @@ COLUMNS: dict[str, tuple[str, ...]] = {
 COLUMNS.update(_query_rl.COLUMNS)  # 0.84: sealed segments, audits, provenance
 ROLES_FOR = {"ingest_policies": ("policy",), "ingest_batches": ("runner",), **_query_rl.ROLES_FOR}
 TABLES = tuple(COLUMNS)
-
-
-def _text(value: Any) -> str | None:
-    return value if isinstance(value, str) else None
 
 
 def _int(value: Any) -> int | None:

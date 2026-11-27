@@ -10,11 +10,12 @@ import httpx
 
 from opentine.billing import PricingCatalog
 from opentine.models import _ollama_http as _http
+from opentine.models._chat_request import build_tools
 from opentine.models._endpoint_security import require_key_transport
 from opentine.models._ollama_billing import ollama_meter
 from opentine.models._ollama_host import cloud_host, normalize_host, served_by_cloud
 from opentine.models._ollama_rates import rate_override
-from opentine.models._ollama_request import build_messages, build_tools
+from opentine.models._ollama_request import build_messages
 from opentine.models._provider_meta import model_name
 from opentine.models._stream_content import OllamaStreamState
 from opentine.models._streaming import WarningList, ollama_result

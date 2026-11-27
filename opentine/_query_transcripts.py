@@ -23,6 +23,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from opentine._query_values import text as _text
+
 CLUSTER_RUNS = 2000
 COLUMNS: dict[str, tuple[str, ...]] = {
     "transcript_flags": ("oid", "target", "signer", "signed", "label", "evidence", "cluster",
@@ -33,10 +35,6 @@ COLUMNS: dict[str, tuple[str, ...]] = {
 }  # fmt: skip
 ROLES_FOR = {"transcript_flags": ("scorer", "curator")}
 TABLES = ("transcript_flags",)
-
-
-def _text(value: Any) -> str | None:
-    return value if isinstance(value, str) else None
 
 
 def attestation_rows(oid: str, payload: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:

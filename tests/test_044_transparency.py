@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -40,8 +39,8 @@ def _vkey(root: Path) -> str:
 # --- RFC 9162 proofs --------------------------------------------------------- #
 
 
-def test_proofs_round_trip_over_tiles_and_reject_tampering():
-    root = Path(tempfile.mkdtemp())
+def test_proofs_round_trip_over_tiles_and_reject_tampering(tmp_path):
+    root = tmp_path
     entries = [str(i).encode() for i in range(600)]
     _tlog.write_tiles(root, entries, 0)
     leaves = [_tlog.leaf_hash(e) for e in entries]

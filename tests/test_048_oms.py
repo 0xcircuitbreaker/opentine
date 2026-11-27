@@ -15,16 +15,14 @@ import sys
 from pathlib import Path
 
 import pytest
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import ec
 
 from opentine import _oms, _schemas, cli
 from opentine._pyz import _oms as pyz
 from opentine._pyz import _p256
 from opentine._signed_record import RecordError
 from tests.conformance import tagged
-
-cryptography = pytest.importorskip("cryptography")
-from cryptography.hazmat.primitives import hashes, serialization  # noqa: E402
-from cryptography.hazmat.primitives.asymmetric import ec  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 FAMILY = ROOT / "docs" / "conformance" / "vectors" / "75-oms.json"

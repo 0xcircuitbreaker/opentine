@@ -20,7 +20,7 @@ from typing import Any
 from opentine.repository._holds import (
     CANARY_HOLD,
     HOLDOUT_ACCESS,
-    edit_holds,
+    hold_row,
     holds_path,
     read_holds,
 )
@@ -47,15 +47,11 @@ def _repo(root: Path | None) -> Any:
 
 def keep(root: Path | None, target: str, data: bytes) -> str | None:
     """Store *data* as a blob and hold it under *target*; its object id (``None``: no repo)."""
-    from opentine.repository._link_touch import touch_links
-
     repo = _repo(root)
     if repo is None:
         return None
     oid = repo.put("blob", data, redact=False)
-    touch_links(repo, [oid])
-    row = {"oid": oid, "target": target}
-    edit_holds(holds_path(repo), lambda rows: [*(r for r in rows if r != row), row])
+    hold_row(repo, oid, target)
     return oid
 
 

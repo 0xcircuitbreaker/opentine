@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -24,6 +23,7 @@ from typing import Any
 from opentine import _eval_verdict as verdicts
 from opentine._eval_dataset import DatasetError, dataset_digest, item_digest
 from opentine._eval_scorers import Scorer
+from opentine._utc import rfc3339_utc
 from opentine.kernel import canonical_json
 
 SCHEMA = "tine-eval/1"
@@ -33,7 +33,7 @@ PINNED = ("dataset", "scorer", "scorer_version", "threshold", "created_at", "sig
 
 
 def now() -> str:
-    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return rfc3339_utc()
 
 
 def eval_id(fields: dict[str, Any]) -> str:

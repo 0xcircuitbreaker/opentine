@@ -85,10 +85,6 @@ def normalize_key(value: Any) -> str:
     raise KeyRoleError(f"{value!r} is not a key: give sha256:<64 hex> or a 64-hex public key")
 
 
-def policy_path(repo_path: Path) -> Path:
-    return Path(repo_path) / FILE_NAME
-
-
 def parse(data: bytes) -> dict[str, list[str]]:
     """``{role: [fingerprints]}`` for every known role (empty when unnamed)."""
     try:
@@ -183,4 +179,4 @@ def check_separation(repo_path: Path, signer: str, *, policy: Path | None = None
 
 
 __all__ = ["FILE_NAME", "KeyRoleError", "ROLES", "blocking", "check_separation", "lint", "load",
-           "normalize_key", "parse", "parse_doc", "policy_path"]  # fmt: skip
+           "normalize_key", "parse", "parse_doc"]  # fmt: skip

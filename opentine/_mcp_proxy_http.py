@@ -17,11 +17,10 @@ from __future__ import annotations
 import http.client
 import ipaddress
 import threading
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 from urllib.parse import urlsplit
 
-from opentine._http_linger import LingeringCloseMixin
+from opentine._http_guard import GuardedHandler, LingeringGuardedServer
 from opentine._mcp_proxy_record import CLIENT, MAX_MESSAGE, SERVER, McpRecorder
 from opentine._otlp_http import LOOPBACK_NAMES, _host_name
 from opentine._record_proxy import _HOP
@@ -53,7 +52,7 @@ class _SseFeed:
         self.data.clear()
 
 
-class _Handler(BaseHTTPRequestHandler):
+class _Handler(GuardedHandler):
     server: McpHttpProxy
     protocol_version = "HTTP/1.1"
 
@@ -161,8 +160,8 @@ class _Handler(BaseHTTPRequestHandler):
     do_GET = do_POST = do_DELETE = _proxy
 
 
-class McpHttpProxy(LingeringCloseMixin, ThreadingHTTPServer):
-    daemon_threads = True
+class McpHttpProxy(LingeringGuardedServer):
+    max_clients = 64  # long-lived streams: a wider cap, still bounded
 
     def __init__(
         self, address: tuple[str, int], upstream: str, recorder: McpRecorder, guard: Any = None

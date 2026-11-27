@@ -28,9 +28,9 @@ objects alone. No object kind is added.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from typing import Any
 
+from opentine._utc import rfc3339_utc
 from opentine.kernel import canonical_json
 
 ITEM = "opentine.oversight-item/1"
@@ -39,7 +39,7 @@ DECISIONS = ("request", "approve", "reject")
 
 
 def now() -> str:
-    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return rfc3339_utc()
 
 
 def promotion_item(label: str, candidate: str) -> str:
@@ -117,12 +117,9 @@ def decide(repo: Any, item: str, decision: str, key: Any, *, bind: dict | None =
 
 
 def hold(repo: Any, oid: str, item: str) -> None:
-    from opentine.repository._holds import OVERSIGHT_DECISION, edit_holds, holds_path
-    from opentine.repository._link_touch import touch_links
+    from opentine.repository._holds import OVERSIGHT_DECISION, hold_row
 
-    touch_links(repo, [oid])
-    row = {"oid": oid, "target": OVERSIGHT_DECISION + item}
-    edit_holds(holds_path(repo), lambda rows: [*(r for r in rows if r != row), row])
+    hold_row(repo, oid, OVERSIGHT_DECISION + item)
 
 
 def read(repo: Any, oid: str) -> dict[str, Any] | None:

@@ -8,22 +8,6 @@ from opentine.models._streaming import SizeBudget
 from opentine.models._tool_args import stored_tool_calls
 
 
-def build_tools(tools: list[dict[str, Any]] | None) -> list[dict[str, Any]] | None:
-    if not tools:
-        return None
-    return [
-        {
-            "type": "function",
-            "function": {
-                "name": tool["name"],
-                "description": tool["description"],
-                "parameters": tool["input_schema"],
-            },
-        }
-        for tool in tools
-    ]
-
-
 def build_messages(messages: list[dict[str, Any]], system: str | None) -> list[dict[str, Any]]:
     converted = [{"role": "system", "content": system}] if system else []
     call_budget = SizeBudget()

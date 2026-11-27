@@ -28,12 +28,12 @@ import math
 import urllib.error
 import urllib.request
 from collections.abc import Callable
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
 from opentine import _witness
-from opentine._http_linger import LingeringHTTPServer
+from opentine._http_guard import GuardedHandler, LingeringGuardedServer
 from opentine.repository import _tlog, _tlog_note, _tlog_proof
 
 MAX_BODY = 1 << 16
@@ -114,7 +114,7 @@ def make_server(
     keys = list(private) if isinstance(private, list | tuple) else [private]
     ops = operator or Operator(keys, name, logs, state, rate_limit=0)
 
-    class Handler(BaseHTTPRequestHandler):
+    class Handler(GuardedHandler):
         def log_message(self, *_args: Any) -> None:  # quiet by default
             return
 
@@ -159,7 +159,7 @@ def make_server(
             ops.count("200")
             self._send(200, lines)
 
-    return LingeringHTTPServer(address, Handler)
+    return LingeringGuardedServer(address, Handler)
 
 
 def _post(url: str, body: bytes, timeout: float) -> tuple[int, bytes]:

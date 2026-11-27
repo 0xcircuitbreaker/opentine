@@ -13,12 +13,13 @@ Whether that signer holds a role comes only from the owner-pinned trust bundle
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from typing import Any
+
+from opentine._utc import rfc3339_utc
 
 
 def rfc3339(seconds: float) -> str:
-    return datetime.fromtimestamp(seconds, UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return rfc3339_utc(seconds)
 
 
 def fingerprint(key: Any) -> str:
@@ -30,13 +31,10 @@ def fingerprint(key: Any) -> str:
 def record(repo: Any, target: str, claim: dict[str, Any], key: Any, hold: str) -> str:
     """Sign *claim* onto the object *target*, hold it as *hold*; the attestation id."""
     from opentine.repository._attest import attest
-    from opentine.repository._holds import edit_holds, holds_path
-    from opentine.repository._link_touch import touch_links
+    from opentine.repository._holds import hold_row
 
     oid = attest(repo, target, claim, signer=fingerprint(key), key=key, algorithm="ed25519")
-    touch_links(repo, [oid])
-    row = {"oid": oid, "target": hold}
-    edit_holds(holds_path(repo), lambda rows: [*(r for r in rows if r != row), row])
+    hold_row(repo, oid, hold)
     return oid
 
 

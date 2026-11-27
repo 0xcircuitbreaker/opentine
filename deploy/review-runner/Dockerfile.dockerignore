@@ -1,0 +1,12 @@
+# BuildKit reads this file for deploy/review-runner/Dockerfile instead of a root
+# .dockerignore. The build context is the repository root; send only what
+# `pip install /src` and the entrypoint COPY need, never .env, .git, .tine,
+# .venv or other local state (a COPY layer keeps it even after rm -rf /src).
+*
+!pyproject.toml
+!README.md
+!LICENSE
+!opentine/
+!docs/compliance/
+!deploy/review-runner/entrypoint.sh
+**/__pycache__

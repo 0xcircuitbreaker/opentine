@@ -11,9 +11,6 @@ from __future__ import annotations
 from datetime import timedelta
 
 import pytest
-
-pytest.importorskip("cryptography")
-
 from cryptography import x509  # noqa: E402
 from cryptography.hazmat.primitives import hashes, serialization  # noqa: E402
 from cryptography.hazmat.primitives.asymmetric import ec  # noqa: E402

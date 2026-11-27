@@ -22,8 +22,9 @@ from __future__ import annotations
 import re
 import secrets
 import time
-from datetime import UTC, datetime
 from typing import Any
+
+from opentine._utc import rfc3339_utc
 
 CONVENTION = "opentine.monitor-stop/1"
 SCOPE = re.compile(r"^(\*|agent:[A-Za-z0-9._-]{1,64}|session:[A-Za-z0-9._:-]{1,128})$")
@@ -31,7 +32,7 @@ MAX_REASON = 1024
 
 
 def _rfc3339(seconds: float) -> str:
-    return datetime.fromtimestamp(seconds, UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return rfc3339_utc(seconds)
 
 
 def scopes(agent: str | None, session: str | None) -> list[str]:
@@ -49,8 +50,7 @@ def stop(repo: Any, scope: str, key: Any, *, reason: str = "", now: float | None
     from opentine.graph import Run, StepKind
     from opentine.policies import PolicySet
     from opentine.repository._attest import attest
-    from opentine.repository._holds import MONITOR_STOP, edit_holds, holds_path
-    from opentine.repository._link_touch import touch_links
+    from opentine.repository._holds import MONITOR_STOP, hold_row
 
     if not isinstance(scope, str) or not SCOPE.fullmatch(scope):
         raise ValueError(f"invalid stop scope {scope!r}: *, agent:NAME or session:ID")
@@ -64,9 +64,7 @@ def stop(repo: Any, scope: str, key: Any, *, reason: str = "", now: float | None
     claim = {"convention": CONVENTION, "scope": scope, "reason": reason, "stopped_at": at}
     signer = key_fingerprint(key.public_key().public_bytes_raw())
     oid = attest(repo, target, claim, signer=signer, key=key, algorithm="ed25519")
-    touch_links(repo, [oid])
-    row = {"oid": oid, "target": MONITOR_STOP + scope}
-    edit_holds(holds_path(repo), lambda rows: [*(r for r in rows if r != row), row])
+    hold_row(repo, oid, MONITOR_STOP + scope)
     return oid
 
 

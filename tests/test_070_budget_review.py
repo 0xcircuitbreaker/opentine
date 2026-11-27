@@ -54,3 +54,26 @@ def test_the_gate_refuses_when_no_policy_is_in_force(repo, tmp_path):  # noqa: F
     call = b'{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{}}\n'
     forward, back, _ = guard.check(call)
     assert forward is None and b"-32002" in back
+
+
+@pytest.mark.parametrize("pinned", [True, False])
+def test_an_orphan_policy_dated_before_the_owner_cannot_lift_the_cap(
+    repo,  # noqa: F811
+    pinned,
+    tmp_path,
+    monkeypatch,
+):
+    if not pinned:  # no owner pin and no roles file: roles are absent
+        monkeypatch.setenv("XDG_CONFIG_HOME", (tmp_path / "elsewhere").as_posix())
+        (repo.path / "key-roles.toml").unlink()
+    _apply(repo, _policy("policy", serial=1, tokens=10))
+    spend = {"run": "r1", "cost": {"total_tokens": 50}, "gpu_hours": 0.0, "egress_bytes": 0}
+    _budget_ledger.append(repo, SUBJECT, "spend", spend, _key("runner"), at_ms=T0)
+    stranger = Ed25519PrivateKey.from_private_bytes(bytes([98]) * 32)
+    uncapped = _budget_policy.build(SUBJECT, {}, serial=999, on_limit="deny",
+                                    issued_at="2027-01-15T08:00:00Z")  # fmt: skip
+    _root_entry(repo, _budget_policy.sign(uncapped, stranger), stranger, at_ms=0)
+    body = _budget_status.status(repo, SUBJECT, now_ms=T0)
+    assert (body["roles"] == "pinned") is pinned
+    assert body["decision"] == "deny"
+    assert _budget_gate.decide(repo, SUBJECT, _key("runner"), T0)["decision"] == "deny"

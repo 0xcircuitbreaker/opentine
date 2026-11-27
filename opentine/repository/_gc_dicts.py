@@ -22,18 +22,12 @@ from opentine.repository._config import (
     read_config,
     rewrite_config,
 )
+from opentine.repository._gc_deltas import _version
 from opentine.repository._pack_dicts import forget_latest, tidy
 from opentine.repository._paths import internal_path
 
 MIN_READER = "0.50.0"
 _KEY, _ON, _DRAINING = "pack_dicts", "zstd", "full"
-
-
-def _version(text: object) -> tuple[int, ...]:
-    try:
-        return tuple(int(part) for part in str(text).split("."))
-    except ValueError:
-        return (0,)
 
 
 def dicts_on(config: dict[str, object]) -> bool:

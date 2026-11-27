@@ -182,14 +182,18 @@ def resolve(repo, target: str) -> str:
     return oid
 
 
-def add(repo, target: str) -> dict[str, str]:
+def hold_row(repo, oid: str, target: str) -> dict[str, str]:
+    """Hold the stored *oid* as *target*; re-adding the same row keeps one copy."""
     from opentine.repository._link_touch import touch_links
 
-    oid = resolve(repo, target)
     touch_links(repo, [oid])  # a concurrent prune keeps it, or this hold fails
     row = {"oid": oid, "target": target}
     edit_holds(holds_path(repo), lambda rows: [*(r for r in rows if r != row), row])
     return row
+
+
+def add(repo, target: str) -> dict[str, str]:
+    return hold_row(repo, resolve(repo, target), target)
 
 
 def release(repo, target: str) -> list[dict[str, str]]:
@@ -222,13 +226,6 @@ def held(repo) -> set[str]:
 
     roots = held_oids(holds_path(repo))
     return reachable(repo, roots) | roots if roots else set()
-
-
-def refuse_held(repo, oids, what: str) -> None:
-    """Raise :class:`HoldError` if any of *oids* is held (directly or by reach)."""
-    hit = sorted(set(oids) & held(repo))
-    if hit:
-        raise HoldError(f"{what} refused: {hit[0]} is held (tine hold release to allow it)")
 
 
 def refuse_held_names(path, names, what: str) -> None:

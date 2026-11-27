@@ -25,11 +25,7 @@ from typing import Any
 
 from opentine import _experiment as exp
 from opentine import _reproduce
-
-
-def _f(level: str, code: str, row: str | None, message: str) -> dict[str, Any]:
-    return {"level": level, "code": f"{level}:experiment.{code}", "row": row,
-            "message": message}  # fmt: skip
+from opentine._experiment_check import _finding as _f
 
 
 def _internal(doc: dict[str, Any]) -> list[str]:

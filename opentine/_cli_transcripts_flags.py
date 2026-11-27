@@ -57,15 +57,6 @@ def _space(args: argparse.Namespace, repo: Any) -> tuple[Any, dict[str, Any]]:
     return space, {"source": source, "count": len(space.ids), "digest": space.corpus_digest}
 
 
-def _run(repo: Any, value: str) -> str:
-    from opentine.repository.ops import resolve_target
-
-    try:
-        return resolve_target(repo, value)
-    except KeyError:
-        raise KeyError(f"cannot resolve {value}: no such ref or run") from None
-
-
 def _cluster(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[str]]:
     from opentine._transcript_cluster import kmeans
     from opentine._transcript_flags import flags
@@ -93,11 +84,12 @@ def _cluster(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[
 
 def _label(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[str]]:
     from opentine import _transcript_flags as tf
+    from opentine._cli_common import resolve_run
     from opentine._key_hygiene import ed25519_private
     from opentine._promote import _now
     from opentine._transcript_cluster import kmeans, similar
 
-    evidence = [_run(repo, r) for r in args.run]
+    evidence = [resolve_run(repo, r) for r in args.run]
     backend = None
     if args.cluster or args.like:
         space, _ = _space(args, repo)
@@ -112,7 +104,7 @@ def _label(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[st
                 raise ValueError(f"{outside[0]} is not a member of {args.cluster}")
             evidence = evidence or match[0]["members"]
         if args.like:
-            like = _run(repo, args.like)
+            like = resolve_run(repo, args.like)
             evidence += [like, *(r["run"] for r in similar(space, [like], args.top))]
     if not evidence:
         raise ValueError("label needs evidence: --run, --cluster or --like")
@@ -125,9 +117,10 @@ def _label(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[st
 
 
 def _flags(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[str]]:
+    from opentine._cli_common import resolve_run
     from opentine._transcript_flags import flags
 
-    run = _run(repo, args.run) if args.run else None
+    run = resolve_run(repo, args.run) if args.run else None
     rows = flags(repo, label=args.label, run=run)
     lines = [f"{r['label']} {r['verification']} {len(r['evidence'] or [])} run(s) {r['record']}"
              for r in rows] or ["no transcript flags"]  # fmt: skip
@@ -136,7 +129,7 @@ def _flags(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[st
         from opentine._transcript_cluster import similar
 
         space, _ = _space(args, repo)
-        body["like"] = _run(repo, args.like)
+        body["like"] = resolve_run(repo, args.like)
         body["backend"] = space.backend()
         body["similar"] = similar(space, [body["like"]], args.top)
         lines += [f"like {r['run']} {r['score']}" for r in body["similar"]]

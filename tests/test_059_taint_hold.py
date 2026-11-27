@@ -60,3 +60,12 @@ def test_an_unsigned_policy_role_cannot_pin_the_protected_list(room: Path):
     findings = load_list(room)[2]
     assert [f["code"] for f in findings] == ["fail:protected-list-unsigned"]
     assert "trust bundle missing" in findings[0]["detail"]
+
+
+def test_deleting_the_holds_file_does_not_un_taint(room: Path, tmp_path, capsys):
+    bad = _tainted(room, tmp_path, capsys)
+    (room / LIST).unlink()
+    (room / TAINTS / f"{bad.rsplit(':', 1)[-1]}.json").unlink()
+    _holds.holds_path(Repo.open(room)).unlink()
+    assert [r["code"] for r in promote_refusals(room, bad)] == ["promote.score-tainted"]
+    assert taints(room, bad)[0]["codes"] == ["fail:protected-surface-modified"]

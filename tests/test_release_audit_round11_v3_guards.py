@@ -24,7 +24,6 @@ shape, so an object ``fsck`` called healthy took out every command at once.
 from __future__ import annotations
 
 import json
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -351,7 +350,7 @@ def test_the_v3_object_store_and_the_tine_writer_refuse_the_same_strings(tmp_pat
         run = Run(id="run-7", status=RunStatus.completed)
         run.add_step(StepKind.model, {"prompt": text}, {})
         with pytest.raises(ValueError, match="unpaired UTF-16 surrogate"):
-            run.save(str(Path(tempfile.mkdtemp()) / "a.tine"))
+            run.save(str(tmp_path / f"a{index}.tine"))
         with pytest.raises(ValueError, match="unpaired UTF-16 surrogate"):
             _repo(tmp_path, f"both{index}").put_run(run)
 

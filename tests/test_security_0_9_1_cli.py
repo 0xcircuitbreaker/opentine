@@ -40,6 +40,9 @@ from opentine.repository.runs import put_run
 from opentine.trace import _import_guard
 from opentine.trace.importers import jsonl_events
 
+#: Pins the deprecated v2 writer (tests/conftest.py legacy_v2_writer).
+pytestmark = pytest.mark.usefixtures("legacy_v2_writer")
+
 ESCAPES = "\x1b]52;c;UFdORUQ=\x07\x1b]0;PWNED\x07\x1b[2J\x9b31m‮"
 HIDDEN = "​‍⁠﻿ \U000e0041"
 CONTROL = ("\x1b", "\x07", "\x9b", "‮")
@@ -432,10 +435,3 @@ def test_an_unreachable_endpoint_is_reported_without_its_password(workspace, cap
         cli.main(["export", str(source), "--endpoint", "http://user:hunter2@127.0.0.1:9/"])
     captured = capsys.readouterr()
     assert "hunter2" not in captured.out + captured.err
-
-
-@pytest.fixture(autouse=True)
-def _legacy_v2_writer(monkeypatch):
-    """0.26 writes format v4 by default. This module inspects the v2 file layout
-    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
-    monkeypatch.setenv("OPENTINE_FORMAT", "2")

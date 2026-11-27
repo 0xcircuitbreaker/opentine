@@ -20,9 +20,10 @@ from opentine._actions_verdict import manifest_path, save_manifest
 from opentine._artifact_io import read_artifact_json
 from opentine._evidence_export import verify_custody
 from opentine._verify_dataset import leaf_hash, merkle_root
-from opentine.signing import HAS_ED25519, generate_ed25519
+from opentine.signing import generate_ed25519
 
-needs_ed25519 = pytest.mark.skipif(not HAS_ED25519, reason="ed25519 needs the crypto extra")
+#: Pins the deprecated v2 writer (tests/conftest.py legacy_v2_writer).
+pytestmark = pytest.mark.usefixtures("legacy_v2_writer")
 
 
 def _run(run_id: str = "locate_run") -> Run:
@@ -47,11 +48,10 @@ def room(monkeypatch, tmp_path: Path) -> Path:
     monkeypatch.setattr(socket, "getaddrinfo", lambda *a, **k: calls.append("dns"))
     run = _run()
     run.save(tmp_path / "run.tine")
-    if HAS_ED25519:
-        seed, public = generate_ed25519()
-        (tmp_path / "ed.hex").write_text(seed + "\n", encoding="utf-8")
-        (tmp_path / "ed.pub").write_text(public + "\n", encoding="utf-8")
-        run.save(tmp_path / "ed.tine", sign_key=seed, sign_algorithm="ed25519")
+    seed, public = generate_ed25519()
+    (tmp_path / "ed.hex").write_text(seed + "\n", encoding="utf-8")
+    (tmp_path / "ed.pub").write_text(public + "\n", encoding="utf-8")
+    run.save(tmp_path / "ed.tine", sign_key=seed, sign_algorithm="ed25519")
     return tmp_path
 
 
@@ -118,7 +118,6 @@ def test_flipped_digest_byte_is_unlocalisable_without_more_evidence(room, capsys
     assert doc["location"]["localised"] is False  # no guess
 
 
-@needs_ed25519
 def test_flipped_digest_byte_is_the_digest_field_given_an_attestation(room, capsys):
     argv = ("export", "run.tine", "--format", "intoto", "--ed25519-key-file", "ed.hex")
     assert _invoke(capsys, *argv, "--output", "a.jsonl")[0] == 0
@@ -151,7 +150,6 @@ def test_flipped_meter_byte_is_found_through_the_action_manifest(room, capsys):
     assert code == 1 and doc["location"]["reason"] == "locate.graph-meters-changed"
 
 
-@needs_ed25519
 def test_flipped_signed_metadata_byte_is_the_signature_region(room, capsys):
     def edit(data):
         data["metadata"]["user_prompt"] = "test prompT"
@@ -255,7 +253,6 @@ def _export(capsys, out: str, *extra: str) -> int:
     return _invoke(capsys, "evidence", "export", "run.tine", "--out", out, *extra)[0]
 
 
-@needs_ed25519
 def test_evidence_export_layout_and_custody_signature(room, capsys):
     argv = ("--sign", "ed.hex", "--pubkey", "ed.pub", "--operator", "analyst")
     assert _export(capsys, "ev", *argv) == 0
@@ -300,10 +297,3 @@ def test_evidence_export_refuses_a_non_empty_out(room, capsys):
     (room / "full").mkdir()
     (room / "full" / "x").write_text("x", encoding="utf-8")
     assert _export(capsys, "full") == 1
-
-
-@pytest.fixture(autouse=True)
-def _legacy_v2_writer(monkeypatch):
-    """0.26 writes format v4 by default. This module inspects the v2 file layout
-    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
-    monkeypatch.setenv("OPENTINE_FORMAT", "2")

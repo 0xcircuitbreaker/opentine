@@ -142,13 +142,10 @@ def approval_for(repo: Any, artifact: str, run: str) -> str | None:
 
 def log_access(repo: Any, entry: dict[str, Any]) -> str:
     """Store and hold one access-log entry; its blob id."""
-    from opentine.repository._holds import edit_holds, holds_path
-    from opentine.repository._link_touch import touch_links
+    from opentine.repository._holds import hold_row
 
     oid = repo.put("blob", canonical_json({"convention": ACCESS, **entry}), redact=False)
-    touch_links(repo, [oid])
-    row = {"oid": oid, "target": hold_target("access", entry["artifact"])}
-    edit_holds(holds_path(repo), lambda rows: [*(r for r in rows if r != row), row])
+    hold_row(repo, oid, hold_target("access", entry["artifact"]))
     return oid
 
 

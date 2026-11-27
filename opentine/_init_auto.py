@@ -24,7 +24,6 @@ Steps, in order, each skipped when already done:
 from __future__ import annotations
 
 import shutil
-import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -104,12 +103,13 @@ def _hooks(repo: Path, agents: list[str], dry_run: bool) -> list[dict[str, Any]]
 
 
 def _git_top(path: Path) -> Path | None:
-    try:
-        done = subprocess.run(["git", "-C", str(path), "rev-parse", "--show-toplevel"],
-                              capture_output=True, text=True, check=False, timeout=30)  # fmt: skip
-    except (OSError, subprocess.SubprocessError):
+    from opentine._git_link import GitLinkError, git
+
+    try:  # hardened like every other git call on a user's checkout
+        out = git(path, "rev-parse", "--show-toplevel", timeout=30).strip()
+    except GitLinkError:
         return None
-    return Path(done.stdout.strip()) if done.returncode == 0 and done.stdout.strip() else None
+    return Path(out) if out else None
 
 
 def _push(path: Path, wanted: bool, dry_run: bool) -> dict[str, Any]:

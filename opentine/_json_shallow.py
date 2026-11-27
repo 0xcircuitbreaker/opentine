@@ -39,4 +39,13 @@ def loads(text: str | bytes, limit: int = MAX_NESTING, **kwargs: Any) -> Any:
     return json.loads(text, **kwargs)
 
 
-__all__ = ["MAX_NESTING", "loads", "nesting"]
+def unique_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """An ``object_pairs_hook`` that refuses a repeated key: one reader, one meaning
+    (no last-wins laundering)."""
+    out = dict(pairs)
+    if len(out) != len(pairs):
+        raise ValueError("duplicate key")
+    return out
+
+
+__all__ = ["MAX_NESTING", "loads", "nesting", "unique_pairs"]

@@ -27,7 +27,6 @@ its parents.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from typing import Any
 
 from opentine._signed_record import (
@@ -41,6 +40,7 @@ from opentine._signed_record import (
     is_count,
 )
 from opentine._signed_record import sign as _sign
+from opentine._utc import rfc3339_utc
 
 KIND = "opentine.merge"
 DOMAIN = b"opentine.merge.v1:"
@@ -55,7 +55,7 @@ MAX_GATES = 256
 
 
 def now() -> str:
-    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return rfc3339_utc()
 
 
 def _bad(code: str, message: str) -> RecordError:

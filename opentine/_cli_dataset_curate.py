@@ -53,17 +53,9 @@ def add_curate_verbs(verbs: Any) -> None:
         verb.add_argument("--json", action="store_true", help="Print a JSON object")
 
 
-def _resolve(repo: Any, value: str) -> str:
-    from opentine.repository.ops import resolve_target
-
-    try:
-        return resolve_target(repo, value)
-    except KeyError:
-        raise KeyError(f"cannot resolve {value}: no such ref or run") from None
-
-
 def _row(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[str]]:
     from opentine import _dataset_version as dv
+    from opentine._cli_common import resolve_run
     from opentine._key_hygiene import ed25519_private
     from opentine._promote import _now
 
@@ -83,7 +75,7 @@ def _row(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[str]
                      f"{row['out']} ({row['digest']})"]  # fmt: skip
     key, at = ed25519_private(args.key), args.at or _now()
     if verb == "justify":
-        runs = [_resolve(repo, r) for r in args.run]
+        runs = [resolve_run(repo, r) for r in args.run]
         oid = dv.justify(repo, args.name, runs, args.reason, key, at)
         return {"ok": True, "record": oid, "name": args.name, "runs": sorted(set(runs))}, [
             f"justified {len(set(runs))} run(s) for {args.name}: {oid}"]  # fmt: skip

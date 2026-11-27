@@ -51,7 +51,8 @@ def test_supply_chain_workflow_audits_analyzes_and_emits_an_sbom():
 
 def test_codeql_and_scorecard_hold_only_what_they_need():
     codeql = _workflow("codeql.yml")
-    assert "languages: python" in codeql
+    assert "language: [python, javascript-typescript]" in codeql
+    assert "languages: ${{ matrix.language }}" in codeql
     assert "id-token" not in codeql
     scorecard = _workflow("scorecard.yml")
     assert "ossf/scorecard-action@" in scorecard

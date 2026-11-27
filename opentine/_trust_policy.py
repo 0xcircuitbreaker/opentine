@@ -28,6 +28,9 @@ import stat
 from pathlib import Path
 from typing import Any, NoReturn
 
+from opentine._config_home import config_dir
+from opentine._json_shallow import unique_pairs
+
 FILE_NAME = "trust-policies.json"
 MAX_BYTES = 256 * 1024
 NAME = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}")
@@ -63,20 +66,13 @@ class PolicyError(ValueError):
 
 
 def policy_file() -> Path:
-    home = os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config"
-    return Path(home, "opentine", FILE_NAME)
+    return config_dir(FILE_NAME)
 
 
 def check_name(name: Any) -> str:
     if not isinstance(name, str) or not NAME.fullmatch(name):
         raise PolicyError(f"invalid policy name {name!r}: use [a-z0-9][a-z0-9._-]*")
     return name
-
-
-def _unique(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
-    if len({key for key, _ in pairs}) != len(pairs):
-        raise ValueError("duplicate key")
-    return dict(pairs)
 
 
 def _refuse_unsafe(path: Path, info: os.stat_result) -> None:
@@ -119,7 +115,7 @@ def load() -> dict[str, Any]:
 
     try:
         validate_json_shape(raw, max_tokens=20_000)
-        value = json.loads(raw.decode("utf-8"), object_pairs_hook=_unique)
+        value = json.loads(raw.decode("utf-8"), object_pairs_hook=unique_pairs)
         return validated(value)
     except PolicyError:
         raise

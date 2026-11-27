@@ -27,12 +27,13 @@ import stat
 from pathlib import Path
 from urllib.parse import quote
 
+from opentine._config_home import config_dir
+
 KEY_NAME = "actions-index.key"
 
 
 def _key_path() -> Path:
-    home = os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config"
-    return Path(home, "opentine", KEY_NAME)
+    return config_dir(KEY_NAME)
 
 
 def local_key() -> bytes:

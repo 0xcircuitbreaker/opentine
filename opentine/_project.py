@@ -21,12 +21,12 @@ and ``project.chain`` conformance ops (``vectors/65-project.json``).
 from __future__ import annotations
 
 import hashlib
-from datetime import UTC, datetime
 from typing import Any
 
 from opentine._project_rules import FIELDS, KIND, body
 from opentine._signed_record import RecordError, check_signature
 from opentine._signed_record import sign as _sign
+from opentine._utc import rfc3339_utc
 from opentine.kernel import ObjectEnvelope, canonical_json
 
 DOMAIN = b"opentine.project.v1:"
@@ -77,7 +77,7 @@ def build(
         "owners": list(owners),
         "slots": list(slots),
         "forked_from": forked_from,
-        "created_at": created_at or datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "created_at": created_at or rfc3339_utc(),
     }
     return body(record)
 

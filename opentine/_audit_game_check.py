@@ -15,17 +15,10 @@ from opentine import _audit_game as game
 
 def auditors(repo: Any) -> tuple[set[str], str]:
     """The pinned ``auditor`` fingerprints and why another signer is not one."""
-    from opentine._key_roles import AUDITOR, KeyRoleError
-    from opentine._key_roles_pin import resolve
+    from opentine._key_roles import AUDITOR
+    from opentine._key_roles_pin import granting
 
-    try:
-        found = resolve(repo.path)
-    except KeyRoleError as exc:
-        return set(), f"key-role policy: {exc}"
-    if found["status"] != "pinned":
-        return set(), "the auditor role is unpinned (no owner-signed trust bundle)"
-    keys = set((found["roles"] or {}).get(AUDITOR, []))
-    return keys, "the signer is not a pinned auditor key" if keys else "no auditor key is pinned"
+    return granting(repo.path, AUDITOR)
 
 
 def _finding(level: str, code: str, name: str, message: str) -> dict[str, Any]:

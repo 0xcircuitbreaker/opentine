@@ -25,9 +25,9 @@ from __future__ import annotations
 import hashlib
 import re
 import secrets
-from datetime import UTC, datetime
 from typing import Any
 
+from opentine._utc import rfc3339_utc
 from opentine.kernel import canonical_json
 
 CONVENTION = "opentine.audit-game/1"
@@ -38,7 +38,7 @@ _DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
 
 
 def now() -> str:
-    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return rfc3339_utc()
 
 
 def secret(target: str, objective: str = "", nonce: str | None = None) -> dict[str, str]:
@@ -81,8 +81,7 @@ def record(repo: Any, run: str, claim: dict[str, Any], key: Any) -> str:
     """Sign *claim* onto the auditor *run* and hold it; the attestation id."""
     from opentine._signing_pins import key_fingerprint
     from opentine.repository._attest import attest
-    from opentine.repository._holds import AUDIT_GAME, edit_holds, holds_path
-    from opentine.repository._link_touch import touch_links
+    from opentine.repository._holds import AUDIT_GAME, hold_row
 
     problems = check_claim(claim)
     if problems:
@@ -90,9 +89,7 @@ def record(repo: Any, run: str, claim: dict[str, Any], key: Any) -> str:
     signer = key_fingerprint(key.public_key().public_bytes_raw())
     oid = attest(repo, run, claim, signer=signer, key=key, algorithm="ed25519",
                  signed_at=claim["at"])  # fmt: skip
-    touch_links(repo, [oid])
-    row = {"oid": oid, "target": f"{AUDIT_GAME}{claim['game']}"}
-    edit_holds(holds_path(repo), lambda rows: [*(r for r in rows if r != row), row])
+    hold_row(repo, oid, f"{AUDIT_GAME}{claim['game']}")
     return oid
 
 

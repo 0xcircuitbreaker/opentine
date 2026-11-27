@@ -30,6 +30,9 @@ from opentine.intoto import (
     verify_envelope,
 )
 
+#: Pins the deprecated v2 writer (tests/conftest.py legacy_v2_writer).
+pytestmark = pytest.mark.usefixtures("legacy_v2_writer")
+
 SECRET_PROMPT = "summarise the merger memo for ACME-PROJECT-NIGHTJAR"
 SECRET_TOKEN = "ghp_" + "a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6q7R8"
 
@@ -202,10 +205,3 @@ def test_cli_failures_exit_nonzero(ws: Path, capsys) -> None:
     (ws / "bad.intoto.jsonl").write_text("not json\n")
     assert _cli("verify", "run.tine", "--attestation", "bad.intoto.jsonl",
                 "--pubkey", "k.pub") == 1  # fmt: skip
-
-
-@pytest.fixture(autouse=True)
-def _legacy_v2_writer(monkeypatch):
-    """0.26 writes format v4 by default. This module inspects the v2 file layout
-    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
-    monkeypatch.setenv("OPENTINE_FORMAT", "2")

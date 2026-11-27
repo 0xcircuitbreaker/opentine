@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-import io
 import json
 import os
 import shutil
 import subprocess
 import sys
-import tarfile
 import textwrap
 from pathlib import Path
 
@@ -17,6 +15,7 @@ import pytest
 from opentine.cli import main
 from opentine.kernel import TREE_SCHEMA, KernelError, ObjectEnvelope, validate_links
 from opentine.repository import Repo
+from tests._v034 import v034
 
 posix = pytest.mark.skipif(sys.platform == "win32", reason="symlinks and modes are POSIX here")
 ROOT = Path(__file__).resolve().parents[1]
@@ -325,25 +324,8 @@ OLD_READER = textwrap.dedent(
 )
 
 
-def _v034(tmp_path: Path) -> Path:
-    if shutil.which("git") is None:
-        pytest.skip("git is not installed")
-    try:
-        archive = subprocess.run(
-            ["git", "-C", str(ROOT), "archive", "v0.34.0", "opentine"],
-            capture_output=True,
-            check=True,
-        ).stdout
-    except (OSError, subprocess.CalledProcessError):
-        pytest.skip("tag v0.34.0 is not available in this checkout")
-    dest = tmp_path / "v034"
-    with tarfile.open(fileobj=io.BytesIO(archive)) as tar:
-        tar.extractall(dest, filter="data")
-    return dest
-
-
 def test_the_034_fsck_and_pack_reader_accept_a_repo_with_trees(repo, ws, tmp_path):
-    old = _v034(tmp_path)
+    old = v034(tmp_path)
     _commit(repo, _snapshot(repo, ws).oid)
     pack = tmp_path / "trees.pack"
     pack.write_bytes(repo.pack())

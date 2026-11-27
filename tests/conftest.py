@@ -2,6 +2,8 @@
 
 import os
 
+import pytest
+
 # Pin the terminal environment at conftest *import*, before anything imports
 # opentine. ``pytest_plugins`` below imports tests._schema_guard, which imports
 # the CLI modules and so builds the shared Rich ``console`` before
@@ -45,7 +47,7 @@ def pytest_configure(config):
     # --json-capable command's default output into JSON; the output-format tests
     # set it themselves.
     os.environ.pop("OPENTINE_OUTPUT", None)
-    # 0.26: format v4 is the default writer; a shell exporting OPENTINE_FORMAT=2
+    # 0.42: format v5 is the default writer; a shell exporting OPENTINE_FORMAT=2
     # would flip every save back to v2. Tests about the legacy writers set it.
     os.environ.pop("OPENTINE_FORMAT", None)
     # 0.41: new private keys are encrypted PKCS#8, and a non-interactive keygen
@@ -110,3 +112,11 @@ def pytest_addoption(parser):
         default=None,
         help="Override command for --agent-harness live tests, for example 'your-agent run'",
     )
+
+
+@pytest.fixture
+def legacy_v2_writer(monkeypatch):
+    """Pin the deprecated v2 writer (the default is v5 since 0.42), for modules
+    that inspect the v2 file layout or a tolerance only v2 has. A module opts
+    in with ``pytestmark = pytest.mark.usefixtures("legacy_v2_writer")``."""
+    monkeypatch.setenv("OPENTINE_FORMAT", "2")

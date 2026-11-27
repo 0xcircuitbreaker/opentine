@@ -18,11 +18,11 @@ reference for the ``prompt.verify`` conformance op (``vectors/71-prompt.json``).
 from __future__ import annotations
 
 import re
-from datetime import UTC, datetime
 from typing import Any
 
 from opentine._signed_record import BLOB_OID, NAME, WHEN, RecordError, check_signature, fields
 from opentine._signed_record import sign as _sign
+from opentine._utc import rfc3339_utc
 from opentine.kernel import ObjectEnvelope, canonical_json
 
 KIND = "opentine.prompt"
@@ -118,7 +118,7 @@ def build(
         "template": template,
         "variables": placeholders(template),
         "model": model,
-        "created_at": created_at or datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "created_at": created_at or rfc3339_utc(),
     }
     return body(record)
 

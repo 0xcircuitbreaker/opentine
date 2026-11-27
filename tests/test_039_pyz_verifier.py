@@ -24,12 +24,11 @@ from opentine import Run, RunStatus, StepKind, cli
 from opentine._evidence_export import archival_bytes
 from opentine._pyz import _ed25519
 from opentine._pyz_build import build_bytes
-from opentine.signing import HAS_ED25519, generate_ed25519
+from opentine.signing import generate_ed25519
 
 ROOT = Path(__file__).resolve().parent.parent
 WYCHEPROOF = ROOT / "tests" / "data" / "wycheproof" / "ed25519_test.json"
 HMAC_KEY = b"compat-golden-signing-key-000001"
-needs_ed25519 = pytest.mark.skipif(not HAS_ED25519, reason="signing needs the crypto extra")
 
 #: RFC 8032 §7.1 TEST 1, 2, 3 and SHA(abc): (public key, message, signature).
 RFC8032 = [
@@ -196,22 +195,21 @@ def _v4_jobs(room: Path) -> list[tuple[str, str | None, str | None]]:
     jobs: list[tuple[str, str | None, str | None]] = [(str(room / "plain.tine"), None, None)]
     plain.save(room / "hmac.tine", sign_key=HMAC_KEY)
     jobs += [(str(room / "hmac.tine"), k, v) for k, v in ((None, None), ("key-file", "hmac.key"))]
-    if HAS_ED25519:
-        seed, public = generate_ed25519()
-        (room / "ed.pub").write_text(public + "\n", encoding="utf-8")
-        _, other = generate_ed25519()
-        (room / "other.pub").write_text(other + "\n", encoding="utf-8")
-        plain.save(room / "ed.tine", sign_key=seed, sign_algorithm="ed25519")
-        for key in ("ed.pub", "other.pub"):
-            jobs.append((str(room / "ed.tine"), "pubkey", key))
-        jobs.append((str(room / "ed.tine"), "key-file", "hmac.key"))
+    seed, public = generate_ed25519()
+    (room / "ed.pub").write_text(public + "\n", encoding="utf-8")
+    _, other = generate_ed25519()
+    (room / "other.pub").write_text(other + "\n", encoding="utf-8")
+    plain.save(room / "ed.tine", sign_key=seed, sign_algorithm="ed25519")
+    for key in ("ed.pub", "other.pub"):
+        jobs.append((str(room / "ed.tine"), "pubkey", key))
+    jobs.append((str(room / "ed.tine"), "key-file", "hmac.key"))
     from opentine._artifact_io import read_artifact_json
 
     for name, edit in _TAMPERS.items():
-        data = read_artifact_json(room / ("ed.tine" if HAS_ED25519 else "hmac.tine"))
+        data = read_artifact_json(room / "ed.tine")
         edit(data)
         (room / f"t-{name}.tine").write_text(json.dumps(data), encoding="utf-8")
-        jobs.append((str(room / f"t-{name}.tine"), "pubkey" if HAS_ED25519 else None, "ed.pub"))
+        jobs.append((str(room / f"t-{name}.tine"), "pubkey", "ed.pub"))
     return [(p, k, str(room / v) if v and not Path(v).is_absolute() else v) for p, k, v in jobs]
 
 
@@ -302,7 +300,6 @@ def test_evidence_export_with_verifier_verifies_with_its_own_pyz(room):
     assert done.returncode == 1
 
 
-@needs_ed25519
 def test_pure_ed25519_agrees_with_cryptography_on_random_keys():
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 

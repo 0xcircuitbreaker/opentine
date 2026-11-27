@@ -2,13 +2,10 @@
 
 from __future__ import annotations
 
-import io
 import json
 import os
-import shutil
 import subprocess
 import sys
-import tarfile
 import textwrap
 from pathlib import Path
 
@@ -30,6 +27,7 @@ from opentine.core import Run
 from opentine.kernel import KernelError, canonical_json
 from opentine.kernel import parse_oid as kernel_parse_oid
 from opentine.repository.store import Repo
+from tests._v034 import v034
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / "tests" / "fixtures"
@@ -218,23 +216,6 @@ OLD_VERIFY = textwrap.dedent(
 )
 
 
-def _v034(tmp_path: Path) -> Path:
-    if shutil.which("git") is None:
-        pytest.skip("git is not installed")
-    try:
-        archive = subprocess.run(
-            ["git", "-C", str(ROOT), "archive", "v0.34.0", "opentine"],
-            capture_output=True,
-            check=True,
-        ).stdout
-    except (OSError, subprocess.CalledProcessError):
-        pytest.skip("tag v0.34.0 is not available in this checkout")
-    dest = tmp_path / "v034"
-    with tarfile.open(fileobj=io.BytesIO(archive)) as tar:
-        tar.extractall(dest, filter="data")
-    return dest
-
-
 def _old(tmp_path, old, *args):
     script = tmp_path / "old_verify.py"
     script.write_text(OLD_VERIFY, encoding="utf-8")
@@ -249,7 +230,7 @@ def _old(tmp_path, old, *args):
 
 
 def test_the_034_verifier_accepts_the_hybrid_run_through_ed25519(hybrid, tmp_path):
-    old = _v034(tmp_path)
+    old = v034(tmp_path)
     artifact = tmp_path / "hybrid.tine"
     artifact.write_bytes(canonical_json(hybrid))
     pubkey = tmp_path / "ed.pub"
@@ -263,7 +244,7 @@ def test_the_034_verifier_accepts_the_hybrid_run_through_ed25519(hybrid, tmp_pat
 
 def test_the_034_verifier_does_not_accept_a_pq_block_alone(hybrid, tmp_path):
     """The classical block is what 0.34 checks; without it, 0.34 refuses the run."""
-    old = _v034(tmp_path)
+    old = v034(tmp_path)
     artifact = tmp_path / "pq-only.tine"
     artifact.write_bytes(canonical_json(_with(hybrid, hybrid["signatures"][1])))
     done = _old(tmp_path, old, artifact, "--trust-embedded-key", "--require-signature")

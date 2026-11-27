@@ -8,8 +8,9 @@ the repository can delete it and launder a score. So
 for loop stops. The hold keeps the attestation from every delete, ``tine hold
 release`` refuses it (a taint is never released), and ``promote`` and
 ``lineage check`` read it when the file is gone. An unreadable holds file
-counts as a taint (fail closed). Only a run stored in the repository can be
-held this way (an attestation names a stored object).
+counts as a taint (fail closed); with no row (the holds file deleted or
+edited) the stored taint attestation is read from the object store. Only a
+run stored in the repository can be held this way (an attestation names a stored object).
 """
 
 from __future__ import annotations
@@ -17,7 +18,13 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from opentine.repository._holds import TAINT, HoldError, edit_holds, holds_path, read_holds
+from opentine.repository._holds import (
+    TAINT,
+    HoldError,
+    hold_row,
+    holds_path,
+    read_holds,
+)
 
 
 def target(run: str) -> str:
@@ -40,7 +47,6 @@ def record(root: Path, document: dict[str, Any]) -> str | None:
     attestation must name a stored object): then only the file records it.
     """
     from opentine.kernel import KernelError
-    from opentine.repository._link_touch import touch_links
 
     repo = _repo(root)
     if repo is None:
@@ -49,9 +55,7 @@ def record(root: Path, document: dict[str, Any]) -> str | None:
         oid = repo.put("attestation", document)
     except KernelError:
         return None
-    touch_links(repo, [oid])
-    row = {"oid": oid, "target": target(document["claim"]["run"])}
-    edit_holds(holds_path(repo), lambda rows: [*(r for r in rows if r != row), row])
+    hold_row(repo, oid, target(document["claim"]["run"]))
     return oid
 
 
@@ -64,12 +68,18 @@ def held(root: Path, run: str) -> list[dict[str, Any]]:
         rows = [r for r in read_holds(holds_path(repo)) if r["target"] == target(run)]
     except HoldError as exc:
         return [{"unreadable": str(exc)}]
+    oids = sorted(r["oid"] for r in rows)
+    if not oids:  # the row is gone (holds file deleted or edited): the object still taints
+        from opentine._integrity_run import TAINT
+        from opentine.repository._stored_claims import stored
+
+        oids = stored(repo, TAINT, lambda claim: claim.get("run") == run)
     out = []
-    for row in sorted(rows, key=lambda r: r["oid"]):
+    for oid in oids:
         try:
-            out.append(repo.get(row["oid"]).payload())
+            out.append(repo.get(oid).payload())
         except Exception:  # noqa: BLE001 - a held taint that cannot be read still taints
-            out.append({"unreadable": f"held taint {row['oid']} cannot be read"})
+            out.append({"unreadable": f"held taint {oid} cannot be read"})
     return out
 
 

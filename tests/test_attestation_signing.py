@@ -26,7 +26,6 @@ properties that make the fix worth having.
 from __future__ import annotations
 
 import json
-import os
 import shutil
 from pathlib import Path
 from typing import Any
@@ -39,15 +38,13 @@ from opentine._signing_view import DOMAIN_PREFIX
 from opentine.attest_signing import sign_attestation, verify_attestation
 from opentine.kernel import ObjectEnvelope
 from opentine.repository import Repo
-from opentine.signing import HAS_ED25519, SignatureError, generate_ed25519
+from opentine.signing import SignatureError, generate_ed25519
 from opentine.trace import Recorder, TraceEvent
 
 COMPAT = Path(__file__).parent / "fixtures" / "compat"
 
 KEY = b"0123456789abcdef0123456789abcdef"  # 32 bytes, the same shape test_signing uses
 OTHER_KEY = b"fedcba9876543210fedcba9876543210"
-
-needs_ed25519 = pytest.mark.skipif(not HAS_ED25519, reason="ed25519 needs the crypto extra")
 
 
 def _legacy_payload(target_id: str, claim: dict[str, Any], signer: str) -> dict[str, Any]:
@@ -101,7 +98,6 @@ def test_hmac_sign_verify_round_trip_is_verified(signed):
     )
 
 
-@needs_ed25519
 def test_ed25519_sign_verify_round_trip_is_verified(repo_with_run):
     repo, run = repo_with_run
     seed, public = generate_ed25519()
@@ -342,27 +338,27 @@ def test_attest_signs_with_key_file_and_repo_verify_confirms_it(repo_with_run, t
     assert row["attestation_id"] == receipt["attestation_id"]
 
 
-def test_evaluate_signs_too_and_the_receipt_says_unsigned_when_it_is(repo_with_run, capsys):
+def test_evaluate_signs_too_and_the_receipt_says_unsigned_when_it_is(
+    repo_with_run, capsys, monkeypatch
+):
     repo, _ = repo_with_run
     root = str(repo.path.parent)
-    os.environ["TINE_TEST_ATTEST_KEY"] = KEY.decode()
-    try:
-        _run_cli(
-            "evaluate",
-            "heads/main",
-            "--repo",
-            root,
-            "--evaluator",
-            "judge",
-            "--score",
-            "quality=0.9",
-            "--key-env",
-            "TINE_TEST_ATTEST_KEY",
-            "--json",
-        )
-        assert json.loads(capsys.readouterr().out)["signed"] is True
-    finally:
-        del os.environ["TINE_TEST_ATTEST_KEY"]
+    monkeypatch.setenv("TINE_TEST_ATTEST_KEY", KEY.decode())
+    _run_cli(
+        "evaluate",
+        "heads/main",
+        "--repo",
+        root,
+        "--evaluator",
+        "judge",
+        "--score",
+        "quality=0.9",
+        "--key-env",
+        "TINE_TEST_ATTEST_KEY",
+        "--json",
+    )
+    assert json.loads(capsys.readouterr().out)["signed"] is True
+    monkeypatch.delenv("TINE_TEST_ATTEST_KEY")
 
     _run_cli(
         "attest", "heads/main", "--repo", root, "--signer", "op", "--claim", '{"kind": "note"}'

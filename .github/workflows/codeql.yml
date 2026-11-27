@@ -16,8 +16,14 @@ permissions: {}
 
 jobs:
   analyze:
-    name: Analyze (python)
+    name: Analyze (${{ matrix.language }})
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # javascript-typescript covers ts/, ide/vscode and the shipped
+        # opentine/data/ui scripts, including the browser verifier.
+        language: [python, javascript-typescript]
     permissions:
       contents: read
       security-events: write # upload CodeQL results to code scanning
@@ -29,10 +35,10 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         with:
-          languages: python
+          languages: ${{ matrix.language }}
           build-mode: none
 
       - name: Perform CodeQL analysis
         uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         with:
-          category: /language:python
+          category: /language:${{ matrix.language }}

@@ -100,15 +100,6 @@ def object_exists(repo, oid: str) -> bool:
     return False
 
 
-def is_loose_plain(repo, oid: str) -> bool:
-    """Whether *oid* is a loose file holding its canonical bytes as they are."""
-    try:
-        with open(repo._object_path(oid), "rb") as handle:
-            return not _codec.is_wrapped(handle.read(len(_codec.MAGIC)))
-    except FileNotFoundError:
-        return False
-
-
 def canonical_size(repo, oid: str) -> int | None:
     """Uncompressed size of a compressed loose or packed object, else ``None``."""
     path = repo._object_path(oid)

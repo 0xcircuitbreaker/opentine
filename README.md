@@ -71,8 +71,8 @@ pip install "opentine[crypto]" # compatibility alias only; see below
 pip install "opentine[all,mcp]" # every provider SDK plus MCP
 ```
 
-`all` installs the Anthropic, OpenAI, and Google SDKs; it does not include
-`mcp` or `langchain`. The Anthropic adapter works with both the 0.x SDK and the
+`all` installs the Anthropic, OpenAI, and Google SDKs (and, before Python 3.14,
+the zstd backport); it does not include `mcp` or `langchain`. The Anthropic adapter works with both the 0.x SDK and the
 1.x SDK (which no longer accepts `temperature` as a keyword; OpenTine sends it in
 the request body for the models that take it). Ollama needs no extra because it uses the core `httpx`
 dependency.
@@ -1308,12 +1308,12 @@ agent CLI. Run the full local gate list from the Validation section above before
 opening a pull request.
 
 When Docker is available, `uv run python scripts/ci_docker.py` rehearses the
-Ubuntu lane — lint, format check, the same deselected `pytest` run, `uv build`,
-and the wheel smoke test — in one container per Python version, defaulting to
-3.11, 3.12, and 3.13. `--python VERSION` is repeatable and replaces that default
-set, so `--python 3.14` covers the remaining CI version. The preflight does not
-run the architecture, release-inventory, or `twine` gates, and GitHub Actions
-remains authoritative for macOS and Windows.
+Ubuntu lane — the locked install, lint, the architecture and copy checks, format
+check, the parallel and serial `pytest` passes, `uv build`, the release
+inventory, `twine check` and the wheel smoke test — in one container per Python
+version, defaulting to 3.11, 3.12, 3.13 and 3.14. `--python VERSION` is
+repeatable and replaces that default set. GitHub Actions remains authoritative
+for macOS and Windows.
 
 Report bugs on the
 [issue tracker](https://github.com/0xcircuitbreaker/opentine/issues). Report

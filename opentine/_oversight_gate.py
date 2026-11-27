@@ -118,6 +118,9 @@ def promote_refusals(repo_path: Path | None, candidate: str, label: str, *,
         if _oversight.by_objects(repo):  # held decisions exist: the policy was removed
             return [refusal("promote.oversight-insufficient",
                             "oversight decisions exist; .tine/oversight.toml is gone")]  # fmt: skip
+        if state.get("floors"):  # the owner pinned tier floors: the policy must be there
+            return [refusal("promote.oversight-insufficient",
+                            "floors are pinned; .tine/oversight.toml is gone")]  # fmt: skip
         return []
     info = {"source": "promotion", "label": label,
             "metrics": _oversight_policy.eval_metrics(evals)}  # fmt: skip

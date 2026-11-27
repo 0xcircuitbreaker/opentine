@@ -1,4 +1,6 @@
-# OpenTine roadmap: 0.35 to 0.60
+# OpenTine roadmap
+
+*Status, 2026-11-26 (0.84): this file began as the 0.35–0.60 plan. Sections 8, 10 and 12 are kept as the historical plans for those releases, which have all shipped; read their future tense as the plan at the time. Some names changed when they shipped: the `tine graph` code map shipped as `tine code-graph`, and `tine ask` has not shipped. The current state of the 1.0 track is the 1.0 re-evaluation (0.80) section.*
 
 *Status, 2026-11-13: 0.35–0.50 are delivered (§8, §10) and 0.51 is delivered (§12). §11 covers the web platform and §12 plans 0.51–0.60, with the owner decisions of 2026-11-13; 0.60 is a waypoint on the way to 1.0, not 1.0 itself. Status, 2026-11-07: §10 planned 0.45–0.50 and §11 the web platform. Original baseline: v0.34.0, November 2026. Horizon: about **7–9 months**. Each release below is 3–5 weeks of work, not the 1–3 weeks the earlier draft claimed. Work that does not fit has moved to "0.45+" or the 1.0 track and is not hidden inside a release. Every claim that OpenTine "lacks" something was grep-checked in `opentine/`. Claims about competitors come from a survey of a subset of tools and are stated with that caveat.*
 

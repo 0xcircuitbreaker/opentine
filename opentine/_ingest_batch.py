@@ -33,11 +33,12 @@ from __future__ import annotations
 import hashlib
 import json
 import math
-from datetime import UTC, datetime
 from typing import Any
 
-from opentine import _ingest_holds, _ingest_policy
+from opentine import _ingest_holds, _ingest_policy, _key_roles_pin
 from opentine._ingest_policy import IngestError
+from opentine._json_shallow import unique_pairs
+from opentine._utc import rfc3339_utc
 from opentine.redaction import redact_blob
 
 CONVENTION = "opentine.ingest-batch/1"
@@ -45,13 +46,6 @@ MAX_EVENTS = 1_000_000
 MAX_LINE_BYTES = 1 << 20
 _LINE = json.JSONEncoder(sort_keys=True, separators=(",", ":"), ensure_ascii=False,
                          allow_nan=False)  # fmt: skip
-
-
-def _pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
-    out = dict(pairs)
-    if len(out) != len(pairs):
-        raise ValueError("duplicate key")
-    return out
 
 
 def _finite(text: str) -> float:
@@ -81,7 +75,7 @@ def parse(data: bytes) -> list[tuple[str, Any]]:
         try:
             event = _json_shallow.loads(
                 line.decode("utf-8"),
-                object_pairs_hook=_pairs,
+                object_pairs_hook=unique_pairs,
                 parse_float=_finite,
                 parse_constant=_constant,
             )
@@ -96,14 +90,27 @@ def parse(data: bytes) -> list[tuple[str, Any]]:
     return out
 
 
+def _refusal(row: dict[str, Any], roles: dict[str, Any]) -> str | None:
+    """Why a policy row may not take effect at write time (the check verify applies)."""
+    return _ingest_policy.judge(row["signer"], roles)
+
+
 def current_policy(repo: Any, stream: str) -> dict[str, Any]:
-    """The stream's newest signed policy record (by ``issued_at``, then id)."""
+    """The stream's newest policy signed by a pinned policy key (``issued_at``, then id).
+
+    Only role-approved policies are candidates, so an unroled key's self-claimed
+    future ``issued_at`` never wins; none approved refuses (fails closed).
+    """
     rows = [r for oid in _ingest_holds.policies(repo, stream)
             if (r := _ingest_holds.read(repo, oid, _ingest_policy.CONVENTION))]  # fmt: skip
     rows = [r for r in rows if r["signed"] and r["claim"].get("stream") == stream]
     if not rows:
         raise IngestError(f"stream {stream} has no signed sampling policy: "
                           "run tine ingest policy first")  # fmt: skip
+    roles = _key_roles_pin.resolve(repo.path)
+    rows = [r for r in rows if _refusal(r, roles) is None]
+    if not rows:  # fail closed, as tine ingest verify does
+        raise IngestError(f"stream {stream} has no sampling policy signed by a pinned policy key")
     return max(rows, key=lambda r: (str(r["claim"].get("issued_at")), r["id"]))
 
 
@@ -134,6 +141,9 @@ def append(repo: Any, stream: str, data: bytes, key: Any, *, at_ms: int,
             raise IngestError(f"{policy_id} is not a signed ingest policy")
         if policy_id not in _ingest_holds.policies(repo, stream):
             raise IngestError(f"{policy_id} is not a held policy of stream {stream}")
+        code = _refusal(policy_row, _key_roles_pin.resolve(repo.path))
+        if code is not None:
+            raise IngestError(f"{policy_id} may not take effect: {code}")
     policy = _ingest_policy.claim(policy_row["claim"])
     _refuse_optimizer(repo, key)
     previous = _ingest_holds.head(repo, stream)
@@ -155,7 +165,7 @@ def append(repo: Any, stream: str, data: bytes, key: Any, *, at_ms: int,
             lines.append(_LINE.encode(line).encode("utf-8") + b"\n")
         else:
             dropped_by[reason] += 1
-    at = datetime.fromtimestamp(at_ms / 1000, UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    at = rfc3339_utc(at_ms / 1000)
     joined = b"".join(lines)
     with _write_batch.batched(repo):  # one durability point per batch
         target = _ingest_policy.anchor(repo, stream)

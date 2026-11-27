@@ -19,7 +19,8 @@ from typing import Any
 
 from opentine._file_originals import MARKER, Originals
 from opentine.core import StepKind
-from opentine.harnesses._claude_env import _count, _money, env_provider, list_priced, service_tier
+from opentine.harnesses._claude_env import _count, env_provider, list_priced, service_tier
+from opentine.harnesses._dialect_base import money as _money
 from opentine.harnesses._types import HarnessStep
 
 #: ``modelUsage[...].provider`` -> OpenTine provider. Bedrock and Vertex keep

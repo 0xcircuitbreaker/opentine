@@ -60,6 +60,4 @@ def cmd_worktree(args: argparse.Namespace) -> None:
     console.print(f"[{BRAND}]#[/] {_terminal(text)}")
 
 
-WORKTREE_COMMANDS = {"worktree": cmd_worktree}
-
-__all__ = ["WORKTREE_COMMANDS", "add_worktree_parser", "cmd_worktree"]
+__all__ = ["add_worktree_parser", "cmd_worktree"]

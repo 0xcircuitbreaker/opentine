@@ -28,9 +28,10 @@ from opentine.billing.catalog import (
 )
 from opentine.core import RunStatus
 from opentine.graph import StepKind
-from opentine.signing import HAS_ED25519, verify_artifact
+from opentine.signing import verify_artifact
 
-pytestmark = pytest.mark.skipif(not HAS_ED25519, reason="needs the crypto extra")
+#: Pins the deprecated v2 writer (tests/conftest.py legacy_v2_writer).
+pytestmark = pytest.mark.usefixtures("legacy_v2_writer")
 
 #: The release catalog of 2026-07-20, signed with the current release key.
 OLD_RELEASE = Path(__file__).parent / "fixtures" / "pricing" / "release_catalog_2026_07_20.json"
@@ -331,10 +332,3 @@ def test_extra_secret_keys_refuse_the_singular_of_a_reserved_field(name):
 
     with pytest.raises(ValueError, match="extra_secret_keys"):
         RedactionPolicy(extra_secret_keys=(name,))
-
-
-@pytest.fixture(autouse=True)
-def _legacy_v2_writer(monkeypatch):
-    """0.26 writes format v4 by default. This module inspects the v2 file layout
-    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
-    monkeypatch.setenv("OPENTINE_FORMAT", "2")

@@ -99,3 +99,14 @@ def test_a_task_in_a_stopped_loops_namespace_is_fenced_without_loop(repo):
         with pytest.raises(LeaseError) as caught:
             _tasks.add(repo, "opt.gen-2" if not kwargs else "g9", now=T0, **kwargs)
         assert caught.value.code == "stopped"
+
+
+def test_deleting_the_record_and_the_holds_file_does_not_un_stop(repo):
+    _tasks.add(repo, "g0", now=T0, loop="opt")
+    record = _loop_stop.stop(repo, "opt", _key(), reason="halt", now=T0)
+    ref = "coord/loops/opt"
+    delete_ref(repo.path, ref, repo.read_ref(ref))
+    _holds.holds_path(repo).unlink()
+    state = _loop_stop.loop_state(repo, "opt")
+    assert state["status"] == "stopped" and state["stop"] == record["stop"]
+    _refused(repo, "g0")

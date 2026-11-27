@@ -16,9 +16,10 @@ import pytest
 from opentine import Run, RunStatus, StepKind, cli
 from opentine._offline_guard import NetworkRefused, no_network
 from opentine._verify_report import JSON_SCHEMA, SCHEMA, Check, Report
-from opentine.signing import HAS_ED25519, generate_ed25519
+from opentine.signing import generate_ed25519
 
-needs_ed25519 = pytest.mark.skipif(not HAS_ED25519, reason="ed25519 needs the crypto extra")
+#: Pins the deprecated v2 writer (tests/conftest.py legacy_v2_writer).
+pytestmark = pytest.mark.usefixtures("legacy_v2_writer")
 
 
 @pytest.fixture
@@ -33,11 +34,10 @@ def room(monkeypatch, tmp_path: Path) -> Path:
     run.add_step(StepKind.done, {"text": "done"})
     run.status = RunStatus.completed
     run.save(tmp_path / "source.tine")
-    if HAS_ED25519:
-        seed, public = generate_ed25519()
-        (tmp_path / "ed.pub").write_text(public + "\n", encoding="utf-8")
-        (tmp_path / "ed.hex").write_text(seed + "\n", encoding="utf-8")
-        run.save(tmp_path / "ed.tine", sign_key=seed, sign_algorithm="ed25519")
+    seed, public = generate_ed25519()
+    (tmp_path / "ed.pub").write_text(public + "\n", encoding="utf-8")
+    (tmp_path / "ed.hex").write_text(seed + "\n", encoding="utf-8")
+    run.save(tmp_path / "ed.tine", sign_key=seed, sign_algorithm="ed25519")
     return tmp_path
 
 
@@ -105,7 +105,6 @@ def test_human_rendering_states_the_trust_basis(room, capsys, dials):
     assert "authorship: NOT established" in flat and "signature.unsigned" in flat
 
 
-@needs_ed25519
 def test_ed25519_signed_run_with_pubkey_passes(room, capsys, dials):
     code, doc = _report(capsys, "ed.tine", "--pubkey", "ed.pub")
     signature = _check(doc, "signature")
@@ -116,7 +115,6 @@ def test_ed25519_signed_run_with_pubkey_passes(room, capsys, dials):
     _validate(doc)
 
 
-@needs_ed25519
 def test_signed_run_without_a_key_is_unavailable_and_tofu_is_not_authorship(room, capsys):
     code, doc = _report(capsys, "ed.tine")
     assert code == 0 and _check(doc, "signature")["reason"] == "signature.no-key"
@@ -149,7 +147,6 @@ def test_strict_fails_when_a_required_check_is_unavailable(room, capsys):
     _validate(doc)
 
 
-@needs_ed25519
 def test_strict_passes_when_every_required_check_ran(room, capsys):
     code, doc = _report(capsys, "ed.tine", "--pubkey", "ed.pub", "--strict")
     assert code == 0 and doc["verdict"] == "pass" and doc["unavailable_required"] == []
@@ -252,7 +249,6 @@ def test_action_policy_is_checked_offline(room, capsys):
     assert _check(doc, "action-manifest")["reason"] == "actions.absent"
 
 
-@needs_ed25519
 def test_attestation_and_absent_receipt_offline(room, capsys, dials):
     argv = ("export", "ed.tine", "--format", "intoto", "--ed25519-key-file", "ed.hex")
     code, _ = _invoke(capsys, *argv, "--output", "a.intoto.jsonl")
@@ -275,10 +271,3 @@ def test_attestation_and_absent_receipt_offline(room, capsys, dials):
     assert code == 1 and _check(doc, "rekor-receipt")["outcome"] == "fail"
     assert dials == []
     _validate(doc)
-
-
-@pytest.fixture(autouse=True)
-def _legacy_v2_writer(monkeypatch):
-    """0.26 writes format v4 by default. This module inspects the v2 file layout
-    (or tolerance only v2 has), so it pins the deprecated v2 writer."""
-    monkeypatch.setenv("OPENTINE_FORMAT", "2")

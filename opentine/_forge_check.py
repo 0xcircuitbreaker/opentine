@@ -30,7 +30,7 @@ import hashlib
 import re
 from typing import Any
 
-from opentine._signed_record import RecordError
+from opentine._signed_record import RecordError, is_count
 from opentine.kernel import canonical_json
 
 KIND = "opentine.forge-check"
@@ -66,10 +66,6 @@ def _bad(what: str) -> RecordError:
     return _refuse("malformed", f"forge check is malformed: {what}")
 
 
-def _count(value: Any) -> bool:
-    return isinstance(value, int) and not isinstance(value, bool) and 0 <= value < 1 << 53
-
-
 def share_ppm(ai_lines: int, total_lines: int) -> int:
     return ai_lines * 1_000_000 // total_lines if total_lines else 0
 
@@ -96,7 +92,7 @@ def _overlay(rows: Any) -> None:
         ):
             raise _bad("overlay path is not a relative posix path")
         start, end = row["start_line"], row["end_line"]
-        if not (_count(start) and _count(end) and 1 <= start <= end):
+        if not (is_count(start) and is_count(end) and 1 <= start <= end):
             raise _bad("overlay lines are not 1 <= start_line <= end_line")
         if row["run"] is not None and not (
             isinstance(row["run"], str) and _RUN.fullmatch(row["run"])
@@ -120,10 +116,10 @@ def body(record: Any) -> dict[str, Any]:
     if project is not None and not (isinstance(project, str) and _ID.fullmatch(project)):
         raise _bad("bad project_id")
     verify = _keys(record["verify"], ("state", "runs"), "verify")
-    if verify["state"] not in CONCLUSIONS or not _count(verify["runs"]):
+    if verify["state"] not in CONCLUSIONS or not is_count(verify["runs"]):
         raise _bad("bad verify state or run count")
     ai = _keys(record["ai"], ("ai_lines", "total_lines", "share_ppm"), "ai")
-    if not all(_count(ai[name]) for name in ai):
+    if not all(is_count(ai[name]) for name in ai):
         raise _bad("ai counts are not non-negative integers")
     bundle = _keys(record["bundle"], ("url", "digest"), "bundle")
     url, digest = bundle["url"], bundle["digest"]

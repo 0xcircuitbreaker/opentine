@@ -55,7 +55,10 @@ def hmac_key_from_file(path: str | Path) -> bytes:
 
 def _require_crypto() -> None:
     if not HAS_ED25519:
-        raise SignatureError("ed25519 support requires: pip install 'opentine[crypto]'")
+        raise SignatureError(
+            "ed25519 support needs the cryptography package, a core dependency that "
+            "failed to import: reinstall opentine"
+        )
 
 
 def load_ed25519_private(key: Any):

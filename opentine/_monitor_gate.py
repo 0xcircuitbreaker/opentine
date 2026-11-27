@@ -35,12 +35,12 @@ import subprocess
 import threading
 import time
 from collections.abc import Callable
-from datetime import UTC, datetime
 from typing import Any
 
 from opentine import _containment_detect, _monitor_stop, _monitor_verdict
 from opentine._monitor_verdict import CONVENTION, input_digest, text_digest
 from opentine._monitors import MonitorError
+from opentine._utc import rfc3339_utc
 
 
 def run_with_deadline(fn: Callable[[], Any], seconds: float) -> tuple[bool, Any, Any]:
@@ -157,7 +157,7 @@ class Gate:
             "mode": self.config["mode"], "deadline_ms": self.config["deadline_ms"],
             "fail_closed": self.config["fail_closed"], "latency_ms": 0, "stop": None,
             "trajectories": [{"role": "original", "digest": original}], "chosen": "original",
-            "decided_at": datetime.fromtimestamp(self.wall(), UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "decided_at": rfc3339_utc(self.wall()),
         }  # fmt: skip
         stopped = _monitor_stop.active(self.repo, _monitor_stop.scopes(
             self.agent, self.session)) if self.repo is not None else None  # fmt: skip

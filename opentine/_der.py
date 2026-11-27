@@ -14,7 +14,7 @@ from datetime import UTC, datetime
 
 MAX_DER = 1024 * 1024
 
-SEQUENCE, SET, INTEGER, OCTETS, OID, GENTIME, BOOLEAN = 0x30, 0x31, 0x02, 0x04, 0x06, 0x18, 0x01
+SEQUENCE, SET, INTEGER, OCTETS, OID, GENTIME = 0x30, 0x31, 0x02, 0x04, 0x06, 0x18
 
 
 class DerError(ValueError):

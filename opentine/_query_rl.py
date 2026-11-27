@@ -27,6 +27,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from opentine._query_values import text as _text
+
 COLUMNS: dict[str, tuple[str, ...]] = {
     "ingest_segments": ("oid", "target", "signer", "signed", "stream", "seq", "previous",
                         "batches", "first_index", "next_index", "episodes", "root",
@@ -41,10 +43,6 @@ COLUMNS: dict[str, tuple[str, ...]] = {
 ROLES_FOR = {"ingest_segments": ("runner",), "ingest_audits": ("auditor",),
              "artifact_provenance": ("runner",)}  # fmt: skip
 TABLES = tuple(COLUMNS)
-
-
-def _text(value: Any) -> str | None:
-    return value if isinstance(value, str) else None
 
 
 def _int(value: Any) -> int | None:

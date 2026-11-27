@@ -19,11 +19,11 @@ from __future__ import annotations
 
 import json
 import time
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from opentine import _signed_doc
+from opentine._utc import rfc3339_utc
 from opentine.kernel import canonical_json
 
 SCHEMA = "tine-cost-statement/1"
@@ -98,7 +98,7 @@ def statement(run: Any) -> dict[str, Any]:
 
 def sign_statement(doc: dict[str, Any], private_key: Any, signer: str | None = None):
     body = {key: value for key, value in doc.items() if key != "signature"}
-    now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    now = rfc3339_utc()
     block = _signed_doc.sign(DOMAIN, body, private_key, signer=signer, signed_at=now)
     return {**body, "signature": block}
 

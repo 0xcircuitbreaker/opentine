@@ -78,8 +78,12 @@ def signing_key(args: argparse.Namespace) -> tuple[Any | None, str]:
 def verification_armed(args: argparse.Namespace) -> bool:
     """Whether anything arms the fail-closed check, as ``tine verify`` decides it.
 
-    ``--trust-embedded-key`` and ``--require-signature`` are themselves requests
-    to check authenticity, so they arm it exactly as a supplied key does.
+    ``--trust-embedded-key`` (TOFU) and ``--require-signature`` are themselves
+    requests to check authenticity, so they arm it exactly as a supplied key
+    does; leaving --trust-embedded-key out once made ``tine verify RUN
+    --trust-embedded-key`` exit 0 without verifying anything. The file verify
+    path uses this same function (_cli_security.signature_requested), so the
+    human and --json paths, and the file and repository paths, cannot disagree.
     """
     return bool(
         getattr(args, "key_env", None)
