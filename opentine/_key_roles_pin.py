@@ -121,4 +121,24 @@ def pinned(store: Path | None) -> dict[str, list[str]] | None:
     return found["roles"] if found["status"] == "pinned" else None
 
 
-__all__ = ["BUNDLE_NAME", "UNPINNED", "bundle_path", "owner_vkey", "pinned", "resolve"]
+def granting(store: Path | None, role: str) -> tuple[set[str], str]:
+    """The pinned keys of a guarded *role*, never an optimizer key, and why another is not one.
+
+    The optimizer is the party a monitor, auditor or curator checks, so a key the
+    bundle also names as optimizer grants nothing, even when it is pinned.
+    """
+    from opentine._key_roles import OPTIMIZER, KeyRoleError
+
+    try:
+        found = resolve(store)
+    except KeyRoleError as exc:
+        return set(), f"key-role policy: {exc}"
+    if found["status"] != "pinned":
+        return set(), f"the {role} role is unpinned (no owner-signed trust bundle)"
+    held = found["roles"] or {}
+    keys = set(held.get(role, [])) - set(held.get(OPTIMIZER, []))
+    return keys, f"the signer is not a pinned {role} key" if keys else f"no {role} key is pinned"
+
+
+__all__ = ["BUNDLE_NAME", "UNPINNED", "bundle_path", "granting", "owner_vkey", "pinned",
+           "resolve"]  # fmt: skip

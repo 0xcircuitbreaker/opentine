@@ -54,6 +54,10 @@ object kind or `tine verify` code.
 - Security: deleting `.tine/oversight.toml` (and its signature) no longer
   turns off the oversight gate when the owner-signed trust bundle pins tier
   floors: promotion is refused with `promote.oversight-insufficient`.
+- Security: a key the pinned bundle names as `optimizer` never counts as a
+  monitor, auditor or curator, even when the bundle also lists it there (one
+  shared `_key_roles_pin.granting` check), as the transcript, containment and
+  oversight checks already did.
 
 ## 0.84.0 — RL-scale capture audits and provenance trailers (2026-11-26)
 
