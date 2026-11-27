@@ -26,6 +26,7 @@ EPOCHS = (lambda i, e: i % 2 == 0, lambda i, e: i % 10 != 0 or e == 0)
 def rsi_room(tmp_path, monkeypatch):
     from opentine._lineage import record
     from tests.key_roles_helpers import pin_roles
+    from tests.regions_helpers import pin_regions, policy_role
 
     monkeypatch.setenv("XDG_CONFIG_HOME", (tmp_path / "config").as_posix())
     monkeypatch.delenv("OPENTINE_TRUST_OWNER", raising=False)
@@ -34,9 +35,10 @@ def rsi_room(tmp_path, monkeypatch):
     room.rows = items(40, families=20)
     store = room.repo / ".tine"
     (store / "key-roles.toml").write_bytes(
-        f'version = 1\n[roles]\nscorer = ["{fingerprint(EVALER)}"]\n'.encode()
+        (f'version = 1\n[roles]\nscorer = ["{fingerprint(EVALER)}"]\n' + policy_role()).encode()
     )
     pin_roles(store)
+    pin_regions(room.repo)  # 0.87: rsi requires a signed region pin
     record(key(PROMOTER), run=RUN_B, artifacts={"code_tree": "sha256:" + "1" * 64},
            store=store / "lineage", parents=["sha256:" + "9" * 64], at=AT)  # fmt: skip
     return room
