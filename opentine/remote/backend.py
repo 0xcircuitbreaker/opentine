@@ -11,6 +11,7 @@ from collections.abc import Iterator
 from contextlib import AbstractContextManager
 from pathlib import Path
 from typing import Any
+from warnings import warn as _warn
 
 from opentine._canon import _fsync_dir
 from opentine.kernel import OBJECT_TYPES, ObjectEnvelope, parse_oid
@@ -47,10 +48,7 @@ def valid_tenant(tenant: str) -> str:
 
 def valid_ref(name: str) -> str:
     """Deprecated since 0.85 (removal in 1.0): use ``normalize_ref``."""
-    import warnings
-
-    warnings.warn("opentine.remote.backend.valid_ref is deprecated since 0.85; use "
-                  "normalize_ref", DeprecationWarning, stacklevel=2)  # fmt: skip
+    _warn("valid_ref is deprecated since 0.85; use normalize_ref", DeprecationWarning, 2)
     return normalize_ref(name)
 
 
