@@ -60,6 +60,10 @@ def run_eval(
     signer = key_fingerprint(private.public_key().public_bytes_raw())
     when = created_at or now()
     data = dataset_digest(items)
+    given = [_given(item, outputs, default_run) for item in items]
+    batch = None
+    if scorer.batch is not None:  # 0.85: scored first, so the version can pin the closure
+        batch = scorer.batch([(item, row["output"]) for item, row in zip(items, given)])
     pinned = {
         "dataset": data,
         "scorer": scorer.id,
@@ -70,14 +74,9 @@ def run_eval(
     }
     ident = eval_id(pinned)
     lines: list[str] = []
-    for item in items:
-        given = (outputs or {}).get(item["id"], item)
-        if "output" not in given:
-            raise DatasetError(f"item {item['id']!r} has no output to score")
-        run = given.get("run") or item.get("run") or default_run
-        if not run:
-            raise DatasetError(f"item {item['id']!r} names no run: pass --run or --from-run items")
-        score, judge = scorer(item, given["output"])
+    for number, (item, row) in enumerate(zip(items, given)):
+        run = row["run"]
+        score, judge = (batch[number], "") if batch is not None else scorer(item, row["output"])
         verdict = verdicts.make(
             private, eval=ident, dataset=data, item=item["id"], item_digest=item_digest(item),
             run=run, scorer=scorer.id, scorer_version=scorer.version, score=score,
@@ -94,10 +93,25 @@ def run_eval(
     if provenance is not None:  # 0.65: what the signed scorer_version pins
         text = json.dumps(provenance, indent=2, sort_keys=True) + "\n"
         atomic_write_text(out / JUDGE, text, newline="\n")
+    if scorer.config.get("closure") is not None:  # 0.85: what the signed scorer_version pins
+        from opentine._scorer_closure import write
+
+        write(out, scorer.config["closure"])
     atomic_write_text(
         out / SUMMARY, json.dumps(summary, indent=2, sort_keys=True) + "\n", newline="\n"
     )
     return summary
+
+
+def _given(item: dict[str, Any], outputs: dict[str, dict[str, Any]] | None,
+           default_run: str | None) -> dict[str, Any]:  # fmt: skip
+    given = (outputs or {}).get(item["id"], item)
+    if "output" not in given:
+        raise DatasetError(f"item {item['id']!r} has no output to score")
+    run = given.get("run") or item.get("run") or default_run
+    if not run:
+        raise DatasetError(f"item {item['id']!r} names no run: pass --run or --from-run items")
+    return {"output": given["output"], "run": run}
 
 
 def _tally(lines: list[str]) -> dict[str, Any]:
@@ -150,6 +164,9 @@ def verify_eval(folder: Path, *, public_key: bytes | None = None) -> dict[str, A
         if claimed != tally or (evals and summary.get("eval") not in evals):
             failures.append({"line": 0, "item": None, "reason": "eval.summary-mismatch"})
     failures += _judge_check(folder, rows)
+    from opentine._scorer_closure import check_folder
+
+    failures += check_folder(folder, rows)  # 0.85: scorer.json is what the verdicts pin
     ident = next(iter(evals)) if len(evals) == 1 else None
     return {"ok": not failures and bool(rows), "eval": ident, **tally, "failures": failures}
 

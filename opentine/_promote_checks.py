@@ -21,7 +21,9 @@ cherry-picking: n is the full paired set, never a convenient subset);
 label (each is bound to ``previous`` and ``sequence``, so a revert retires it);
 ``promote.missing-approver`` fewer valid approvals from listed approvers than required
 (approvals signed by the promoting key or by an eval signer never count);
-``promote.over-budget`` the declared spend exceeds the cap.
+``promote.over-budget`` the declared spend exceeds the cap;
+``promote.scorer-in-process`` (0.85) an eval ran an in-process scorer while the
+policy sets ``scorer_isolation = "required"`` or ``profile = "rsi"``.
 
 Advisory findings never block (owner decision D12); only these facts do.
 """
@@ -41,7 +43,8 @@ DECISION = "opentine.promotion-decision/1"
 LABEL_RE = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}")
 RUN_RE = re.compile(r"run:sha256:[0-9a-f]{64}")
 _KEYS = {"label_policy", "test", "alpha", "seed", "resamples", "min_n", "metric", "budget_usd",
-         "approvers", "min_approvals", "require_holdout", "eval_signers"}  # fmt: skip
+         "approvers", "min_approvals", "require_holdout", "eval_signers",
+         "scorer_isolation", "profile"}  # fmt: skip
 
 
 def refusal(code: str, detail: str) -> dict[str, str]:
@@ -60,6 +63,9 @@ def load_policy(path: Path) -> dict[str, Any]:
            "resamples": DEFAULT_RESAMPLES, "metric": "score", "min_approvals": 1,
            "require_holdout": True, **data}  # fmt: skip
     out["alpha"] = str(out["alpha"])
+    from opentine._promote_scorer import check_policy
+
+    check_policy(out)  # 0.85: scorer_isolation / profile
     check(out["test"], out["alpha"], out["seed"], out["resamples"])
     if out["metric"] not in METRICS:
         raise ValueError(f"metric is one of {', '.join(METRICS)}")
@@ -198,6 +204,15 @@ def gate(policy: dict[str, Any], *, candidate: str, label: str, current: str | N
             out.append(refusal("promote.dataset-mismatch", "the holdout sides differ"))
         elif all(s["ok"] for s in sides.values()):
             held = _beats("holdout", holdout[0], holdout[1], policy, out)
+    from opentine._promote_scorer import isolation
+
+    folders = {
+        "baseline": baseline,
+        "candidate": evals,
+        **({"holdout baseline": holdout[0], "holdout candidate": holdout[1]} if holdout else {}),
+    }
+    refused, advisories = isolation(policy, folders)  # 0.85: in-process scorers
+    out += refused
     from opentine._promote_pins import approvals
 
     exclude = frozenset({promoter, *policy["eval_signers"]})
@@ -220,7 +235,8 @@ def gate(policy: dict[str, Any], *, candidate: str, label: str, current: str | N
         )
     evidence = {"evals": sides, "main": main, "holdout": held,
                 "approvals": [{"approver": who, "sha256": digest} for who, digest in signed],
-                "spent_usd": spent, "budget_usd": policy["budget_usd"]}  # fmt: skip
+                "spent_usd": spent, "budget_usd": policy["budget_usd"],
+                "advisories": advisories}  # fmt: skip
     return evidence, out
 
 

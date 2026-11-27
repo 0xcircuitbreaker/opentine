@@ -360,6 +360,11 @@ DRIVEN = (
         "tine-cli-reproduce-1",
     ),  # fmt: skip
     (("oversight", "policy", "--repo", "repo", "--json"), "tine-cli-oversight-1"),  # 0.64
+    (("eval", "lint", "sc.py", "--json"), "tine-cli-eval-lint-1"),  # 0.85
+    (
+        ("eval", "rescore", "es", "--dataset", "repo/d.jsonl", "--key", "purge.key", "--json"),
+        "tine-cli-eval-rescore-1",
+    ),  # 0.85
     (
         ("oversight", "fatigue", "--repo", "repo", "--at", "2026-12-03T10:00:00Z", "--json"),
         "tine-cli-oversight-1",
@@ -442,6 +447,11 @@ def test_every_driven_json_output_validates(monkeypatch, capsys, room, argv, exp
         for side in ("ea", "eb"):
             _tine(monkeypatch, capsys, "eval", "run", "repo/d.jsonl", "--scorer", "exact",
                   "--key", "purge.key", "--out", side, "--json")  # fmt: skip
+    if argv[:2] in (("eval", "lint"), ("eval", "rescore")):  # 0.85: an isolated scorer
+        (room / "sc.py").write_bytes(b"def score(output, item):\n    return output == '1'\n")
+        if argv[1] == "rescore":
+            run = ("eval", "run", "repo/d.jsonl", "--scorer", "python:sc.py:score", "--isolate")
+            _tine(monkeypatch, capsys, *run, "--key", "purge.key", "--out", "es")
     if argv[0] == "bom":  # 0.78: a lineage node to export
         _tine(monkeypatch, capsys, "lineage", "record", "--run", "run:sha256:" + "a" * 64,
               "--key", "purge.key", "--code-tree", "sha256:" + "1" * 64, "--repo", "repo",
