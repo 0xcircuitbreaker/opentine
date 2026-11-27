@@ -42,6 +42,11 @@ object kind or `tine verify` code.
   `--no-textconv`, so a target repository's `core.fsmonitor`, textconv driver
   or global attributes never run a command. `tine init`'s work-tree probe uses
   the same helper.
+- Security: `tine ingest --batch` and `POST /v1/ingest` apply only a sampling
+  policy signed by a pinned `policy` key (the check `tine ingest verify`
+  already makes), chosen among those, and refuse when none qualifies. A newer
+  policy from an unroled or optimizer key can no longer turn redaction off or
+  drop events at write time.
 
 ## 0.84.0 — RL-scale capture audits and provenance trailers (2026-11-26)
 

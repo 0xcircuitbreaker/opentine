@@ -111,11 +111,25 @@ def test_one_durability_point_per_batch_before_the_head_moves(repo, monkeypatch)
 
 @pytest.mark.parametrize("signer,code", [("optimizer", "ingest.policy-optimizer-key"),
                                          ("stranger", "ingest.policy-role")])  # fmt: skip
-def test_policy_from_an_unpinned_or_optimizer_key_fails(repo, signer, code):
-    _policy(repo, signer=signer)
+def test_policy_from_an_unpinned_or_optimizer_key_fails(repo, signer, code, monkeypatch):
+    oid = _policy(repo, signer=signer)
+    for kw in ({}, {"policy_id": oid}):  # refused at write time
+        with pytest.raises(_ingest_policy.IngestError, match="policy"):
+            _ingest_batch.append(repo, "rl", _events(10), _key("runner"), at_ms=T0, **kw)
+    monkeypatch.setattr(_ingest_batch, "_refusal", lambda row, roles: None)  # a forged writer
     _ingest_batch.append(repo, "rl", _events(10), _key("runner"), at_ms=T0)
     report = _ingest_verify.verify(repo, "rl")
     assert not report["ok"] and code in _codes(report)
+
+
+def test_a_newer_policy_from_an_unroled_key_never_takes_effect(repo):
+    owner = _policy(repo, drop=[])
+    doc = _ingest_policy.build("rl", capture=[], drop=["step"], rate=1.0, seed=SEED,
+                               issued_at="2099-01-01T00:00:00Z")  # fmt: skip
+    _ingest_policy.record(repo, doc, _key("stranger"))
+    assert _ingest_batch.current_policy(repo, "rl")["id"] == owner
+    row = _ingest_batch.append(repo, "rl", _events(10), _key("runner"), at_ms=T0)
+    assert row["policy"] == owner and row["dropped_by"]["kind"] == 0
 
 
 def test_unpinned_roles_fail_closed(repo, tmp_path, monkeypatch):
