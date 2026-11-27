@@ -23,7 +23,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import re
 import tomllib
 from pathlib import Path
@@ -31,6 +30,7 @@ from typing import Any
 
 from opentine._agent_identity import agent_ref
 from opentine._canon import atomic_write_text
+from opentine._config_home import config_dir
 from opentine._signing_pins import key_fingerprint, normalize_pin
 
 NAME_RE = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}")
@@ -39,7 +39,7 @@ MAX_PINS_BYTES = 64 * 1024
 
 
 def _config_home() -> Path:
-    return Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config", "opentine")
+    return config_dir()
 
 
 def check_name(name: Any) -> str:

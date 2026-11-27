@@ -22,6 +22,7 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from opentine._canon import atomic_write_text
+from opentine._config_home import config_dir
 from opentine._json_shallow import unique_pairs
 from opentine.kernel import validate_json_shape
 from opentine.repository._paths import internal_path
@@ -147,8 +148,7 @@ def _hooks_shipped(repo_path: Path) -> bool:
 
 
 def _trust_file() -> Path:
-    home = os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config"
-    return Path(home, "opentine", "trusted-repos.json")
+    return config_dir("trusted-repos.json")
 
 
 def _trust_table() -> dict[str, str]:

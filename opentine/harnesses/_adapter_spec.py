@@ -21,7 +21,6 @@ distrust and re-pricing of any billing the source claims.
 from __future__ import annotations
 
 import json
-import os
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -29,6 +28,7 @@ from importlib import metadata
 from pathlib import Path
 from typing import Any
 
+from opentine._config_home import config_dir
 from opentine.trace._transcript_common import MAX_EVENTS, MAX_SOURCE_BYTES
 from opentine.trace.schema import TraceEvent
 
@@ -58,8 +58,7 @@ def builtin_specs() -> dict[str, AdapterSpec]:
 
 
 def allowlist_path() -> Path:
-    home = os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config"
-    return Path(home, "opentine", "adapters.json")
+    return config_dir("adapters.json")
 
 
 def allowlist() -> frozenset[str]:

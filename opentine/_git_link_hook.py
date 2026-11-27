@@ -21,6 +21,7 @@ import time
 from pathlib import Path
 
 from opentine._actions_query import ActionQuery, find
+from opentine._config_home import config_dir
 from opentine._git_link import HOOK_ENV, RUN_ID, GitLinkError, git
 
 HOOK = "prepare-commit-msg"
@@ -117,8 +118,7 @@ def install_hook(cwd: Path, *, global_: bool = False, hook: str = HOOK, text: st
         configured = _configured_hooks_path(cwd, "--global")
         if configured:
             return install_into(Path(os.path.expanduser(configured)), hook, text)
-        base = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config")
-        directory = base / "opentine" / "git-hooks"
+        directory = config_dir("git-hooks")
         installed = install_into(directory, hook, text)
         for name in _CLIENT_HOOKS:
             shim = directory / name

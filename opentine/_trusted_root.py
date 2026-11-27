@@ -32,6 +32,7 @@ from cryptography import x509
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec, ed25519, rsa
 
+from opentine._config_home import config_dir
 from opentine._rekor_proof import log_id
 
 MEDIA_TYPES = frozenset(
@@ -90,8 +91,7 @@ class TrustedRoot:
 
 
 def sigstore_dir() -> Path:
-    home = os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config"
-    return Path(home, "opentine", "sigstore")
+    return config_dir("sigstore")
 
 
 def default_trusted_root() -> Path | None:

@@ -25,6 +25,8 @@ import stat
 from pathlib import Path
 from typing import Any
 
+from opentine._config_home import config_dir
+
 SCHEMA = "opentine-plugin-allow/1"
 KINDS = ("importer", "signer", "scorer", "snapshot")
 MAX_ENTRIES = 256
@@ -37,8 +39,7 @@ class AllowListError(ValueError):
 
 
 def path() -> Path:
-    base = os.environ.get("XDG_CONFIG_HOME") or str(Path.home() / ".config")
-    return Path(base) / "opentine" / "plugins.json"
+    return config_dir("plugins.json")
 
 
 def normalize(distribution: str) -> str:

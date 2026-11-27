@@ -30,7 +30,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import re
 import tomllib
 from dataclasses import dataclass, field
@@ -38,6 +37,7 @@ from pathlib import Path
 
 from opentine._agent_identity import REF_RE
 from opentine._canon import atomic_write_text
+from opentine._config_home import config_dir
 from opentine.parallel._matrix import MAX_MEMBERS, env_names
 
 MAX_BYTES = 64 * 1024
@@ -162,8 +162,7 @@ def parse(raw: bytes, path: Path) -> Fleet:
 
 
 def _trust_file() -> Path:
-    home = os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config"
-    return Path(home, "opentine", "trusted-fleets.json")
+    return config_dir("trusted-fleets.json")
 
 
 def _table() -> dict[str, str]:

@@ -28,6 +28,7 @@ import stat
 from pathlib import Path
 from typing import Any, NoReturn
 
+from opentine._config_home import config_dir
 from opentine._json_shallow import unique_pairs
 
 FILE_NAME = "trust-policies.json"
@@ -65,8 +66,7 @@ class PolicyError(ValueError):
 
 
 def policy_file() -> Path:
-    home = os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config"
-    return Path(home, "opentine", FILE_NAME)
+    return config_dir(FILE_NAME)
 
 
 def check_name(name: Any) -> str:
