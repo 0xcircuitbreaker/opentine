@@ -7,9 +7,8 @@ every eval folder, approval and comparison as ``inputAttestations``);
 ``decision.json`` (an ``opentine.promotion-decision/1`` attestation on the candidate;
 0.86: ``plan``, the test of :mod:`opentine._promote_plan`); and ``compare.json``
 (and ``holdout-compare.json``). ``--revert`` and a canary regression write only a
-decision (``action`` ``revert``). The label's state lives in ``STATE/LABEL.json``
-(local state). A label moves only when the admission policy covers ``labels/LABEL``
-and lists the promoting key among its ``subjects``.
+decision (``action`` ``revert``). Label state: ``STATE/LABEL.json``. A label moves
+only when its admission policy covers ``labels/LABEL`` and lists the key as subject.
 """
 
 from __future__ import annotations
