@@ -87,8 +87,11 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
     from opentine._eval_dataset import read_jsonl
     from opentine._eval_run import run_eval
     from opentine._eval_scorers import parse
+    from opentine._holdout_query import LINEAGE_RE
     from opentine._signing_keys import ed25519_private_from_file
 
+    if args.lineage is not None and not LINEAGE_RE.fullmatch(args.lineage):
+        raise ValueError(f"--lineage must match {LINEAGE_RE.pattern}")  # before anything is signed
     prompt = Path(args.judge_prompt).read_text("utf-8") if args.judge_prompt else None
     rubric = Path(args.judge_rubric).read_bytes().decode("utf-8") if args.judge_rubric else None
     from opentine._cli_eval_scorer import build

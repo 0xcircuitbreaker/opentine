@@ -6,7 +6,9 @@
   writes a signed, held `opentine.holdout.query/1` record (lineage node from
   `--lineage`, eval id, what the eval revealed, the running count for that
   node). `tine dataset seal --max-queries N` sets a query budget in the signed
-  commitment; queries past it are marked `over_budget`. Deleting the record
+  commitment; queries past it, for one node or in total over all nodes (so
+  spreading queries over node names does not avoid it), are marked
+  `over_budget`. `--lineage` names are pattern-checked before anything is signed. Deleting the record
   files lowers no count, and `tine hold release` refuses the holds.
   docs/HOLDOUTS.md.
 - `tine dataset exposure --json` adds `queries` (count per lineage node and the

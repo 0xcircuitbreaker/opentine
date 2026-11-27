@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -35,6 +36,8 @@ QUERY = "opentine.holdout.query/1"
 MODES = ("advisory", "required")
 FLAG = "holdout.query-over-budget"
 UNATTRIBUTED = "unattributed"
+ALL = "*"  # over_budget entry: the holdout total, all lineage nodes together
+LINEAGE_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}")
 
 
 def _raw(folder: Path | None, repo: Path | None, prefix: str) -> list[bytes]:
@@ -57,17 +60,19 @@ def _raw(folder: Path | None, repo: Path | None, prefix: str) -> list[bytes]:
 
 def _records(raws: list[bytes], root: str | None = None) -> list[dict[str, Any]]:
     """The validly signed query claims (signer bound to the key), optionally for one root."""
+    from opentine import _json_shallow
     from opentine._holdout import signer
 
     out = []
     for raw in raws:
         try:
-            doc = json.loads(raw.decode("utf-8"))
-        except ValueError:
+            doc = _json_shallow.loads(raw, object_pairs_hook=_json_shallow.unique_pairs)
+        except (ValueError, UnicodeDecodeError):
             continue
         rec = doc.get("claim") if isinstance(doc, dict) else None
         if not (isinstance(rec, dict) and rec.get("schema") == QUERY
-                and isinstance(rec.get("lineage"), str) and isinstance(rec.get("eval"), str)
+                and isinstance(rec.get("lineage"), str) and LINEAGE_RE.fullmatch(rec["lineage"])
+                and isinstance(rec.get("eval"), str)
                 and (root is None or rec.get("root") == root)):  # fmt: skip
             continue
         who = signer(doc)
@@ -92,8 +97,11 @@ def counts(folder: Path, repo: Path | None = None) -> dict[str, Any]:
     for rec in _records(_raw(folder, repo, _prefix(claim["root"])), claim["root"]):
         seen.setdefault(rec["lineage"], set()).add(rec["eval"])
     lineages = {name: len(evals) for name, evals in sorted(seen.items())}
+    total = len(set().union(*seen.values()))  # distinct evals: names cannot split a budget
     over = [n for n, c in lineages.items() if isinstance(limit, int) and c > limit]
-    return {"max_queries": limit, "total": sum(lineages.values()), "lineages": lineages,
+    if isinstance(limit, int) and total > limit:
+        over.append(ALL)
+    return {"max_queries": limit, "total": total, "lineages": lineages,
             "over_budget": over}  # fmt: skip
 
 
@@ -105,18 +113,19 @@ def record(folder: Path, key: Any, summary: dict[str, Any], *, repo: Path | None
 
     claim = load(folder)["claim"]
     node = lineage or UNATTRIBUTED
-    state = counts(folder, repo)
-    before = {r["eval"] for r in _records(_raw(folder, repo, _prefix(claim["root"])),
-                                          claim["root"]) if r["lineage"] == node}  # fmt: skip
-    count = len(before | {summary["eval"]})
-    limit = state["max_queries"]
+    if not LINEAGE_RE.fullmatch(node):
+        raise ValueError(f"lineage node must match {LINEAGE_RE.pattern}")
+    limit = claim["budget"].get("max_queries")
+    prior = _records(_raw(folder, repo, _prefix(claim["root"])), claim["root"])
+    count = len({r["eval"] for r in prior if r["lineage"] == node} | {summary["eval"]})
+    total = len({r["eval"] for r in prior} | {summary["eval"]})
     rec = {"schema": QUERY, "holdout": claim["holdout"], "root": claim["root"], "lineage": node,
            "eval": summary["eval"], "verdicts_sha256": summary["verdicts_sha256"],
            "dataset": summary["dataset"],
            "revealed": {"items": summary["items"], "passed": summary["passed"],
                         "mean_score": summary["mean_score"]},
            "count": count, "max_queries": limit,
-           "over_budget": isinstance(limit, int) and count > limit}  # fmt: skip
+           "over_budget": isinstance(limit, int) and max(count, total) > limit}  # fmt: skip
     data = (json.dumps(sign(key, rec, f"sha256:{claim['root']}", at), indent=2,
                        sort_keys=True) + "\n").encode("utf-8")  # fmt: skip
     sha = hashlib.sha256(data).hexdigest()
@@ -185,7 +194,9 @@ def promote_findings(folders: list[Path], repo: Path | None,
         except HoldoutError:
             continue  # an unreadable holdout is refused as promote.holdout-exposed
         for node in state["over_budget"]:
-            found.append(f"{name}: lineage {node} made {state['lineages'][node]} queries "
+            made = state["total"] if node == ALL else state["lineages"][node]
+            who = "all lineage nodes together" if node == ALL else f"lineage {node}"
+            found.append(f"{name}: {who} made {made} queries "
                          f"(budget {state['max_queries']}); rotate the holdout")  # fmt: skip
     if not found:
         return [], []

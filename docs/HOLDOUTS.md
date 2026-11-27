@@ -181,7 +181,9 @@ unsealed). The record is signed with the eval key, stored as
 ```
 
 `count` is the number of distinct evals recorded for that lineage node on that
-holdout, this one included (`--lineage`, default `unattributed`).
+holdout, this one included (`--lineage`, default `unattributed`; a name
+matches `[A-Za-z0-9][A-Za-z0-9._:-]{0,127}`). `over_budget` is true when that
+count, or the holdout total (distinct evals over every node), is past the budget.
 `max_queries` comes from the signed commitment (`--max-queries`); a commitment
 without it has no query budget and never flags. Counts are the union of the
 folder's files and the held copies, so deleting a file lowers nothing; a
@@ -192,7 +194,8 @@ Where the count shows up:
 
 - `tine eval run --json` lists the records it wrote under `holdout_queries`.
 - `tine dataset exposure --json` adds `queries`: `max_queries`, `total`,
-  `lineages` (count per node) and `over_budget` (the nodes past the budget).
+  `lineages` (count per node) and `over_budget` (the nodes past the budget,
+  plus `*` when the total of distinct evals is past it).
   `ok` does not change.
 - `tine trends --json` flags a variant `holdout.query-over-budget` when an
   eval it cites has an over-budget query record (or the holds cannot be read),
@@ -264,9 +267,9 @@ with `refusals: [{code, detail}]` and exit 1.
 
 ## Limits
 
-- Query counts are per lineage node as the eval signer names it. A loop that
-  signs its own evals can spread queries over many node names; the total per
-  holdout is in `exposure` for that reason. An eval of a subset of a holdout,
+- Query counts are per lineage node as the eval signer names it, but the
+  budget also applies to the holdout total (distinct evals over all nodes), so
+  spreading queries over many node names does not avoid the flag. An eval of a subset of a holdout,
   run without `--holdout`, has another dataset digest and is not matched.
 
 - Held copies need a repository: a holdout used with no `--repo` counts only

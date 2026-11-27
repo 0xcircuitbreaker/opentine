@@ -52,12 +52,12 @@ def test_repeated_queries_raise_the_count_and_cross_the_budget(hold, capsys) -> 
     assert claim["schema"] == "opentine.holdout.query/1"
     assert claim["revealed"] == {"items": 6, "passed": 6, "mean_score": "1"}
     other = _eval(hold, capsys, 9, *named, lineage="gen-2")["holdout_queries"][0]
-    assert other["count"] == 1 and other["over_budget"] is False
+    assert other["count"] == 1 and other["over_budget"] is True  # the holdout total is 4 > 2
     state = counts(hold.folder(), hold.root)
-    assert state["lineages"] == {"gen-1": 3, "gen-2": 1} and state["over_budget"] == ["gen-1"]
+    assert state["lineages"] == {"gen-1": 3, "gen-2": 1} and state["over_budget"] == ["gen-1", "*"]
     code, row = tine(capsys, "dataset", "exposure", hold.folder().as_posix(), "--repo",
                      hold.root.as_posix(), "--json")  # fmt: skip
-    assert code == 0 and row["queries"]["over_budget"] == ["gen-1"]  # advisory: ok stays
+    assert code == 0 and row["queries"]["over_budget"] == ["gen-1", "*"]  # advisory: ok stays
 
 
 def test_deleting_query_files_lowers_nothing_and_holds_stay(hold, capsys) -> None:
@@ -89,11 +89,11 @@ def test_promote_flags_advisory_by_default_and_refuses_under_rsi(hold, capsys) -
     plain: dict = {}
     check_policy(plain)
     refused, advised = promote_findings([hold.folder()], hold.root, plain)
-    assert refused == [] and [a["code"] for a in advised] == ["advisory:holdout.query-budget"]
+    assert refused == [] and {a["code"] for a in advised} == {"advisory:holdout.query-budget"}
     rsi = {"profile": "rsi"}
     check_policy(rsi)
     refused, advised = promote_findings([hold.folder()], hold.root, rsi)
-    assert [r["code"] for r in refused] == ["promote.holdout-query-budget"] and advised == []
+    assert {r["code"] for r in refused} == {"promote.holdout-query-budget"} and advised == []
     with pytest.raises(ValueError, match="rsi profile"):
         check_policy({"profile": "rsi", "holdout_queries": "advisory"})
 
