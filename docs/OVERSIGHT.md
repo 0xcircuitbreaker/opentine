@@ -294,3 +294,7 @@ reads it to gate.
 * Approver-fatigue metrics are advisory and never gate.
 * The `--from-objects` rebuild and the promote gate scan the repository's
   annotation objects.
+
+A trust bundle that pins only `policy_sha256` also makes `promote` refuse
+(`promote.oversight-insufficient`) whenever the file on disk has other bytes,
+whether or not that file still routes promotions.

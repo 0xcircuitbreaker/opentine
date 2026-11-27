@@ -76,7 +76,9 @@ PATTERNS: dict[str, re.Pattern[str]] = {
         r"\.cursor/(hooks|mcp)\.json|\.mcp\.json|disableAllHooks|mcp-proxy[-_.]?\w*\.(toml|json)|"
         r"\w*polic(y|ies)\.(toml|json)|"
         r"\b(export\s+|unset\s+|env\s+-u\s*|environ\W+)(OPENTINE|TINE)_[A-Z0-9_]+|"
-        r"(^|[\s;&|])(OPENTINE|TINE)_[A-Z0-9_]+=",
+        r"(^|[\s;&|])(OPENTINE|TINE)_[A-Z0-9_]+=|"
+        r"\b(unset|export|declare|typeset|local)\s+([-+][a-z]+\s+)+(OPENTINE|TINE)_|"
+        r"\benv\s+(-[a-z]*i\b|--ignore-environment\b)|environ\.clear\(",
         re.I,
     ),
 }

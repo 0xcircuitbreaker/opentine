@@ -181,6 +181,7 @@ def load(store: Path | None) -> dict[str, Any]:
     floors = _floor.pinned(Path(store))
     out["floors"] = floors is not None
     out["pinned_routes"] = floors["routes"] if floors else []
+    out["pinned_digest"] = floors.get("policy_sha256") if floors else None
     lacks = _floor.apply(out["policy"], floors) if floors else ""
     try:
         doc = json.loads((Path(store) / PIN_NAME).read_bytes())

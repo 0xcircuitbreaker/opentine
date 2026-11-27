@@ -28,7 +28,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from opentine._integrity import normalize
+from opentine._integrity import MAX_PINS, normalize
 
 DEFAULTS = Path(".tine") / "integrity" / "defaults.json"
 SURFACES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
@@ -47,15 +47,25 @@ SURFACES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
 ENV_PREFIXES = ("OPENTINE_", "TINE_")
 _ENV = re.compile(
     r"(?:^|[\s;&|(`])(?:export\s+|setenv\s+|set\s+)?([A-Z][A-Z0-9_]*)=|"
-    r"\bunset\s+([A-Z][A-Z0-9_ ]*)|\benv\s+-u\s*([A-Z][A-Z0-9_]*)|"
+    r"\bunset\s+(?:-[fvn]+\s+)*([A-Z][A-Z0-9_ ]*)|\benv\s+-u\s*([A-Z][A-Z0-9_]*)|"
+    r"\b(?:export|declare|typeset|local)\s+(?:[-+][a-zA-Z]+\s+)+([A-Z][A-Z0-9_]*)|"
     r"environ(?:\[\s*['\"]|\.(?:pop|setdefault|update)\(\s*['\"])([A-Z][A-Z0-9_]*)|"
     r"\b(?:putenv|setenv|unsetenv|Set-Item\s+env:|\$env:)\(?\s*['\"]?([A-Z][A-Z0-9_]*)"
 )
 
 
+_CLEAR = re.compile(r"\benv\s+(?:-[a-zA-Z]*i\b|--ignore-environment\b|-(?:\s|$))|environ\.clear\(")
+
+
 def env_touches(command: str) -> list[str]:
-    """Monitoring-related environment variables a shell command sets or unsets."""
+    """Monitoring-related environment variables a shell command sets or unsets.
+
+    Clearing the whole environment (``env -i``, ``os.environ.clear()``) touches
+    every one of them, reported as ``OPENTINE_*`` and ``TINE_*``.
+    """
     names = {n for m in _ENV.finditer(command) for g in m.groups() if g for n in g.split()}
+    if _CLEAR.search(command):
+        names |= {f"{p}*" for p in ENV_PREFIXES}
     return sorted(n for n in names if n.startswith(ENV_PREFIXES))
 
 
@@ -71,14 +81,25 @@ def recorded(root: Path) -> dict[str, dict[str, str]]:
     if not isinstance(pins, dict) or doc.get("version") != 1:
         return {}
     kinds = {kind for _name, kind, _globs in SURFACES}
+    if len(pins) > MAX_PINS:  # the same bound as protected.toml pins
+        return {}
     return {
         normalize(p): {"kind": r["kind"], "sha256": r["sha256"]}
         for p, r in pins.items()
         if isinstance(r, dict)
+        and _inside(p)
         and r.get("kind") in kinds
         and isinstance(r.get("sha256"), str)
         and re.fullmatch(r"[0-9a-f]{64}", r["sha256"])
     }
+
+
+def _inside(path: Any) -> bool:
+    """A plain repository-relative file path: no root, drive, ``..`` or ``env:``."""
+    if not isinstance(path, str) or not path or ":" in path or "\x00" in path:
+        return False
+    posix = path.replace("\\", "/")
+    return not posix.startswith("/") and ".." not in normalize(posix).split("/")
 
 
 def pin(root: Path, path: str | Path, kind: str) -> str | None:

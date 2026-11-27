@@ -2,6 +2,11 @@
 
 ## Unreleased — Scorer isolation and oversight protection
 
+- A trust bundle that pins only the oversight policy digest now makes
+  `promote` refuse an older signed policy that dropped the promotion route.
+  Clearing the environment (`env -i`, `os.environ.clear()`) and flagged
+  removals (`unset -v`, `export -n`, `declare +x`) of `OPENTINE_*`/`TINE_*`
+  count as protected edits, and default pins outside the repository are dropped.
 - The oversight machinery is a protected surface by default. New
   `.tine/protected.toml` kinds: `monitor`, `oversight`, `policy`,
   `instrumentation`, `skill`, `selector`, `reward`, `hook` and `proxy`.

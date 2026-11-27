@@ -125,8 +125,10 @@ def promote_refusals(repo_path: Path | None, candidate: str, label: str, *,
     info = {"source": "promotion", "label": label,
             "metrics": _oversight_policy.eval_metrics(evals)}  # fmt: skip
     tiers = _oversight_policy.route(state["policy"], info)
-    if state["status"] != "pinned" and "promotion" in state.get("pinned_routes", []):
-        # 0.85: the owner pinned the promotion route; an unpinned file grants nothing
+    pinned = "promotion" in state.get("pinned_routes", []) or state.get("pinned_digest")
+    if state["status"] != "pinned" and pinned:
+        # 0.85: the owner pinned the promotion route or the policy bytes; an unpinned
+        # file (an older signed copy, say) grants nothing
         return [refusal("promote.oversight-insufficient", state["why"])]
     if not tiers:
         return []

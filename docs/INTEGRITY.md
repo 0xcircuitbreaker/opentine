@@ -363,3 +363,9 @@ vector family. `tests/test_060_integrity.py` regenerates the fixture from
   attestation names a stored object), and deleting it un-taints that run.
 - Observation of edits made outside captured tool calls is limited to the
   pinned digests on disk at check time.
+
+Clearing the whole environment from a run (`env -i`, `os.environ.clear()`) and
+removing a variable with flags (`unset -v`, `export -n`, `declare +x`) count as
+writes to every `OPENTINE_*`/`TINE_*` variable. Default pins in
+`.tine/integrity/defaults.json` only name plain paths inside the repository;
+an absolute path, a drive, a `..` or an `env:` name drops the whole entry.
