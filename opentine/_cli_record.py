@@ -44,18 +44,34 @@ def add_record_parser(sub: Any) -> None:
         metavar="NAME=URL",
         help="Forward a dialect (openai, anthropic, gemini, azure, ...) to URL",
     )
+    record.add_argument(
+        "--budget",
+        metavar="SUBJECT",
+        help="Enforce this subject's budget and model allowlist on every call",
+    )
+    record.add_argument(
+        "--budget-key", metavar="KEY", help="Ed25519 key that signs reservations, spend and denials"
+    )
+    record.add_argument("--repo", metavar="PATH", help="Repository holding the budget ledger")
     record.add_argument("cmd", nargs=argparse.REMAINDER, help="The command to run, after --")
     add_mcp_proxy_parser(sub)
     add_proxy_parser(sub)
     add_key_parser(sub)
 
 
-def build_run(command: list[str], records: list[dict[str, Any]], code: int) -> Run:
+def build_run(
+    command: list[str],
+    records: list[dict[str, Any]],
+    code: int,
+    budget: dict[str, Any] | None = None,
+) -> Run:
     from opentine._record_parse import step_args
 
     shown = [redact_text(part) for part in command]
     run = Run(user_prompt=" ".join(shown))
     run.metadata["record"] = {"command": shown, "exit_code": code}
+    if budget is not None:  # 0.87: the ledger keys this run's spend by budget["run"]
+        run.metadata["record"]["budget"] = budget
     run.metadata["capture"] = proxy_marker("record-proxy")  # a claim; verify checks it
     for record in sorted(records, key=lambda item: item.get("started", 0.0)):
         args = step_args(record)
@@ -87,7 +103,8 @@ def cmd_record(args: argparse.Namespace) -> None:
         console.print(f"[red]{exc}[/]")
         raise SystemExit(2) from None
     records: list[dict[str, Any]] = []
-    server = _record_proxy.start(records.append, overrides)
+    gate, budget = _budget_gate(args)
+    server = _record_proxy.start(records.append, overrides, gate)
     try:
         try:
             code = subprocess.call(
@@ -99,11 +116,43 @@ def cmd_record(args: argparse.Namespace) -> None:
     finally:
         server.shutdown()
         server.server_close()
-    run = build_run(command, records, code)
+    run = build_run(command, records, code, budget)
+    if gate is not None and gate.denied:
+        console.print(f"[yellow]budget: refused {gate.denied} model call(s); see "
+                      f"`tine budget ledger {budget['subject']}`[/]")  # fmt: skip
     output = _save_run_receipt(run, args.save, force=True)
     if not witness_save(run, output):
         console.print("[yellow]Unwitnessed (assurance T0): run `tine proxy keygen` to sign.[/]")
     raise SystemExit(code)
+
+
+def _budget_gate(args: argparse.Namespace) -> tuple[Any, dict[str, Any] | None]:
+    """The :class:`opentine._record_budget.RecordBudget` ``--budget`` asks for, if any.
+
+    A subject with no usable repository or key stops here; a ledger that becomes
+    unreachable later refuses each call instead (fail closed)."""
+    subject = getattr(args, "budget", None)
+    if not subject:
+        return None, None
+    import uuid
+
+    from opentine._budget_policy import subject as check_subject
+    from opentine._key_hygiene import ed25519_private
+    from opentine._record_budget import RecordBudget
+    from opentine.repo import Repo
+
+    if not args.budget_key:
+        console.print("[red]--budget needs --budget-key: reservations and denials are signed[/]")
+        raise SystemExit(2)
+    try:
+        check_subject(subject)
+        repo = Repo.open(args.repo or ".")
+        key = ed25519_private(args.budget_key)
+    except Exception as exc:  # noqa: BLE001 - a repo, key or subject error stops before the child
+        console.print(f"[red]budget: {exc}[/]")
+        raise SystemExit(2) from None
+    run = "record:" + uuid.uuid4().hex
+    return RecordBudget(repo, subject, key, run=run), {"subject": subject, "run": run}
 
 
 COMMANDS = {"record": cmd_record, "mcp-proxy": _cmd_mcp_proxy, "proxy": cmd_proxy, "key": cmd_key}

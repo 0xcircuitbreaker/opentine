@@ -2153,7 +2153,8 @@ docs/UPLIFT.md.
 
 | Command | What it does |
 | --- | --- |
-| `tine budget sign-policy SUBJECT --serial N [--tokens N] [--gpu-hours N] [--wall-clock-s N] [--egress-bytes N] [--money-usd N] [--on-limit deny\|escalate] --key KEY --out PATH` | Writes a signed `opentine-budget-policy/1` for `loop:NAME` or `agent:NAME` |
+| `tine budget sign-policy SUBJECT --serial N [--tokens N] [--gpu-hours N] [--wall-clock-s N] [--egress-bytes N] [--money-usd N] [--allow-model NAME]... [--model-alias A=NAME]... [--judge-tokens N] [--judge-money-usd N] [--max-output-tokens N] [--on-limit deny\|escalate] --key KEY --out PATH` | Writes a signed `opentine-budget-policy/1` for `loop:NAME` or `agent:NAME` |
+| `tine record --budget SUBJECT --budget-key KEY [--repo PATH] -- CMD...` | Records the run and enforces SUBJECT's budget and model allowlist on each model call; refusals are signed `deny` ledger entries (docs/BUDGETS.md) |
 | `tine budget apply PATH --key KEY [--repo PATH]` | Appends the policy to the subject's ledger; it takes effect only if it lowers limits or a pinned `policy`-role key signed the raise, with a higher serial; a refused policy is flagged for oversight and exits 1 |
 | `tine budget record SUBJECT RUN... --key KEY [--gpu-hours N] [--egress-bytes N] [--repo PATH]` | Appends each run's recorded cost (the `tine cost` aggregate) as a signed, held `spend` entry |
 | `tine budget status SUBJECT [--key KEY] [--at TIME] [--repo PATH]` | Policy in force, totals, remaining and findings |

@@ -1,5 +1,32 @@
 # Changelog
 
+## Unreleased — Model-path controls and region pins
+
+- `tine record --budget SUBJECT --budget-key KEY --repo PATH` enforces the
+  subject's budget policy inside the record proxy, reusing the policy, ledger
+  and decision behind `tine budget gate` and `tine mcp-proxy --budget`.
+  Without `--budget`, nothing changes.
+- New optional `model_path` section in budget policies (`tine budget
+  sign-policy --allow-model`, `--model-alias`, `--judge-tokens`,
+  `--judge-money-usd`, `--max-output-tokens`): a model allowlist matched
+  after canonicalisation (NFKC, case, whitespace, provider and routing
+  prefixes, aliases), a separate cap for calls tagged
+  `X-Opentine-Call-Role: judge|scorer`, and the output assumed for calls that
+  name no limit. Widening it needs a pinned `policy`-role key, like raising a
+  limit. A policy without the section keeps its digest.
+- The proxy reserves a pessimistic estimate on the ledger before forwarding
+  each call, under a cross-process ledger lock, so concurrent calls cannot
+  pass a cap together. It then settles the call from the provider's reported
+  usage, or at the estimate when the reply has no usage or a stream is cut
+  short. Inline Anthropic and Gemini batches and streaming replies are
+  covered. Upload-based batches, unparseable or duplicate-key bodies and path
+  traversals are refused.
+- Each refusal is a signed, held `deny` ledger entry (a new entry of the
+  `opentine.budget-ledger/1` claim convention). The proxy fails closed:
+  calls are refused when the ledger is unreachable or no policy is in force.
+- Ledger appends from every writer are serialised by `budget-ledger.lock`.
+  `tine budget status` reports `judge_tokens` and `judge_money_usd`.
+
 ## 0.86.1 — Killed-writer durability fixes (2026-11-27)
 
 - `tine gc` no longer fails when another process (a live recorder) still holds
