@@ -23,7 +23,8 @@ label (each is bound to ``previous`` and ``sequence``, so a revert retires it);
 (approvals signed by the promoting key or by an eval signer never count);
 ``promote.over-budget`` the declared spend exceeds the cap;
 ``promote.scorer-in-process`` (0.85) an eval ran an in-process scorer while the
-policy sets ``scorer_isolation = "required"`` or ``profile = "rsi"``.
+policy sets ``scorer_isolation = "required"`` or ``profile = "rsi"``;
+0.86: the ``--plan`` codes of :mod:`opentine._promote_plan`.
 
 Advisory findings never block (owner decision D12); only these facts do.
 """
@@ -44,7 +45,7 @@ LABEL_RE = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}")
 RUN_RE = re.compile(r"run:sha256:[0-9a-f]{64}")
 _KEYS = {"label_policy", "test", "alpha", "seed", "resamples", "min_n", "metric", "budget_usd",
          "approvers", "min_approvals", "require_holdout", "eval_signers",
-         "scorer_isolation", "profile"}  # fmt: skip
+         "scorer_isolation", "profile", "require_plan"}  # fmt: skip
 
 
 def refusal(code: str, detail: str) -> dict[str, str]:

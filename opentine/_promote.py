@@ -1,21 +1,15 @@
 """``tine promote``: move a label only on signed evidence (0.58).
 
-Every output is an existing kind. A promotion writes
-
-* ``vsa.json``: the existing admission VSA (DSSE, ``verification_summary/v1``)
-  over the candidate run, ``resourceUri`` ``tine://promotion/labels/LABEL``, the
-  label's admission policy (``opentine.admission-policy``) as its policy, and
-  every eval folder, approval and comparison as ``inputAttestations`` (the
-  frozen-safe lineage: VSA evidence plus verdict references);
-* ``decision.json``: an ``attestation`` on the candidate (tine-attest/2) whose
-  claim follows ``opentine.promotion-decision/1`` (docs/EVALS-PROMOTION.md);
-* ``compare.json`` (and ``holdout-compare.json``): the signed comparisons.
-
-``--revert`` and a canary regression write only a decision (``action``
-``revert``). The label's state lives in ``STATE/LABEL.json``: local state like
-the merge queue's, not a wire format. A label moves only when the admission
-policy covers ``labels/LABEL`` and lists the promoting key's fingerprint
-among its ``subjects`` (when it names any).
+Every output is an existing kind. A promotion writes ``vsa.json`` (the admission
+VSA, DSSE ``verification_summary/v1``, over the candidate run, ``resourceUri``
+``tine://promotion/labels/LABEL``, the label's admission policy as its policy, and
+every eval folder, approval and comparison as ``inputAttestations``);
+``decision.json`` (an ``opentine.promotion-decision/1`` attestation on the candidate;
+0.86: ``plan``, the test of :mod:`opentine._promote_plan`); and ``compare.json``
+(and ``holdout-compare.json``). ``--revert`` and a canary regression write only a
+decision (``action`` ``revert``). The label's state lives in ``STATE/LABEL.json``
+(local state). A label moves only when the admission policy covers ``labels/LABEL``
+and lists the promoting key among its ``subjects``.
 """
 
 from __future__ import annotations
@@ -26,6 +20,7 @@ from pathlib import Path
 from typing import Any
 
 from opentine._promote_checks import APPROVAL, DECISION, LABEL_RE, RUN_RE, gate, refusal
+from opentine._promote_plan import planned
 from opentine._utc import rfc3339_utc
 
 STATE = Path(".tine") / "promotion"
@@ -92,10 +87,10 @@ def _decision(key: Any, candidate: str, claim: dict[str, Any], at: str) -> dict[
 
 
 def _move(state: Path, record: dict[str, Any], action: str, candidate: str | None,
-          subject: str, decision: dict, at: str) -> None:  # fmt: skip
+          subject: str, decision: dict, at: str, plan: str | None = None) -> None:  # fmt: skip
     record["history"].append({"action": action, "candidate": subject, "at": at,
-                              "previous": record["current"],
-                              "decision_sha256": _sha(decision)})  # fmt: skip
+                              "previous": record["current"], "decision_sha256": _sha(decision),
+                              **({"plan_sha256": plan} if plan else {})})  # fmt: skip
     record["current"] = candidate
     _write(Path(state) / f"{record['label']}.json", record)
 
@@ -122,7 +117,8 @@ def promote(key: Any, policy: dict[str, Any], candidate: str, label: str, *, sta
             repo_path: Path | None = None, loop: str | None = None,
             policy_attestations: list[Path] = (),
             sealed_holdouts: list[Path] = (),
-            canary_lengths: Path | None = None) -> dict:  # fmt: skip
+            canary_lengths: Path | None = None, plan: Path | None = None,
+            reveal: Path | None = None, lineage: Path | None = None) -> dict:  # fmt: skip
     from opentine._eval_compare import attest
     from opentine.intoto import sign_statement
     from opentine.remote._vsa import build_vsa
@@ -150,6 +146,9 @@ def promote(key: Any, policy: dict[str, Any], candidate: str, label: str, *, sta
     from opentine._promote_guards import late
 
     refusals += late(repo_path, candidate, label, record, evals)  # 0.61 memory, 0.64 oversight
+    more, advice, plan_row = planned(policy, record, candidate, baseline, evals, holdout, plan,
+                                     reveal, lineage, repo_path)  # fmt: skip
+    refusals += more  # 0.86: pre-registered, selection-adjusted
     if record["current"] == candidate:
         refusals.append(refusal("promote.already-current", f"{candidate} already holds {label}"))
     if refusals:
@@ -179,16 +178,19 @@ def promote(key: Any, policy: dict[str, Any], candidate: str, label: str, *, sta
         "stats": stats, "spent_usd": evidence["spent_usd"],
         "budget_usd": evidence["budget_usd"], "policy_sha256": policy["sha256"],
         "label_policy_sha256": policy["label_policy_sha256"], "policy_attestation": pin,
-        "sequence": len(record["history"])}, at)  # fmt: skip
+        "sequence": len(record["history"]),
+        **({"plan": plan_row} if plan_row else {})}, at)  # fmt: skip
     _write(out / "vsa.json", vsa)
     _write(out / "decision.json", decision)
     for name, document in files.items():
         _write(out / ("compare.json" if name == "main" else "holdout-compare.json"), document)
     previous = record["current"]
-    _move(state, record, "promote", candidate, candidate, decision, at)
+    _move(state, record, "promote", candidate, candidate, decision, at,
+          plan_row and plan_row["plan_sha256"])  # fmt: skip
     return {"action": "promote", "label": label, "candidate": candidate, "previous": previous,
             "current": candidate, "out": out.as_posix(), "inputs": inputs, "stats": stats,
-            "refusals": [], "advisories": evidence["advisories"]}  # fmt: skip
+            "refusals": [], "advisories": evidence["advisories"] + advice,
+            "plan": plan_row}  # fmt: skip
 
 
 def revert(key: Any, policy: dict[str, Any], candidate: str, label: str, *, state: Path,
