@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Scorer isolation and oversight protection
+## 0.85.0 — Scorer isolation and oversight protection (2026-11-27)
 
 - `tine eval run --isolate` runs a `python:` scorer in a child interpreter
   (`python -I -B`) with an empty environment, a fresh empty working
