@@ -8,7 +8,7 @@
 # The base image is pinned to an exact version. Release engineering additionally
 # pins it by digest (FROM ...@sha256:<digest>) when the image is published; the
 # digest is recorded in docs/witness/OPERATING.md, never guessed here.
-FROM docker.io/library/python:3.12.7-slim-bookworm
+FROM docker.io/library/python:3.15.1-slim-bookworm
 
 ARG OPENTINE_VERSION=0.48.0
 
