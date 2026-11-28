@@ -18,7 +18,16 @@ import pytest
 from opentine import _stop_compliance, _stop_guard, _stop_supervise, _stop_tree, cli
 from tests.key_roles_helpers import isolated_trust_config  # noqa: F401 - autouse
 from tests.stop_helpers import RUNNER, STOPPER, Clock, fleet, keep_going, key_file, make_repo
-from tests.stop_tree_helpers import CUTS, FORGES, SLEEPS, STOPS, child_clock, dead, script_args
+from tests.stop_tree_helpers import (
+    CUTS,
+    FORGES,
+    HALTS_SELF,
+    SLEEPS,
+    STOPS,
+    child_clock,
+    dead,
+    script_args,
+)
 
 linux = pytest.mark.skipif(not os.path.isdir("/proc/self"), reason="needs /proc")
 
@@ -148,6 +157,26 @@ def test_a_child_forged_record_never_replaces_the_parents(tmp_path, monkeypatch,
     assert [c["residual_method"] for c in claims].count("in-process") == 1  # the forgery
     (parent,) = [c for c in claims if c["residual_method"] != "in-process"]
     assert parent["residual_processes"] > 0 and parent["compliant"] is False
+
+
+@linux
+def test_a_child_that_halts_itself_kills_its_whole_tree(tmp_path, monkeypatch, fixed):
+    """The child's own watchdog won the race (as a ``--parallel`` child's often does): its
+    halt kills every descendant, setsid ones and fan-out members too, before it exits,
+    so the parent's sweep finds nothing that outlived it and its record is compliant."""
+    channel, repos = fleet(tmp_path, 2, watchdog_s=30)  # no parent tick: only the exit
+    repo, other = repos
+    keep_going(repo, channel, ["r"], fixed)
+    monkeypatch.chdir(Path(repo.path).parent)
+    script, pidfile = tmp_path / "halts.py", tmp_path / "grandchild.pid"
+    script.write_bytes(HALTS_SELF.encode())
+    script_args(monkeypatch, Path(other.path).parent, channel, STOPPER, pidfile, fixed())
+    assert tine("run", script, "--stop-run", "r", "--stop-key",
+                key_file(tmp_path, RUNNER, "runner")) == 3  # fmt: skip
+    assert dead(int(pidfile.read_text()))
+    claim = _held_claim(repo)
+    assert claim["code"] == "stop.stopped"
+    assert claim["residual_processes"] == 0 and claim["compliant"] is True
 
 
 class _Calls:

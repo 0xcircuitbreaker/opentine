@@ -55,7 +55,9 @@ nothing but the supervisor's record. However the child ends (killed by its own
 watchdog, exit 3, or a claimed success), the supervisor re-checks the stop
 once; if a halt is in force it measures and signs its own record: the time to
 halt from its own clock and the residual processes from its own sweep of the
-tree, counting every process that outlived the child. A record the child wrote
+tree, counting every process that outlived the child. The child's own
+watchdog halt kills its whole tree (setsid descendants and fan-out members
+included) before it exits, so only a real escapee reaches that count. A record the child wrote
 never stands in for the supervisor's; where both exist (the `--model` child
 signs its counts too) the supervisor's is authoritative, and a child that
 exits 3 holding a forged "compliant" record still gets the supervisor's

@@ -55,7 +55,13 @@
   residual count includes what the subreaper sweep killed after the child
   exited. Before, a hostile child that exited 3 holding a forged "compliant"
   record made the supervisor skip its own, hiding a surviving setsid
-  grandchild.
+  grandchild. The child's own watchdog halt is now a tree kill too: it freezes
+  and kills every descendant (setsid ones, and `--parallel` fan-out members in
+  process groups of their own) and waits for them before it exits, so what the
+  supervisor's sweep counts is only what truly outlived the child; before, a
+  `--parallel` child whose own watchdog won the race left its members to the
+  sweep, which counted them as residue. A process already dying (zombie,
+  exiting, or with a SIGKILL pending) is not counted as a survivor.
 - Docs: STOP.md.
 - New `tine tripwire add|remove|list|check|trips`: a signed tripwire registry
   (`opentine.tripwire-registry/1`). Each tripwire names a metric (suspicion

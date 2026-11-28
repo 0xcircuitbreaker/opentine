@@ -11,12 +11,14 @@ import json
 import os
 from pathlib import Path
 
-# A setsid grandchild (it leaves the process group) that sleeps forever.
+# A setsid grandchild (it leaves the process group) that sleeps forever. Popen's
+# start_new_session is the setsid: a second os.setsid() in it raised EPERM, so the
+# grandchild used to die at once and every test of it passed without a survivor.
 _GRANDCHILD = (
     "import json, os, subprocess, sys\n"
     "ARGS = json.loads(os.environ['TINE_TEST_ARGS'])\n"
     "def grandchild(pidfile):\n"
-    "    p = subprocess.Popen([sys.executable, '-c', 'import os, time; os.setsid(); "
+    "    p = subprocess.Popen([sys.executable, '-c', 'import time; "
     "time.sleep(3600)'], start_new_session=True)\n"
     "    open(pidfile, 'w').write(str(p.pid))\n"
 )
@@ -75,7 +77,7 @@ def dead(pid: int) -> bool:
         return True
 
 
-__all__ = ["CUTS", "FORGES", "SLEEPS", "STOPS", "child_clock", "dead", "script_args"]
+__all__ = ["CUTS", "FORGES", "HALTS_SELF", "SLEEPS", "STOPS", "child_clock", "dead", "script_args"]
 
 SLEEPS = (
     _GRANDCHILD
@@ -111,5 +113,25 @@ except Halt as halt:
     runner.supervised.reason, runner.supervised.requested_ms = halt, int(now)
 assert runner.finish()["claim"]["compliant"] is True
 os._exit(3)
+"""
+)
+
+# The child's own watchdog wins the race: a setsid grandchild, a stop, then the
+# child's own halt at once (what its watchdog runs), before the parent's ticks.
+HALTS_SELF = (
+    _GRANDCHILD
+    + """\
+from pathlib import Path
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from opentine._stop_guard import Halt
+from opentine._stop_ops import issue_stop
+from opentine._stop_tree import _halt_self
+from opentine.repo import Repo
+other, channel, seed, pidfile, now = ARGS
+grandchild(pidfile)
+issue_stop(Repo.open(other), Path(channel), "fleet-a",
+           Ed25519PrivateKey.from_private_bytes(bytes.fromhex(seed)), reason="halt",
+           now_ms=int(now))
+_halt_self(Halt("stop.stopped", "halt"))
 """
 )

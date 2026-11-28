@@ -17,6 +17,7 @@ none), which :mod:`opentine._stop_compliance` signs.
 from __future__ import annotations
 
 import os
+import signal
 import subprocess
 import threading
 from collections.abc import Callable
@@ -26,10 +27,20 @@ from opentine._stop_guard import Halt, StopGuard, Watchdog
 
 
 def _alive(pid: int) -> bool:
+    """Not dying: no zombie, not exiting (``PF_EXITING``), no SIGKILL pending.
+
+    A process a kill has already reached is not a survivor of it, however long a
+    loaded scheduler takes to run its exit (0.91 review)."""
     try:
         with open(f"/proc/{pid}/stat") as handle:
-            return handle.read().rsplit(")", 1)[1].split()[0] not in ("Z", "X")
-    except (OSError, IndexError):
+            fields = handle.read().rsplit(")", 1)[1].split()
+        if fields[0] in ("Z", "X") or int(fields[6]) & 4:
+            return False
+        with open(f"/proc/{pid}/status") as handle:
+            pending = [int(line.split()[1], 16) for line in handle
+                       if line.startswith(("SigPnd:", "ShdPnd:"))]  # fmt: skip
+        return not any(mask & 1 << (signal.SIGKILL - 1) for mask in pending)
+    except (OSError, IndexError, ValueError):
         return False
 
 

@@ -30,9 +30,11 @@ refuses the next call and the child signs the record with its counts.
 
 from __future__ import annotations
 
+import contextlib
 import os
 import signal
 import sys
+import threading
 from collections.abc import Callable
 from typing import Any
 
@@ -51,10 +53,67 @@ def child_argv(args: Any) -> list[str]:
     return [sys.executable, "-P", "-m", "opentine.cli", *argv]
 
 
+def _children(pid: int) -> list[int]:
+    found: list[int] = []
+    try:
+        tasks = os.listdir(f"/proc/{pid}/task")
+    except OSError:
+        return found
+    for task in tasks:
+        try:
+            with open(f"/proc/{pid}/task/{task}/children") as handle:
+                found.extend(int(item) for item in handle.read().split())
+        except (OSError, ValueError):
+            pass
+    return found
+
+
+def _state(pid: int) -> str | None:
+    try:
+        with open(f"/proc/{pid}/stat") as handle:
+            return handle.read().rsplit(")", 1)[1].split()[0]
+    except (OSError, IndexError):
+        return None
+
+
+def _kill_descendants() -> None:
+    """The child's own halt is a tree kill: freeze every descendant (setsid ones and
+    fan-out members in groups of their own too), kill them all, and wait until they
+    are dead, so none outlives this process for the supervisor's sweep to count."""
+    from opentine._stop_supervise import _alive
+
+    frozen: set[int] = set()
+    for _ in range(100):
+        stack, new = _children(os.getpid()), []
+        while stack:
+            pid = stack.pop()
+            stack.extend(_children(pid))
+            if pid not in frozen:
+                new.append(pid)
+        if not new:
+            break
+        for pid in new:
+            frozen.add(pid)
+            with contextlib.suppress(OSError):
+                os.kill(pid, signal.SIGSTOP)
+        for _ in range(200):  # SIGSTOP lands asynchronously: a fork may still finish
+            if not any(_state(pid) not in ("T", "t", "Z", "X", None) for pid in new):
+                break
+            threading.Event().wait(0.005)
+    for pid in frozen:
+        with contextlib.suppress(OSError):
+            os.kill(pid, signal.SIGKILL)
+    for _ in range(200):
+        if not any(_alive(pid) for pid in frozen):
+            return
+        threading.Event().wait(0.01)
+
+
 def _halt_self(halt: Halt) -> None:  # pragma: no cover - the process is gone after it
     sys.stderr.write(f"stop: halted ({halt.code})\n")
     sys.stderr.flush()
     if os.name != "nt":
+        _kill_descendants()
         try:
             os.killpg(os.getpgrp(), signal.SIGKILL)
         except OSError:
