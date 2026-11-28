@@ -123,7 +123,11 @@ def revoke(repo: Any, approval: str, key: Any, *, now: float | None = None) -> s
 
 def tally(repo: Any, *, operation: str, digest: str, checkpoint: str | None,
           requester: str | None, at: str | None = None) -> dict[str, Any]:  # fmt: skip
-    """Count the approvals of one request; revocations dated after *at* do not count."""
+    """Count the approvals of one request; an approval dated after *at* does not count.
+
+    A revocation counts whenever it is dated: its date and the event's are both
+    claimed by their signers, so ordering by them would let a backdated event
+    escape a revocation (fail closed; re-approve to cover an earlier copy)."""
     from opentine._key_roles_pin import granting
 
     _check(operation, digest, checkpoint)
@@ -133,7 +137,6 @@ def tally(repo: Any, *, operation: str, digest: str, checkpoint: str | None,
     policy_keys = granting(repo.path, "policy")[0]
     revoked = {r["claim"].get("approval") for r in rows
                if r["claim"]["convention"] == REVOCATION and r["signed"]
-               and (at is None or str(r["claim"].get("at")) <= at)
                and (r["signer"] in policy_keys
                     or r["signer"] == (approvals.get(r["claim"].get("approval")) or {}).get(
                         "signer"))}  # fmt: skip

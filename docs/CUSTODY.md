@@ -155,7 +155,9 @@ key, and it has not been revoked. A revocation (`opentine.custody-revocation/1`,
 `{"approval", "at"}`) is signed by the approval's signer or a pinned `policy`
 key. Approvals and revocations are read from the whole object store, so
 dropping a hold row cannot hide a revocation. One custodian approving twice
-counts once.
+counts once. A revocation counts whatever its `at` says: both dates are
+claimed by their signers, so a copy dated before a revocation is still
+reported once its approval is revoked (approve again to cover it).
 
 A request short of its quorum is refused (`custody.quorum`, exit 1 from
 `approvals`), and the refusal is held as an

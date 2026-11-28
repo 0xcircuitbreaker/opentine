@@ -43,7 +43,8 @@ attestation in the object store, held or not, so:
 | `tripwire.registry-fork` | Two versions with the same serial | Registry `broken` |
 | `tripwire.registry-chain` | A version that does not continue the chain | Registry `broken` |
 | `tripwire.registry-rollback` | The head is below the pinned `min_serial` | Registry `broken` |
-| `tripwire.registry-missing` | The pinned rule requires a registry that is `absent`, `unpinned` or `broken` | Fails closed (below) |
+| `tripwire.registry-missing-version` | A held version whose object is gone from the store | Registry `broken` |
+| `tripwire.registry-missing` | The registry is `broken` (under any rule), or the pinned rule requires one that is `absent` or `unpinned` | Fails closed (below) |
 
 These are command-level codes, not `tine verify` codes.
 A held version that does not count stays a finding, so `tine tripwire list`

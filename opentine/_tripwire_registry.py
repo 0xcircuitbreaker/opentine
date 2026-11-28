@@ -147,7 +147,8 @@ def current(repo: Any) -> dict[str, Any]:
     allowed, why = granting(repo.path, "policy")
     held = {r["oid"] for r in read_holds(holds_path(repo)) if r["target"].startswith(HOLD)}
     findings, good = [], []
-    for row in records.scan(repo, (CONVENTION,)):
+    scanned = records.scan(repo, (CONVENTION,))
+    for row in scanned:
         claim = row["claim"]
         if not row["signed"] or row["signer"] not in allowed:
             text = why if row["signed"] else "not signed by its key"
@@ -160,6 +161,10 @@ def current(repo: Any) -> dict[str, Any]:
                 findings.append(_finding("tripwire.registry-unheld", row["oid"],
                                          "a registry version lost its hold row"))  # fmt: skip
     chain, broken = [], False
+    for oid in sorted(held - {r["oid"] for r in scanned}):  # deleted: a rollback
+        findings.append(_finding("tripwire.registry-missing-version", oid,
+                                 "a held registry version is missing from the store"))  # fmt: skip
+        broken = True
     by_serial: dict[int, list[dict[str, Any]]] = {}
     for row in good:
         by_serial.setdefault(row["claim"]["serial"], []).append(row)

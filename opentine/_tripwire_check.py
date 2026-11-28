@@ -18,7 +18,8 @@ budget scope as ``*``, a ``budget:agent:ID`` scope as ``agent:ID``), and the
 trip names it in ``stop``: the gates that honour a stop token honour a trip.
 
 Fail closed: when the pinned rule requires a registry and it is absent,
-unpinned or broken, the result is not ok, and :func:`record` writes one trip
+unpinned or broken, or the registry is broken under any rule, the result is
+not ok, and :func:`record` writes one trip
 with ``tripwire`` null and a ``*`` stop. A trip is signed by a pinned
 ``monitor``, ``runner`` or ``policy`` key that is not an ``optimizer`` key
 (``tripwire.trip-signer``); evaluation without a key reports only.
@@ -52,12 +53,14 @@ def evaluate(repo: Any, *, now_ms: int) -> dict[str, Any]:
         rows.append({**wire, "value": number, "tripped": hit, "evidence": evidence,
                      "error": error})  # fmt: skip
     required = state["rule"]["required"]
-    missing = required and state["status"] != "ok"
+    # a broken registry (rolled back, forked, a version deleted) fails closed with or
+    # without the pinned rule: someone registered tripwires, and they no longer read
+    missing = state["status"] == "broken" or (required and state["status"] != "ok")
     findings = list(state["findings"])
     if missing:
         findings.append({"level": "fail", "code": "fail:tripwire.registry-missing",
-                         "record": None, "message": f"the pinned rule requires a tripwire "
-                         f"registry and it is {state['status']}"})  # fmt: skip
+                         "record": None, "message": f"the tripwire registry is "
+                         f"{state['status']} (required: {required})"})  # fmt: skip
     ok = not findings and not any(r["tripped"] for r in rows)
     return {"registry": {k: state[k] for k in ("status", "head", "serial")},
             "required": required, "missing": missing, "tripwires": rows,

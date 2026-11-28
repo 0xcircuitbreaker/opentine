@@ -76,11 +76,12 @@ def events(repo: Any, scope: str) -> list[tuple[str, dict[str, Any]]]:
     for stream in _ingest_holds.streams(repo):
         if scope.startswith("stream:") and scope != f"stream:{stream}":
             continue
-        rows, _ = _monitor_ledger.walk(repo, _ingest_holds.head(repo, stream),
-                                       _ingest_batch.CONVENTION)  # fmt: skip
+        rows, problems = _monitor_ledger.walk(repo, _ingest_holds.head(repo, stream),
+                                              _ingest_batch.CONVENTION)  # fmt: skip
+        problems += [f"{r['id']}: not signed by its key" for r in rows if not r["signed"]]
+        if problems:  # a deleted or forged batch must not hide a touch: the wire trips
+            raise ValueError(f"stream {stream}: {problems[0]}")
         for row in rows:
-            if not row["signed"]:
-                continue
             for line in _events(row["claim"]):
                 if _in_scope(scope, stream, _subject(line.get("e"))):
                     out.append((row["id"], line))
@@ -94,6 +95,10 @@ def _suspicion(repo: Any, scope: str) -> dict[str, Any]:
     keys, _ = monitors(repo)
     chains = [(m, s) for m, s in _monitor_ledger.chains(repo)
               if not scope.startswith("stream:") or scope == f"stream:{s}"]  # fmt: skip
+    for monitor, stream in chains:  # a broken ledger must not lower a count: the wire trips
+        problems = _monitor_ledger.records(repo, monitor, stream)[1]
+        if problems:
+            raise ValueError(f"ledger {monitor}/{stream}: {problems[0]}")
     return _monitor_suspicion.scan(repo, chains, keys)
 
 
@@ -119,6 +124,8 @@ def value(repo: Any, wire: dict[str, Any], now_ms: int) -> tuple[float, list[str
             rows = [(b, line) for b, line in rows if digests(line.get("e")) & decoys]
         return float(len(rows)), sorted({b for b, _ in rows})
     scan = _suspicion(repo, scope)
+    if scan["invalid"]:  # a ledger never read must not lower a count: the wire trips
+        raise ValueError(f"monitor ledger {scan['invalid'][0]['record']} is invalid")
     if metric == "suspicion.flags":
         flags = [
             f
