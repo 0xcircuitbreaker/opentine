@@ -5,7 +5,8 @@ pinned outside the repository (:mod:`opentine._key_roles_pin`). A section in it
 is a rule the repository cannot edit: :func:`section` returns it parsed by the
 section's own ``section_of``, ``None`` when no owner is pinned or the bundle
 does not carry it, and raises :class:`SectionError` when an owner is pinned and
-the bundle is missing, rolled back or does not verify, so deleting the file is
+the bundle is missing, rolled back or does not verify, or when the section is
+present but does not parse (``section_of`` returns ``None``), so deleting the file is
 never a way to drop a rule (fail closed).
 """
 
@@ -32,7 +33,12 @@ def section(store: Path | None, name: str, parse: Callable[[Any], Any]) -> Any |
         payload = open_bundle(note, owner, min_serial=_serials().get(owner, 0))
     except (OSError, BundleError) as exc:
         raise SectionError(f"trust bundle: {exc}") from exc
-    return parse(payload[name]) if name in payload else None
+    if name not in payload:
+        return None
+    found = parse(payload[name])
+    if found is None:  # present but unparseable is never "absent"
+        raise SectionError(f"trust bundle: the pinned {name} section does not parse")
+    return found
 
 
 __all__ = ["SectionError", "section"]
