@@ -5288,6 +5288,20 @@ ROWS: tuple[tuple, ...] = (
         },
     ),  # fmt: skip
     (
+        "plain:serve token mint --tenant acme --role approve --agent a1",
+        "plain",
+        ["serve", "token", "mint", "--tenant", "acme", "--role", "approve", "--agent", "a1"],
+        "opentine.cli:<lambda>",
+        False,
+        {
+            "command": "serve",
+            "admin_action": "token",
+            "token_action": "mint",
+            "role": "approve",
+            "agent": "a1",
+        },
+    ),  # fmt: skip
+    (
         "plain:serve token list --root r",
         "plain",
         ["serve", "token", "list", "--root", "r"],
@@ -8497,4 +8511,76 @@ ROWS: tuple[tuple, ...] = (
         False,
         {"command": "label", "label_command": "reveal", "judge": "j.json", "outputs": "o.jsonl"},
     ),  # 0.89
+    (
+        "plain:monitor run --config c --stream rl --key k --follow --interval 30",
+        "plain",
+        [
+            "monitor",
+            "run",
+            "--config",
+            "c",
+            "--stream",
+            "rl",
+            "--key",
+            "k",
+            "--follow",
+            "--interval",
+            "30",
+        ],
+        "opentine._cli_monitor:cmd_monitor",
+        False,
+        {
+            "command": "monitor",
+            "monitor_command": "run",
+            "config": "c",
+            "stream": "rl",
+            "key": "k",
+            "follow": True,
+            "interval": 30,
+        },
+    ),  # 0.90
+    (
+        "plain:monitor heartbeat --config c --stream rl --key k",
+        "plain",
+        ["monitor", "heartbeat", "--config", "c", "--stream", "rl", "--key", "k"],
+        "opentine._cli_monitor:cmd_monitor",
+        False,
+        {
+            "command": "monitor",
+            "monitor_command": "heartbeat",
+            "config": "c",
+            "stream": "rl",
+            "interval": 60,
+        },
+    ),  # 0.90
+    (
+        "plain:monitor coverage --config c --stream rl --profile rsi --strict",
+        "plain",
+        ["monitor", "coverage", "--config", "c", "--stream", "rl", "--profile", "rsi", "--strict"],
+        "opentine._cli_monitor:cmd_monitor",
+        False,
+        {"command": "monitor", "monitor_command": "coverage", "profile": "rsi", "strict": True},
+    ),  # 0.90
+    (
+        "plain:monitor validate --config c --labelled l.jsonl --key k",
+        "plain",
+        ["monitor", "validate", "--config", "c", "--labelled", "l.jsonl", "--key", "k"],
+        "opentine._cli_monitor:cmd_monitor",
+        False,
+        {"command": "monitor", "monitor_command": "validate", "labelled": "l.jsonl", "key": "k"},
+    ),  # 0.90
+    (
+        "plain:monitor suspicion --stream rl --budget 2.5 --repeats 4",
+        "plain",
+        ["monitor", "suspicion", "--stream", "rl", "--budget", "2.5", "--repeats", "4"],
+        "opentine._cli_monitor:cmd_monitor",
+        False,
+        {
+            "command": "monitor",
+            "monitor_command": "suspicion",
+            "stream": ["rl"],
+            "budget": 2.5,
+            "repeats": 4,
+        },
+    ),  # 0.90
 )

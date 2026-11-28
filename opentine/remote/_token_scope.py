@@ -24,7 +24,8 @@ webhooks, tombstones...) authorizes a tenant-wide action, which a namespace
 limited token is never granted. The scoped routes ask for ``ACTION@scoped``
 (:func:`scoped_action`); :class:`ScopedPolicy` grants that only within the
 token's access and passes the plain action on to the operator's policy, which
-still decides by role and tenant. A malformed ``opentine_scope`` claim fails
+still decides by role and tenant. Role tokens (ingest, verdict, approve) are
+narrower again: ``_token_roles``. A malformed ``opentine_scope`` claim fails
 closed: it limits the identity to no namespace at all.
 """
 
@@ -75,7 +76,10 @@ def in_namespace(prefixes: tuple[str, ...], name: str) -> bool:
 
 
 def scoped_action(identity: Any, action: str) -> str:
-    return action + SUFFIX if namespaces(identity) is not None else action
+    from opentine.remote._token_roles import role
+
+    limited = namespaces(identity) is not None or role(identity) is not None
+    return action + SUFFIX if limited else action
 
 
 def visible_refs(identity: Any, refs: dict[str, str]) -> dict[str, str]:
@@ -128,7 +132,15 @@ class ScopedPolicy:
         self.inner = inner
 
     def authorize(self, identity: Any, action: str, tenant: str) -> bool:
+        from opentine.remote._token_roles import INNER, allows, role
+
         base = action.removesuffix(SUFFIX)
+        if role(identity) is not None:  # 0.90 role tokens: exactly their role's actions
+            if not allows(identity, action):
+                return False
+            if namespaces(identity) is not None and action == base and base != "capabilities":
+                return False
+            return bool(self.inner.authorize(identity, INNER.get(base, base), tenant))
         if _scope(identity) is not None:
             allowed = WRITE_ACTIONS if access(identity) == "write" else READ_ACTIONS
             if base not in allowed:

@@ -10,6 +10,9 @@
 * ``POST reviews/<id>/decisions`` (``update_ref``): ``{decision}``, one
   ``opentine.review-gate`` checked against the stored version it names
   (``opentine._review.check_gate``), else ``400``. A repeat is not stored twice.
+  Since 0.90 an approve-only token (``_token_roles``) may make this call and no
+  other write; its approval of a Review covering a run its own agent id
+  authored is ``403 {"code": "token.self-approval"}``.
 
 The server checks and stores; it never signs a version or a decision. Each
 stored record is an ``update_ref`` row of the audit chain (name
@@ -30,6 +33,7 @@ from opentine._review_rules import ID, gate_body
 from opentine._signed_record import RecordError
 from opentine.remote import _hosted_reads as reads
 from opentine.remote import _review_store as store
+from opentine.remote import _token_roles as roles
 
 PREFIX = "reviews"
 NOT_FOUND = {"error": "not found"}
@@ -42,9 +46,9 @@ def capabilities(service: Any) -> dict[str, Any]:
                         "update": "PUT", "max_versions": store.MAX_ITEMS}}  # fmt: skip
 
 
-def _writer(app: Any, identity, tenant: str) -> None:
+def _writer(app: Any, identity, tenant: str, action: str = "update_ref") -> None:
     try:
-        app.service._authorize(identity, "update_ref", tenant)
+        app.service._authorize(identity, action, tenant)
     except PermissionError:
         reads.readable(app.service, identity, tenant, "read_ref")  # else the uniform 404
         raise
@@ -79,7 +83,7 @@ def _put(app: Any, identity, tenant: str, root, review_id: str, environ, sr):
 
 
 def _decide(app: Any, identity, tenant: str, root, review_id: str, environ, sr):
-    _writer(app, identity, tenant)
+    _writer(app, identity, tenant, roles.decide_action(identity))
     record = app._json(environ, "decision").get("decision")
     by_digest = {_review.digest(v): v for v in store.versions(root, tenant, review_id)}
     if not by_digest:
@@ -88,9 +92,16 @@ def _decide(app: Any, identity, tenant: str, root, review_id: str, environ, sr):
         named = by_digest.get(gate_body(record)["review"])
         if named is None:
             raise RecordError("review-gate.wrong-review", "the decision names no stored version")
-        _review.check_gate(record, named)
+        checked = _review.check_gate(record, named)
     except RecordError as exc:
         return _refused(app, identity, tenant, sr, exc)
+    why = None
+    if roles.role(identity) is not None and checked["decision"] == "approve":
+        why = roles.self_authored(app.service, identity, tenant, named)
+    if why is not None:  # 0.90: an approve token never approves its own agent's run
+        app.service._audit(identity, tenant, "update_ref", "denied", {"review": "self-approval"})
+        body = {"error": why, "code": "token.self-approval"}
+        return app._json_response(sr, "403 Forbidden", body)
     digest = _review.digest(record)
     known = {_review.digest(d) for d in store.decisions(root, tenant, review_id)}
     if digest not in known:

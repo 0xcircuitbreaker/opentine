@@ -88,6 +88,11 @@ overall verdict the monitor did not clear, or a held line that no longer checks
 (signature, arithmetic or verdict role). Cleared runs open nothing
 (docs/MONITOR-COLLUSION.md).
 
+A `suspicion:ANNOTATION` item (route `source = "suspicion"`) names the monitor
+coverage record in which a cumulative-suspicion or doom-loop flag was first
+reached (`tine monitor suspicion`, docs/MONITORS.md). Flags are recomputed from
+the held coverage records on every read.
+
 An item routed into several tiers must satisfy each of them.
 
 ### Pinning

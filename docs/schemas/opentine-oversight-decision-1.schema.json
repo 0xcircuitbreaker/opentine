@@ -20,7 +20,7 @@
     },
     "item": {
       "type": "string",
-      "pattern": "^(promotion|monitor|integrity|budget|containment|organism|custody|transcript|ingest|collusion):.+$"
+      "pattern": "^(promotion|monitor|integrity|budget|containment|organism|custody|transcript|ingest|collusion|suspicion):.+$"
     },
     "decision": {
       "enum": [

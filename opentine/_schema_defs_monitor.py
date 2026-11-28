@@ -14,6 +14,8 @@ from typing import Any
 
 from opentine._schema_defs import BOOL, INT, NUM, STR, closed, doc, opt
 from opentine._schema_defs_monitor_eval import EVAL_COMMANDS, EVAL_DESCRIPTION, EVAL_SHAPES
+from opentine._schema_defs_monitor_ledger import LEDGER_COMMANDS, LEDGER_DESCRIPTION, LEDGER_SHAPES
+from opentine._schema_defs_monitor_ledger import SCHEMAS as _LEDGER_SCHEMAS
 from opentine._schema_defs_monitor_protocol import (
     PROTOCOL_COMMANDS,
     PROTOCOL_DESCRIPTION,
@@ -72,7 +74,9 @@ VERDICT_CLAIM = closed(
         "latency_ms": INT, "deadline_ms": INT, "fail_closed": BOOL,
         "trajectories": {"type": "array", "minItems": 1, "items": _TRAJECTORY},
         "chosen": {"enum": ["original", "resample", "trusted", "none"]},
-        "stop": opt(_OID), "decided_at": STR})  # fmt: skip
+        "stop": opt(_OID), "decided_at": STR,
+        "category": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"},
+        "severity": {"enum": ["low", "medium", "high", "critical"]}})  # fmt: skip
 
 SCHEMAS: dict[str, dict[str, Any]] = {
     "tine-cli-monitor-1": doc("tine-cli-monitor-1", "tine monitor ... --json",
@@ -81,8 +85,9 @@ SCHEMAS: dict[str, dict[str, Any]] = {
         "lists held monitor verdicts (`opentine.monitor-verdict/1`) and whether each signer "
         "is a pinned monitor key; `verify` checks offline that every blocked or replaced "
         "action in the given runs has its verdict. `fail:` findings block; `advisory:` "
-        "findings block only with `--strict`. " + EVAL_DESCRIPTION + PROTOCOL_DESCRIPTION,
-        {"anyOf": [*_LISTS, *EVAL_SHAPES, *PROTOCOL_SHAPES]}),
+        "findings block only with `--strict`. " + EVAL_DESCRIPTION + PROTOCOL_DESCRIPTION
+        + LEDGER_DESCRIPTION,
+        {"anyOf": [*_LISTS, *EVAL_SHAPES, *PROTOCOL_SHAPES, *LEDGER_SHAPES]}),
     "opentine-monitor-verdict-1": doc("opentine-monitor-verdict-1",
         "opentine.monitor-verdict/1 claim",
         "The claim of an attestation recording one inline monitor decision. A claim "
@@ -99,9 +104,13 @@ SCHEMAS: dict[str, dict[str, Any]] = {
             "decision": {"enum": ["allow", "block", "replace"]}, "verdict": opt(_OID),
             "input": {}, "reason": STR})),
     **_PROTOCOL_SCHEMAS,
+    **_LEDGER_SCHEMAS,
 }  # fmt: skip
 COMMAND_SCHEMAS: dict[str, str] = {
     f"monitor {verb}": "tine-cli-monitor-1" for verb in ("stop", "stops", "verdicts", "verify")
-} | {command: "tine-cli-monitor-1" for command in (*EVAL_COMMANDS, *PROTOCOL_COMMANDS)}
+} | {
+    command: "tine-cli-monitor-1"
+    for command in (*EVAL_COMMANDS, *PROTOCOL_COMMANDS, *LEDGER_COMMANDS)
+}
 
 __all__ = ["COMMAND_SCHEMAS", "SCHEMAS", "VERDICT_CLAIM"]

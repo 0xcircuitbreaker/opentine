@@ -25,7 +25,12 @@ _record = _obj(
         "created_at": _str,
         "expires_at": _str,
     },
-    {"label": _str, "revoked_at": _str},
+    {
+        "label": _str,
+        "revoked_at": _str,
+        "role": {"enum": ["ingest", "verdict", "approve"]},
+        "agent": _str,
+    },
 )
 _secret = {"type": "string", "pattern": "^tine_(pat|ci)_[0-9a-f]{16}_[A-Za-z0-9_-]{43}$"}
 
@@ -67,7 +72,12 @@ SCHEMAS_052_TOKENS: dict[str, Any] = {
     "TokenList": _obj({"tokens": {"type": "array", "items": _record}}),
     "TokenRequest": _obj(
         {"access": _access, "refs": _strs},
-        {"ttl_seconds": {"type": "integer", "minimum": 1}, "label": _str},
+        {
+            "ttl_seconds": {"type": "integer", "minimum": 1},
+            "label": _str,
+            "role": {"enum": ["ingest", "verdict", "approve"]},
+            "agent": _str,
+        },  # 0.90
         extra=False,
     ),
     "MintedToken": {"allOf": [_record, _obj({"token": _secret})]},

@@ -34,7 +34,8 @@ def _sources(repo: Any) -> list[dict[str, Any]]:
     loads (0.72, :mod:`opentine._weight_custody_review`), and behaviour flags and
     similar-to-known-bad runs (0.74, :mod:`opentine._transcript_oversight`), and
     ingest gaps and policy violations (0.77, :mod:`opentine._ingest_oversight`), and failed
-    collusion protocols (0.83, :mod:`opentine._collusion_record`)."""
+    collusion protocols (0.83, :mod:`opentine._collusion_record`), and cumulative-suspicion
+    and doom-loop flags (:mod:`opentine._monitor_suspicion`)."""
     from opentine import _monitor_verdict
     from opentine.repository._holds import BUDGET_FLAG, TAINT, holds_path, read_holds
 
@@ -53,6 +54,7 @@ def _sources(repo: Any) -> list[dict[str, Any]]:
             found.append({"item": f"budget:{row['oid']}", "source": "budget"})
     from opentine._collusion_record import items as collusion_items
     from opentine._ingest_oversight import items as ingest_items
+    from opentine._monitor_suspicion import items as suspicion_items
     from opentine._transcript_oversight import items as transcript_items
     from opentine._weight_custody_review import items as custody_items
 
@@ -60,7 +62,8 @@ def _sources(repo: Any) -> list[dict[str, Any]]:
     # 0.77: ingest stream gaps and sampling-policy violations
     for name, source in (("containment", _containment), ("custody", custody_items),
                          ("transcript", transcript_items), ("ingest", ingest_items),
-                         ("collusion", collusion_items)):  # fmt: skip
+                         ("collusion", collusion_items),
+                         ("suspicion", suspicion_items)):  # fmt: skip
         found += _isolated(name, source, repo)
     return found
 

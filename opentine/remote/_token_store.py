@@ -44,7 +44,11 @@ CREATE TABLE IF NOT EXISTS tokens (
   created REAL NOT NULL, expires REAL NOT NULL, revoked REAL);
 CREATE TABLE IF NOT EXISTS seen_jti (issuer TEXT, jti TEXT, until REAL,
   PRIMARY KEY (issuer, jti));
+CREATE TABLE IF NOT EXISTS authored (tenant TEXT, oid TEXT, agent TEXT,
+  PRIMARY KEY (tenant, oid, agent));
 """
+#: 0.90 columns, added to a root minted before them (``_token_roles``).
+_ADDED = (("role", "TEXT"), ("agent", "TEXT"))
 
 
 def iso(seconds: float) -> str:
@@ -70,6 +74,10 @@ class TokenStore:
         self._lock = threading.Lock()
         with self._db() as db:
             db.executescript(_SCHEMA)
+            have = {row["name"] for row in db.execute("PRAGMA table_info(tokens)")}
+            for name, kind in _ADDED:
+                if name not in have:
+                    db.execute(f"ALTER TABLE tokens ADD COLUMN {name} {kind}")
 
     @classmethod
     def at(cls, root: str | Path, **kwargs: Any) -> TokenStore:
@@ -94,8 +102,11 @@ class TokenStore:
         label: str = "",
         kind: str = "pat",
         subject: str = "",
+        role: str | None = None,
+        agent: str = "",
     ) -> tuple[str, dict[str, Any]]:
-        """``(the secret token, shown once; its public record)``."""
+        """``(the secret token, shown once; its public record)``; *role*: ``_token_roles``."""
+        from opentine.remote._token_roles import check_mint
         from opentine.remote.backend import valid_tenant
 
         valid_tenant(tenant)
@@ -107,10 +118,13 @@ class TokenStore:
         if len(label) > 128:
             raise ValueError("a token label is at most 128 characters")
         refs = check_namespaces(refs)
+        check_mint(role, refs, agent)
+        if role is not None and access != "write":
+            raise ValueError("a role token is minted with write access")
         token_id, secret = secrets.token_hex(8), secrets.token_urlsafe(32)
         now = self.now()
         row = (token_id, kind, _digest(secret), tenant, access, json.dumps(refs), label)
-        row += (subject or f"token:{token_id}", now, now + int(ttl))
+        row += (subject or f"token:{token_id}", now, now + int(ttl), role, agent or None)
         with self._lock, self._db() as db:
             db.execute("DELETE FROM tokens WHERE kind = 'ci' AND expires < ?", (now - 86400,))
             db.execute("DELETE FROM seen_jti WHERE until < ?", (now,))
@@ -120,7 +134,11 @@ class TokenStore:
             ).fetchone()[0]
             if live >= MAX_LIVE_PER_TENANT:
                 raise ValueError(f"tenant {tenant} already holds {live} live tokens")
-            db.execute("INSERT INTO tokens VALUES (?,?,?,?,?,?,?,?,?,?,NULL)", row)
+            db.execute(
+                "INSERT INTO tokens (id, kind, digest, tenant, access, refs, label, subject,"
+                " created, expires, role, agent) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                row,
+            )
         return f"{PREFIXES[kind]}{token_id}_{secret}", self.get(token_id)
 
     def first_use(self, issuer: str, jti: str, until: float) -> bool:
@@ -138,8 +156,9 @@ class TokenStore:
         record = {"id": row["id"], "kind": row["kind"], "tenant": row["tenant"]}
         record |= {"access": row["access"], "refs": json.loads(row["refs"]), "state": state}
         record |= {"created_at": iso(row["created"]), "expires_at": iso(row["expires"])}
-        if row["label"]:
-            record["label"] = row["label"]
+        for name in ("label", "role", "agent"):
+            if row[name]:
+                record[name] = row[name]
         if row["revoked"]:
             record["revoked_at"] = iso(row["revoked"])
         return record
@@ -184,8 +203,24 @@ class TokenStore:
         if not valid or row["revoked"] or row["expires"] <= self.now():
             raise AuthenticationError("invalid, expired or revoked token")
         scope = {"token": row["id"], "access": row["access"], "refs": json.loads(row["refs"])}
+        scope |= {name: row[name] for name in ("role", "agent") if row[name]}
         role = "writer" if row["access"] == "write" else "reader"
         return Identity(row["subject"], row["tenant"], (role,), {SCOPE_CLAIM: scope})
+
+    def note_authors(self, tenant: str, oids: list[str], agent: str) -> None:
+        """Record *agent* as an author of each run oid (self-approval checks)."""
+        with self._lock, self._db() as db:
+            db.executemany(
+                "INSERT OR IGNORE INTO authored VALUES (?,?,?)",
+                [(tenant, oid, agent) for oid in oids],
+            )
+
+    def authors_of(self, tenant: str, oid: str) -> set[str]:
+        with self._db() as db:
+            rows = db.execute(
+                "SELECT agent FROM authored WHERE tenant = ? AND oid = ?", (tenant, oid)
+            ).fetchall()
+        return {row["agent"] for row in rows}
 
 
 class TokenIdentityProvider:

@@ -1,5 +1,100 @@
 # Changelog
 
+## 0.90.0 — Monitors as evidence and role tokens (2026-11-28)
+
+- Monitor coverage, heartbeats and suspicion are stricter: an event the monitor
+  errored on is not covered; a coverage line must carry the digest of the input
+  actually captured and a record must be its own monitor's; a heartbeat dated
+  in the future (`monitor.heartbeat-future`) or of another config is no
+  liveness; and near-threshold scores also add up per ingest stream, so
+  rotating every self-claimed id does not avoid a doom-loop flag.
+- New `tine monitor run`: an asynchronous monitor runner over an ingest stream.
+  It evaluates every captured event of each pending batch, in order, and writes
+  one signed coverage record per batch under the `opentine.monitor-coverage/1`
+  claim convention: the monitor's config digest, counts by outcome (`allow`
+  included, as a count plus a digest list) and by category, one line per
+  evaluated event, and the ingest-to-verdict latency against the SLO (p95 at
+  most 30 s; recorded and advisory). Outcomes other than `allow` are also held
+  monitor verdicts. `--follow` keeps running and signs a heartbeat every
+  `--interval` seconds (default 60). The runner never blocks (D12).
+- New `tine monitor coverage`: the exact fraction of captured events a monitor
+  evaluated (`covered = "E/C"`), the uncovered ranges, config changes, stale
+  heartbeats, latency SLO misses and the operating point. Unsigned, broken or
+  forged records (`monitor.coverage-unsigned`, `monitor.coverage-chain`,
+  `monitor.coverage-forged`) fail in every profile; gaps, config changes,
+  staleness, SLO misses and an unvalidated threshold are advisory by default
+  and fail under `--profile rsi`, where an unvalidated monitor counts as no
+  coverage.
+- New `tine monitor heartbeat`: signed heartbeats under the
+  `opentine.monitor-heartbeat/1` convention, chained per monitor and stream and
+  bound to the ingest head; a monitor is stale after three missed intervals.
+  A heartbeat older than its predecessor or its bound batch is refused, and one
+  that names an old head after the stream moved on, or belongs to another
+  monitor or stream, is `monitor.heartbeat-backfilled` or
+  `monitor.heartbeat-replayed`.
+- New `tine monitor validate`: a monitor's operating point on a labelled set
+  (TPR and FPR with Wilson and Clopper-Pearson 95 % intervals) under the
+  `opentine.monitor-operating-point/1` convention, bound to the config digest
+  and threshold and signed by a pinned `scorer` or `policy` key that is not an
+  `optimizer` key (`monitor.validation-signer`). A record whose rates do not
+  follow from its counts, or that names another threshold or config, does not
+  count.
+- New `tine monitor suspicion`: cumulative suspicion across agents, sessions
+  and runs, and doom-loop flags (repeated near-threshold scores, the same
+  failing action repeated under any identity), all advisory. Each flag opens a
+  `suspicion:RECORD` item in the oversight queue (route `source =
+  "suspicion"`).
+- Monitor verdicts may carry a `category` and a `severity`
+  (`low|medium|high|critical`), from a rule's `category`/`severity` keys or a
+  command or http monitor's reply.
+- Coverage ledger, heartbeat and operating-point records are held under
+  `monitor-ledger:`, `monitor-heartbeat:` and `monitor-validation:`, which
+  `tine hold release` refuses. No object kind and no `tine verify` code is
+  added.
+- Monitor ids are bound to their signer keys: the trust bundle's new
+  `monitors` section (`tine trust bundle create --monitors FILE`) maps each id
+  to its fingerprints (one id per key) and may list `required` monitors. A
+  record or heartbeat signed by another monitor's key does not count
+  (`monitor.coverage-unsigned`, `monitor.heartbeat-unsigned`); an unbound id,
+  a renamed one included, is `monitor.signer-unbound`, advisory by default
+  and counting for nothing under `--profile rsi`.
+- `tine promote` reads monitor coverage (`promote.monitor-coverage`): every
+  captured event of the candidate run must be evaluated by each required
+  monitor, under one validated config and threshold, with the monitor live
+  over the run's window. Required by the trust bundle's `monitors.required`
+  (always), or by `required_monitors` with `monitor_coverage = "required"`
+  (implied by `profile = "rsi"`); advisory otherwise (D12).
+- The doom-loop repeated-failure check also counts a normalized action (tool
+  name and argument keys, values bucketed), so changing one argument per
+  retry no longer evades it; varied benign usage is not flagged.
+- A coverage record whose threshold or score is NaN, infinite or not a number
+  is reported (`invalid` in `tine monitor suspicion`, `monitor.coverage-forged`
+  in `coverage`) instead of crashing the suspicion scan.
+- `monitor coverage --json` reports `heartbeats.first_ms`.
+- Role-scoped `tine serve` tokens: `tine serve token mint --role
+  ingest|verdict|approve [--agent ID]`, plus `role` and `agent` in the HTTP
+  mint. They narrow the existing read/write, ref-namespace and TTL scopes.
+  Ingest tokens upload and move refs inside their namespaces and read nothing.
+  Verdict tokens can also list and fetch inside their namespaces. Approve tokens
+  read the tenant and record Review gate decisions, nothing more. Ingest and
+  verdict tokens must name their namespaces. Every route checks the role, and a
+  route the role does not list refuses the token.
+- An approve token cannot approve a Review covering a run its own agent id
+  authored, or a run the tenant does not hold (`403`, `token.self-approval`).
+  The server now notes the agent behind every upload and ref move in
+  `auth.sqlite3`. A root minted before this release gains the new columns when
+  it is opened.
+- Every audit row written for a scoped token records its scope
+  (`token_scope`). A ref move refused for being outside a token's namespaces is
+  now audited as `denied`; before this release it was refused without an audit
+  row.
+- Role tokens reach no admin-surface route (tenant, holds, members, settings,
+  retention, invitations), as namespace-limited tokens already did.
+- The self-approval check reads the run's recorded `agent_id`, `agent` or
+  `author`, and compares agent ids after NFKC normalization, trimming and case
+  folding, so a differently spelled id is still the token's own. An agent id
+  with leading or trailing spaces is refused at mint.
+
 ## 0.89.0 — Judge assurance (2026-11-28)
 
 One human-label system (`tine label`), one judge toolkit (`tine judge`) and one

@@ -259,6 +259,27 @@ Over a limit a tenant's own caller gets `507` (storage) or `429` with
 `Retry-After` (egress); nothing is ever deleted. `GET /v1/tenants/T/usage`
 shows the tenant's use.
 
+New in 0.90: role tokens. `tine serve token mint --role ingest|verdict|approve
+[--agent ID]` (also `role` and `agent` in `POST /v1/tenants/T/tokens`) mints a
+write token narrowed to one role; `GET /v1/capabilities` lists the roles under
+`scoped_tokens.roles`. An `ingest` token uploads packs and moves refs inside its
+namespaces and reads nothing, not even the ref list. A `verdict` token, for a
+monitor running outside the agent's process, also lists and fetches inside its
+namespaces, so it can read the runs it judges and push its verdict and heartbeat
+attestations. Both must name their namespaces (`*` is refused). An `approve`
+token needs `--agent`: it reads the tenant and records Review gate decisions,
+and it never uploads, moves a ref or edits a Review. Its approval is refused
+(`403`, `token.self-approval`) when a run that the Review covers was authored by
+its own agent id, or when the tenant does not hold that run, because then its
+author cannot be checked. A run's authors are the agents that uploaded it or
+moved a ref to it (a token's `--agent`, else the identity's subject), plus any
+`agent_id`, `agent` or `author` the run records. Agent ids are compared after
+NFKC normalization, trimming and case folding, and one with leading or
+trailing spaces is refused at mint. Every route checks the role, and any route
+the role does not list (the admin surface included) refuses the token. Revocation and expiry
+apply on every request. Every audit row written for a scoped token carries its
+scope (`token_scope`: token id, access, refs, role, agent).
+
 ## Default output format
 
 ```
@@ -2028,8 +2049,16 @@ with `LOOP.` is fenced with or without `--loop`. `--json` prints
 | `tine monitor verdicts --repo PATH` | Held monitor verdicts and whether a pinned monitor key signed each |
 | `tine monitor verify [--run RUN]... [--strict] --repo PATH` | Offline: every blocked or replaced action in the runs has its verdict; exit 1 on a `fail:monitor.*` finding |
 
+| `tine monitor run --config CONFIG --stream S --key KEY [--follow [--interval S] [--poll S]] [--at TIME] --repo PATH` | Evaluates the stream's pending ingest batches; one signed coverage record per batch, every non-allow outcome a held verdict; `--follow` keeps running and signs a heartbeat every interval (default 60 s) |
+| `tine monitor heartbeat --config CONFIG --stream S --key KEY [--interval S] [--at TIME] --repo PATH` | Signs one heartbeat bound to the stream's current ingest head |
+| `tine monitor coverage --config CONFIG --stream S [--profile default\|rsi] [--strict] [--at TIME] --repo PATH` | Proven coverage of captured events, gaps, config changes, stale heartbeats, the latency SLO and the operating point; exit 1 on a `fail:monitor.*` finding (under `rsi` gaps, staleness and an unvalidated threshold fail) |
+| `tine monitor validate --config CONFIG --labelled FILE --key KEY [--at TIME] --repo PATH` | Scores a labelled set and signs the operating point (TPR and FPR with Wilson and Clopper-Pearson intervals); the key is a pinned `scorer` or `policy` key that is not an `optimizer` key |
+| `tine monitor suspicion [--stream S]... [--budget X] [--margin X] [--repeats N] [--strict] --repo PATH` | Cumulative-suspicion and doom-loop flags across agents, sessions and runs; advisory unless `--strict` |
+
 `--json` prints `tine-cli-monitor/1`. Verdicts follow the claim convention
-`opentine.monitor-verdict/1`; see docs/MONITORS.md.
+`opentine.monitor-verdict/1`; coverage records, heartbeats and operating points
+follow `opentine.monitor-coverage/1`, `opentine.monitor-heartbeat/1` and
+`opentine.monitor-operating-point/1`; see docs/MONITORS.md.
 
 ## Oversight queue (0.64)
 

@@ -126,7 +126,7 @@ def findings(policy: dict[str, Any], *, candidate: str, current: str | None, lab
 def gates(policy: dict[str, Any], repo_path: Path | None, candidate: str, current: str | None,
           label: str, lineage: Path | None,
           folders: dict[str, Path] | None = None) -> tuple[list, list, dict | None]:  # fmt: skip
-    """The region pin (0.87), skill label (0.88) and judge (0.89) findings of ``tine promote``."""
+    """Region pin (0.87), skill label (0.88), judge (0.89), monitor (0.90) findings of promote."""
     from opentine._promote_judges import findings as judges
     from opentine._regions_pin import promote_findings as regions
 
@@ -134,7 +134,10 @@ def gates(policy: dict[str, Any], repo_path: Path | None, candidate: str, curren
     more, advice, row = findings(policy, candidate=candidate, current=current, label=label,
                                  lineage=lineage, repo_path=repo_path)  # fmt: skip
     judged, told = judges(policy, repo_path, candidate, lineage, folders or {})
-    return held + more + judged, advised + advice + told, row
+    from opentine._promote_monitors import findings as monitors
+
+    watched, noted = monitors(policy, repo_path, candidate)  # 0.90: monitor coverage
+    return held + more + judged + watched, advised + advice + told + noted, row
 
 
 __all__ = ["MODES", "PREFIX", "check_policy", "findings", "gates", "trusted_signers"]

@@ -1,0 +1,181 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-monitor-coverage-1.schema.json",
+  "title": "opentine.monitor-coverage/1 claim",
+  "description": "The value of an annotation recording which captured events of one ingest batch a monitor evaluated. A claim convention, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "monitor",
+    "stream",
+    "seq",
+    "previous",
+    "batch",
+    "batch_seq",
+    "first_index",
+    "next_index",
+    "evaluated",
+    "by_action",
+    "by_category",
+    "threshold",
+    "latency",
+    "events_sha256",
+    "at",
+    "events"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.monitor-coverage/1"
+    },
+    "monitor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "config_digest"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "rule",
+            "command",
+            "http",
+            "probe"
+          ]
+        },
+        "config_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "stream": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "previous": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "batch": {
+      "type": "string",
+      "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+    },
+    "batch_seq": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "first_index": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "next_index": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "evaluated": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "by_action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "allow",
+        "flag",
+        "resample",
+        "defer",
+        "block",
+        "error"
+      ],
+      "properties": {
+        "allow": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "flag": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "resample": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "defer": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "block": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "error": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "by_category": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "threshold": {
+      "type": "number"
+    },
+    "latency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slo_ms",
+        "p95_ms",
+        "max_ms",
+        "met"
+      ],
+      "properties": {
+        "slo_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "p95_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "met": {
+          "type": "boolean"
+        }
+      }
+    },
+    "events_sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "at": {
+      "type": "string"
+    },
+    "events": {
+      "type": "string"
+    }
+  }
+}

@@ -24,6 +24,7 @@ from typing import Any
 
 from opentine.remote._auth_throttle import internal_error
 from opentine.remote._limits import LimitExceeded, Limits
+from opentine.remote._token_roles import ROLES
 from opentine.remote._token_store import MAX_TTL, PREFIXES, TokenStore
 from opentine.remote.app import RemoteApp
 
@@ -55,8 +56,10 @@ class GatewayApp(RemoteApp):
                  exchange: Any = None, **kwargs: Any):  # fmt: skip
         super().__init__(service, state_dir, **kwargs)
         self.tokens, self.limits, self.exchange = tokens, limits, exchange
+        service.authorship, service.authors_of = tokens.note_authors, tokens.authors_of
         service.auth_caps = {
             "scoped_tokens": {"path": "tokens", "access": ["read", "write"],
+                              "roles": list(ROLES),
                               "prefixes": sorted(PREFIXES.values()), "max_ttl_seconds": MAX_TTL},
             "limits": {"path": "/v1/limits", "usage": "usage", "auth_methods": "/v1/auth-methods"},
         }  # fmt: skip
@@ -175,16 +178,20 @@ class GatewayApp(RemoteApp):
             return self._json_response(start_response, "200 OK", body)
         if method == "POST" and not token_id:
             self.service._authorize(identity, "tokens", tenant)
-            request = self._json(environ, "access", "refs", "ttl_seconds", "label")
+            request = self._json(environ, "access", "refs", "ttl_seconds", "label", "role", "agent")
             ttl = request.get("ttl_seconds", 90 * 86400)
             if not isinstance(ttl, int) or isinstance(ttl, bool):
                 raise ValueError("ttl_seconds is an integer")
             label = request.get("label", "")
             if not isinstance(label, str):
                 raise ValueError("label is a string")
+            role, agent = request.get("role"), request.get("agent", "")
+            if not (role is None or isinstance(role, str)) or not isinstance(agent, str):
+                raise ValueError("role and agent are strings")
             secret, record = self.tokens.mint(
-                tenant, request.get("access"), request.get("refs"), ttl=ttl, label=label
-            )
+                tenant, request.get("access"), request.get("refs"), ttl=ttl, label=label,
+                role=role, agent=agent,
+            )  # fmt: skip
             self.service._audit(identity, tenant, "tokens", "minted", {"token": record["id"]})
             return self._json_response(start_response, "201 Created", {"token": secret, **record})
         if method == "DELETE" and token_id:

@@ -47,6 +47,9 @@ def check_policy(policy: dict[str, Any]) -> None:
     from opentine._promote_judges import check_policy as judges
 
     judges(policy)  # 0.89: judge assurance, required under rsi
+    from opentine._promote_monitors import check_policy as monitors
+
+    monitors(policy)  # 0.90: monitor coverage, required under rsi
 
 
 def in_process(folder: Path) -> bool:

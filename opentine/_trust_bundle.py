@@ -18,6 +18,7 @@ and whose payload holds only existing documents::
      ["key_roles": {"version": 1, "roles": {...}}],  # .tine/key-roles.toml, as JSON (0.59)
      ["oversight": {"version": 1, "tiers": {name: {"k": N}}}]}  # k floors per tier (0.64)
      # 0.85: oversight may add "routes": [source] and "policy_sha256": hex
+     ["monitors": {"version": 1, "signers": {id: [pin]}, "required": [id]}]}  # 0.90
 
 Every part is checked by the validator of its own format. Path fields of a
 trust policy (``pubkey``, ``rekor_key``, ...) name local files and are
@@ -51,6 +52,7 @@ _TOP = {
     "admission_policies",
     "key_roles",
     "oversight",
+    "monitors",
 }
 #: Trust-policy fields a bundle may carry: no local paths.
 PORTABLE = ("pin", "require_receipt", "cert_identity", "cert_oidc_issuer", "require_sct",
@@ -163,6 +165,12 @@ def validate(payload: Any) -> dict[str, Any]:
         if section_of(payload["oversight"]) is None:
             raise BundleError("trust bundle: oversight is {version: 1, tiers: {name: {k: N}}, "
                               "routes: [source], policy_sha256: hex}")  # fmt: skip
+    if "monitors" in payload:
+        from opentine._monitor_binding import section_of as monitors
+
+        if monitors(payload["monitors"]) is None:
+            raise BundleError("trust bundle: monitors is {version: 1, signers: {id: [pin]}, "
+                              "required: [bound id]}, each pin bound to one id")  # fmt: skip
     return payload
 
 

@@ -33,15 +33,13 @@ TAINT = "integrity-taint:"
 HOLDOUT_ACCESS = "holdout-access:"
 CANARY_HOLD = "holdout-canary:"
 HOLDOUT_QUERY = "holdout-query:"  # 0.86: a holdout query record (opentine._holdout_query)
-#: 0.61: rows that keep a memory quarantine (opentine._memory_quarantine): released
-#: never, so deleting the quarantine's ref cannot serve the note again.
+#: 0.61: a memory quarantine (opentine._memory_quarantine): never released.
 MEMORY_QUARANTINE = "memory-quarantine:"
 #: 0.63: rows that keep a monitor verdict that was not ``allow`` and a monitor stop
 #: token (opentine._monitor_verdict, opentine._monitor_stop): released never.
 MONITOR_VERDICT = "monitor-verdict:"
 MONITOR_STOP = "monitor-stop:"
-#: 0.64: rows that keep an oversight decision (opentine._oversight): released never,
-#: so a loop cannot delete an approval, a rejection or a review request.
+#: 0.64: an oversight decision or review request (opentine._oversight): never released.
 OVERSIGHT_DECISION = "oversight-decision:"
 #: 0.65: a blind audit game's seal, findings and reveal (opentine._audit_game): never released.
 AUDIT_GAME = "audit-game:"
@@ -69,10 +67,8 @@ ORGANISM = "organism:"
 TRANSCRIPT_FLAG = "transcript-flag:"
 #: 0.73: rows that keep an uplift suite or record (opentine._uplift): released never.
 UPLIFT = "uplift:"
-#: 0.75: rows that keep a dataset record (opentine._dataset_version) or a signed withdrawal
-#: (opentine._dataset_withdraw): released never, so a loop cannot rewrite its training data.
-DATASET_RECORD = "dataset-record:"
-DATASET_WITHDRAW = "dataset-withdraw:"
+#: 0.75: a dataset record or signed withdrawal (opentine._dataset_version, _dataset_withdraw).
+DATASET_RECORD, DATASET_WITHDRAW = "dataset-record:", "dataset-withdraw:"
 #: 0.74: rows that keep a signed policy admission record (opentine._policy_record): never released.
 POLICY_ADMISSION = "policy-admission:"
 #: 0.77/0.84: ingest policies, newest batch and segment, audits (_ingest_holds, _rl_audit).
@@ -85,6 +81,9 @@ COLLUSION_VERDICT = "collusion-verdict:"
 #: 0.84/0.88: an artifact provenance record and its run; a run's scaffold manifest.
 PROVENANCE, SCAFFOLD = "custody:provenance:", "scaffold-manifest:"
 JUDGE_VALIDATION = "judge-validation:"  # 0.89: opentine._judge_validation
+#: 0.90: monitor ledger and heartbeat chain heads, operating points (opentine._monitor_*).
+MONITOR_LEDGER, MONITOR_HEARTBEAT = "monitor-ledger:", "monitor-heartbeat:"
+MONITOR_VALIDATION = "monitor-validation:"
 _NEVER_RELEASED = (
     ((MEMORY_QUARANTINE,), "a memory quarantine"),
     ((MONITOR_VERDICT, MONITOR_STOP), "a monitor verdict or stop token"),
@@ -108,6 +107,7 @@ _NEVER_RELEASED = (
     ((PROVENANCE,), "an artifact provenance record"),
     ((SCAFFOLD,), "a scaffold manifest record"),
     ((JUDGE_VALIDATION,), "a judge validation record"),
+    ((MONITOR_LEDGER, MONITOR_HEARTBEAT, MONITOR_VALIDATION), "a monitor coverage record"),
 )
 MAX_HOLDS_BYTES = 4 * 1024 * 1024
 

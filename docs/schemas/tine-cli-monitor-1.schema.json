@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opentine.com/schemas/tine-cli-monitor-1.schema.json",
   "title": "tine monitor ... --json",
-  "description": "Inline monitor verdicts and stop tokens. `stop`/`stops` list signed stop tokens (claim convention `opentine.monitor-stop/1`, held and never released); `verdicts` lists held monitor verdicts (`opentine.monitor-verdict/1`) and whether each signer is a pinned monitor key; `verify` checks offline that every blocked or replaced action in the given runs has its verdict. `fail:` findings block; `advisory:` findings block only with `--strict`. `backtest` replays recorded trajectories against a rule monitor and reports, per reasoning-visibility group (never pooled across groups), catch rate on attack-labelled trajectories and false-positive rate on benign ones, for the replay and for the recorded online verdicts. Online verdicts that saw another reasoning visibility or another input are counted, not compared. A verdict from the same monitor digest must reproduce byte for byte (`bit_identical`); `diff` lists every compared step whose action or decision changed. `collusion` compares an untrusted monitor's catch rate on attacks that carry a coordination signal with those that do not; its findings are advisory only (D12) and `ok` is always true. `protocol-sign` signs an `opentine.collusion-protocol/1` manifest that commits to a secret seed; `protocol-run` verifies it against the pinned roles (a `policy` key, never an `optimizer` key; refused when unpinned), checks the revealed seed, applies the paraphrase, re-sampling, honeypot, cross-monitor disagreement and steganography probes over seeded trials and reports flagged-trial rates with Wilson and Clopper-Pearson intervals; `ok` is false only when the signed manifest sets `required` and the monitor does not clear.",
+  "description": "Inline monitor verdicts and stop tokens. `stop`/`stops` list signed stop tokens (claim convention `opentine.monitor-stop/1`, held and never released); `verdicts` lists held monitor verdicts (`opentine.monitor-verdict/1`) and whether each signer is a pinned monitor key; `verify` checks offline that every blocked or replaced action in the given runs has its verdict. `fail:` findings block; `advisory:` findings block only with `--strict`. `backtest` replays recorded trajectories against a rule monitor and reports, per reasoning-visibility group (never pooled across groups), catch rate on attack-labelled trajectories and false-positive rate on benign ones, for the replay and for the recorded online verdicts. Online verdicts that saw another reasoning visibility or another input are counted, not compared. A verdict from the same monitor digest must reproduce byte for byte (`bit_identical`); `diff` lists every compared step whose action or decision changed. `collusion` compares an untrusted monitor's catch rate on attacks that carry a coordination signal with those that do not; its findings are advisory only (D12) and `ok` is always true. `protocol-sign` signs an `opentine.collusion-protocol/1` manifest that commits to a secret seed; `protocol-run` verifies it against the pinned roles (a `policy` key, never an `optimizer` key; refused when unpinned), checks the revealed seed, applies the paraphrase, re-sampling, honeypot, cross-monitor disagreement and steganography probes over seeded trials and reports flagged-trial rates with Wilson and Clopper-Pearson intervals; `ok` is false only when the signed manifest sets `required` and the monitor does not clear. `run` evaluates an ingest stream and writes coverage records (`opentine.monitor-coverage/1`); `heartbeat` signs one heartbeat (`opentine.monitor-heartbeat/1`); `coverage` reports the proven fraction of captured events a monitor evaluated; `validate` signs an operating point (`opentine.monitor-operating-point/1`); `suspicion` lists cumulative-suspicion and doom-loop flags.",
   "anyOf": [
     {
       "type": "object",
@@ -1377,6 +1377,918 @@
           "items": {
             "type": "string"
           }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "records",
+        "counts"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-monitor/1"
+        },
+        "command": {
+          "const": "monitor run"
+        },
+        "records": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "convention",
+              "monitor",
+              "stream",
+              "seq",
+              "previous",
+              "batch",
+              "batch_seq",
+              "first_index",
+              "next_index",
+              "evaluated",
+              "by_action",
+              "by_category",
+              "threshold",
+              "latency",
+              "events_sha256",
+              "at"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+              },
+              "convention": {
+                "const": "opentine.monitor-coverage/1"
+              },
+              "monitor": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "kind",
+                  "config_digest"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "enum": [
+                      "rule",
+                      "command",
+                      "http",
+                      "probe"
+                    ]
+                  },
+                  "config_digest": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
+                }
+              },
+              "stream": {
+                "type": "string"
+              },
+              "seq": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "previous": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "batch": {
+                "type": "string",
+                "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+              },
+              "batch_seq": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "first_index": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "next_index": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "evaluated": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "by_action": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "allow",
+                  "flag",
+                  "resample",
+                  "defer",
+                  "block",
+                  "error"
+                ],
+                "properties": {
+                  "allow": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "flag": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "resample": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "defer": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "block": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "error": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              },
+              "by_category": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "threshold": {
+                "type": "number"
+              },
+              "latency": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "slo_ms",
+                  "p95_ms",
+                  "max_ms",
+                  "met"
+                ],
+                "properties": {
+                  "slo_ms": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "p95_ms": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "max_ms": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "met": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "events_sha256": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "at": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "batches",
+            "evaluated",
+            "verdicts",
+            "heartbeats"
+          ],
+          "properties": {
+            "batches": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "evaluated": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "verdicts": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "heartbeats": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "heartbeat"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-monitor/1"
+        },
+        "command": {
+          "const": "monitor heartbeat"
+        },
+        "heartbeat": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "convention",
+            "monitor",
+            "stream",
+            "seq",
+            "previous",
+            "interval_s",
+            "ingest",
+            "ledger",
+            "at"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+            },
+            "convention": {
+              "const": "opentine.monitor-heartbeat/1"
+            },
+            "monitor": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "kind",
+                "config_digest"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "kind": {
+                  "enum": [
+                    "rule",
+                    "command",
+                    "http",
+                    "probe"
+                  ]
+                },
+                "config_digest": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                }
+              }
+            },
+            "stream": {
+              "type": "string"
+            },
+            "seq": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "previous": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "interval_s": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "ingest": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "head",
+                    "seq",
+                    "at"
+                  ],
+                  "properties": {
+                    "head": {
+                      "type": "string",
+                      "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+                    },
+                    "seq": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "at": {
+                      "type": "string"
+                    }
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "ledger": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "at": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "stream",
+        "monitor",
+        "captured",
+        "evaluated",
+        "covered",
+        "percent",
+        "counts_as_coverage",
+        "operating_point",
+        "records",
+        "gaps",
+        "heartbeats",
+        "findings",
+        "profile",
+        "ok",
+        "strict",
+        "blocking"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-monitor/1"
+        },
+        "command": {
+          "const": "monitor coverage"
+        },
+        "stream": {
+          "type": "string"
+        },
+        "monitor": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "kind",
+            "config_digest"
+          ],
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "kind": {
+              "enum": [
+                "rule",
+                "command",
+                "http",
+                "probe"
+              ]
+            },
+            "config_digest": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          }
+        },
+        "captured": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evaluated": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "covered": {
+          "type": "string",
+          "pattern": "^[0-9]+/[0-9]+$"
+        },
+        "percent": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9]+\\.[0-9]{4}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "counts_as_coverage": {
+          "type": "boolean"
+        },
+        "operating_point": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "records": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "gaps": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "heartbeats": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "heartbeats",
+            "first_ms",
+            "last_ms",
+            "stale_windows"
+          ],
+          "properties": {
+            "heartbeats": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "first_ms": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "last_ms": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "stale_windows": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "from",
+                  "to"
+                ],
+                "properties": {
+                  "from": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "to": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "level",
+              "code",
+              "record",
+              "message"
+            ],
+            "properties": {
+              "level": {
+                "enum": [
+                  "fail",
+                  "advisory"
+                ]
+              },
+              "code": {
+                "type": "string",
+                "pattern": "^(fail|advisory):monitor\\.[a-z-]+$"
+              },
+              "record": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "profile": {
+          "enum": [
+            "default",
+            "rsi"
+          ]
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "strict": {
+          "type": "boolean"
+        },
+        "blocking": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "record",
+        "claim"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-monitor/1"
+        },
+        "command": {
+          "const": "monitor validate"
+        },
+        "record": {
+          "type": "string",
+          "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+        },
+        "claim": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "convention",
+            "monitor",
+            "threshold",
+            "labelled",
+            "counts",
+            "confidence",
+            "tpr",
+            "fpr",
+            "at"
+          ],
+          "properties": {
+            "convention": {
+              "const": "opentine.monitor-operating-point/1"
+            },
+            "monitor": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "kind",
+                "config_digest"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "kind": {
+                  "enum": [
+                    "rule",
+                    "command",
+                    "http",
+                    "probe"
+                  ]
+                },
+                "config_digest": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                }
+              }
+            },
+            "threshold": {
+              "type": "number"
+            },
+            "labelled": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "sha256",
+                "attacks",
+                "benign"
+              ],
+              "properties": {
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "attacks": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "benign": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "counts": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "tp",
+                "fn",
+                "fp",
+                "tn",
+                "errors"
+              ],
+              "properties": {
+                "tp": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "fn": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "fp": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "tn": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "errors": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "confidence": {
+              "type": "number"
+            },
+            "tpr": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value",
+                "wilson",
+                "clopper_pearson"
+              ],
+              "properties": {
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "wilson": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                "clopper_pearson": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 2,
+                  "maxItems": 2
+                }
+              }
+            },
+            "fpr": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value",
+                "wilson",
+                "clopper_pearson"
+              ],
+              "properties": {
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "wilson": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                "clopper_pearson": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 2,
+                  "maxItems": 2
+                }
+              }
+            },
+            "at": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "subjects",
+        "flags",
+        "invalid",
+        "ok"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-monitor/1"
+        },
+        "command": {
+          "const": "monitor suspicion"
+        },
+        "subjects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "subject",
+              "events",
+              "sum",
+              "near",
+              "failures"
+            ],
+            "properties": {
+              "subject": {
+                "type": "string"
+              },
+              "events": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "sum": {
+                "type": "number"
+              },
+              "near": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "failures": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "flags": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "level",
+              "code",
+              "subject",
+              "record",
+              "value"
+            ],
+            "properties": {
+              "level": {
+                "const": "advisory"
+              },
+              "code": {
+                "enum": [
+                  "advisory:monitor.cumulative-suspicion",
+                  "advisory:monitor.doom-loop-near-threshold",
+                  "advisory:monitor.doom-loop-repeated-failure"
+                ]
+              },
+              "subject": {
+                "type": "string"
+              },
+              "record": {
+                "type": "string",
+                "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+              },
+              "value": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "invalid": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "record",
+              "message"
+            ],
+            "properties": {
+              "record": {
+                "type": "string",
+                "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "ok": {
+          "type": "boolean"
         }
       }
     }

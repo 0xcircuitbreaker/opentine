@@ -24,7 +24,7 @@ label (each is bound to ``previous`` and ``sequence``, so a revert retires it);
 ``promote.over-budget`` the declared spend exceeds the cap;
 ``promote.scorer-in-process`` (0.85) an eval ran an in-process scorer while the
 policy sets ``scorer_isolation = "required"`` or ``profile = "rsi"``;
-0.86: ``--plan`` codes (:mod:`opentine._promote_plan`); 0.87: :mod:`opentine._regions_pin`.
+0.86: ``--plan`` (:mod:`opentine._promote_plan`); 0.87: regions; 0.90: monitor coverage.
 
 Advisory findings never block (owner decision D12); only these facts do.
 """
@@ -47,7 +47,7 @@ _KEYS = {"label_policy", "test", "alpha", "seed", "resamples", "min_n", "metric"
          "approvers", "min_approvals", "require_holdout", "eval_signers",
          "scorer_isolation", "profile", "require_plan", "holdout_queries", "regions",
          "skill_labels", "judge_assurance", "agreement_floor", "agreement_min_items",
-         "agreement_min_coverage"}  # fmt: skip
+         "agreement_min_coverage", "monitor_coverage", "required_monitors"}  # fmt: skip
 
 
 def refusal(code: str, detail: str) -> dict[str, str]:

@@ -16,6 +16,7 @@ from typing import Any
 
 from opentine.remote._admin_store import SESSION_PREFIX, AdminStore, role_rank
 from opentine.remote._authn import DevAuthenticator, PasskeyAuthenticator
+from opentine.remote._token_roles import role as token_role
 from opentine.remote._token_scope import namespaces
 from opentine.remote.interfaces import Identity
 
@@ -85,7 +86,9 @@ class AdminSurface:
         best = self.store.role(tenant, caller.subject)
         identity = caller.identity
         # A namespace-limited scoped token (SPEC 8.28) reaches no admin route.
-        if identity is not None and identity.tenant == tenant and namespaces(identity) is None:
+        # A role token (0.90, ``_token_roles``) reaches none either: its role is its whole grant.
+        bearer = identity is not None and identity.tenant == tenant
+        if bearer and namespaces(identity) is None and token_role(identity) is None:
             for role in identity.roles:
                 if role_rank(role) > role_rank(best):
                     best = role

@@ -36,8 +36,8 @@ def _config() -> Path:
     return Path(os.environ["XDG_CONFIG_HOME"]) / "opentine"
 
 
-def bundle(roles: dict[str, list[str]], serial: int) -> bytes:
-    payload = {"trust_bundle": 1, "serial": serial,
+def bundle(roles: dict[str, list[str]], serial: int, extra: dict | None = None) -> bytes:
+    payload = {**(extra or {}),"trust_bundle": 1, "serial": serial,
                "issued_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
                "trust_policy": {"pin": ["sha256:" + "0" * 64]},
                "key_roles": {"version": 1,
@@ -50,7 +50,7 @@ def pin_owner() -> None:
     (_config() / "trust-owner").write_bytes((OWNER_VKEY + "\n").encode("utf-8"))
 
 
-def pin_roles(store: Path, serial: int | None = None) -> None:
+def pin_roles(store: Path, serial: int | None = None, extra: dict | None = None) -> None:
     """Sign ``store/key-roles.toml`` into ``store/trust-bundle.note`` and pin the owner."""
     roles = _key_roles.parse((Path(store) / _key_roles.FILE_NAME).read_bytes())
     if serial is None:
@@ -59,7 +59,7 @@ def pin_roles(store: Path, serial: int | None = None) -> None:
         except OSError:
             seen = {}
         serial = seen.get(OWNER_VKEY, 0) + 1
-    (Path(store) / "trust-bundle.note").write_bytes(bundle(roles, serial))
+    (Path(store) / "trust-bundle.note").write_bytes(bundle(roles, serial, extra))
     pin_owner()
 
 
