@@ -55,7 +55,8 @@ CODES = ("cumulative-suspicion", "doom-loop-near-threshold", "doom-loop-repeated
 def _bucket(value: Any) -> Any:
     """A value's shape: a string's first word (digits as ``#``), a number's type."""
     if isinstance(value, str):
-        word = value.strip().split(maxsplit=1)[0].lower() if value.strip() else ""
+        word = value.strip().split(maxsplit=1)[0].casefold() if value.strip() else ""
+        word = word.rsplit("/", 1)[-1]  # /bin/rm is rm
         return "str:" + re.sub(r"[0-9]+", "#", word)[:32]
     if isinstance(value, dict):
         return {"obj": sorted(str(k) for k in value)}
@@ -66,7 +67,8 @@ def shape(request: dict[str, Any]) -> str:
     """The normalized action key: tool name and argument keys, values bucketed."""
     args = request.get("arguments")
     body = {k: _bucket(v) for k, v in args.items()} if isinstance(args, dict) else _bucket(args)
-    return digest({"tool": request.get("tool"), "arguments": body})
+    tool = request.get("tool")
+    return digest({"tool": tool.casefold() if isinstance(tool, str) else tool, "arguments": body})
 
 
 def _shapes(repo: Any, claim: dict[str, Any]) -> dict[int, str]:

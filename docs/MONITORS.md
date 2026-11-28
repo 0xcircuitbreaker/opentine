@@ -297,7 +297,7 @@ coverage at all.
 and streams, or `--stream`) and accumulates per `agent:`, `session:` and `run:`
 subject, per ingest stream (`stream:`), per action digest, and per normalized
 action (`shape:`: the tool name and argument keys, each value bucketed: a
-string's first word with digits folded, a number's or other value's type),
+string's first word, case-folded, without its directory and with digits folded, a number's or other value's type),
 recomputed from the captured event. Splitting work
 across sessions does not reset an agent's total; rotating agent ids does not
 reset a session's; and since the subject ids are claimed by the agent itself,

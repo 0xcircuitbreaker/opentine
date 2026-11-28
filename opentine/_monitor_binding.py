@@ -54,8 +54,16 @@ def section_of(doc: Any) -> dict[str, Any] | None:
     return {"signers": out, "required": sorted(set(required))}
 
 
+class BindingError(ValueError):
+    """A pinned owner whose trust bundle is missing or does not verify."""
+
+
 def pinned(store: Path | None) -> dict[str, Any] | None:
-    """The verified, owner-pinned ``monitors`` section; ``None`` when none is pinned."""
+    """The verified, owner-pinned ``monitors`` section; ``None`` when none is pinned.
+
+    Under a pinned owner a missing or bad bundle is a :class:`BindingError`, as it
+    is for key roles: deleting the file must not drop a required monitor.
+    """
     from opentine._key_roles_pin import _serials, bundle_path, owner_vkey
     from opentine._trust_bundle import BundleError, open_bundle
 
@@ -65,12 +73,13 @@ def pinned(store: Path | None) -> dict[str, Any] | None:
     try:
         note = bundle_path(Path(store)).read_bytes()
         payload = open_bundle(note, owner, min_serial=_serials().get(owner, 0))
-    except (OSError, BundleError):
-        return None  # no verified binding: nothing is bound, so rsi grants nothing
+    except (OSError, BundleError) as exc:
+        raise BindingError(f"trust bundle: {exc}") from exc
     return section_of(payload["monitors"]) if "monitors" in payload else None
 
 
 def required(repo: Any) -> list[str]:
+    """The required monitor ids (:class:`BindingError` when the bundle cannot be read)."""
     found = pinned(getattr(repo, "path", None))
     return found["required"] if found else []
 
@@ -78,7 +87,10 @@ def required(repo: Any) -> list[str]:
 def allowed(repo: Any, monitor: str, keys: set[str], *,
             gating: bool) -> tuple[set[str], dict[str, Any] | None]:  # fmt: skip
     """``(the keys that may sign for *monitor*, an unbound finding or None)``."""
-    found = pinned(getattr(repo, "path", None))
+    try:
+        found = pinned(getattr(repo, "path", None))
+    except BindingError:
+        found = None  # unreadable: nothing is bound (and no monitor key is pinned either)
     bound = (found or {}).get("signers", {}).get(monitor)
     if bound is not None:
         return set(keys) & set(bound), None
@@ -98,4 +110,4 @@ def finite(value: Any) -> float | None:
     return number if math.isfinite(number) else None
 
 
-__all__ = ["allowed", "finite", "pinned", "required", "section_of"]
+__all__ = ["BindingError", "allowed", "finite", "pinned", "required", "section_of"]

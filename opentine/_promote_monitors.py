@@ -3,8 +3,9 @@
 ``tine promote`` reads the monitor coverage ledger (:mod:`opentine._monitor_coverage`)
 for the candidate run. The candidate's events are the captured ingest events
 whose ``run`` names the candidate (``run:sha256:HEX``, ``sha256:HEX`` or
-``HEX``), in every held ingest stream; the run's time window runs from the
-first to the last batch holding one (ingest time, both ends included). For
+``HEX``, after NFKC and case folding), in every held ingest stream; the run's
+time window runs from the first to the last batch holding one (ingest time,
+both ends included). For
 each required monitor, every such event must be:
 
 * covered: evaluated (not errored) by a record that verifies, signed by a key
@@ -51,9 +52,12 @@ def check_policy(policy: dict[str, Any]) -> None:
 
 
 def _norm(value: Any) -> str | None:
+    import unicodedata
+
     if not isinstance(value, str):
         return None
-    return value.strip().lower().removeprefix("run:").removeprefix("sha256:")
+    text = unicodedata.normalize("NFKC", value).strip().casefold()
+    return text.removeprefix("run:").removeprefix("sha256:")
 
 
 def windows(repo: Any, candidate: str) -> dict[str, tuple[set[int], int, int]]:
@@ -129,12 +133,15 @@ def gaps(repo: Any, monitor: str, stream: str, indices: set[int], start: int,
 def findings(policy: dict[str, Any], repo_path: Path | None,
              candidate: str) -> tuple[list, list]:  # fmt: skip
     """``(refusals, advisories)`` of the candidate's monitor coverage."""
-    from opentine._monitor_binding import required
+    from opentine._monitor_binding import BindingError, required
     from opentine._promote_checks import refusal
     from opentine._promote_judges import _repo
 
     repo = _repo(repo_path)
-    pinned = set(required(repo)) if repo is not None else set()
+    try:
+        pinned = set(required(repo)) if repo is not None else set()
+    except BindingError as exc:  # a pinned owner's bundle that does not read: fail closed
+        return [refusal(CODE, f"the required monitors cannot be read ({exc})")], []
     wanted = pinned | set(policy.get("required_monitors", []))
     if not wanted:
         return [], []

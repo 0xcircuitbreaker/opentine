@@ -127,3 +127,11 @@ def test_varied_benign_usage_is_not_a_repeated_failure(repo):
     ingest(repo, [event(f"ls /srv/{n}") for n in range(40)], T0 + 1)  # one shape, all allowed
     flags = {f["code"] for f in _scan(repo)["flags"]}
     assert "advisory:monitor.doom-loop-repeated-failure" not in flags
+
+
+def test_a_path_change_of_the_command_is_the_same_shape(repo):
+    commands = ["rm -rf /a", "/bin/rm -rf /b", "/usr/bin/rm -rf /c"]
+    ingest(repo, [event(c, agent=f"x{n}", session=f"y{n}", run=f"z{n}")
+                  for n, c in enumerate(commands)], T0)  # fmt: skip
+    flags = {(f["code"], f["subject"].split(":")[0]) for f in _scan(repo)["flags"]}
+    assert ("advisory:monitor.doom-loop-repeated-failure", "shape") in flags

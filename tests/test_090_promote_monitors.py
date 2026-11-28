@@ -157,3 +157,18 @@ def test_coverage_by_another_monitors_key_or_a_renamed_id_does_not_count(repo):
     _watched(repo, T0 + 2_000, text=renamed)
     assert any("signer-unbound" in d for d in _refusals(repo, {
         "monitor_coverage": "required", "required_monitors": ["rules2"]}))  # fmt: skip
+
+
+def test_deleting_the_bundle_does_not_drop_a_pinned_required_monitor(repo):
+    _good(repo)
+    pin_monitors(repo, {"rules": [fpr("monitor")]}, required=["rules"])
+    (repo.path / "trust-bundle.note").unlink()
+    found, _ = _promote_monitors.findings({"monitor_coverage": "advisory"}, repo.path, CANDIDATE)
+    assert [r["code"] for r in found] == ["promote.monitor-coverage"]
+
+
+def test_a_lookalike_spelling_of_the_candidate_run_is_still_the_candidate(repo):
+    _good(repo)
+    wide = "".join(chr(ord(c) + 0xFEE0) if "!" <= c <= "~" else c for c in CANDIDATE.upper())
+    ingest(repo, [event("rm -rf /", run=wide)], T0 + 5_000)  # never evaluated
+    assert any("were not evaluated" in d for d in _refusals(repo))
