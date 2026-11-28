@@ -38,6 +38,7 @@ RULES: tuple[tuple[str, str, str], ...] = (
     ("line-assignment", "assignment", "NAME=value lines whose NAME is a credential name"),
     ("header-line", "header", "Authorization-style header lines"),
     ("assignment", "assignment", "inline name: value / name=value credential assignments"),
+    ("caps-assignment", "assignment", "NAME=value whose all-capital NAME holds a credential word"),
     ("bearer", "header", "Bearer tokens"),
     ("cli-flag", "cli", "--password / --token style flag values"),
     ("disguised-token", "token", "URL-escaped, zero-width-split or fullwidth vendor tokens"),

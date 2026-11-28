@@ -15,6 +15,7 @@ from typing import Any
 from opentine._redact_extra import extra_secret_names
 from opentine._redact_names import CREDENTIAL_NAMES, SECRET_SUFFIXES
 from opentine._redact_padding import PADDED_B64, padding_of_blob
+from opentine._redact_strings import caps_name, scan_text
 
 #: Hard nesting bound for every write-side walk over caller data. The *format* bound
 #: is the reader's (``kernel.validate_json_shape`` refuses deeper than 512, reported
@@ -147,8 +148,10 @@ def _redact(value: Any, _depth: int = 0) -> Any:
         redacted: dict[Any, Any] = {}
         for key, item in value.items():
             name = _field_name(key)
-            is_secret = _secret_field(name, credential_names, suffixes) or (
-                key in header_values and secret_header
+            is_secret = (
+                _secret_field(name, credential_names, suffixes)
+                or (key in header_values and secret_header)
+                or (isinstance(key, str) and caps_name(key))
             )
             if name == "token" and not isinstance(item, (int, float)):
                 is_secret = True
@@ -215,9 +218,10 @@ def _redact(value: Any, _depth: int = 0) -> Any:
         if name in headers or (name == "token" and candidate.strip()[:1] in {'"', "'"}):
             return label + separator + " [REDACTED]"
         if (
-            _secret_field(name, credential_names, suffixes)
+            (_secret_field(name, credential_names, suffixes) or caps_name(label))
             and not prose
             and not _token_counter(name, candidate)
         ):
             return label + separator + " [REDACTED]"
-    return value
+    # Shapes inside longer text (later lines, URLs, PEM bodies): the byte scanner.
+    return scan_text(value) if isinstance(value, str) else value

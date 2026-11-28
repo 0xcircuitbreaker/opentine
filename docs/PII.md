@@ -13,6 +13,26 @@ that ruleset plus personal data, used where you ask for it:
 Write-side redaction is unchanged: stored objects are scrubbed of credentials
 only. Nothing in this document sends text off the machine.
 
+## Credentials inside longer text (0.88.1)
+
+The field walk that scrubs event attributes, usage, billing and fork overrides
+reads a string as one `name=value` pair. Before 0.88.1 it kept, in clear, a
+credential anywhere else in the text (pre-existing on every release before):
+
+| Shape | Kept | Removed |
+|---|---|---|
+| later line of a `.env` / shell file (`DB_HOST=x\nPASSWORD=...`) | the name | the value |
+| URL query parameter (`?token=`, `&access_token=`, `&sig=`, `&key=`, `api_key=`) | the URL and parameter name | the value |
+| URL userinfo (`postgres://`, `mysql://`, `redis://`, `amqp://`, `mongodb+srv://`, `https://`) | scheme, user, host | the password, `/` included |
+| PEM private key (PKCS#8, RSA, EC, OpenSSH, encrypted) and PGP private key block | `[REDACTED PRIVATE KEY]` | the whole block |
+| an assignment on the line after a base64 line | the base64 line and the name | the value |
+| all-capital run-together name (`MYSQLROOTPASSWORDPRODUCTION= x`) | the name | the value |
+
+A string with one of these shapes now goes through the byte scanner
+(`opentine/_redact_strings.py`), which keeps a signed note's or checkpoint's
+base64 lines byte for byte. All-capital names are matched in both halves.
+Tests: `tests/test_0881_redaction_gaps.py`.
+
 ## Publication redaction (Unreleased)
 
 A redacted public copy (`tine bundle create --redacted-public`, `tine publish
