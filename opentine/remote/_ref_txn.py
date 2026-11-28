@@ -39,7 +39,11 @@ def check_move(
 ) -> tuple[str, bool]:
     """``(normalized name, whether it is a forced rewrite)``; raises when refused."""
     name = normalize_ref(name)
-    check_ref(identity, name)  # a namespace-limited token (_token_scope)
+    try:
+        check_ref(identity, name)  # a namespace-limited token (_token_scope)
+    except PermissionError:  # 0.90: audited, with the token's scope (service._audit)
+        service._audit(identity, tenant, "update_ref", "denied", {"name": name})
+        raise
     if name.startswith("project/"):  # 0.46: owner-signed, chained: only PUT project moves it
         raise ValueError("project/manifest moves only through the project route (caps.project)")
     extra = ref_permission(name, expected_old)
@@ -97,6 +101,10 @@ def update_refs(
     # name/new of the first (head) row: the 0.44 transparency entry a push receipt names
     head = {"name": rows[0][0], "new": rows[0][1]}
     service._audit(identity, tenant, "update_ref", outcome, {"names": names, "txn": True, **head})
+    if changed:
+        from opentine.remote._token_roles import note_authors
+
+        note_authors(service, identity, tenant, [row[1] for row in rows])
     hub = getattr(service, "events", None)
     for (name, new, old), rewrite in zip(rows, moved) if changed and hub else ():
         hub.ref_moved(tenant, name, old, new, rewrite)

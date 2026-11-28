@@ -28,6 +28,13 @@ def add_token_parser(actions: Any) -> argparse.ArgumentParser:
     )
     mint.add_argument("--ttl", default="90d", help="Lifetime: 900s, 12h, 30d (max 366d)")
     mint.add_argument("--label", default="", help="A note shown by list")
+    mint.add_argument(
+        "--role",
+        choices=("ingest", "verdict", "approve"),
+        default=None,
+        help="0.90: narrow the token to one role (implies write access)",
+    )
+    mint.add_argument("--agent", default="", help="The agent id a role token acts as")
     listing = verbs.add_parser("list", help="The tenant's tokens (never their secrets)")
     revoke = verbs.add_parser("revoke", help="Revoke a token by id (idempotent)")
     revoke.add_argument("token_id", metavar="ID")
@@ -48,8 +55,15 @@ def cmd_token(args: argparse.Namespace, console: Any) -> None:
     try:
         if verb == "mint":
             ttl = parse_ttl(args.ttl)
+            access = "write" if args.role else args.access
             secret, record = store.mint(
-                args.tenant, args.access, args.refs or ["*"], ttl=ttl, label=args.label
+                args.tenant,
+                access,
+                args.refs or ["*"],
+                ttl=ttl,
+                label=args.label,
+                role=args.role,
+                agent=args.agent,
             )
             tokens = [record]
         elif verb == "list":
@@ -66,8 +80,9 @@ def cmd_token(args: argparse.Namespace, console: Any) -> None:
         return
     for item in tokens:
         refs = ",".join(item["refs"])
+        role = f"role={item['role']} " if item.get("role") else ""
         console.print(
-            f"{item['id']}  {item['state']:8} {item['access']:5} {refs}  "
+            f"{item['id']}  {item['state']:8} {item['access']:5} {role}{refs}  "
             f"expires {item['expires_at']}",
             markup=False,
             highlight=False,

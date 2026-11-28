@@ -51,6 +51,23 @@
   `monitor-ledger:`, `monitor-heartbeat:` and `monitor-validation:`, which
   `tine hold release` refuses. No object kind and no `tine verify` code is
   added.
+- Role-scoped `tine serve` tokens: `tine serve token mint --role
+  ingest|verdict|approve [--agent ID]`, plus `role` and `agent` in the HTTP
+  mint. They narrow the existing read/write, ref-namespace and TTL scopes.
+  Ingest tokens upload and move refs inside their namespaces and read nothing.
+  Verdict tokens can also list and fetch inside their namespaces. Approve tokens
+  read the tenant and record Review gate decisions, nothing more. Ingest and
+  verdict tokens must name their namespaces. Every route checks the role, and a
+  route the role does not list refuses the token.
+- An approve token cannot approve a Review covering a run its own agent id
+  authored, or a run the tenant does not hold (`403`, `token.self-approval`).
+  The server now notes the agent behind every upload and ref move in
+  `auth.sqlite3`. A root minted before this release gains the new columns when
+  it is opened.
+- Every audit row written for a scoped token records its scope
+  (`token_scope`). A ref move refused for being outside a token's namespaces is
+  now audited as `denied`; before this release it was refused without an audit
+  row.
 
 ## 0.89.0 — Judge assurance (2026-11-28)
 

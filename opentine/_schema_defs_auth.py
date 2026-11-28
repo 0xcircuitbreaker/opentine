@@ -24,13 +24,16 @@ _TOKEN = closed(
         "expires_at": STR,
         "revoked_at": STR,
         "label": STR,
+        "role": {"enum": ["ingest", "verdict", "approve"]},
+        "agent": STR,
     },
 )
 
 SCHEMAS: dict[str, dict[str, Any]] = {
     "tine-cli-serve-token-1": doc("tine-cli-serve-token-1", "tine serve token --json",
         "Scoped API tokens of a `tine serve` root: per tenant, read or write, limited to ref "
-        "namespaces (`*` for all), expiring and revocable. `mint` adds `token`, the secret, "
+        "namespaces (`*` for all), optionally narrowed to one role (ingest, verdict, approve), "
+        "expiring and revocable. `mint` adds `token`, the secret, "
         "shown only once; the root stores only its SHA-256 digest.",
         open_(["command", "schema", "ok", "tokens"], {
             "command": {"enum": ["serve token mint", "serve token list", "serve token revoke"]},

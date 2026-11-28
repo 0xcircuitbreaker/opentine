@@ -100,6 +100,16 @@ and `.tine/lineage/index/lineage.sqlite` are caches rebuilt from the formats
 above; their tables may change in any release, and they add no object kind
 and no `tine verify` code (docs/QUERY.md).
 
+## 0.90: role tokens
+
+No object kind, wire format, vector family, `docs/schemas` object schema or
+`tine verify` code was added. Role tokens are optional `role` and `agent` keys
+on the unsigned HTTP admin shapes `TokenRecord`, `TokenRequest` and
+`MintedToken`, and on the CLI output `tine-cli-serve-token-1`.
+`scoped_tokens.roles` is an added optional capability key, and the
+`token.self-approval` refusal code is HTTP level. The new `--role` and `--agent`
+flags extend the existing `tine serve token mint` command.
+
 ## 0.81: TINEPACK6 (E4, granted 2026-11-18)
 
 One wire format was added: TINEPACK6 (SPEC 2.8), a Hash-Elision Coding

@@ -5288,6 +5288,20 @@ ROWS: tuple[tuple, ...] = (
         },
     ),  # fmt: skip
     (
+        "plain:serve token mint --tenant acme --role approve --agent a1",
+        "plain",
+        ["serve", "token", "mint", "--tenant", "acme", "--role", "approve", "--agent", "a1"],
+        "opentine.cli:<lambda>",
+        False,
+        {
+            "command": "serve",
+            "admin_action": "token",
+            "token_action": "mint",
+            "role": "approve",
+            "agent": "a1",
+        },
+    ),  # fmt: skip
+    (
         "plain:serve token list --root r",
         "plain",
         ["serve", "token", "list", "--root", "r"],

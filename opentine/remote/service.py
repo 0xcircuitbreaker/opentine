@@ -16,7 +16,8 @@ from opentine.remote._ref_txn import check_move
 from opentine.remote._request_audit import AuthorizationDenied, audit_tenant
 from opentine.remote._service_caps import service_capabilities
 from opentine.remote._tenant_repo import TenantRepo, validate_ref_listing
-from opentine.remote._token_scope import check_wants, scoped_action, visible_refs
+from opentine.remote._token_roles import note_authors
+from opentine.remote._token_scope import SCOPE_CLAIM, check_wants, scoped_action, visible_refs
 from opentine.remote._tombstone_store import tombstoned
 from opentine.remote.backend import MAX_CONTROL_RESULTS, valid_tenant
 from opentine.remote.interfaces import (
@@ -54,6 +55,8 @@ class RemoteService:
         self.admission = admission or AllowAdmission()
         self.audit = audit or index
         self.events: Any = None  # 0.45.1: an ``_events.EventHub`` (SSE, webhooks)
+        self.authorship: Any = None  # 0.90: ``(tenant, run oids, agent)``, ``_token_roles``
+        self.authors_of: Any = None  # 0.90: ``(tenant, oid) -> set of agent ids``
         self.webhooks: Any = None
         if not callable(getattr(self.audit, "append", None)):
             raise TypeError("remote service requires an AuditSink")
@@ -85,6 +88,9 @@ class RemoteService:
         outcome: str,
         details: dict[str, Any],
     ) -> None:
+        scope = (identity.claims or {}).get(SCOPE_CLAIM)
+        if isinstance(scope, dict):  # 0.90: a scoped token's scope is in every audit row
+            details = {**details, "token_scope": scope}
         self.audit.append(
             AuditEvent(
                 str(uuid.uuid4()),
@@ -188,6 +194,7 @@ class RemoteService:
             held = [oid for oid in shallow if not tombstoned(self.objects, tenant, oid)]
             install_objects(self.objects, self.index, tenant, order, targets, held)
         self._audit(identity, tenant, "upload", "ok", {"objects": len(packed), "pack": pack_id})
+        note_authors(self, identity, tenant, [oid for oid, _ in packed])
         if self.events is not None:
             self.events.runs_installed(tenant, [oid for oid, _ in packed])
         return pack_id, len(packed)
@@ -212,6 +219,8 @@ class RemoteService:
             ("forced" if rewrite else "ok") if changed else "conflict",
             {"expected_old": expected_old, "name": name, "new": new_oid},
         )
+        if changed:
+            note_authors(self, identity, tenant, [new_oid])
         if changed and self.events is not None:
             self.events.ref_moved(tenant, name, expected_old, new_oid, rewrite)
         return changed

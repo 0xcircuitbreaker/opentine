@@ -1058,6 +1058,8 @@ components:
               enum:
                 - "read"
                 - "write"
+            agent:
+              type: "string"
             created_at:
               type: "string"
             expires_at:
@@ -1077,6 +1079,11 @@ components:
               type: "array"
             revoked_at:
               type: "string"
+            role:
+              enum:
+                - "ingest"
+                - "verdict"
+                - "approve"
             state:
               enum:
                 - "active"
@@ -2112,6 +2119,8 @@ components:
                 enum:
                   - "read"
                   - "write"
+              agent:
+                type: "string"
               created_at:
                 type: "string"
               expires_at:
@@ -2131,6 +2140,11 @@ components:
                 type: "array"
               revoked_at:
                 type: "string"
+              role:
+                enum:
+                  - "ingest"
+                  - "verdict"
+                  - "approve"
               state:
                 enum:
                   - "active"
@@ -2158,6 +2172,8 @@ components:
           enum:
             - "read"
             - "write"
+        agent:
+          type: "string"
         created_at:
           type: "string"
         expires_at:
@@ -2177,6 +2193,11 @@ components:
           type: "array"
         revoked_at:
           type: "string"
+        role:
+          enum:
+            - "ingest"
+            - "verdict"
+            - "approve"
         state:
           enum:
             - "active"
@@ -2201,12 +2222,19 @@ components:
           enum:
             - "read"
             - "write"
+        agent:
+          type: "string"
         label:
           type: "string"
         refs:
           items:
             type: "string"
           type: "array"
+        role:
+          enum:
+            - "ingest"
+            - "verdict"
+            - "approve"
         ttl_seconds:
           minimum: 1
           type: "integer"
