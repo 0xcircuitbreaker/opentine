@@ -91,7 +91,6 @@ def finish(runner: Any, code: int, *, signed: bool = False) -> None:
     so that halt is recorded here.
     """
     from opentine._cli_stop_run import exit_if_halted
-
     from opentine._stop_runner import HALT_EXIT
 
     signed = signed and code == HALT_EXIT  # a halted --model child signs, then exits 3
