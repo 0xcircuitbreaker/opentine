@@ -65,7 +65,7 @@ def parse_item(item: str) -> dict[str, Any]:
     elif source == "custody" and rest.startswith(("attestation:sha256:", "blob:sha256:")):
         # 0.72: a custody gap (an event attestation) or a refused tagged load (an access blob)
         return {"source": source, "label": None, "candidate": None, "oid": rest}
-    elif source in ("ingest", "collusion") and rest.startswith(("annotation:sha256:",
+    elif source in ("ingest", "collusion", "suspicion") and rest.startswith(("annotation:sha256:",
                                                                  "blob:sha256:")):  # fmt: skip
         # 0.77: a failing ingest batch or stream anchor; 0.83: a failed collusion verdict
         return {"source": source, "label": None, "candidate": None, "oid": rest}
