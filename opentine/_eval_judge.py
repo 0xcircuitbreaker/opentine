@@ -5,7 +5,9 @@ item and its rubric. The prompt and the model's reply are saved as a run in
 the runs directory (tagged ``eval-judge``) before the verdict is signed, and
 the verdict's ``judge_run`` names that run, so the judgement can be replayed
 and audited like any other run. The model must answer with a line
-``SCORE: <0..1>``; a reply without one scores 0.
+``SCORE: <0..1>``. From 0.89 a reply without one, or with a score outside
+0..1, is an error (the item is errored, never scored 0); the judge run is
+still saved first.
 
 0.65: the scorer's version is the pin of its judge provenance (model, prompt
 digest, rubric digest, sampling parameters; :mod:`opentine._judge_provenance`),
@@ -60,10 +62,20 @@ def _show(value: Any) -> str:
     return value if isinstance(value, str) else json.dumps(value, sort_keys=True)
 
 
+class JudgeParseError(ValueError):
+    """A judge reply with no usable score: an error, never a silent 0."""
+
+
 def judge_score(text: str) -> float:
     found = SCORE_LINE.findall(text)
-    score = float(found[-1]) if found else 0.0
-    return score if 0.0 <= score <= 1.0 else 0.0
+    if not found:
+        raise JudgeParseError("the judge reply has no 'SCORE: <0..1>' line")
+    if len(set(found)) > 1:
+        raise JudgeParseError(f"the judge reply gives more than one score: {sorted(set(found))}")
+    score = float(found[-1])
+    if not 0.0 <= score <= 1.0:
+        raise JudgeParseError(f"the judge score {score} is outside 0..1")
+    return score
 
 
 def judge_scorer(spec: str, *, prompt: str | None = None, runs_dir: Path | None = None,
@@ -97,7 +109,10 @@ def judge_scorer(spec: str, *, prompt: str | None = None, runs_dir: Path | None 
         response = asyncio.run(model.complete(messages, temperature=0.0))
         reply = _reply_text(response)
         meta = response if isinstance(response, dict) else {}
-        value = judge_score(reply)
+        try:
+            value: float | None = judge_score(reply)
+        except JudgeParseError as exc:
+            value, problem = None, exc
         run = Run(
             model_info=spec,
             user_prompt=text,
@@ -119,9 +134,11 @@ def judge_scorer(spec: str, *, prompt: str | None = None, runs_dir: Path | None 
         run.status = RunStatus.completed
         target.mkdir(parents=True, exist_ok=True)
         run.save(target / f"{run.id}.tine")
+        if value is None:
+            raise JudgeParseError(f"{problem} (judge run {run.id})")
         return value, run.id
 
     return Scorer("llm-judge", version, score, {"model": spec, "provenance": provenance}, spent)
 
 
-__all__ = ["DEFAULT_PROMPT", "judge_score", "judge_scorer"]
+__all__ = ["DEFAULT_PROMPT", "JudgeParseError", "judge_score", "judge_scorer"]

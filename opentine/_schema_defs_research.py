@@ -29,6 +29,8 @@ from opentine._schema_defs_ingest import COMMAND_SCHEMAS as _INGEST_COMMANDS
 from opentine._schema_defs_ingest import SCHEMAS as _INGEST
 from opentine._schema_defs_interp import COMMAND_SCHEMAS as _INTERP_COMMANDS
 from opentine._schema_defs_interp import SCHEMAS as _INTERP
+from opentine._schema_defs_judge import COMMAND_SCHEMAS as _JUDGE_COMMANDS
+from opentine._schema_defs_judge import SCHEMAS as _JUDGE
 from opentine._schema_defs_keyless import COMMAND_SCHEMAS as _KEYLESS_COMMANDS
 from opentine._schema_defs_keyless import SCHEMAS as _KEYLESS
 from opentine._schema_defs_merge_history import COMMAND_SCHEMAS as _MH_COMMANDS
@@ -77,6 +79,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     **_INGEST,
     **_SCORER,
     **_PLAN,
+    **_JUDGE,
 }
 COMMAND_SCHEMAS: dict[str, str] = {
     **_QUERY_COMMANDS,
@@ -101,6 +104,7 @@ COMMAND_SCHEMAS: dict[str, str] = {
     **_INGEST_COMMANDS,
     **_SCORER_COMMANDS,
     **_PLAN_COMMANDS,
+    **_JUDGE_COMMANDS,
 }
 
 __all__ = ["COMMAND_SCHEMAS", "SCHEMAS"]

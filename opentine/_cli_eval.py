@@ -10,6 +10,8 @@ from typing import Any
 from opentine._cli_dataset import COMMANDS as DATASET_COMMANDS
 from opentine._cli_dataset import add_dataset_parser
 from opentine._cli_errors import ERROR, VERIFICATION_FAILED, fail
+from opentine._cli_label import COMMANDS as LABEL_COMMANDS
+from opentine._cli_label import add_label_parser
 
 
 def add_eval_parsers(sub: Any) -> None:
@@ -72,6 +74,7 @@ def add_eval_parsers(sub: Any) -> None:
     for verb in (run, verify, compare, ci):
         verb.add_argument("--json", action="store_true", help="Print a JSON object")
     add_dataset_parser(sub)
+    add_label_parser(sub)  # 0.89: tine label (rubric label queues)
 
 
 def _pubkey(args: argparse.Namespace) -> bytes | None:
@@ -240,6 +243,6 @@ def cmd_eval(args: argparse.Namespace) -> None:
         raise SystemExit(VERIFICATION_FAILED if not row["ok"] else 1)
 
 
-COMMANDS = {"eval": cmd_eval, **DATASET_COMMANDS}
+COMMANDS = {"eval": cmd_eval, **DATASET_COMMANDS, **LABEL_COMMANDS}
 
 __all__ = ["COMMANDS", "add_eval_parsers", "cmd_eval"]

@@ -29,8 +29,7 @@ LOOP_STOP = "loop-stop:"
 #: 0.59: rows whose target starts with this keep an integrity taint
 #: (opentine._integrity_hold): released never, so deleting the taint file cannot un-taint.
 TAINT = "integrity-taint:"
-#: 0.60: rows that keep a sealed holdout's access record or a canary registration
-#: (opentine._holdout_hold): released never, so deleting the file lowers nothing.
+#: 0.60: a holdout access record or canary registration (opentine._holdout_hold): never released.
 HOLDOUT_ACCESS = "holdout-access:"
 CANARY_HOLD = "holdout-canary:"
 HOLDOUT_QUERY = "holdout-query:"  # 0.86: a holdout query record (opentine._holdout_query)
@@ -44,8 +43,7 @@ MONITOR_STOP = "monitor-stop:"
 #: 0.64: rows that keep an oversight decision (opentine._oversight): released never,
 #: so a loop cannot delete an approval, a rejection or a review request.
 OVERSIGHT_DECISION = "oversight-decision:"
-#: 0.65: rows that keep a blind audit game's seal, findings and reveal
-#: (opentine._audit_game): released never, so a reveal stays on record.
+#: 0.65: a blind audit game's seal, findings and reveal (opentine._audit_game): never released.
 AUDIT_GAME = "audit-game:"
 #: 0.68: rows that keep a sabotage task record (opentine._sabotage): released never,
 #: so a loop cannot delete the record of an attempted or achieved side task.
@@ -86,6 +84,7 @@ INTERP_CUSTODY = "custody:interp"
 COLLUSION_VERDICT = "collusion-verdict:"
 #: 0.84/0.88: an artifact provenance record and its run; a run's scaffold manifest.
 PROVENANCE, SCAFFOLD = "custody:provenance:", "scaffold-manifest:"
+JUDGE_VALIDATION = "judge-validation:"  # 0.89: opentine._judge_validation
 _NEVER_RELEASED = (
     ((MEMORY_QUARANTINE,), "a memory quarantine"),
     ((MONITOR_VERDICT, MONITOR_STOP), "a monitor verdict or stop token"),
@@ -108,6 +107,7 @@ _NEVER_RELEASED = (
     ((COLLUSION_VERDICT,), "a collusion-protocol verdict"),
     ((PROVENANCE,), "an artifact provenance record"),
     ((SCAFFOLD,), "a scaffold manifest record"),
+    ((JUDGE_VALIDATION,), "a judge validation record"),
 )
 MAX_HOLDS_BYTES = 4 * 1024 * 1024
 

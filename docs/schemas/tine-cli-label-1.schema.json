@@ -1,0 +1,289 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-label-1.schema.json",
+  "title": "tine label VERB --json",
+  "description": "Rubric label queues (0.89). `init` starts a queue with a rubric pinned by digest; `assign` and `reassign` record who labels which item (reassignment names `from` and a reason); `next` lists a reviewer's unlabelled items without any judge output; `submit` signs one label bound to the reviewer key, rubric digest and item digest; `reveal` files a judge's signed `opentine.judge-outcome/1` outcomes (labels recorded after it do not count toward that judge). Agreement over a queue is `tine judge agreement`.",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "queue",
+        "queue_sha256",
+        "rubric_sha256",
+        "rubric"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-label/1"
+        },
+        "queue": {
+          "type": "string"
+        },
+        "command": {
+          "const": "label init"
+        },
+        "queue_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "rubric_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "rubric": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "labels",
+            "instructions"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "labels": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "instructions": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "queue",
+        "assigned",
+        "skipped",
+        "items"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-label/1"
+        },
+        "queue": {
+          "type": "string"
+        },
+        "command": {
+          "const": "label assign"
+        },
+        "assigned": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "skipped": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "items": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "queue",
+        "item_sha256",
+        "from",
+        "to",
+        "seq"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-label/1"
+        },
+        "queue": {
+          "type": "string"
+        },
+        "command": {
+          "const": "label reassign"
+        },
+        "item_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "from": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "to": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "queue",
+        "item_sha256",
+        "label",
+        "reviewer",
+        "rubric_sha256",
+        "seq"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-label/1"
+        },
+        "queue": {
+          "type": "string"
+        },
+        "command": {
+          "const": "label submit"
+        },
+        "item_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "label": {
+          "type": "string"
+        },
+        "reviewer": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "rubric_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "queue",
+        "judge",
+        "outputs_sha256",
+        "seq"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-label/1"
+        },
+        "queue": {
+          "type": "string"
+        },
+        "command": {
+          "const": "label reveal"
+        },
+        "judge": {
+          "type": "string",
+          "pattern": "^jp1\\+sha256:[0-9a-f]{64}$"
+        },
+        "outputs_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "queue",
+        "reviewer",
+        "rubric",
+        "rubric_sha256",
+        "pending"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-label/1"
+        },
+        "queue": {
+          "type": "string"
+        },
+        "command": {
+          "const": "label next"
+        },
+        "reviewer": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "rubric": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "labels",
+            "instructions"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "labels": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "instructions": {
+              "type": "string"
+            }
+          }
+        },
+        "rubric_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "pending": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "item_sha256",
+              "item"
+            ],
+            "properties": {
+              "item_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "item": {}
+            }
+          }
+        }
+      }
+    }
+  ]
+}

@@ -44,6 +44,9 @@ def check_policy(policy: dict[str, Any]) -> None:
     from opentine._promote_skill import check_policy as skills
 
     skills(policy)  # 0.88: skill labels, required under rsi
+    from opentine._promote_judges import check_policy as judges
+
+    judges(policy)  # 0.89: judge assurance, required under rsi
 
 
 def in_process(folder: Path) -> bool:
