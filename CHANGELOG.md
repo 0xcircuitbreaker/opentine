@@ -7,6 +7,8 @@ Six credential shapes were stored in clear by the field walk
 and evidence reports go through alone. All six were pre-existing on main, not
 introduced by 0.88.0:
 
+- vendor tokens (`ghp_`, `github_pat_`, `sk-`, `sk-ant-`, `xoxb-`, `AKIA`, `AIza`,
+  JWTs) and JSON objects held inside one string;
 - the second or later line of a multi-line `.env` or shell file;
 - URL query strings (`?token=`, `&access_token=`, `&sig=`, `&key=`, `api_key=`);
 - URL userinfo passwords (postgres, mysql, redis, amqp, mongodb+srv, https);

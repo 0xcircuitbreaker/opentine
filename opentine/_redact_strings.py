@@ -16,7 +16,11 @@ from __future__ import annotations
 
 import re
 
-_SHAPES = re.compile(r"[\r\n]|://|-----BEGIN|[?&][A-Za-z_-]{1,40}=|PuTTY-User-Key-File")
+_SHAPES = re.compile(
+    r"[\r\n]|://|-----BEGIN|[?&][A-Za-z_-]{1,40}=|PuTTY-User-Key-File"
+    # JSON held in one string, and vendor token prefixes (ghp_, sk-ant-, AKIA, a JWT).
+    r"|\"\s*:|\b(?:gh[pousr]_|github_pat_|sk-|xox[abprs]-|AKIA|ASIA|AIza|eyJ)"
+)
 _CAPS_WORDS = (
     r"(?:PASSWORD|PASSWD|PASSPHRASE|SECRET|APIKEY|API_KEY|PRIVATEKEY|PRIVATE_KEY|CREDENTIAL)"
 )

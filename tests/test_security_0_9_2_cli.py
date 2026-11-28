@@ -244,6 +244,7 @@ def exported(tmp_path, monkeypatch) -> Path:
     run.status = RunStatus.completed
     with monkeypatch.context() as legacy:  # as a pre-0.9.1 writer left it
         legacy.setattr(graph_serde, "redact_value", lambda value: value)
+        legacy.setattr("opentine._canon_redact.scan_text", lambda value: value)  # 0.88.1
         run.save(tmp_path / "source.tine")
     return tmp_path
 

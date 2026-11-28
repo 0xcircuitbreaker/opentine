@@ -89,3 +89,35 @@ def test_a_caps_name_as_a_dict_key_is_redacted():
 def test_benign_text_is_kept(text):
     assert _redact({"v": text})["v"] == text
     assert guarded_redaction({"v": text}, where="t")["v"] == text
+
+
+# Token formats and JSON held in one string: the scanner caught them, the walk did not.
+_T = "Zq9XkW7pLm3"
+TOKENS = [
+    '{"db": {"password": "' + _T + '"}}',
+    "tok ghp_" + "a" * 26 + _T,
+    "github_pat_11AAAA_" + _T * 6,
+    "key sk-" + _T * 4,
+    "sk-ant-api03-" + _T * 6,
+    "xoxb-1234-5678-" + _T,
+    "id AKIAIOSFODNN7" + _T[:7].upper(),
+    "AIzaSyA" + "b" * 24 + _T,
+    "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0." + _T * 3,
+]
+
+
+@pytest.mark.parametrize("text", TOKENS)
+def test_a_token_in_a_walked_string_is_redacted(text):
+    secret = _T[:7].upper() if "AKIA" in text else _T
+    assert secret not in str(_redact({"attrs": {"v": text}}))
+    assert secret not in str(guarded_redaction({"v": text}, where="t"))
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["sha256:" + "ab" * 32, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYI\n-----END PUBLIC KEY-----",
+     '{"page": 2, "sort": "asc"}', "task-runner ask-me sk-"],
+)  # fmt: skip
+def test_digests_public_keys_and_plain_json_are_kept(text):
+    assert _redact({"v": text})["v"] == text

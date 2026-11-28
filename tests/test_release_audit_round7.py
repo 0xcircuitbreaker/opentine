@@ -182,7 +182,10 @@ def test_inspect_does_not_resolve_the_unredacted_legacy_blob(tmp_path):
     run = Run(id="legacy")
     run.add_step(StepKind.tool, {"cmd": "env"}, {"stdout": f"ANTHROPIC_API_KEY is {secret}"})
     # Written as before 0.9.1, when the .tine writer did not scrub free text.
-    with mock.patch("opentine._graph_serde.redact_value", lambda value: value):
+    with (
+        mock.patch("opentine._graph_serde.redact_value", lambda value: value),
+        mock.patch("opentine._canon_redact.scan_text", lambda value: value),  # 0.88.1 walk scan
+    ):
         run.save(source)
 
     repo = Repo.init(tmp_path / "repo")
