@@ -2,6 +2,12 @@
 
 ## Unreleased — Monitors as evidence and role tokens
 
+- Monitor coverage, heartbeats and suspicion are stricter: an event the monitor
+  errored on is not covered; a coverage line must carry the digest of the input
+  actually captured and a record must be its own monitor's; a heartbeat dated
+  in the future (`monitor.heartbeat-future`) or of another config is no
+  liveness; and near-threshold scores also add up per ingest stream, so
+  rotating every self-claimed id does not avoid a doom-loop flag.
 - New `tine monitor run`: an asynchronous monitor runner over an ingest stream.
   It evaluates every captured event of each pending batch, in order, and writes
   one signed coverage record per batch under the `opentine.monitor-coverage/1`

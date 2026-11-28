@@ -16,7 +16,9 @@ head batch when it was signed, so it cannot be backfilled: a heartbeat whose
 time is earlier than its bound batch, or that names an old head while newer
 batches had already arrived (more than one interval before it), is
 ``monitor.heartbeat-backfilled``; one whose identity is not its chain's is
-``monitor.heartbeat-replayed``. A monitor is ``stale`` after ``missed``
+``monitor.heartbeat-replayed``; one dated more than an interval after the
+time checked is ``monitor.heartbeat-future``. A heartbeat of another config
+proves nothing about this one. A monitor is ``stale`` after ``missed``
 (default 3) intervals without a heartbeat; :func:`check` reports every such
 window, and the last one against an injected ``now``.
 """
@@ -126,9 +128,15 @@ def check(
                                      "the heartbeat belongs to another monitor, config or "
                                      "stream"))  # fmt: skip
             continue
+        if at_ms > now_ms + claim["interval_s"] * 1000:
+            findings.append(_finding("fail", "heartbeat-future", oid,
+                                     "dated after the time checked: no liveness"))  # fmt: skip
+            continue
         if theirs.get("config_digest") != monitor["config_digest"]:
             findings.append(_finding(soft, "config-changed", oid,
-                                     "the heartbeat carries another monitor config"))  # fmt: skip
+                                     "the heartbeat carries another monitor config, so it "
+                                     "proves nothing about this one"))  # fmt: skip
+            continue
         bound = claim.get("ingest")
         if bound is not None:
             batch = by_id.get(bound.get("head")) if isinstance(bound, dict) else None

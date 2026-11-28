@@ -20,7 +20,8 @@ events (``monitor.coverage-gap``), a changed monitor config
 latency SLO (``monitor.latency-slo``), and a monitor whose config digest and
 threshold have no validated operating point (``monitor.unvalidated-threshold``,
 :mod:`opentine._monitor_validation`). Under ``rsi`` an unvalidated monitor
-counts as no coverage at all.
+counts as no coverage at all. An event the monitor errored on is not covered,
+and each evaluated line must carry the digest of the input actually captured.
 """
 
 from __future__ import annotations
@@ -29,8 +30,9 @@ import hashlib
 from typing import Any
 
 from opentine import _ingest_batch, _ingest_holds, _monitor_heartbeat, _monitor_ledger
-from opentine._monitor_runner import _events
+from opentine._monitor_runner import _events, _request
 from opentine._monitor_validation import operating_point
+from opentine._monitor_verdict import digest
 
 PROFILES = ("default", "rsi")
 MAX_GAPS = 100
@@ -65,10 +67,14 @@ def _forged(record: dict[str, Any], batch: dict[str, Any] | None, lines: Any) ->
         by_action[line["a"]] += 1
     if claim.get("evaluated") != len(lines) or claim.get("by_action") != by_action:
         return "its counts do not match its events"
-    captured = {e["i"] for e in _events(batch["claim"])}
+    captured = {e["i"]: e for e in _events(batch["claim"])}
     indices = [line["i"] for line in lines]
-    if len(set(indices)) != len(indices) or not set(indices) <= captured:
+    if len(set(indices)) != len(indices) or not set(indices) <= set(captured):
         return "evaluates an index the batch did not capture, or one twice"
+    for line in lines:
+        event = captured[line["i"]]
+        if line["d"] != digest(_request(str(event.get("k", "event")), event.get("e"))):
+            return f"index {line['i']} was scored on another input than the one captured"
     return None
 
 
@@ -99,7 +105,14 @@ def report(repo: Any, stream: str, identity: dict[str, Any], *, now_ms: int,
             findings.append(_finding("fail", "coverage-unsigned", oid, why))
             continue
         lines = _monitor_ledger.decode(claim.get("events"))
+        theirs = claim.get("monitor") if isinstance(claim.get("monitor"), dict) else {}
         bad = _forged(record, by_id.get(claim.get("batch")), lines)
+        if (theirs.get("id"), theirs.get("kind"), claim.get("stream")) != (
+            identity["id"],
+            identity["kind"],
+            stream,
+        ):
+            bad = "written for another monitor or stream"
         if bad:
             findings.append(_finding("fail", "coverage-forged", oid, bad))
             continue
@@ -110,7 +123,7 @@ def report(repo: Any, stream: str, identity: dict[str, Any], *, now_ms: int,
         digests.append(digest)
         if not (claim.get("latency") or {}).get("met", False):
             slo_missed += 1
-        evaluated |= {line["i"] for line in lines or []}
+        evaluated |= {line["i"] for line in lines or [] if line["a"] != "error"}
     if digests and digests[-1] != identity["config_digest"]:
         findings.append(_finding(soft, "config-changed", None,
                                  "the ledger was written by another config than the one "

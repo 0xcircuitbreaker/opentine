@@ -217,9 +217,11 @@ Findings that are facts about records are `fail:` in every profile:
 `monitor.coverage-unsigned` (no pinned monitor key), `monitor.coverage-chain`
 (a broken record or batch chain), `monitor.coverage-forged` (a record naming a
 batch the stream does not hold, an index the batch did not capture or one
-twice, or counts and digests that do not match its lines),
-`monitor.heartbeat-unsigned`, `monitor.heartbeat-backfilled` and
-`monitor.heartbeat-replayed`. These are advisory by default and `fail:` under
+twice, a line whose input digest is not that of the captured event, counts
+and digests that do not match its lines, or a record written for another
+monitor or stream), `monitor.heartbeat-unsigned`, `monitor.heartbeat-backfilled`,
+`monitor.heartbeat-replayed` and `monitor.heartbeat-future`. An event the
+monitor errored on (a timeout, a crash, a malformed reply) is not covered. These are advisory by default and `fail:` under
 `--profile rsi`: `monitor.coverage-gap`, `monitor.config-changed`,
 `monitor.stale`, `monitor.latency-slo` and `monitor.unvalidated-threshold`.
 The command exits 1 on a `fail:` finding (`--strict`: on any finding).
@@ -238,7 +240,10 @@ heartbeat or older than the batch it binds to is refused. One that names an
 older head while newer batches had already arrived more than one interval
 before its time, or a batch the stream does not hold, is
 `monitor.heartbeat-backfilled`; one that belongs to another monitor or stream,
-or whose chain link does not match, is `monitor.heartbeat-replayed`. Liveness
+or whose chain link does not match, is `monitor.heartbeat-replayed`; one dated
+more than an interval after the time checked is `monitor.heartbeat-future`.
+Neither counts as liveness, and nor does a heartbeat carrying another config
+digest (`monitor.config-changed`). Liveness
 is therefore proven relative to the ingest stream: while nothing is ingested,
 a heartbeat's time is only as good as the monitor's clock.
 
@@ -265,8 +270,11 @@ coverage at all.
 
 `tine monitor suspicion` reads every verified coverage record (all monitors
 and streams, or `--stream`) and accumulates per `agent:`, `session:` and `run:`
-subject, and per action digest. Splitting work across sessions does not reset
-an agent's total; rotating agent ids does not reset a session's. Three
+subject, per ingest stream (`stream:`), and per action digest. Splitting work
+across sessions does not reset an agent's total; rotating agent ids does not
+reset a session's; and since the subject ids are claimed by the agent itself,
+the stream, which it cannot name, still counts near-threshold scores when every
+id is rotated (doom-loop flags only; a stream's summed score is not flagged). Three
 advisory flags follow:
 
 - `advisory:monitor.cumulative-suspicion`: a subject's summed score reaches

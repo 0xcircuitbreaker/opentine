@@ -98,7 +98,7 @@ def test_a_forged_heartbeat_bound_to_an_old_head_is_backfilled(repo):
     oid = _ingest_holds.write(repo, anchor(repo, "rl"), claim, key("monitor"), previous=None,
                               signed_at=claim["at"])  # fmt: skip
     _ingest_holds.move_head(repo, "rules@rl", None, oid, prefix=MONITOR_HEARTBEAT)
-    body = _check(repo, T0 + 2 * MIN)
+    body = _check(repo, T0 + 21 * MIN)  # checked after the heartbeat's own time
     assert "fail:monitor.heartbeat-backfilled" in _codes(body)
 
 
