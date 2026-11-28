@@ -14,6 +14,7 @@ from typing import Any
 
 from opentine._redact_extra import extra_secret_names
 from opentine._redact_names import CREDENTIAL_NAMES, SECRET_SUFFIXES
+from opentine._redact_padding import PADDED_B64, padding_of_blob
 
 #: Hard nesting bound for every write-side walk over caller data. The *format* bound
 #: is the reader's (``kernel.validate_json_shape`` refuses deeper than 512, reported
@@ -65,20 +66,6 @@ def _secret_field(name: str, credential_names: set[str], suffixes: tuple[str, ..
 
 
 _LOOSE_NAMES = frozenset({"pass", "auth"})
-#: A whole string of padded base64: about one in 200 ends in ``...pw=`` and read as a
-#: credential name with an empty value; the appended marker corrupted it (0.88).
-_PADDED_B64 = re.compile(r"[A-Za-z0-9+/_-]{16,}={1,2}")
-_B64_TAIL = re.compile(r"(?:^|\s)([A-Za-z0-9+/]{20,})$")
-
-
-def _base64_padding(label: str, candidate: str) -> bool:
-    """``label=`` ends in a base64 token (digit, ``+``/``/`` or 6+ capitals) padded by ``=``."""
-    found = _B64_TAIL.search(label)
-    token = found.group(1) if found and candidate[:1] in ("", "=", " ", "\n") else ""
-    upper = sum(c.isupper() for c in token)
-    return any(c.isdigit() or c in "+/" for c in token) or upper >= 6
-
-
 _AUTH_MODES = frozenset({"", "none", "basic", "bearer", "oauth", "oauth2", "api_key", "token"})
 
 
@@ -111,20 +98,6 @@ def _split_assignment(text: str) -> tuple[str, str, str]:
     if at < 0:
         return text, "", ""
     return text[:at], text[at], text[at + 1 :]
-
-
-_B64_WORD = re.compile(r"[A-Za-z0-9+/]{22,}\Z")
-
-
-def _b64_word(label: str, candidate: str) -> bool:
-    """Padding of a 22+ letter base64 word (digit or ``+``/``/``, length % 4) ending a line."""
-    pad = 2 if candidate[:1] == "=" else 1
-    rest = candidate[pad - 1 :]
-    word = _B64_WORD.search(label)
-    if word is None or (rest and not rest[0].isspace()):
-        return False
-    blob = word.group(0)
-    return (len(blob) + pad) % 4 == 0 and any(c.isdigit() or c in "+/" for c in blob)
 
 
 #: Flag names whose *next* argv element is the credential (``--auth user:pw``).
@@ -220,12 +193,12 @@ def _redact(value: Any, _depth: int = 0) -> Any:
             redacted.append(_redact(item, _depth + 1))
         return redacted
     if isinstance(value, str) and (":" in value or "=" in value):
-        if _PADDED_B64.fullmatch(value):
+        if PADDED_B64.fullmatch(value):
             return value
         label, separator, candidate = _split_assignment(value)
         if separator == "=" and not candidate.strip("= \t"):
             return value  # only padding follows: nothing can be hidden, and it must verify
-        if separator == "=" and (_base64_padding(label, candidate) or _b64_word(label, candidate)):
+        if separator == "=" and padding_of_blob(label, candidate):
             return label + separator + _redact(candidate, _depth + 1)
         name = _field_name(label)
         headers = {"authorization", "proxy_authorization", "cookie", "set_cookie"}

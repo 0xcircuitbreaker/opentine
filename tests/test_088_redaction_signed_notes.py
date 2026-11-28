@@ -82,3 +82,17 @@ def test_a_stored_run_keeps_a_note_in_tool_output(repo):
 def test_an_annotation_keeps_a_note(repo):
     oid = repo.put("annotation", {"coord": "test", "kind": "k", "value": {"note": NOTE}})
     assert repo.get(oid).payload()["value"] == {"note": NOTE}
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["myapplicationdatabase1pw= hunter2", "PrimaryDatabase2Password= hunter2",
+     "ProductionDatabaseUser1Password=\nhunter2", "PostgresReplication2Password= hunter2",
+     "GITHUBPERSONALACCESSTOKEN= hunter2", "Production2DbPassword= hunter2",
+     "AWSProduction2SecretAccessKey= hunter2",
+     "env\nPrimaryDatabase2Password= hunter2\nnext"],
+)  # fmt: skip
+def test_a_long_credential_name_is_not_base64_padding(text):
+    # The note exemption once took any long digit-bearing word before "=" for a blob.
+    out = guarded_redaction({"v": text}, where="t")["v"]
+    assert "REDACTED" in out and "hunter2" not in out
