@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Judge assurance
+## 0.89.0 — Judge assurance (2026-11-28)
 
 - Agreement also requires the judge-vs-majority Cohen's kappa lower bound to
   meet the floor; agreement and validate count only labels from assigned
