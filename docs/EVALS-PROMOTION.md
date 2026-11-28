@@ -102,6 +102,8 @@ regions = "advisory"           # 0.87: or "required"; profile = "rsi" implies "r
 skill_labels = "advisory"      # 0.88: or "required"; profile = "rsi" implies "required"
 judge_assurance = "advisory"   # 0.89: or "required"; profile = "rsi" implies "required"
 judge_floor = "0.6"            # 0.89: lower bound of the judge's agreement interval
+judge_agreement = "advisory"   # 0.89: or "required"; profile = "rsi" implies "required"
+agreement_floor = "0.6"        # 0.89: the judge's kappa lower bound must reach this
 ```
 
 ### What the gate checks
@@ -135,6 +137,7 @@ A label moves only when every check passes. Each refusal names its reason:
 | `promote.region-modified`, `promote.regions-unpinned` | (0.87) the policy sets `regions = "required"` (or `profile = "rsi"`) and the working tree changes code outside an EVOLVE-BLOCK region, adds or removes a covered file or tampers with a marker, or no signed region pin is filed; otherwise findings are the advisory `advisory:regions.outside-modified` (docs/INTEGRITY.md) |
 | `promote.judge-unvalidated`, `promote.judge-not-independent` | (0.89) an eval folder the gate reads was scored by an `llm-judge` whose provenance (`judge.json`) has no held `opentine.judge-validation/1` record signed by a pinned non-`optimizer` `scorer` or `policy` key at `judge_floor` or above, or whose prompt or rubric digest belongs to the candidate's lineage family, while the policy sets `judge_assurance = "required"` (or `profile = "rsi"`). A judge-pinned eval without its `judge.json`, or a `judge.json` the verdicts do not pin, is refused as unvalidated. Otherwise these are the advisories `advisory:judge.unvalidated` and `advisory:lineage.judge-not-independent` (docs/JUDGES.md) |
 | `promote.skill-label-required`, `promote.skill-unrecorded` | (0.88) the candidate's signed lineage record names another `skill` tree than the holder's and the label is not a skill label (`skill.*`), or a skill label moves to a candidate whose record names no skill, while the policy sets `skill_labels = "required"` (or `profile = "rsi"`); otherwise a skill change under another label is the advisory `advisory:promote.skill-changed`. The change is shown as `skills` (`from`, `to`, `label`) in the output and the signed decision, and `--revert` moves a skill label back like any other (docs/LINEAGE.md). Under the rule a lineage record counts only when signed by a pinned non-`optimizer` key role; an optimizer-signed or unpinned record makes the skill unknown and is refused |
+| `promote.judge-agreement` | (0.89) the candidate's verdicts name an `llm-judge` pin, the policy sets `judge_agreement = "required"` (or `profile = "rsi"`), and no label queue revealed that judge, the queue does not verify, or the judge's kappa lower bound against the human consensus is undefined or below `agreement_floor`, or an `llm-judge` verdict carries no `jp1+sha256:` provenance pin (it never passes); `agreement_floor`, `agreement_min_coverage` are plain decimals in [0, 1] with at most six places; otherwise the advisory `advisory:promote.judge-agreement` (docs/LABELS.md) |
 | `promote.already-current` | the run already holds the label |
 | `promote.not-current` | the run to revert does not hold the label |
 

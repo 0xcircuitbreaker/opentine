@@ -8423,4 +8423,124 @@ ROWS: tuple[tuple, ...] = (
             "json": True,
         },
     ),  # fmt: skip  # 0.89
+    (
+        "plain:label init q --rubric r.json --key k --json",
+        "plain",
+        ["label", "init", "q", "--rubric", "r.json", "--key", "k", "--json"],
+        "opentine._cli_label:cmd_label",
+        False,
+        {
+            "command": "label",
+            "label_command": "init",
+            "queue": "q",
+            "rubric": "r.json",
+            "key": "k",
+            "repo": ".",
+            "json": True,
+        },
+    ),  # 0.89
+    (
+        "plain:label assign q --items i.jsonl --reviewer F --key k",
+        "plain",
+        [
+            "label",
+            "assign",
+            "q",
+            "--items",
+            "i.jsonl",
+            "--reviewer",
+            "F",
+            "--key",
+            "k",
+        ],
+        "opentine._cli_label:cmd_label",
+        False,
+        {
+            "command": "label",
+            "label_command": "assign",
+            "items": "i.jsonl",
+            "reviewer": ["F"],
+        },
+    ),  # 0.89
+    (
+        "plain:label reassign q --item S --from A --to B --reason r --key k",
+        "plain",
+        [
+            "label",
+            "reassign",
+            "q",
+            "--item",
+            "S",
+            "--from",
+            "A",
+            "--to",
+            "B",
+            "--reason",
+            "r",
+            "--key",
+            "k",
+        ],
+        "opentine._cli_label:cmd_label",
+        False,
+        {
+            "command": "label",
+            "label_command": "reassign",
+            "item": "S",
+            "from_reviewer": "A",
+            "to": "B",
+            "reason": "r",
+        },
+    ),  # 0.89
+    (
+        "plain:label next q --reviewer F --repo r",
+        "plain",
+        [
+            "label",
+            "next",
+            "q",
+            "--reviewer",
+            "F",
+            "--repo",
+            "r",
+        ],
+        "opentine._cli_label:cmd_label",
+        False,
+        {
+            "command": "label",
+            "label_command": "next",
+            "reviewer": "F",
+            "repo": "r",
+        },
+    ),  # 0.89
+    (
+        "plain:label submit q --item S --label good --key k --at T",
+        "plain",
+        ["label", "submit", "q", "--item", "S", "--label", "good", "--key", "k", "--at", "T"],
+        "opentine._cli_label:cmd_label",
+        False,
+        {"command": "label", "label_command": "submit", "item": "S", "label": "good", "at": "T"},
+    ),  # 0.89
+    (
+        "plain:label reveal q --judge j.json --outputs o.jsonl --key k",
+        "plain",
+        ["label", "reveal", "q", "--judge", "j.json", "--outputs", "o.jsonl", "--key", "k"],
+        "opentine._cli_label:cmd_label",
+        False,
+        {"command": "label", "label_command": "reveal", "judge": "j.json", "outputs": "o.jsonl"},
+    ),  # 0.89
+    (
+        "plain:label agree q --floor 0.7 --resamples 100 --strict --json",
+        "plain",
+        ["label", "agree", "q", "--floor", "0.7", "--resamples", "100", "--strict", "--json"],
+        "opentine._cli_label:cmd_label",
+        False,
+        {
+            "command": "label",
+            "label_command": "agree",
+            "floor": "0.7",
+            "resamples": 100,
+            "strict": True,
+            "json": True,
+        },
+    ),  # 0.89
 )

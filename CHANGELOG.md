@@ -49,6 +49,36 @@
   otherwise).
 - Freeze: no new object kind and no new `tine verify` code; two claim
   conventions on existing attestations, held and never released.
+- New `tine label init|assign|reassign|next|submit|reveal|agree`: rubric label
+  queues in `REPO/.tine/labels/NAME/`. A queue is an append-only, hash-chained
+  log of signed entries. Each entry is an existing attestation under one of the
+  `opentine.label-rubric/1`, `opentine.label-assign/1`, `opentine.label/1` and
+  `opentine.label-reveal/1` claim conventions. The rubric is pinned by digest.
+  Assignments and reassignments are logged, and a reassignment records `from`
+  and a reason. Each label is bound to the reviewer key that signs it, the
+  rubric digest and the item digest. See `docs/LABELS.md`.
+- New key role `reviewer`: labels must be signed by a `reviewer` key from the
+  owner-pinned trust bundle, and a key the bundle also names `optimizer` is
+  refused. Rubrics, assignments and reveals need a pinned `policy` key.
+- Forged, replayed (within or across queues), duplicated, unassigned and
+  off-rubric labels are refused when written and make the queue invalid when
+  read. The queue fails closed as a whole.
+- `tine label next` never shows judge output. Only labels recorded before a
+  judge's outputs are revealed count toward that judge.
+- `tine label agree` reports Krippendorff's alpha, Fleiss' kappa and Cohen's
+  kappa between reviewers, and each judge's Cohen's kappa against the human
+  consensus. Intervals are seeded bootstraps computed in exact arithmetic. A
+  degenerate statistic is reported as undefined (`null`, with a reason) and
+  never passes a floor.
+- Judge outputs are labels or explicit abstentions. An abstention or an
+  unparsable answer is never scored as a label or as 0, and it lowers coverage.
+- `tine promote`: when a judged candidate's judge has no queue, its queue does
+  not verify, or its kappa lower bound against the human consensus falls below
+  `agreement_floor` (default 0.6), the candidate gets
+  `advisory:promote.judge-agreement`. Under `judge_agreement = "required"`
+  (implied by `profile = "rsi"`) this becomes the refusal
+  `promote.judge-agreement`. The gate recomputes the report from the queue
+  instead of trusting a stored one.
 
 ## 0.88.1 — Credential redaction gaps (2026-11-28)
 

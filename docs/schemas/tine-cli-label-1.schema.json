@@ -1,0 +1,755 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-label-1.schema.json",
+  "title": "tine label VERB --json",
+  "description": "Rubric label queues (0.89). `init` starts a queue with a rubric pinned by digest; `assign` and `reassign` record who labels which item (reassignment names `from` and a reason); `next` lists a reviewer's unlabelled items without any judge output; `submit` signs one label bound to the reviewer key, rubric digest and item digest; `reveal` files a judge's outputs (labels recorded after it do not count toward that judge). `agree` reports human agreement (Krippendorff's alpha, Fleiss' and Cohen's kappa) and each revealed judge's Cohen's kappa against the human consensus, with bootstrap intervals; undefined values are null and never pass a floor.",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "queue",
+        "queue_sha256",
+        "rubric_sha256",
+        "rubric"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-label/1"
+        },
+        "queue": {
+          "type": "string"
+        },
+        "command": {
+          "const": "label init"
+        },
+        "queue_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "rubric_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "rubric": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "labels",
+            "instructions"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "labels": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "instructions": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "queue",
+        "assigned",
+        "skipped",
+        "items"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-label/1"
+        },
+        "queue": {
+          "type": "string"
+        },
+        "command": {
+          "const": "label assign"
+        },
+        "assigned": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "skipped": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "items": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "queue",
+        "item_sha256",
+        "from",
+        "to",
+        "seq"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-label/1"
+        },
+        "queue": {
+          "type": "string"
+        },
+        "command": {
+          "const": "label reassign"
+        },
+        "item_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "from": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "to": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "queue",
+        "item_sha256",
+        "label",
+        "reviewer",
+        "rubric_sha256",
+        "seq"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-label/1"
+        },
+        "queue": {
+          "type": "string"
+        },
+        "command": {
+          "const": "label submit"
+        },
+        "item_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "label": {
+          "type": "string"
+        },
+        "reviewer": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "rubric_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "queue",
+        "judge",
+        "outputs_sha256",
+        "seq"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-label/1"
+        },
+        "queue": {
+          "type": "string"
+        },
+        "command": {
+          "const": "label reveal"
+        },
+        "judge": {
+          "type": "string",
+          "pattern": "^jp1\\+sha256:[0-9a-f]{64}$"
+        },
+        "outputs_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "queue",
+        "reviewer",
+        "rubric",
+        "rubric_sha256",
+        "pending"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-label/1"
+        },
+        "queue": {
+          "type": "string"
+        },
+        "command": {
+          "const": "label next"
+        },
+        "reviewer": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "rubric": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "labels",
+            "instructions"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "labels": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "instructions": {
+              "type": "string"
+            }
+          }
+        },
+        "rubric_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "pending": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "item_sha256",
+              "item"
+            ],
+            "properties": {
+              "item_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "item": {}
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "queue",
+        "ok",
+        "queue_sha256",
+        "rubric_sha256",
+        "entries",
+        "settings",
+        "human",
+        "judges"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-label/1"
+        },
+        "queue": {
+          "type": "string"
+        },
+        "command": {
+          "const": "label agree"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "queue_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "rubric_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "entries": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "settings": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "floor",
+            "alpha",
+            "seed",
+            "resamples",
+            "min_items",
+            "min_coverage"
+          ],
+          "properties": {
+            "floor": {
+              "type": "string"
+            },
+            "alpha": {
+              "type": "string"
+            },
+            "seed": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "resamples": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "min_items": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "min_coverage": {
+              "type": "string"
+            }
+          }
+        },
+        "human": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "items",
+            "pairable",
+            "reviewers",
+            "krippendorff",
+            "fleiss",
+            "cohen",
+            "primary",
+            "floor_ok"
+          ],
+          "properties": {
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "pairable": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "reviewers": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "krippendorff": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value",
+                "reason",
+                "lower",
+                "upper",
+                "undefined_resamples"
+              ],
+              "properties": {
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "reason": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "lower": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "upper": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "undefined_resamples": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            },
+            "fleiss": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value",
+                "reason",
+                "lower",
+                "upper",
+                "undefined_resamples"
+              ],
+              "properties": {
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "reason": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "lower": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "upper": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "undefined_resamples": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            },
+            "cohen": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value",
+                "reason",
+                "lower",
+                "upper",
+                "undefined_resamples"
+              ],
+              "properties": {
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "reason": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "lower": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "upper": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "undefined_resamples": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            },
+            "primary": {
+              "enum": [
+                "cohen",
+                "krippendorff"
+              ]
+            },
+            "floor_ok": {
+              "type": "boolean"
+            }
+          }
+        },
+        "judges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "judge",
+              "outputs_sha256",
+              "reveal_seq",
+              "consensus_items",
+              "ties",
+              "compared",
+              "abstained",
+              "errors",
+              "missing",
+              "coverage",
+              "cohen",
+              "floor",
+              "floor_ok",
+              "reasons"
+            ],
+            "properties": {
+              "judge": {
+                "type": "string",
+                "pattern": "^jp1\\+sha256:[0-9a-f]{64}$"
+              },
+              "outputs_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "reveal_seq": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "consensus_items": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "ties": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "compared": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "abstained": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "errors": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "missing": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "coverage": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "cohen": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "value",
+                  "reason",
+                  "lower",
+                  "upper",
+                  "undefined_resamples"
+                ],
+                "properties": {
+                  "value": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "reason": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "lower": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "upper": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^-?[0-9]+\\.[0-9]{6}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "undefined_resamples": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              },
+              "floor": {
+                "type": "string"
+              },
+              "floor_ok": {
+                "type": "boolean"
+              },
+              "reasons": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

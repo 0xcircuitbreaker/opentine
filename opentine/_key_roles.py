@@ -59,13 +59,14 @@ GUARDED = (
     "monitor",
     "auditor",
     "runner",
-    "reviewer",  # 0.89: signs human rubric labels (opentine._rubric_labels)
+    "reviewer",  # 0.89: signs human rubric labels (_rubric_labels, _label_queue)
 )
 AUDITOR = "auditor"
 CURATOR = "curator"
 MONITOR = "monitor"
 STOPPER = "stopper"
 RUNNER = "runner"
+REVIEWER = "reviewer"
 ROLES = (OPTIMIZER, *GUARDED, STOPPER)
 REQUIRED = ("scorer", "dataset", "verdict")
 MAX_KEYS = 256

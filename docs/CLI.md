@@ -81,7 +81,9 @@ Elsewhere `stats` reads the legacy index exactly as before.
 named trust policies for `tine verify --policy NAME` (see below).
 
 `tine agent id|show|trust|keys` are unchanged. `tine agent scaffold|scaffold-diff|scaffold-pin`
-are new in 0.88: scaffold manifests ([SCAFFOLD.md](SCAFFOLD.md)). `tine GROUP --help` lists a group;
+are new in 0.88: scaffold manifests ([SCAFFOLD.md](SCAFFOLD.md)). `tine label
+init|assign|reassign|next|submit|reveal|agree` is new in 0.89: rubric label queues and
+judge-vs-human agreement ([LABELS.md](LABELS.md)). `tine GROUP --help` lists a group;
 `tine help --all` lists every command.
 
 `tine hold add|list|release OID|REF` is new in 0.35 (no older spelling): it

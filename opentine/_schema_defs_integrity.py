@@ -11,6 +11,8 @@ from typing import Any
 from opentine._integrity_advisory import ADVISORY_CODES
 from opentine._schema_defs import BOOL, INT, STR, closed, doc, opt
 from opentine._schema_defs_canary import SCAN
+from opentine._schema_defs_label import COMMAND_SCHEMAS as _LABEL_COMMANDS
+from opentine._schema_defs_label import SCHEMAS as _LABEL
 from opentine._schema_defs_scaffold import COMMAND_SCHEMAS as _SCAFFOLD_COMMANDS
 from opentine._schema_defs_scaffold import SCHEMAS as _SCAFFOLD
 
@@ -71,10 +73,15 @@ SCHEMAS: dict[str, dict[str, Any]] = {
         "them when a pin is filed).",
         {"oneOf": [_CHECK, _PIN, _SIGN, SCAN, _RPIN, _RCHECK]}),
     **_SCAFFOLD,  # 0.88: scaffold manifests, a sibling of the protected surfaces
+    **_LABEL,  # 0.89: rubric label queues
 }  # fmt: skip
-COMMAND_SCHEMAS: dict[str, str] = {
-    f"integrity {name}": "tine-cli-integrity-1"
-    for name in ("check", "pin", "sign", "scan", "region-pin", "region-check")
-} | _SCAFFOLD_COMMANDS
+COMMAND_SCHEMAS: dict[str, str] = (
+    {
+        f"integrity {name}": "tine-cli-integrity-1"
+        for name in ("check", "pin", "sign", "scan", "region-pin", "region-check")
+    }
+    | _SCAFFOLD_COMMANDS
+    | _LABEL_COMMANDS
+)
 
 __all__ = ["COMMAND_SCHEMAS", "SCHEMAS"]
