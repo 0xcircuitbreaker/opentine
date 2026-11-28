@@ -20,7 +20,9 @@ folder the promotion reads, two things are checked:
                           ``promote.judge-unvalidated`` and
                           ``promote.judge-not-independent``. A ``judge.json`` that
                           is unreadable or does not match the signed verdicts'
-                          ``scorer_version`` refuses as unvalidated (fail closed).
+                          ``scorer_version`` refuses as unvalidated, and a
+                          candidate no signed lineage record names refuses as
+                          not independent (fail closed).
 """
 
 from __future__ import annotations
@@ -103,10 +105,14 @@ def findings(policy: dict[str, Any], repo_path: Path | None, candidate: str,
             gaps.append(("unvalidated", side, f"judge {pin} has no validation record signed "
                                               f"by a pinned non-optimizer key at floor "
                                               f"{float(floor):.6f}"))  # fmt: skip
-        if fam is not None:
-            found = _judge_lineage.check(fam, judges=[{"provenance": doc, "pin": pin}])
-            if found["findings"]:
-                gaps.append(("not-independent", side, found["findings"][0]["detail"]))
+        if fam is None or not fam["known"]:  # no lineage is not independence: fail closed
+            gaps.append(("not-independent", side, "no signed lineage record names the "
+                                                  "candidate, so judge independence is "
+                                                  "unknown"))  # fmt: skip
+            continue
+        found = _judge_lineage.check(fam, judges=[{"provenance": doc, "pin": pin}])
+        if found["findings"]:
+            gaps.append(("not-independent", side, found["findings"][0]["detail"]))
     refusals, advisories = [], []
     for kind, side, detail in gaps:
         text = f"{side} eval: {detail}"

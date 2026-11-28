@@ -2,6 +2,13 @@
 
 ## Unreleased — Judge assurance
 
+- Agreement also requires the judge-vs-majority Cohen's kappa lower bound to
+  meet the floor; agreement and validate count only labels from assigned
+  reviewers (`--per-item`); under `judge_assurance = "required"` an unknown
+  candidate lineage refuses as not independent; validation records below 0.9
+  coverage do not count; ensemble model names are folded and padded prompt
+  copies are caught by containment; the injection scan folds NFKC forms and
+  strips format characters.
 - New `tine judge classify`: label judges that return a label, an optional
   probability, or an explicit abstain. A reply with no label line, a label
   outside the set, two outcomes or a probability outside 0..1 is an error,

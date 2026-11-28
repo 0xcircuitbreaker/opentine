@@ -14,7 +14,10 @@ label is left out as ``unlabelled``. The statistic is:
 The interval is a percentile bootstrap over items (``resamples`` draws, seeded,
 so a report is reproducible); the *floor* is met when the interval's lower bound
 (at ``alpha/2``, default 0.025, i.e. a 95% interval) is at least ``floor``
-(default 0.6) and the judge decided at least ``min_coverage`` (default 0.9) of the
+(default 0.6), the same holds for Cohen's kappa of the judge against the human
+majority label of each item (so agreement among people cannot carry a judge
+that agrees with none of them; a tied item has no majority and is left out), and
+the judge decided at least ``min_coverage`` (default 0.9) of the
 labelled items. A judge cannot raise its agreement by abstaining on hard items:
 those items lower its coverage. A statistic that is undefined (every rater gave
 one label to every item) does not meet the floor: fail closed.
@@ -87,6 +90,28 @@ _BY = {"cohen-kappa": lambda us: cohen([(u[0], u[1]) for u in us]), "fleiss-kapp
        "krippendorff-alpha": krippendorff}  # fmt: skip
 
 
+def _consensus(labels: dict[str, str]) -> str | None:
+    """The human majority label of an item; a tie has none (the item is left out)."""
+    counts = Counter(labels.values()).most_common()
+    return None if len(counts) > 1 and counts[0][1] == counts[1][1] else counts[0][0]
+
+
+def _interval(units: list, fn: Any, seed: int, resamples: int,
+              alpha: Fraction) -> tuple[float | None, float | None]:  # fmt: skip
+    """Seeded percentile bootstrap over units; an undefined resample counts as -inf."""
+    rng, draws = random.Random(seed), []
+    for _ in range(resamples if units else 0):
+        got = fn([units[rng.randrange(len(units))] for _ in units])
+        draws.append(got if got is not None else float("-inf"))
+    draws.sort()
+    if not draws:
+        return None, None
+    lower = draws[int(len(draws) * float(alpha / 2))]
+    upper = draws[min(len(draws) - 1, int(len(draws) * float(1 - alpha / 2)))]
+    return (None if lower == float("-inf") else lower), (
+        None if upper == float("-inf") else upper)  # fmt: skip
+
+
 def _text(value: float | None) -> str | None:
     return None if value is None else format(value, ".6f")
 
@@ -106,15 +131,10 @@ def report(judge: dict[str, dict[str, Any]], humans: dict[str, dict[str, str]], 
     counted = [i for i in labelled if judge.get(i, {}).get("status") == "label"]
     units = [[*(humans[i][r] for r in sorted(humans[i])), judge[i]["label"]] for i in counted]
     method, value = statistic(units)
-    rng, draws = random.Random(seed), []
-    for _ in range(resamples if units else 0):
-        sample = [units[rng.randrange(len(units))] for _ in units]
-        got = _BY[method](sample)
-        draws.append(got if got is not None else float("-inf"))
-    draws.sort()
-    lower = draws[int(len(draws) * float(alpha / 2))] if draws else None
-    upper = draws[min(len(draws) - 1, int(len(draws) * float(1 - alpha / 2)))] if draws else None
-    lower = None if lower == float("-inf") else lower
+    lower, upper = _interval(units, _BY[method], seed, resamples, alpha)
+    pairs = [[c, judge[i]["label"]] for i in counted if (c := _consensus(humans[i])) is not None]
+    vs_value = cohen([(a, b) for a, b in pairs])
+    vs_lower, vs_upper = _interval(pairs, _BY["cohen-kappa"], seed, resamples, alpha)
     coverage = Fraction(len(counted), len(labelled)) if labelled else Fraction(0)
     reasons = []
     if value is None:
@@ -123,6 +143,9 @@ def report(judge: dict[str, dict[str, Any]], humans: dict[str, dict[str, str]], 
         reasons.append("the lower bound is undefined (resamples with a single label)")
     elif lower < float(floor):
         reasons.append(f"the lower bound {_text(lower)} is below the floor {_text(float(floor))}")
+    if vs_value is None or vs_lower is None or vs_lower < float(floor):
+        reasons.append(f"judge-vs-consensus kappa lower bound {_text(vs_lower)} is undefined "
+                       f"or below the floor {_text(float(floor))}")  # fmt: skip
     if coverage < min_coverage:
         reasons.append(f"the judge decided {len(counted)} of {len(labelled)} labelled item(s)")
     humans_only = [[humans[i][r] for r in sorted(humans[i])] for i in labelled
@@ -134,6 +157,9 @@ def report(judge: dict[str, dict[str, Any]], humans: dict[str, dict[str, str]], 
             "reasons": reasons, "items": len(judge), "labelled": len(labelled),
             "counted": len(counted), "abstained": abstained, "errored": errored,
             "unlabelled": sorted(set(judge) - set(labelled)),
+            "judge_vs_consensus": {"method": "cohen-kappa", "value": _text(vs_value),
+                                   "ci": [_text(vs_lower), _text(vs_upper)],
+                                   "items": len(pairs)},
             "human_agreement": {"method": inter[0], "value": _text(inter[1])},
             "seed": seed, "resamples": resamples, "alpha": _text(float(alpha))}  # fmt: skip
 

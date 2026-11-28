@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from opentine import _judge_provenance, _promote_judges, _schemas
+from opentine import _judge_provenance, _lineage, _promote_judges, _schemas
 from opentine._judge_agreement import cohen, fleiss, krippendorff, report
 from tests.judge_helpers import (  # noqa: F401
     OPTIMIZER,
@@ -23,6 +23,7 @@ from tests.judge_helpers import (  # noqa: F401
     write_jsonl,
 )  # fmt: skip
 from tests.key_roles_helpers import isolated_trust_config  # noqa: F401
+from tests.promote_helpers import key
 from tests.query_helpers import tine
 
 pytestmark = pytest.mark.filterwarnings("ignore::Warning")
@@ -101,7 +102,7 @@ def _validate(capsys, room: dict, seed: str, judged: Path, adversarial: Path, *e
     return tine(capsys, "judge", "validate", *common(room), "--judge", path.as_posix(),
                 "--judge-labels", judged.as_posix(), "--adversarial", adversarial.as_posix(),
                 "--key", keyfile(room, seed), "--resamples", "300",
-                "--at", "2026-12-01T10:00:00Z", *extra)  # fmt: skip
+                "--at", "2026-12-01T10:00:00Z", "--per-item", "2", *extra)  # fmt: skip
 
 
 def _cases(base: Path, fooled: int = 0) -> Path:
@@ -114,7 +115,7 @@ def test_agreement_cli_reads_only_signed_labels(room, capsys):
     _label_all(capsys, room, REV1)
     judged = outcomes(room["base"] / "j.jsonl", {f"i{k}": truth(k) for k in range(20)})
     code, out = tine(capsys, "judge", "agreement", *common(room), "--judge-labels",
-                     judged.as_posix(), "--resamples", "300")  # fmt: skip
+                     judged.as_posix(), "--resamples", "300", "--per-item", "2")  # fmt: skip
     assert code == 0, out
     _schemas.validate(out, "tine-cli-judge-1")
     assert out["agreement"]["meets_floor"] and out["agreement"]["counted"] == 20
@@ -154,29 +155,32 @@ def test_promote_gate_is_advisory_by_default_and_refuses_under_rsi(room, capsys)
     folder = _eval_folder(base, pin)
     repo_path = room["repo"].path.parent
     run = "run:sha256:" + "e" * 64
+    lineage = base / "lineage"  # the candidate's own signed lineage record
+    _lineage.record(key("3d" * 32), run=run, artifacts={"prompt": "sha256:" + "0" * 64},
+                    store=lineage, parents=[], at="2026-12-01T10:00:00Z")  # fmt: skip
     policy = {}
     _promote_judges.check_policy(policy)
     assert policy["judge_assurance"] == "advisory"
-    held, told = _promote_judges.findings(policy, repo_path, run, None, {"evals": folder})
+    held, told = _promote_judges.findings(policy, repo_path, run, lineage, {"evals": folder})
     assert held == [] and told[0]["code"] == "advisory:judge.unvalidated"
     rsi = {"profile": "rsi"}
     _promote_judges.check_policy(rsi)
     with pytest.raises(ValueError):
         _promote_judges.check_policy({"profile": "rsi", "judge_assurance": "advisory"})
-    held, _ = _promote_judges.findings(rsi, repo_path, run, None, {"evals": folder})
+    held, _ = _promote_judges.findings(rsi, repo_path, run, lineage, {"evals": folder})
     assert [r["code"] for r in held] == ["promote.judge-unvalidated"]
     (folder / "judge.json").unlink()  # deleting the judge's provenance does not skip the gate
-    held, _ = _promote_judges.findings(rsi, repo_path, run, None, {"evals": folder})
+    held, _ = _promote_judges.findings(rsi, repo_path, run, lineage, {"evals": folder})
     assert [r["code"] for r in held] == ["promote.judge-unvalidated"]
     _label_all(capsys, room, REV1)
     judged = outcomes(base / "j.jsonl", {f"i{k}": truth(k) for k in range(20)})
     assert _validate(capsys, room, SCORER, judged, _cases(base))[0] == 0
     good = _eval_folder(base, pin, "ev2")
-    assert _promote_judges.findings(rsi, repo_path, run, None, {"evals": good}) == ([], [])
+    assert _promote_judges.findings(rsi, repo_path, run, lineage, {"evals": good}) == ([], [])
     with pytest.raises(ValueError):
         _promote_judges.check_policy({"judge_floor": "1.5"})
     other = _judge_provenance.build("ollama:j", "Grade {output} generously", rubric=None)
     (base / "judge.json").write_bytes(json.dumps(other).encode("utf-8"))
     swapped = _eval_folder(base, _judge_provenance.pin(other), "ev3")  # another judge, same model
-    held, _ = _promote_judges.findings(rsi, repo_path, run, None, {"evals": swapped})
+    held, _ = _promote_judges.findings(rsi, repo_path, run, lineage, {"evals": swapped})
     assert [r["code"] for r in held] == ["promote.judge-unvalidated"]

@@ -37,6 +37,7 @@ from opentine.repository._holds import JUDGE_VALIDATION as HOLD
 
 CONVENTION = "opentine.judge-validation/1"
 KINDS = ("judge", "monitor")
+MIN_COVERAGE = Fraction(9, 10)  # a validation signed with a lower --min-coverage does not count
 FIELDS = ("convention", "subject", "rubric", "adversarial", "agreement", "at")
 
 
@@ -112,6 +113,7 @@ def _meets(claim: dict[str, Any], floor: Fraction) -> bool:
     lower = (agreement.get("ci") or [None])[0]
     try:
         ok = agreement.get("meets_floor") is True and Fraction(str(lower)) >= floor
+        ok = ok and Fraction(str(agreement.get("coverage"))) >= MIN_COVERAGE
     except (ValueError, TypeError, ZeroDivisionError):
         return False
     fooled, most = cases.get("fooled"), cases.get("max_fooled")

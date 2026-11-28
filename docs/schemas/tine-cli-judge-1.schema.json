@@ -522,6 +522,54 @@
               "items": {
                 "type": "string"
               }
+            },
+            "unassigned_labels": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "judge_vs_consensus": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "method",
+                "value",
+                "ci",
+                "items"
+              ],
+              "properties": {
+                "method": {
+                  "const": "cohen-kappa"
+                },
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "ci": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "items": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
             }
           }
         },

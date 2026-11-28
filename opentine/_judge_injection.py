@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import re
+import unicodedata
 from typing import Any
 
 CODE = "advisory:judge.outbound-injection"
@@ -40,8 +41,14 @@ PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
 )  # fmt: skip
 
 
+def _clean(text: str) -> str:
+    """NFKC-normalised (fullwidth and compatibility forms folded), format characters removed."""
+    text = unicodedata.normalize("NFKC", text[:MAX_TEXT]).translate(_INVISIBLE)
+    return "".join(c for c in text if unicodedata.category(c) != "Cf")
+
+
 def _fold(text: str) -> str:
-    return _SPACE.sub(" ", text[:MAX_TEXT].translate(_INVISIBLE).casefold())
+    return _SPACE.sub(" ", _clean(text).casefold())
 
 
 def _text(output: Any) -> str:
@@ -50,7 +57,7 @@ def _text(output: Any) -> str:
 
 def scan(output: Any, *, item: str | None = None) -> list[dict[str, Any]]:
     """``[{code, item, kind, match}]`` for one candidate output (none: nothing found)."""
-    raw = _text(output)[:MAX_TEXT].translate(_INVISIBLE)
+    raw = _clean(_text(output))
     folded = _fold(raw)
     found = []
     for kind, pattern in PATTERNS:

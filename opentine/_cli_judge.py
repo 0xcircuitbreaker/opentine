@@ -29,6 +29,12 @@ def _stats(verb: argparse.ArgumentParser) -> None:
     verb.add_argument("--min-coverage", default="0.9", help="Share the judge must decide")
     verb.add_argument("--seed", type=int, default=0, help="Bootstrap seed (default 0)")
     verb.add_argument("--resamples", type=int, default=2000, help="Bootstrap resamples")
+    verb.add_argument(
+        "--per-item",
+        type=int,
+        default=1,
+        help="Reviewers per item, as in queue; other labels do not count",
+    )
 
 
 def _labelled(verb: argparse.ArgumentParser) -> None:

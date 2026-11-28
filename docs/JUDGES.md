@@ -37,9 +37,11 @@ sampling) and the parsed outcome.
 
 `tine judge classify` takes several `--judge` options (with one `--prompt` each,
 or one for all). Two members are dependent when they share a model, a prompt
-digest or a declared `--lineage-of`, or when their prompt texts are near copies
-(Jaccard similarity of character 4-grams, case and spacing folded, of 0.8 or
-more). Dependence is transitive, so the members form groups, and each group
+digest or a declared `--lineage-of` (model names are compared with case and
+spacing folded), or when their prompt texts are near copies: the larger of the
+Jaccard similarity and the containment of their character 4-gram sets, case and
+spacing folded, is 0.8 or more, so a prompt copied whole and padded with other
+text is still a copy. Dependence is transitive, so the members form groups, and each group
 casts one vote: copies of one judge count once, and a fork of a prompt with a
 small edit is still one judge.
 
@@ -64,7 +66,7 @@ A candidate can write to its judge instead of the task: "ignore the rubric",
 `<system>` tag. `tine judge classify` scans every output it sends and reports
 `advisory:judge.outbound-injection` with the matched text; `tine judge injection
 OUTPUTS` does the same for an outputs file. The scan is a heuristic over plain
-text (zero-width characters removed), so it is evadable and stays advisory: it
+text (NFKC-normalised, format and zero-width characters removed), so it is evadable and stays advisory: it
 never blocks unless `--strict` is given.
 
 ## Human labels and the queue
@@ -97,7 +99,11 @@ has a conflict: neither label counts, and the conflict is listed.
 `tine judge queue --per-item N` assigns every item to N pinned reviewers in the
 order of `sha256(item_digest || reviewer)`, so the assignment is reproducible
 and no reviewer chooses their own items. It lists each reviewer's assigned and
-pending items and any label made outside the assignment.
+pending items and any label made outside the assignment. `tine judge agreement`
+and `tine judge validate` take the same `--per-item` (default 1) and count only
+the labels of each item's assigned reviewers; others are reported as
+`unassigned_labels` and do not count, so a reviewer cannot pick which items
+they label.
 
 ## Agreement
 
@@ -111,7 +117,11 @@ its reviewers plus the judge:
 
 The interval is a percentile bootstrap over items, seeded (`--seed`,
 `--resamples`), so a report is reproducible. The floor is met when the lower
-bound of the 95% interval is at least `--floor` (default 0.6) and the judge
+bound of the 95% interval is at least `--floor` (default 0.6), the lower bound
+of Cohen's kappa between the judge and each item's human majority label
+(`judge_vs_consensus`; a tied item is left out) is also at least `--floor`, so
+agreement among reviewers cannot carry a judge that agrees with none of them,
+and the judge
 decided at least `--min-coverage` (default 0.9) of the labelled items. Items the
 judge abstained on or erred on are left out of the statistic and lower its
 coverage, so abstaining on hard items cannot raise agreement. A statistic that
@@ -169,7 +179,9 @@ a validation record that counts at `judge_floor`, and must be independent of the
 candidate's lineage family. Under `"required"` a gap refuses
 (`promote.judge-unvalidated`, `promote.judge-not-independent`); a judge-pinned
 eval without its `judge.json`, or a `judge.json` the verdicts do not pin, is
-refused as unvalidated. Otherwise the gaps are the advisories
+refused as unvalidated, and a candidate that no signed lineage record names (or
+a missing lineage folder) is refused as not independent. A validation record
+counts only when its recorded coverage is at least 0.9. Otherwise the gaps are the advisories
 `advisory:judge.unvalidated` and `advisory:lineage.judge-not-independent`, shown
 and never blocking.
 

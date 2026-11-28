@@ -100,13 +100,19 @@ def _agreement(args: argparse.Namespace, repo: Any) -> tuple[dict, str]:
     from opentine import _judge_agreement, _rubric_labels
 
     rubric = _rubric_labels.rubric_digest(_read(args.rubric))
-    found = _rubric_labels.labels(repo, rubric, digests(items(args.items)))
+    known = digests(items(args.items))
+    found = _rubric_labels.labels(repo, rubric, known)
+    plan = _rubric_labels.assignment(known, _rubric_labels.reviewers(repo)[0], args.per_item)
+    counted = {i: {r: v for r, v in by.items() if r in plan.get(i, ())}
+               for i, by in found["labels"].items()}  # fmt: skip
+    outside = sum(len(by) for by in found["labels"].values()) - sum(map(len, counted.values()))
     report = _judge_agreement.report(
-        _outcomes(args.judge_labels), found["labels"],
+        _outcomes(args.judge_labels), counted,
         floor=_fraction(args.floor, "--floor"),
         min_coverage=_fraction(args.min_coverage, "--min-coverage"), seed=args.seed,
         resamples=args.resamples)  # fmt: skip
     report["ignored_labels"] = len(found["ignored"])
+    report["unassigned_labels"] = outside  # a reviewer cannot pick the items they label
     report["conflicts"] = found["conflicts"]
     return report, rubric
 

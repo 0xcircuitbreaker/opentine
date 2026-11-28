@@ -5,11 +5,12 @@ An ensemble is a list of members, each a judge provenance document
 declared ``lineage`` (the name of the lineage or family it was derived in).
 Two members are *dependent* when any of these holds:
 
-* the same ``model``;
+* the same ``model`` (case and spacing folded);
 * the same ``prompt_digest``;
 * the same declared ``lineage``;
 * prompt texts whose similarity (:func:`similarity`) reaches the threshold
-  (default 0.8): a fork of one prompt with a small edit is still one judge.
+  (default 0.8): a fork of one prompt with a small edit, or padded with other
+  text, is still one judge.
 
 Dependence is transitive (union-find), so the members fall into *groups*, and
 copies of one judge count once: each group casts one vote, the majority of
@@ -41,6 +42,7 @@ AGGREGATES = ("majority", "mean", "min")
 THRESHOLD = Fraction(4, 5)
 _SPACE = re.compile(r"\s+")
 MAX_TEXT = 1 << 16
+MIN_SHINGLES = 40  # containment only for prompts long enough to be distinctive
 
 
 def _shingles(text: str, size: int = 4) -> set[str]:
@@ -51,14 +53,26 @@ def _shingles(text: str, size: int = 4) -> set[str]:
 
 
 def similarity(left: str, right: str) -> Fraction:
-    """Jaccard similarity of character 4-gram sets (case and spacing folded)."""
+    """The larger of Jaccard similarity and containment of character 4-gram sets.
+
+    Case and spacing are folded. Containment (the share of the smaller set found
+    in the larger) catches a prompt copied whole and padded with unrelated text.
+    """
     a, b = _shingles(left), _shingles(right)
-    return Fraction(len(a & b), len(a | b)) if a | b else Fraction(1)
+    if not a | b:
+        return Fraction(1)
+    jaccard = Fraction(len(a & b), len(a | b))
+    small = min(len(a), len(b))
+    return max(jaccard, Fraction(len(a & b), small)) if small >= MIN_SHINGLES else jaccard
+
+
+def _model(name: Any) -> str:
+    return _SPACE.sub("", str(name)).casefold()
 
 
 def _reasons(a: dict[str, Any], b: dict[str, Any], threshold: Fraction) -> list[str]:
     why = []
-    if a["provenance"]["model"] == b["provenance"]["model"]:
+    if _model(a["provenance"]["model"]) == _model(b["provenance"]["model"]):
         why.append("model")
     if a["provenance"]["prompt_digest"] == b["provenance"]["prompt_digest"]:
         why.append("prompt_digest")

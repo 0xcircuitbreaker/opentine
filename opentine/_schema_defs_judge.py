@@ -32,7 +32,10 @@ _AGREE = {"type": "object", "required": ["method", "value", "ci", "floor", "meet
     "method": {"enum": ["cohen-kappa", "fleiss-kappa", "krippendorff-alpha"]},
     "value": opt(_DEC), "ci": {"type": "array", "items": opt(_DEC)}, "floor": _DEC,
     "meets_floor": BOOL, "coverage": _DEC, "counted": INT, "labelled": INT,
-    "reasons": strs()}}  # fmt: skip
+    "reasons": strs(), "unassigned_labels": INT,
+    "judge_vs_consensus": closed(["method", "value", "ci", "items"], {
+        "method": {"const": "cohen-kappa"}, "value": opt(_DEC),
+        "ci": {"type": "array", "items": opt(_DEC)}, "items": INT})}}  # fmt: skip
 
 
 def _verb(name: str, required: list[str], props: dict[str, Any]) -> dict[str, Any]:
