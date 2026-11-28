@@ -18,7 +18,7 @@ import pytest
 from opentine import _stop_compliance, _stop_guard, _stop_supervise, _stop_tree, cli
 from tests.key_roles_helpers import isolated_trust_config  # noqa: F401 - autouse
 from tests.stop_helpers import RUNNER, STOPPER, Clock, fleet, keep_going, key_file, make_repo
-from tests.stop_tree_helpers import CUTS, STOPS, child_clock, dead, script_args
+from tests.stop_tree_helpers import CUTS, SLEEPS, STOPS, child_clock, dead, script_args
 
 linux = pytest.mark.skipif(not os.path.isdir("/proc/self"), reason="needs /proc")
 
@@ -79,6 +79,30 @@ def test_a_child_that_cuts_the_channel_halts_the_tree(tmp_path, monkeypatch, fix
     assert code == 3
     assert dead(int(pidfile.read_text()))
     assert _held_claim(repo)["code"] == "stop.channel-unreachable"
+
+
+@linux
+def test_a_proof_that_goes_stale_mid_run_halts_the_tree(tmp_path, monkeypatch, fixed):
+    """Only the supervisor's clock moves: its watchdog alone sees the proof go stale."""
+    import threading
+
+    channel, (repo,) = _policy_repo(tmp_path, monkeypatch, fixed)
+    script, pidfile = tmp_path / "sleep.py", tmp_path / "grandchild.pid"
+    script.write_bytes(SLEEPS.encode())
+    script_args(monkeypatch, pidfile)
+
+    def age() -> None:
+        while not pidfile.exists():
+            threading.Event().wait(0.02)
+        fixed.advance(301)
+
+    threading.Thread(target=age, daemon=True).start()
+    code = tine("run", script, "--stop-run", "r", "--stop-key",
+                key_file(tmp_path, RUNNER, "runner"))  # fmt: skip
+    assert code == 3
+    assert dead(int(pidfile.read_text()))
+    claim = _held_claim(repo)
+    assert claim["code"] == "stop.continue-stale" and claim["residual_processes"] == 0
 
 
 @linux

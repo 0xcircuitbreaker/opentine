@@ -75,4 +75,15 @@ def dead(pid: int) -> bool:
         return True
 
 
-__all__ = ["CUTS", "STOPS", "child_clock", "dead", "script_args"]
+__all__ = ["CUTS", "SLEEPS", "STOPS", "child_clock", "dead", "script_args"]
+
+SLEEPS = (
+    _GRANDCHILD
+    + """\
+import time
+(pidfile,) = ARGS
+grandchild(pidfile)
+while True:
+    time.sleep(0.05)
+"""
+)
