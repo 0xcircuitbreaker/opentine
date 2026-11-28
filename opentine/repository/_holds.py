@@ -84,8 +84,8 @@ INGEST_SEGMENT, INGEST_AUDIT = "ingest-segment:", "ingest-audit:"
 INTERP_CUSTODY = "custody:interp"
 #: 0.83: a signed collusion-protocol verdict (opentine._collusion_record): never released.
 COLLUSION_VERDICT = "collusion-verdict:"
-#: 0.84: an artifact provenance record and its run (opentine._artifact_provenance).
-PROVENANCE = "custody:provenance:"
+#: 0.84/0.88: an artifact provenance record and its run; a run's scaffold manifest.
+PROVENANCE, SCAFFOLD = "custody:provenance:", "scaffold-manifest:"
 _NEVER_RELEASED = (
     ((MEMORY_QUARANTINE,), "a memory quarantine"),
     ((MONITOR_VERDICT, MONITOR_STOP), "a monitor verdict or stop token"),
@@ -107,6 +107,7 @@ _NEVER_RELEASED = (
     ((INTERP_CUSTODY,), "an interpretability custody record"),
     ((COLLUSION_VERDICT,), "a collusion-protocol verdict"),
     ((PROVENANCE,), "an artifact provenance record"),
+    ((SCAFFOLD,), "a scaffold manifest record"),
 )
 MAX_HOLDS_BYTES = 4 * 1024 * 1024
 

@@ -80,7 +80,8 @@ Elsewhere `stats` reads the legacy index exactly as before.
 `tine trust policy set|list|show|rm|default` is new in 0.16 (no older spelling):
 named trust policies for `tine verify --policy NAME` (see below).
 
-`tine agent id|show|trust|keys` are unchanged. `tine GROUP --help` lists a group;
+`tine agent id|show|trust|keys` are unchanged. `tine agent scaffold|scaffold-diff|scaffold-pin`
+are new in 0.88: scaffold manifests ([SCAFFOLD.md](SCAFFOLD.md)). `tine GROUP --help` lists a group;
 `tine help --all` lists every command.
 
 `tine hold add|list|release OID|REF` is new in 0.35 (no older spelling): it
@@ -1054,6 +1055,7 @@ is published as [`docs/spec/hook-1.md`](spec/hook-1.md) (SPEC 8.16, vectors
 ```text
 tine mcp-proxy [--save PATH] [--force] [--repo PATH [--ref REF]] -- CMD [ARGS...]
 tine mcp-proxy --http-upstream URL [--listen HOST:PORT] [--allow-non-loopback] [--save PATH] [-- CMD...]
+tine mcp-proxy --tool-defs block -- CMD [ARGS...]    # 0.88: refuse calls to a changed tool definition
 ```
 
 Relays an MCP session over stdio (spawning CMD) or Streamable HTTP and records

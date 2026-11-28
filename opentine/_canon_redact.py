@@ -113,6 +113,21 @@ def _split_assignment(text: str) -> tuple[str, str, str]:
     return text[:at], text[at], text[at + 1 :]
 
 
+_B64_TAIL = re.compile(r"[A-Za-z0-9+/]{22,}\Z")
+
+
+def _base64_padding(label: str, candidate: str) -> bool:
+    """Padding of a base64 word (22+ letters, a digit or ``+``/``/``, length a multiple
+    of four) that ends the text, a line or a word: no credential name has that shape."""
+    pad = 2 if candidate[:1] == "=" else 1
+    rest = candidate[pad - 1 :]
+    word = _B64_TAIL.search(label)
+    if word is None or (rest and not rest[0].isspace()):
+        return False
+    blob = word.group(0)
+    return (len(blob) + pad) % 4 == 0 and any(c.isdigit() or c in "+/" for c in blob)
+
+
 #: Flag names whose *next* argv element is the credential (``--auth user:pw``).
 _FLAG_NAMES = frozenset({"token", "pass", "auth"})
 
@@ -207,6 +222,10 @@ def _redact(value: Any, _depth: int = 0) -> Any:
         return redacted
     if isinstance(value, str) and (":" in value or "=" in value):
         label, separator, candidate = _split_assignment(value)
+        if separator == "=" and (
+            not candidate.strip("= \t") or _base64_padding(label, candidate)
+        ):  # 0.88: only base64 padding follows, so nothing can be hidden; it must verify
+            return value
         name = _field_name(label)
         headers = {"authorization", "proxy_authorization", "cookie", "set_cookie"}
         words = candidate.strip().casefold().split()

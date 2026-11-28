@@ -8145,4 +8145,72 @@ ROWS: tuple[tuple, ...] = (
         True,
         {"command": "promote", "plan": "p.json", "reveal": "r.json", "lineage": "lin"},
     ),  # fmt: skip
+    (
+        "plain:agent scaffold --harness codex --root d --record R --key k --repo r --json",
+        "plain",
+        [
+            "agent",
+            "scaffold",
+            "--harness",
+            "codex",
+            "--root",
+            "d",
+            "--record",
+            "R",
+            "--key",
+            "k",
+            "--repo",
+            "r",
+            "--json",
+        ],
+        "opentine._cli_agent:cmd_agent",
+        False,
+        {
+            "command": "agent",
+            "agent_command": "scaffold",
+            "harness": "codex",
+            "root": "d",
+            "record": "R",
+            "key": "k",
+            "repo": "r",
+            "json": True,
+        },
+    ),  # fmt: skip  # 0.88
+    (
+        "plain:agent scaffold-diff a.json b.json --json",
+        "plain",
+        ["agent", "scaffold-diff", "a.json", "b.json", "--json"],
+        "opentine._cli_agent:cmd_agent",
+        False,
+        {
+            "command": "agent",
+            "agent_command": "scaffold-diff",
+            "before": "a.json",
+            "after": "b.json",
+            "json": True,
+        },
+    ),  # fmt: skip  # 0.88
+    (
+        "plain:agent scaffold-pin --harness claude-code --glob CLAUDE.md --key k",
+        "plain",
+        ["agent", "scaffold-pin", "--harness", "claude-code", "--glob", "CLAUDE.md", "--key", "k"],
+        "opentine._cli_agent:cmd_agent",
+        False,
+        {
+            "command": "agent",
+            "agent_command": "scaffold-pin",
+            "harness": "claude-code",
+            "glob": ["CLAUDE.md"],
+            "key": "k",
+            "root": ".",
+        },
+    ),  # fmt: skip  # 0.88
+    (
+        "plain:mcp-proxy --tool-defs block -- python server.py",
+        "plain",
+        ["mcp-proxy", "--tool-defs", "block", "--", "python", "server.py"],
+        "opentine._cli_mcp_proxy:cmd_mcp_proxy",
+        False,
+        {"command": "mcp-proxy", "tool_defs": "block", "http_upstream": None},
+    ),  # 0.88
 )

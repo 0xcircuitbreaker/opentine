@@ -11,6 +11,8 @@ from typing import Any
 from opentine._integrity_advisory import ADVISORY_CODES
 from opentine._schema_defs import BOOL, INT, STR, closed, doc, opt
 from opentine._schema_defs_canary import SCAN
+from opentine._schema_defs_scaffold import COMMAND_SCHEMAS as _SCAFFOLD_COMMANDS
+from opentine._schema_defs_scaffold import SCHEMAS as _SCAFFOLD
 
 _HEX = {"type": "string", "pattern": "^[0-9a-f]{64}$"}
 _HEAD = {"schema": {"const": "tine-cli-integrity/1"}}
@@ -68,10 +70,11 @@ SCHEMAS: dict[str, dict[str, Any]] = {
         "tree against it (`fail:region-*` and `fail:regions-pin-*` findings; `check` adds "
         "them when a pin is filed).",
         {"oneOf": [_CHECK, _PIN, _SIGN, SCAN, _RPIN, _RCHECK]}),
+    **_SCAFFOLD,  # 0.88: scaffold manifests, a sibling of the protected surfaces
 }  # fmt: skip
 COMMAND_SCHEMAS: dict[str, str] = {
     f"integrity {name}": "tine-cli-integrity-1"
     for name in ("check", "pin", "sign", "scan", "region-pin", "region-check")
-}
+} | _SCAFFOLD_COMMANDS
 
 __all__ = ["COMMAND_SCHEMAS", "SCHEMAS"]

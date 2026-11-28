@@ -69,6 +69,7 @@ self-hosted runner or a laptop it is the same command.
 
 ## MCP tasks
 
-The MCP server (`python -m opentine.mcp_server`) supports MCP 2025-11-25 tasks: a `tools/call` with `task` returns a
+The MCP server (`python -m opentine.mcp_server`) speaks MCP 2026-07-28 and 2025-11-25
+([SCAFFOLD.md](SCAFFOLD.md)) and supports 2025-11-25 tasks: a `tools/call` with `task` returns a
 task id at once and runs the tool in the background; `tasks/get`,
 `tasks/result`, `tasks/list` and `tasks/cancel` follow it (SPEC 8.20).
