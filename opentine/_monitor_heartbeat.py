@@ -102,7 +102,7 @@ def check(
     gating: bool,
     missed: int = MISSED,
 ) -> dict[str, Any]:
-    """``{"heartbeats", "last", "stale_windows", "findings"}`` for one monitor's chain.
+    """``{"heartbeats", "first_ms", "last_ms", "stale_windows", "findings"}`` of one chain.
 
     *batches* is the stream's batch chain (oldest first, each ``{"id", "claim"}``);
     *keys* the pinned monitor fingerprints. Staleness is advisory unless *gating*.
@@ -113,7 +113,7 @@ def check(
     by_id = {b["id"]: b for b in batches}
     order = {b["id"]: i for i, b in enumerate(batches)}
     windows: list[dict[str, Any]] = []
-    last_ms = None
+    first_ms = last_ms = None
     for row in rows:
         claim, oid = row["claim"], row["id"]
         at_ms = millis(claim.get("at"))
@@ -170,6 +170,7 @@ def check(
             continue
         if last_ms is not None and at_ms - last_ms > missed * claim["interval_s"] * 1000:
             windows.append({"from": last_ms, "to": at_ms})
+        first_ms = at_ms if first_ms is None else first_ms
         last_ms = at_ms
     interval = rows[-1]["claim"].get("interval_s", INTERVAL_S) if rows else INTERVAL_S
     if last_ms is None or now_ms - last_ms > missed * interval * 1000:
@@ -179,7 +180,8 @@ def check(
         findings.append(_finding(soft, "stale", None,
                                  f"no heartbeat from {start} to {window['to']} ms "
                                  f"({missed} missed intervals)"))  # fmt: skip
-    return {"heartbeats": len(rows), "last_ms": last_ms, "stale_windows": windows,
+    return {"heartbeats": len(rows), "first_ms": first_ms, "last_ms": last_ms,
+            "stale_windows": windows,
             "findings": findings}  # fmt: skip
 
 

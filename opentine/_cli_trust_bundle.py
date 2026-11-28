@@ -10,9 +10,11 @@ named trust policy's portable fields or ``--pin`` fingerprints, an
 ``.tine/key-roles.toml``, which only grant powers when signed this way. 0.85:
 ``--oversight FILE`` (a JSON section) and ``--oversight-policy FILE`` (an
 ``oversight.toml``: its sha256 and routed sources) pin the oversight policy so
-an older signed copy cannot be put back. ``verify FILE --owner-vkey V
-[--min-serial N]`` checks one against the owner key pinned out of band and
-exits 4 when it does not hold. Both take ``--json`` (``tine-cli-trust-bundle/1``).
+an older signed copy cannot be put back. 0.90: ``--monitors FILE`` (a JSON
+section) binds monitor ids to signer keys (:mod:`opentine._monitor_binding`).
+``verify FILE --owner-vkey V [--min-serial N]`` checks one against the owner
+key pinned out of band and exits 4 when it does not hold. Both take ``--json``
+(``tine-cli-trust-bundle/1``).
 """
 
 from __future__ import annotations
@@ -59,6 +61,11 @@ def add_bundle_parser(group_sub: argparse._SubParsersAction) -> None:
         "--oversight-policy",
         metavar="FILE",
         help="Pin this oversight.toml: its sha256 and the sources it routes",
+    )
+    create.add_argument(
+        "--monitors",
+        metavar="FILE",
+        help="Bind monitor ids to signer keys (JSON: signers, required)",
     )
     create.add_argument("--expires", metavar="TIME", help="RFC 3339 expiry time")
     create.add_argument("--out", metavar="FILE", help="Write the bundle here (else stdout)")
@@ -128,6 +135,8 @@ def _payload(args: argparse.Namespace) -> dict[str, Any]:
         payload["key_roles"] = {"version": 1, "roles": {r: k for r, k in roles.items() if k}}
     if args.oversight or args.oversight_policy:
         payload["oversight"] = _oversight(args)
+    if args.monitors:
+        payload["monitors"] = json.loads(_read(args.monitors))
     return payload
 
 

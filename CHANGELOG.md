@@ -51,6 +51,26 @@
   `monitor-ledger:`, `monitor-heartbeat:` and `monitor-validation:`, which
   `tine hold release` refuses. No object kind and no `tine verify` code is
   added.
+- Monitor ids are bound to their signer keys: the trust bundle's new
+  `monitors` section (`tine trust bundle create --monitors FILE`) maps each id
+  to its fingerprints (one id per key) and may list `required` monitors. A
+  record or heartbeat signed by another monitor's key does not count
+  (`monitor.coverage-unsigned`, `monitor.heartbeat-unsigned`); an unbound id,
+  a renamed one included, is `monitor.signer-unbound`, advisory by default
+  and counting for nothing under `--profile rsi`.
+- `tine promote` reads monitor coverage (`promote.monitor-coverage`): every
+  captured event of the candidate run must be evaluated by each required
+  monitor, under one validated config and threshold, with the monitor live
+  over the run's window. Required by the trust bundle's `monitors.required`
+  (always), or by `required_monitors` with `monitor_coverage = "required"`
+  (implied by `profile = "rsi"`); advisory otherwise (D12).
+- The doom-loop repeated-failure check also counts a normalized action (tool
+  name and argument keys, values bucketed), so changing one argument per
+  retry no longer evades it; varied benign usage is not flagged.
+- A coverage record whose threshold or score is NaN, infinite or not a number
+  is reported (`invalid` in `tine monitor suspicion`, `monitor.coverage-forged`
+  in `coverage`) instead of crashing the suspicion scan.
+- `monitor coverage --json` reports `heartbeats.first_ms`.
 - Role-scoped `tine serve` tokens: `tine serve token mint --role
   ingest|verdict|approve [--agent ID]`, plus `role` and `agent` in the HTTP
   mint. They narrow the existing read/write, ref-namespace and TTL scopes.

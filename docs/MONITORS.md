@@ -214,17 +214,42 @@ every `--interval` seconds (default 60).
 - `gaps`: the uncovered index ranges (at most 100 listed).
 
 Findings that are facts about records are `fail:` in every profile:
-`monitor.coverage-unsigned` (no pinned monitor key), `monitor.coverage-chain`
+`monitor.coverage-unsigned` (no pinned monitor key, or a pinned monitor key the
+trust bundle does not bind to this monitor), `monitor.coverage-chain`
 (a broken record or batch chain), `monitor.coverage-forged` (a record naming a
 batch the stream does not hold, an index the batch did not capture or one
-twice, a line whose input digest is not that of the captured event, counts
+twice, a line whose input digest is not that of the captured event, a
+threshold that is NaN, infinite or not a number, counts
 and digests that do not match its lines, or a record written for another
 monitor or stream), `monitor.heartbeat-unsigned`, `monitor.heartbeat-backfilled`,
 `monitor.heartbeat-replayed` and `monitor.heartbeat-future`. An event the
 monitor errored on (a timeout, a crash, a malformed reply) is not covered. These are advisory by default and `fail:` under
 `--profile rsi`: `monitor.coverage-gap`, `monitor.config-changed`,
-`monitor.stale`, `monitor.latency-slo` and `monitor.unvalidated-threshold`.
-The command exits 1 on a `fail:` finding (`--strict`: on any finding).
+`monitor.stale`, `monitor.latency-slo`, `monitor.unvalidated-threshold` and
+`monitor.signer-unbound` (below; under `rsi` none of an unbound monitor's
+records or heartbeats count). The command exits 1 on a `fail:` finding (`--strict`: on any finding).
+
+### Which key speaks for which monitor
+
+A pinned `monitor` key proves a record came from *a* monitor, not from the one
+it names. The owner-signed trust bundle binds each monitor id to its signer
+keys (`tine trust bundle create --monitors FILE`):
+
+```json
+{"version": 1,
+ "signers": {"rules": ["sha256:<fingerprint>"]},
+ "required": ["rules"]}
+```
+
+A fingerprint may be bound to one monitor id only, and a `required` id must be
+bound; a bundle that breaks either is refused whole. A coverage record or
+heartbeat of a bound monitor counts only when its signer is one of that
+monitor's keys and still a pinned, non-`optimizer` `monitor` key: another
+monitor's key is `monitor.coverage-unsigned` / `monitor.heartbeat-unsigned`.
+A monitor id with no binding (including a renamed id) is
+`monitor.signer-unbound`, advisory by default (D12); under `--profile rsi`
+nothing it signed counts. `required` names the monitors `tine promote` must
+see (docs/EVALS-PROMOTION.md).
 
 ### Heartbeats
 
@@ -270,7 +295,10 @@ coverage at all.
 
 `tine monitor suspicion` reads every verified coverage record (all monitors
 and streams, or `--stream`) and accumulates per `agent:`, `session:` and `run:`
-subject, per ingest stream (`stream:`), and per action digest. Splitting work
+subject, per ingest stream (`stream:`), per action digest, and per normalized
+action (`shape:`: the tool name and argument keys, each value bucketed: a
+string's first word with digits folded, a number's or other value's type),
+recomputed from the captured event. Splitting work
 across sessions does not reset an agent's total; rotating agent ids does not
 reset a session's; and since the subject ids are claimed by the agent itself,
 the stream, which it cannot name, still counts near-threshold scores when every
@@ -281,9 +309,17 @@ advisory flags follow:
   `--budget` (3.0);
 - `advisory:monitor.doom-loop-near-threshold`: `--repeats` (3) or more scores
   within `--margin` (0.1) below the threshold;
-- `advisory:monitor.doom-loop-repeated-failure`: the same action, whatever
-  subject sends it, `--repeats` or more times with an outcome other than
-  `allow`.
+- `advisory:monitor.doom-loop-repeated-failure`: the same action or the same
+  normalized action, whatever subject sends it, `--repeats` or more times with
+  an outcome other than `allow`. Changing one argument per retry
+  (`rm -rf /srv/1`, `rm -rf /srv/2`, ...) is still the same `shape:`; different
+  tools, argument keys or commands (`sudo ...`, `find ...`) are not, and allowed
+  calls never count.
+
+Only records signed by a key bound to their monitor count. A record whose
+threshold or a score is NaN, infinite or not a number is never read: it is
+listed in `invalid` (`--strict` exits 1) and is `monitor.coverage-forged` in
+`coverage`, so it fails closed instead of crashing or hiding a flag.
 
 Each flag names the coverage record in which it was first reached, and the
 oversight queue opens a `suspicion:RECORD` item for it (docs/OVERSIGHT.md), so

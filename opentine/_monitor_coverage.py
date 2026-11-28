@@ -8,11 +8,14 @@ the indices the monitor's verified coverage records
 is ``"E/C"`` and ``percent`` is that fraction to four decimals.
 
 Facts about records are ``fail:`` findings in every profile: a record not
-signed by a pinned ``monitor`` key that is not an ``optimizer`` key
-(``monitor.coverage-unsigned``), a broken chain (``monitor.coverage-chain``),
+signed by a pinned ``monitor`` key that is not an ``optimizer`` key, or by one
+the trust bundle does not bind to this monitor (``monitor.coverage-unsigned``,
+:mod:`opentine._monitor_binding`), a broken chain (``monitor.coverage-chain``),
 or a record that names a batch the stream does not hold, an index the batch
 did not capture, or digests and counts that do not match its events
-(``monitor.coverage-forged``). Everything else is advisory by default (owner
+(``monitor.coverage-forged``, also for a threshold that is not a finite
+number). A monitor id with no signer binding is ``monitor.signer-unbound``,
+and under ``rsi`` none of its records count. Everything else is advisory by default (owner
 decision D12) and a ``fail:`` under ``--profile rsi``: uncovered captured
 events (``monitor.coverage-gap``), a changed monitor config
 (``monitor.config-changed``), a stale or missing heartbeat
@@ -30,6 +33,7 @@ import hashlib
 from typing import Any
 
 from opentine import _ingest_batch, _ingest_holds, _monitor_heartbeat, _monitor_ledger
+from opentine._monitor_binding import allowed, finite
 from opentine._monitor_runner import _events, _request
 from opentine._monitor_validation import operating_point
 from opentine._monitor_verdict import digest
@@ -55,6 +59,8 @@ def _ranges(indices: list[int]) -> list[list[int]]:
 
 def _forged(record: dict[str, Any], batch: dict[str, Any] | None, lines: Any) -> str | None:
     claim = record["claim"]
+    if finite(claim.get("threshold")) is None:
+        return "its threshold is not a finite number"
     if batch is None or batch["claim"].get("seq") != claim.get("batch_seq"):
         return "names a batch the stream does not hold"
     if lines is None:
@@ -87,10 +93,12 @@ def report(repo: Any, stream: str, identity: dict[str, Any], *, now_ms: int,
         raise ValueError(f"profile is one of {', '.join(PROFILES)}")
     gating = profile == "rsi"
     soft = "fail" if gating else "advisory"
-    keys, why = monitors(repo)
+    pinned_keys, why = monitors(repo)
+    keys, unbound = allowed(repo, identity["id"], pinned_keys, gating=gating)
     batches, problems = _monitor_ledger.walk(repo, _ingest_holds.head(repo, stream),
                                              _ingest_batch.CONVENTION)  # fmt: skip
     findings = [_finding("fail", "coverage-chain", None, f"ingest: {p}") for p in problems]
+    findings += [unbound] if unbound else []
     captured: dict[int, str] = {}
     for batch in batches:
         captured.update({e["i"]: batch["id"] for e in _events(batch["claim"])})
@@ -102,7 +110,15 @@ def report(repo: Any, stream: str, identity: dict[str, Any], *, now_ms: int,
     for record in records:
         claim, oid = record["claim"], record["id"]
         if not record["signed"] or record["signer"] not in keys:
-            findings.append(_finding("fail", "coverage-unsigned", oid, why))
+            other = record["signed"] and record["signer"] in pinned_keys
+            findings.append(
+                _finding(
+                    "fail",
+                    "coverage-unsigned",
+                    oid,
+                    (f"signed by a monitor key not bound to {identity['id']}") if other else why,
+                )
+            )
             continue
         lines = _monitor_ledger.decode(claim.get("events"))
         theirs = claim.get("monitor") if isinstance(claim.get("monitor"), dict) else {}

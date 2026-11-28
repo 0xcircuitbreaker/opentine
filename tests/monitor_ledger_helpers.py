@@ -13,7 +13,7 @@ from opentine.repository import Repo
 from tests.key_roles_helpers import pin_roles
 
 SEEDS = {"runner": 31, "policy": 32, "optimizer": 33, "monitor": 34, "scorer": 35,
-         "stranger": 36}  # fmt: skip
+         "stranger": 36, "monitor2": 37}  # fmt: skip
 SEED = "cd" * 32
 T0 = 1_800_000_000_000  # ms; every clock in these tests is injected
 CONFIG = """version = 1
@@ -33,6 +33,12 @@ tool = "*"
 pattern = "probe"
 score = 0.45
 """
+
+
+def pin_monitors(repo, signers: dict, required: list | None = None) -> None:
+    """Re-sign the trust bundle binding monitor ids to signer keys (0.90)."""
+    section = {"version": 1, "signers": signers, **({"required": required} if required else {})}
+    pin_roles(repo.path, extra={"monitors": section})
 
 
 def key(name: str) -> Ed25519PrivateKey:
@@ -80,11 +86,12 @@ def repo_fixture(tmp_path, monkeypatch):
     for name in SEEDS:
         (tmp_path / f"{name}.key").write_bytes(bytes([SEEDS[name]]).hex().encode() * 32)
     (tmp_path / "monitor.toml").write_bytes(CONFIG.encode("utf-8"))
-    roles = {"runner": [fpr("runner")], "policy": [fpr("policy")], "monitor": [fpr("monitor")],
+    roles = {"runner": [fpr("runner")], "policy": [fpr("policy")],
+             "monitor": sorted([fpr("monitor"), fpr("monitor2")]),
              "scorer": [fpr("scorer")], "optimizer": [fpr("optimizer")]}  # fmt: skip
     text = "version = 1\n[roles]\n" + "".join(f"{k} = {json.dumps(v)}\n" for k, v in roles.items())
     (repo.path / "key-roles.toml").write_bytes(text.encode("utf-8"))
-    pin_roles(repo.path)
+    pin_monitors(repo, {"rules": [fpr("monitor")]})
     doc = _ingest_policy.build("rl", capture=[], drop=[], rate=1.0, seed=SEED,
                                issued_at="2027-01-15T08:00:00Z")  # fmt: skip
     _ingest_policy.record(repo, doc, key("policy"))

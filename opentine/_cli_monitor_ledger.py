@@ -97,8 +97,9 @@ def _body(args: argparse.Namespace, repo: Any, now: int) -> tuple[dict[str, Any]
         chains = [c for c in _monitor_ledger.chains(repo) if not args.stream or c[1] in args.stream]
         body = scan(repo, chains, monitors(repo)[0], budget=args.budget, margin=args.margin,
                     repeats=args.repeats)  # fmt: skip
-        code = 1 if args.strict and body["flags"] else 0
+        code = 1 if args.strict and (body["flags"] or body["invalid"]) else 0
         lines = [f"{f['code']}: {f['subject']} ({f['record']})" for f in body["flags"]]
+        lines += [f"invalid record {r['record']}: {r['message']}" for r in body["invalid"]]
         return {**body, "ok": code == 0}, lines or ["no flags"], code
     config = load(args.config)
     if verb in ("run", "heartbeat"):

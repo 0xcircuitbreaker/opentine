@@ -1855,6 +1855,7 @@
           "additionalProperties": false,
           "required": [
             "heartbeats",
+            "first_ms",
             "last_ms",
             "stale_windows"
           ],
@@ -1862,6 +1863,17 @@
             "heartbeats": {
               "type": "integer",
               "minimum": 0
+            },
+            "first_ms": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
             },
             "last_ms": {
               "anyOf": [
@@ -2175,6 +2187,7 @@
         "schema",
         "subjects",
         "flags",
+        "invalid",
         "ok"
       ],
       "properties": {
@@ -2250,6 +2263,26 @@
               },
               "value": {
                 "type": "number"
+              }
+            }
+          }
+        },
+        "invalid": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "record",
+              "message"
+            ],
+            "properties": {
+              "record": {
+                "type": "string",
+                "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+              },
+              "message": {
+                "type": "string"
               }
             }
           }

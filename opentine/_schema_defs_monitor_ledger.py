@@ -60,8 +60,8 @@ _FINDING = closed(["level", "code", "record", "message"], {
     "code": {"type": "string", "pattern": "^(fail|advisory):monitor\\.[a-z-]+$"},
     "record": opt(STR), "message": STR})  # fmt: skip
 _WINDOW = closed(["from", "to"], {"from": opt(INT), "to": INT})
-_BEATS = closed(["heartbeats", "last_ms", "stale_windows"], {
-    "heartbeats": INT, "last_ms": opt(INT),
+_BEATS = closed(["heartbeats", "first_ms", "last_ms", "stale_windows"], {
+    "heartbeats": INT, "first_ms": opt(INT), "last_ms": opt(INT),
     "stale_windows": {"type": "array", "items": _WINDOW}})  # fmt: skip
 _COUNTS = closed(["batches", "evaluated", "verdicts", "heartbeats"], dict.fromkeys(
     ("batches", "evaluated", "verdicts", "heartbeats"), INT))  # fmt: skip
@@ -95,10 +95,12 @@ LEDGER_SHAPES: list[dict[str, Any]] = [
     closed(["command", "schema", "record", "claim"], {
         **_HEAD, "command": {"const": "monitor validate"}, "record": _ATT,
         "claim": closed(_POINT_KEYS, _POINT_PROPS)}),
-    closed(["command", "schema", "subjects", "flags", "ok"], {
+    closed(["command", "schema", "subjects", "flags", "invalid", "ok"], {
         **_HEAD, "command": {"const": "monitor suspicion"},
         "subjects": {"type": "array", "items": _SUBJECT},
-        "flags": {"type": "array", "items": _FLAG}, "ok": BOOL}),
+        "flags": {"type": "array", "items": _FLAG},
+        "invalid": {"type": "array", "items": closed(["record", "message"], {
+            "record": _ANN, "message": STR})}, "ok": BOOL}),
 ]  # fmt: skip
 LEDGER_COMMANDS = tuple(f"monitor {v}" for v in ("run", "heartbeat", "coverage", "validate",
                                                   "suspicion"))  # fmt: skip
