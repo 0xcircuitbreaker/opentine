@@ -8,8 +8,8 @@ that only a pinned `policy` key can change.
 ## The registry
 
 ```
-tine tripwire add ID --metric M --threshold X [--op >=|>|<=|<] [--scope S]
-                  [--action flag|stop] [--decoy sha256:HEX]... [--replace] --key KEY
+tine tripwire add ID --metric M --threshold 1 --key KEY [--op >=|>|<=|<] [--scope S]
+                  [--action flag|stop] [--decoy sha256:HEX]... [--replace]
 tine tripwire remove ID --key KEY
 tine tripwire list
 ```

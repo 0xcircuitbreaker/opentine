@@ -38,12 +38,12 @@ def _strings(value: Any, depth: int = 0) -> list[str]:
         return []
     if isinstance(value, str):
         return [value]
-    if isinstance(value, dict):
-        return [s for k, v in value.items() for s in (*_strings(k, depth + 1),
-                                                      *_strings(v, depth + 1))]  # fmt: skip
-    if isinstance(value, list):
-        return [s for v in value for s in _strings(v, depth + 1)]
-    return []
+    out: list[str] = []
+    children = [x for kv in value.items() for x in kv] if isinstance(value, dict) else (
+        value if isinstance(value, list) else [])  # fmt: skip
+    for child in children:
+        out += _strings(child, depth + 1)
+    return out
 
 
 def digests(event: Any) -> set[str]:

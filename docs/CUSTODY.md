@@ -131,8 +131,8 @@ a weight `copied` or `exported` event and a `tine interp export` need `k`
 approvals (default 2; at least 2) from **distinct** custodian keys:
 
 ```
-tine custody approve --operation copy|export --digest D [--checkpoint C]
-                     --requester FPR [--artifact NAME] [--destination TEXT] --key KEY
+tine custody approve --operation copy|export --digest D --requester FPR --key KEY
+                     [--checkpoint C] [--artifact NAME] [--destination TEXT]
 tine custody revoke APPROVAL --key KEY
 tine custody approvals --operation copy|export --digest D [--checkpoint C] --requester FPR
 ```
