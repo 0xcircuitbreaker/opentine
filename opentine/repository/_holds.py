@@ -85,6 +85,10 @@ COLLUSION_VERDICT = "collusion-verdict:"
 #: 0.84/0.88: an artifact provenance record and its run; a run's scaffold manifest.
 PROVENANCE, SCAFFOLD = "custody:provenance:", "scaffold-manifest:"
 JUDGE_VALIDATION = "judge-validation:"  # 0.89: opentine._judge_validation
+#: Monitor coverage ledger and heartbeat chain heads, and monitor operating points
+#: (opentine._monitor_ledger, opentine._monitor_heartbeat, opentine._monitor_validation).
+MONITOR_LEDGER, MONITOR_HEARTBEAT = "monitor-ledger:", "monitor-heartbeat:"
+MONITOR_VALIDATION = "monitor-validation:"
 _NEVER_RELEASED = (
     ((MEMORY_QUARANTINE,), "a memory quarantine"),
     ((MONITOR_VERDICT, MONITOR_STOP), "a monitor verdict or stop token"),
@@ -108,6 +112,7 @@ _NEVER_RELEASED = (
     ((PROVENANCE,), "an artifact provenance record"),
     ((SCAFFOLD,), "a scaffold manifest record"),
     ((JUDGE_VALIDATION,), "a judge validation record"),
+    ((MONITOR_LEDGER, MONITOR_HEARTBEAT, MONITOR_VALIDATION), "a monitor coverage record"),
 )
 MAX_HOLDS_BYTES = 4 * 1024 * 1024
 
