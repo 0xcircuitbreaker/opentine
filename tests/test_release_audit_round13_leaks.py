@@ -58,7 +58,10 @@ def _migrated(tmp_path: Path) -> tuple[Repo, str]:
     run.add_step(StepKind.tool, {"cmd": "env"}, {"stdout": f"ANTHROPIC_API_KEY is {SECRET}"})
     # An artifact written before 0.9.1, whose .tine writer did not scrub free
     # text (it does now), so the legacy bytes really carry the credential.
-    with mock.patch("opentine._graph_serde.redact_value", lambda value: value):
+    with (
+        mock.patch("opentine._graph_serde.redact_value", lambda value: value),
+        mock.patch("opentine._canon_redact.scan_text", lambda value: value),  # 0.88.1 walk scan
+    ):
         run.save(source)
     repo = Repo.init(tmp_path / "repo")
     migrated = repo.migrate_v2(source)

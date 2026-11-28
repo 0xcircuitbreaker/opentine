@@ -27,6 +27,7 @@ from opentine._redact_obfuscated import disguised_edits, entropy_edits
 from opentine._redact_pem import private_key_edits
 from opentine._redact_ppk import ppk_edits
 from opentine._redact_shapes import QUERY_SECRET, TOKEN_NEEDLES, TOKEN_SHAPES, URL_USERINFO
+from opentine._redact_strings import CAPS_ASSIGNMENT
 
 TESTS = Path(__file__).resolve().parent
 MAX_LITERAL = 200_000
@@ -56,6 +57,7 @@ OLD_STEPS = [
     sub_step(r._LINE_ASSIGNMENT, _head),
     sub_step(r._HEADER_LINE, _head),
     sub_step(r._ASSIGNMENT, r._assignment),
+    sub_step(CAPS_ASSIGNMENT, _head),
     sub_step(r._BEARER, _head),
     flag_edits,
     disguised_edits,

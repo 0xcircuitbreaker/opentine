@@ -1,10 +1,7 @@
 """Typed/path-aware client-side redaction for v3 object creation.
 
-Two halves: ``redact_blob`` scrubs credential-shaped bytes with iterative regex
-scans, and ``redact_value`` walks a decoded value tree. PEM private-key handling
-lives in the stdlib-only leaf ``_redact_pem`` for the module line cap. Every
-import is a stdlib-only leaf, so this module stays importable from every layer.
-"""
+``redact_blob`` scrubs credential-shaped bytes with regex scans; ``redact_value``
+walks a decoded tree. Every import is a stdlib-only leaf (importable anywhere)."""
 
 from __future__ import annotations
 
@@ -28,6 +25,7 @@ from opentine._redact_ppk import ppk_edits
 from opentine._redact_shapes import HEADER_NEEDLES as _HEADERS
 from opentine._redact_shapes import NAME_NEEDLES as _NAMES
 from opentine._redact_shapes import QUERY_SECRET, TOKEN_NEEDLES, TOKEN_SHAPES, URL_USERINFO
+from opentine._redact_strings import CAPS_ASSIGNMENT
 from opentine._unicode_text import assert_unicode_text
 
 # A credential-bearing identifier: an optional vendor/scope prefix (OPENAI_, X-, AWS_, …)
@@ -175,6 +173,7 @@ STEPS: list[Step] = [
     sub_step(_LINE_ASSIGNMENT, _keep_head, needles=_NAMES),
     sub_step(_HEADER_LINE, _keep_head, needles=_HEADERS),
     sub_step(_ASSIGNMENT, _assignment, needles=_NAMES),
+    sub_step(CAPS_ASSIGNMENT, _keep_head, needles=_NAMES),  # MYSQLROOTPASSWORDPRODUCTION= x
     sub_step(_BEARER, _keep_head, needles=(b"bearer",)),
     flag_edits,  # ``--password x`` / ``--token "x"`` (``_redact_flags``)
     # Tokens before the bounded form values, so a value cut at its bound cannot take

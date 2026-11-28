@@ -81,8 +81,10 @@ NAME_NEEDLES = tuple(b"key token secret passw passph credential string url dsn".
 HEADER_NEEDLES = (b"authorization", b"cookie")
 # The password in a URL's userinfo ("postgres://admin:PW@db", "https://bob:PW@git"),
 # keeping scheme, user and host. Every run is bounded, so the scan stays linear.
+# A password may hold "/" (0.88.1: "bob:2/B0...==@db" was kept); ":8080/@scope" is a port.
 URL_USERINFO = re.compile(
-    rb"(?i)\b([a-z][a-z0-9+.-]{1,20}://[^\s/:@'\"<>]{0,256}:)([^\s/@'\"<>]{1,256})(@)"
+    rb"(?i)\b([a-z][a-z0-9+.-]{1,20}://[^\s/:@'\"<>]{0,256}:)(?!\d{1,5}/@)"
+    rb"([^\s@'\"<>]{1,256})(@)"
 )
 # Credential-bearing query parameters: signed-URL signatures and tokens in URLs.
 QUERY_SECRET = re.compile(

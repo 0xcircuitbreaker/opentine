@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.88.1 — Credential redaction gaps (2026-11-28)
+
+Six credential shapes were stored in clear by the field walk
+(`_canon_redact._redact`) that event attributes, usage, billing, fork overrides
+and evidence reports go through alone. All six were pre-existing on main, not
+introduced by 0.88.0:
+
+- vendor tokens (`ghp_`, `github_pat_`, `sk-`, `sk-ant-`, `xoxb-`, `AKIA`, `AIza`,
+  JWTs) and JSON objects held inside one string;
+- the second or later line of a multi-line `.env` or shell file;
+- URL query strings (`?token=`, `&access_token=`, `&sig=`, `&key=`, `api_key=`);
+- URL userinfo passwords (postgres, mysql, redis, amqp, mongodb+srv, https);
+  the byte scanner also kept a userinfo password containing `/`;
+- PEM private-key bodies (PKCS#8, RSA, EC, OpenSSH, encrypted) and PGP
+  private key blocks;
+- an assignment on the line after a base64 line;
+- all-capital run-together names (`MYSQLROOTPASSWORDPRODUCTION= hunter2`), in
+  both the walk and the byte scanner.
+
+A string with one of these shapes now goes through the byte scanner
+(`opentine/_redact_strings.py`). Only the secret is removed: scheme, user, host
+and parameter names stay. Signed notes and checkpoints keep their base64 lines.
+See `docs/PII.md` and `tests/test_0881_redaction_gaps.py`.
+
 ## 0.88.0 — Scaffold manifests and structural diff (2026-11-28)
 
 - New `tine agent scaffold [--harness H] [--root DIR] [--json]`: a per-file
