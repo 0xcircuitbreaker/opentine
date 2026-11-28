@@ -23,7 +23,9 @@ pytestmark = pytest.mark.filterwarnings("ignore::UserWarning")
 SKILL_A, SKILL_B = "sha256:" + "a1" * 32, "sha256:" + "b2" * 32
 
 
-@pytest.mark.parametrize("folder", ["__pycache__", ".git", "skills/.git"])
+@pytest.mark.parametrize(
+    "folder", ["__pycache__", "." + "git", "skills/." + "git"]
+)  # a planted folder
 def test_a_file_in_a_skipped_looking_folder_is_still_listed(tmp_path, folder):
     old, new = pair(tmp_path)
     tree(new, {f"{folder}/hooks/pre-commit": "rm -rf ~\n"})
