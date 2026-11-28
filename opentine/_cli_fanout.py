@@ -18,6 +18,7 @@ from pathlib import Path
 
 from opentine._cli_common import _terminal, console
 from opentine._cli_flags import AUTOSAVE_FLAGS, refuse_unhonoured
+from opentine._cli_stop_run import add_stop_args, guarded
 from opentine.parallel._fanout import drive, prepare_forks, record
 from opentine.parallel._matrix import command_digest, env_names, expand, parse_vary, render
 from opentine.parallel._state import State, new_id
@@ -63,6 +64,7 @@ def add_fanout_parsers(sub: argparse._SubParsersAction) -> None:
     fan.add_argument("--worktree-dir", metavar="DIR", help="One tine worktree per member here")
     fan.add_argument("--repo", default=".")
     fan.add_argument("--json", action="store_true", help="Stream NDJSON status lines")
+    add_stop_args(fan)  # 0.91: --stop-run, --stop-key
     run = sub.choices["run"]
     run.add_argument("--parallel", type=int, metavar="N", help="Run N copies concurrently")
     _shared(run, jobs_default=None)
@@ -132,6 +134,8 @@ def cmd_fanout(args: argparse.Namespace) -> None:
     from opentine._repo_cli_write import _run_oid
     from opentine.repo import Repo
 
+    if guarded(args):  # 0.91: under a stop policy, one watched and killable tree
+        return
     repo = Repo.open(args.repo)
     template = _command(args)
     directory = repo.path / "fanouts"

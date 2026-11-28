@@ -38,8 +38,11 @@ from opentine.harnesses import OpentineHarness
 def cmd_run(args: argparse.Namespace) -> None:
     from opentine._cli_fanout import cmd_run_parallel
     from opentine._cli_stop_run import stop_for_run
+    from opentine._stop_tree import supervise
 
     args.stop_runner = stop_for_run(args)  # 0.91: a stop policy refuses a run with no proof
+    if supervise(args, args.stop_runner, self_watch=not getattr(args, "model", None)):
+        return  # every mode: one watched, killable tree (_stop_tree)
     if cmd_run_parallel(args):
         return
     # --model is checked first so a command line naming two modes is refused by

@@ -120,12 +120,16 @@ def load(repo: Any) -> dict[str, Any] | None:
 
 
 def discover(start: Path | str | None) -> Any:
-    """The repository at *start* (or ``None``), opened only when it has a ``.tine``."""
+    """The repository *start* (default: the current directory) belongs to, or ``None``.
+
+    0.91 review: every parent is searched, as ``tine`` itself does, so a command run
+    from a subdirectory of a repository is under that repository's stop policy.
+    """
     from opentine.repo import Repo
 
     base = Path(start or ".")
-    if not (base / ".tine").is_dir() and not (base.name == ".tine" and base.is_dir()):
-        return None
+    while not base.exists() and base != base.parent:  # a --save path not written yet
+        base = base.parent
     try:
         return Repo.open(base)
     except (OSError, ValueError):

@@ -22,13 +22,20 @@ def add_stop_args(parser: argparse.ArgumentParser) -> None:
                         help="Runner key for the stop-compliance record")  # fmt: skip
 
 
+def places(args: argparse.Namespace, *extra: Any) -> list[Any]:
+    """Every place a command touches whose repository's stop policy applies to it."""
+    names = ("repo", "cwd", "save", "autosave", "worktree_dir")
+    named = [getattr(args, name, None) for name in names]
+    return [p for p in (*extra, *named) if p]
+
+
 def stop_for_run(args: argparse.Namespace, where: str | None = None) -> Any:
-    """The stop runner for *where* (default: the current directory), preflighted."""
+    """The stop runner for *where* and every place *args* names, preflighted."""
     from opentine._stop_runner import HALT_EXIT, StopRefused, open_runner
     from opentine.redaction import redact_text
 
     try:
-        runner = open_runner(where, getattr(args, "stop_run", None),
+        runner = open_runner(places(args, where), getattr(args, "stop_run", None),
                              getattr(args, "stop_key", None))  # fmt: skip
         if runner is not None:
             runner.preflight()
@@ -36,6 +43,13 @@ def stop_for_run(args: argparse.Namespace, where: str | None = None) -> Any:
         console.print(redact_text(str(exc)), style="red", markup=False)
         raise SystemExit(HALT_EXIT) from None
     return runner
+
+
+def guarded(args: argparse.Namespace) -> bool:
+    """The start check, then :func:`opentine._stop_tree.supervise` (``True``: all done)."""
+    from opentine._stop_tree import supervise
+
+    return supervise(args, stop_for_run(args))
 
 
 def run_watched(agent: Any, prompt: str, stop: Any) -> Any:
@@ -77,4 +91,11 @@ def exit_if_halted(halted: Any) -> None:
     raise SystemExit(HALT_EXIT)
 
 
-__all__ = ["add_stop_args", "exit_if_halted", "halted_metadata", "run_watched", "stop_for_run"]
+__all__ = [
+    "add_stop_args",
+    "exit_if_halted",
+    "guarded",
+    "halted_metadata",
+    "run_watched",
+    "stop_for_run",
+]

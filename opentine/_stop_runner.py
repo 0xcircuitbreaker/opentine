@@ -1,7 +1,9 @@
 """The stop policy as ``tine record`` and ``tine run`` apply it.
 
-:func:`open_runner` finds the repository (``--repo``, else the current
-directory) and its stop policy. With none, it returns ``None`` and the command
+:func:`open_runner` finds the stop policy of every repository the command
+touches (:mod:`opentine._stop_scope`: the current directory, ``--repo``,
+``--cwd``, ``--save``, each searched up through its parents, and the pinned
+pointer). With none, it returns ``None`` and the command
 behaves exactly as before (D12). With one, the run must name its run id
 (``--stop-run`` or ``$OPENTINE_STOP_RUN``; continue proofs are bound to it) and
 a runner key (``--stop-key`` or ``$OPENTINE_STOP_KEY``; it signs the
@@ -95,19 +97,19 @@ class StopGate:
             self.inner.settle(ticket, record)
 
 
-def open_runner(where: str | None, run: str | None, key_path: str | None, *,
+def open_runner(where: Any, run: str | None, key_path: str | None, *,
                 clock_ms: Callable[[], int] | None = None) -> StopRunner | None:  # fmt: skip
-    from opentine import _stop_policy
+    """*where*: a place, or a list of the places the command touches (:mod:`._stop_scope`)."""
+    from opentine import _stop_scope
 
-    repo = _stop_policy.discover(where)
-    if repo is None:
-        return None
+    places = where if isinstance(where, (list, tuple)) else [where]
     try:
-        policy = _stop_policy.load(repo)
+        found = _stop_scope.find(places)
     except (ValueError, OSError) as exc:
         raise StopRefused(f"stop policy: {exc}") from None
-    if policy is None:
+    if found is None:
         return None
+    repo, policy = found
     run = run or os.environ.get(RUN_ENV) or None
     key_path = key_path or os.environ.get(KEY_ENV) or None
     if not run:
