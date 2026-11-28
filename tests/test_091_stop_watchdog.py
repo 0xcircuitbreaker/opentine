@@ -18,7 +18,7 @@ import pytest
 from opentine import _stop_compliance, _stop_guard, _stop_supervise, _stop_tree, cli
 from tests.key_roles_helpers import isolated_trust_config  # noqa: F401 - autouse
 from tests.stop_helpers import RUNNER, STOPPER, Clock, fleet, keep_going, key_file, make_repo
-from tests.stop_tree_helpers import CUTS, SLEEPS, STOPS, child_clock, dead, script_args
+from tests.stop_tree_helpers import CUTS, FORGES, SLEEPS, STOPS, child_clock, dead, script_args
 
 linux = pytest.mark.skipif(not os.path.isdir("/proc/self"), reason="needs /proc")
 
@@ -128,6 +128,26 @@ def test_every_parallel_member_is_covered(tmp_path, monkeypatch, fixed):
     claims = [repo.get(r).payload()["claim"] for r in _stop_compliance.held(repo)]
     assert 1 <= len(claims) <= 3 and all(c["residual_processes"] == 0 for c in claims)
     assert {c["code"] for c in claims} == {"stop.stopped"}
+
+
+@linux
+def test_a_child_forged_record_never_replaces_the_parents(tmp_path, monkeypatch, fixed):
+    """A child that exits 3 holding a forged "compliant" record: the parent still measures
+    and signs its own, which counts the setsid grandchild the child left alive."""
+    channel, repos = fleet(tmp_path, 2, watchdog_s=30)  # no watchdog tick: only the exit
+    repo, other = repos
+    keep_going(repo, channel, ["r"], fixed)
+    monkeypatch.chdir(Path(repo.path).parent)
+    script, pidfile = tmp_path / "forge.py", tmp_path / "grandchild.pid"
+    script.write_bytes(FORGES.encode())
+    key = key_file(tmp_path, RUNNER, "runner")
+    script_args(monkeypatch, Path(other.path).parent, channel, STOPPER, pidfile, fixed(), key)
+    assert tine("run", script, "--stop-run", "r", "--stop-key", key) == 3
+    assert dead(int(pidfile.read_text()))  # counted, then still killed
+    claims = [repo.get(r).payload()["claim"] for r in _stop_compliance.held(repo)]
+    assert [c["residual_method"] for c in claims].count("in-process") == 1  # the forgery
+    (parent,) = [c for c in claims if c["residual_method"] != "in-process"]
+    assert parent["residual_processes"] > 0 and parent["compliant"] is False
 
 
 class _Calls:

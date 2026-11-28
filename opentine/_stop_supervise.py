@@ -75,6 +75,7 @@ class Supervised:
         self.halted_ms: int | None = None
         self.forwarded_after = 0
         self.refused_after = 0
+        self.survived = 0  # outlived a child that ended on its own under a stop
         self._lock = threading.Lock()
         self.settle: Callable[[], Any] = lambda: threading.Event().wait(0.02)
 
@@ -125,6 +126,13 @@ class Supervised:
             code = process.wait()
         finally:
             watchdog.stop()
+        if self.reason is None:  # 0.91 review: the child's exit code and records count
+            try:  # for nothing; a halt in force now is measured here, residue included
+                self.guard.check()
+            except Halt as halt:
+                with self._lock:
+                    self.reason, self.requested_ms = halt, self.clock_ms()
+                self._sweep_survivors(process)
         if self.reason is not None:
             self.halted_ms = self.clock_ms()
         else:
@@ -132,6 +140,14 @@ class Supervised:
 
             _cleanup_owned(process, self.job)  # what the child left behind goes with it
         return code
+
+    def _sweep_survivors(self, process: subprocess.Popen[bytes]) -> None:
+        """Count what is still alive below the exited child, then what the sweep killed."""
+        from opentine.tools._process import _cleanup_owned
+
+        self.survived, _ = residual(process.pid, self.token)
+        _cleanup_owned(process, self.job)
+        self.survived += getattr(process, "opentine_swept", 0) or 0
 
     def measure(self) -> dict[str, Any]:
         """The halt's time and residue (call after :meth:`run`)."""
@@ -150,7 +166,8 @@ class Supervised:
         halted = self.halted_ms if self.halted_ms is not None else self.clock_ms()
         return {"code": self.reason.code, "message": self.reason.message,
                 "stop": self.reason.stop, "requested_ms": self.requested_ms,
-                "halted_ms": halted, "residual_processes": count, "residual_method": method,
+                "halted_ms": halted, "residual_processes": count + self.survived,
+                "residual_method": method,
                 "forwarded_after_stop": self.forwarded_after,
                 "refused_after_stop": self.refused_after}  # fmt: skip
 

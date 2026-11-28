@@ -51,8 +51,15 @@ returns and a fan-out member that sleeps are all stopped within one interval.
 The child also checks at start and, except under `--model` (which refuses its
 next call in process and signs its own record), runs a watchdog of its own that
 kills its own process group: a marker forged outside a supervisor skips
-nothing but the supervisor's record. A child that dies without a record of its
-own is re-checked once by the supervisor, so its halt is recorded there.
+nothing but the supervisor's record. However the child ends (killed by its own
+watchdog, exit 3, or a claimed success), the supervisor re-checks the stop
+once; if a halt is in force it measures and signs its own record: the time to
+halt from its own clock and the residual processes from its own sweep of the
+tree, counting every process that outlived the child. A record the child wrote
+never stands in for the supervisor's; where both exist (the `--model` child
+signs its counts too) the supervisor's is authoritative, and a child that
+exits 3 holding a forged "compliant" record still gets the supervisor's
+non-compliant one, which opens its `stop:` item.
 Fan-out members are each supervised runs of their own as well.
 
 ## Which policy applies

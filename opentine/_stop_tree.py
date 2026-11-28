@@ -15,10 +15,12 @@ subreaper, the Windows kill-on-close job object), and the parent only watches:
   start as before and runs a watchdog of its own that kills its own process
   group, so a forged marker outside a supervisor removes nothing but the
   compliance record (defence in depth, never the only stop);
-* when the child is gone the parent signs the compliance record
-  (``time_to_halt_ms``, ``residual_processes``) and exits 3; a child that
-  failed is re-checked once, so a halt the child's own watchdog made is
-  recorded too.
+* when the child is gone the parent re-checks the stop once, whatever the
+  child's exit code, and on a halt measures and signs its own compliance record
+  (``time_to_halt_ms``, ``residual_processes`` from its own sweep of the tree)
+  and exits 3. A record the child wrote never stands in for it: a hostile child
+  that exits 3 holding a forged "compliant" record still gets the parent's,
+  and the parent's is the authoritative one.
 
 With no stop policy nothing of this runs (D12). ``tine run --model`` is
 supervised the same way, but its child keeps the in-process gate and watchdog
@@ -67,8 +69,6 @@ def supervise(args: Any, runner: Any, *, self_watch: bool = True,
     *self_watch* ``False`` (``--model``, which halts in process at its next call
     and signs its own record) leaves the child without the group-killing watchdog.
     """
-    from opentine import _stop_compliance
-
     if runner is None:
         return False  # D12
     interval = runner.policy["watchdog_s"]
@@ -77,24 +77,21 @@ def supervise(args: Any, runner: Any, *, self_watch: bool = True,
             Watchdog(runner.guard, halt_self or (lambda halt: _halt_self(halt)), interval).start()
         return False
     env = {**os.environ, SUPERVISED_ENV: marker(runner)}
-    before = len(_stop_compliance.held(runner.repo))
     code = runner.supervised.run(child_argv(args), env, interval_s=interval)
-    finish(runner, code, signed=len(_stop_compliance.held(runner.repo)) > before)
+    finish(runner, code)
     return True  # pragma: no cover - finish exits
 
 
-def finish(runner: Any, code: int, *, signed: bool = False) -> None:
-    """After the child: the compliance record and exit 3 on a halt, else the child's code.
+def finish(runner: Any, code: int) -> None:
+    """After the child: the parent's own compliance record and exit 3 on a halt.
 
-    A child that failed other than by halting with a record of its own (its
-    watchdog killed its group, or it exited 3 holding none) is re-checked once,
-    so that halt is recorded here.
+    The stop is re-checked once whatever the child's exit code (its watchdog
+    killed its group, it exited 3, or it claims success): any record the child
+    wrote is never counted in place of the parent's.
     """
     from opentine._cli_stop_run import exit_if_halted
-    from opentine._stop_runner import HALT_EXIT
 
-    signed = signed and code == HALT_EXIT  # a halted --model child signs, then exits 3
-    if runner.supervised.reason is None and code != 0 and not signed:
+    if runner.supervised.reason is None:
         try:
             runner.guard.check()
         except Halt as halt:

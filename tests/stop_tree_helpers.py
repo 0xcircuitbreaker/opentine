@@ -75,7 +75,7 @@ def dead(pid: int) -> bool:
         return True
 
 
-__all__ = ["CUTS", "SLEEPS", "STOPS", "child_clock", "dead", "script_args"]
+__all__ = ["CUTS", "FORGES", "SLEEPS", "STOPS", "child_clock", "dead", "script_args"]
 
 SLEEPS = (
     _GRANDCHILD
@@ -85,5 +85,31 @@ import time
 grandchild(pidfile)
 while True:
     time.sleep(0.05)
+"""
+)
+
+# A hostile child: a setsid grandchild, a stop, a forged "compliant" record of its
+# own (signed with the runner key it was given), then exit 3 at once.
+FORGES = (
+    _GRANDCHILD
+    + """\
+from pathlib import Path
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from opentine._stop_guard import Halt
+from opentine._stop_ops import issue_stop
+from opentine._stop_runner import open_runner
+from opentine.repo import Repo
+other, channel, seed, pidfile, now, key = ARGS
+grandchild(pidfile)
+issue_stop(Repo.open(other), Path(channel), "fleet-a",
+           Ed25519PrivateKey.from_private_bytes(bytes.fromhex(seed)), reason="halt",
+           now_ms=int(now))
+runner = open_runner(Path.cwd(), "r", key)
+try:
+    runner.guard.check()
+except Halt as halt:
+    runner.supervised.reason, runner.supervised.requested_ms = halt, int(now)
+assert runner.finish()["claim"]["compliant"] is True
+os._exit(3)
 """
 )

@@ -1,7 +1,8 @@
 """The supervisor program :mod:`opentine.tools._subreaper` starts (Linux).
 
 It runs ``python -I -S -c SUPERVISOR REPORT_FD SECRET_FD TOKEN ARGV...``. The
-report pipe carries ``pid <shim>`` and, after a sweep, ``ok`` -- each line
+report pipe carries ``pid <shim>`` and, after a sweep, ``swept <n>`` (the
+processes it had to kill) and ``ok`` -- each line
 prefixed with a nonce read from SECRET_FD, a pipe OpenTine wrote before the
 start and the supervisor closes at once. The command runs as the same user and
 can open OpenTine's end of the report pipe through ``/proc``, so an unprefixed
@@ -48,7 +49,7 @@ def children(pid):
             pass
     return found
 def sweep():
-    me = os.getpid()
+    me, killed = os.getpid(), set()
     for _ in range(1000):
         stack, seen = children(me), []
         while stack:
@@ -56,7 +57,8 @@ def sweep():
             seen.append(pid)
             stack.extend(children(pid))
         if not seen:
-            return
+            return len(killed)
+        killed.update(seen)
         for pid in seen:
             try:
                 os.kill(pid, signal.SIGKILL)
@@ -68,6 +70,7 @@ def sweep():
                     break
             except ChildProcessError:
                 break
+    return len(killed)
 def mirror(status):
     if os.WIFSIGNALED(status):
         sig = os.WTERMSIG(status)
@@ -78,7 +81,7 @@ def mirror(status):
         os.kill(os.getpid(), sig)
     os._exit(os.waitstatus_to_exitcode(status) & 0xFF)
 def stop(*_):
-    sweep()
+    report(f"swept {sweep()}\n")
     report("ok\n")
     os._exit(137)
 signal.signal(signal.SIGTERM, stop)
@@ -111,7 +114,7 @@ while True:
         break
     except InterruptedError:
         continue
-sweep()
+report(f"swept {sweep()}\n")
 report("ok\n")
 mirror(status)
 """

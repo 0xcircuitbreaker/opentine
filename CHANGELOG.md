@@ -49,6 +49,13 @@
 - Review: a `tripwires` or `custody` trust-bundle section that is present but
   does not parse under a pinned owner fails closed (registry broken, quorum
   impossible) instead of reading as absent.
+- Review: the supervisor always measures and signs its own compliance record
+  when a supervised child ends under a halt, whatever its exit code and
+  whatever record the child wrote (the supervisor's is authoritative); its
+  residual count includes what the subreaper sweep killed after the child
+  exited. Before, a hostile child that exited 3 holding a forged "compliant"
+  record made the supervisor skip its own, hiding a surviving setsid
+  grandchild.
 - Docs: STOP.md.
 - New `tine tripwire add|remove|list|check|trips`: a signed tripwire registry
   (`opentine.tripwire-registry/1`). Each tripwire names a metric (suspicion
