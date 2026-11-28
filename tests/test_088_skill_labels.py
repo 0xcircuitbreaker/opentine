@@ -14,23 +14,35 @@ import pytest
 
 from opentine._lineage import record
 from opentine._promote_skill import check_policy, findings
-from tests.promote_helpers import AT, PROMOTER, RUN_A, RUN_B, key, policy
+from tests.key_roles_helpers import isolated_trust_config, pin_roles  # noqa: F401
+from tests.promote_helpers import AT, PROMOTER, RUN_A, RUN_B, fingerprint, key, policy
 from tests.test_058_promote import Room, _codes
 
 pytestmark = pytest.mark.filterwarnings("ignore::UserWarning")
 
 SKILL_A, SKILL_B = "sha256:" + "a1" * 32, "sha256:" + "b2" * 32
+OPTIMIZER = "9e" * 32
 
 
-def _record(folder, run: str, **artifacts: str) -> None:
-    record(key(PROMOTER), run=run, artifacts=artifacts, store=folder, at=AT)
+def _record(folder, run: str, seed: str = PROMOTER, **artifacts: str) -> None:
+    record(key(seed), run=run, artifacts=artifacts, store=folder, at=AT)
+
+
+def _pin(store, runner: str = PROMOTER) -> None:
+    """Pin ``runner`` as a ``runner`` key and the optimizer's key in ``store``."""
+    store.mkdir(parents=True, exist_ok=True)
+    roles = (f'version = 1\n[roles]\nrunner = ["{fingerprint(runner)}"]\n'
+             f'optimizer = ["{fingerprint(OPTIMIZER)}"]\n')  # fmt: skip
+    (store / "key-roles.toml").write_bytes(roles.encode())
+    pin_roles(store)
 
 
 @pytest.fixture
 def room(tmp_path, monkeypatch):
     monkeypatch.setenv("XDG_CONFIG_HOME", (tmp_path / "config").as_posix())
     room = Room(tmp_path)
-    room.lineage = tmp_path / "lineage"
+    room.lineage = tmp_path / ".tine" / "lineage"
+    _pin(tmp_path / ".tine")
     _record(room.lineage, RUN_B, code_tree="sha256:" + "1" * 64, skill=SKILL_B)
     return room
 
@@ -112,3 +124,40 @@ def test_the_rsi_profile_requires_skill_labels():
     plain: dict = {}
     check_policy(plain)
     assert plain["skill_labels"] == "advisory"
+
+
+def _forged(tmp_path):
+    """The current holder used SKILL_A; the optimizer signs RUN_B's record as SKILL_A too."""
+    lineage = tmp_path / ".tine" / "lineage"
+    _pin(tmp_path / ".tine")
+    _record(lineage, RUN_A, skill=SKILL_A)
+    _record(lineage, RUN_B, seed=OPTIMIZER, skill=SKILL_A, code_tree="sha256:" + "2" * 64)
+    return lineage
+
+
+def test_an_optimizer_signed_skill_digest_is_refused_under_rsi(tmp_path):
+    lineage = _forged(tmp_path)
+    rule = {"profile": "rsi"}
+    check_policy(rule)
+    refused, _, row = findings(rule, candidate=RUN_B, current=RUN_A, label="prod",
+                               lineage=lineage, repo_path=None)  # fmt: skip
+    assert [r["code"] for r in refused] == ["promote.skill-label-required"]
+    assert row == {"from": SKILL_A, "to": "conflicting", "label": "prod"}
+    refused, _, _ = findings(rule, candidate=RUN_B, current=RUN_A, label="skill.x",
+                             lineage=lineage, repo_path=None)  # fmt: skip
+    assert [r["code"] for r in refused] == ["promote.skill-unrecorded"]
+
+
+def test_an_unpinned_record_signer_is_refused_under_a_required_rule(tmp_path):
+    _record(tmp_path, RUN_A, skill=SKILL_A)  # no key roles pinned for this folder
+    refused, _, _ = findings({"skill_labels": "required"}, candidate=RUN_A, current=None,
+                             label="skill.x", lineage=tmp_path, repo_path=None)  # fmt: skip
+    assert [r["code"] for r in refused] == ["promote.skill-unrecorded"]
+
+
+def test_an_optimizer_signed_record_stays_advisory_outside_rsi(tmp_path):
+    lineage = _forged(tmp_path)
+    rule: dict = {}
+    check_policy(rule)
+    assert findings(rule, candidate=RUN_B, current=RUN_A, label="prod", lineage=lineage,
+                    repo_path=None) == ([], [], None)  # fmt: skip

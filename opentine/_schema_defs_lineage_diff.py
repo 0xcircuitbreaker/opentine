@@ -45,8 +45,10 @@ _FINDING = closed(["code", "detail"], {
 _DIFF = closed(["command", "schema", "mode", "ok", "signed", "claim"], {
     **_HEAD, "mode": {"const": "diff"}, "ok": {"const": True}, "signed": opt(STR),
     "claim": CLAIM})  # fmt: skip
-_CHECK = closed(["command", "schema", "mode", "ok", "signer", "target", "findings", "totals"], {
+_CHECK = closed(["command", "schema", "mode", "ok", "signer", "target", "bound", "findings",
+                 "totals"], {
     **_HEAD, "mode": {"const": "check"}, "ok": BOOL, "signer": opt(STR), "target": opt(STR),
+    "bound": {"enum": ["recomputed", "unverified"]},
     "findings": {"type": "array", "items": _FINDING}, "totals": opt(_TOTALS)})  # fmt: skip
 _TREE = closed(["command", "schema", "mode", "ok", "trees"], {
     **_HEAD, "mode": {"const": "tree"}, "ok": {"const": True},

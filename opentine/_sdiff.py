@@ -187,11 +187,13 @@ def dumps(document: dict[str, Any]) -> bytes:
 
 def check(path: Path, old_root: Path | None = None, new_root: Path | None = None, *,
           from_artifacts: dict | None = None,
-          to_artifacts: dict | None = None) -> dict[str, Any]:  # fmt: skip
+          to_artifacts: dict | None = None, rsi: bool = False) -> dict[str, Any]:  # fmt: skip
     """Re-verify a signed diff file; recompute it when both trees are given.
 
     ``bound`` is recomputed from the named variants' recorded artifacts; a signed
-    ``bound`` that cannot be recomputed (no artifacts given) must be ``None``."""
+    ``bound`` that cannot be recomputed (no artifacts given) must be ``None``.
+    Without the trees only the signature is checked: the result's ``bound`` is
+    ``"unverified"`` (``"recomputed"`` with them), and under ``rsi`` that is refused."""
     from opentine._lineage import loads, signed
 
     try:
@@ -210,7 +212,11 @@ def check(path: Path, old_root: Path | None = None, new_root: Path | None = None
                 "detail": "not Ed25519-signed by its signer, or another target",
             }
         )
-    if old_root is not None and new_root is not None:
+    trees = old_root is not None and new_root is not None
+    if rsi and not trees:
+        detail = "not recomputed (bound unverified): the rsi profile needs OLD and NEW"
+        findings.append({"code": "lineage-diff.mismatch", "detail": detail})
+    if trees:
         again = compute(old_root, new_root, from_variant=claim["from"].get("variant"),
                         to_variant=claim["to"].get("variant"), from_artifacts=from_artifacts,
                         to_artifacts=to_artifacts)  # fmt: skip
@@ -219,7 +225,8 @@ def check(path: Path, old_root: Path | None = None, new_root: Path | None = None
                 {"code": "lineage-diff.mismatch", "detail": "the trees do not give the signed diff"}
             )
     return {"ok": not findings, "signer": doc.get("signer"), "target": target,
-            "findings": findings, "totals": claim.get("totals")}  # fmt: skip
+            "bound": "recomputed" if trees else "unverified", "findings": findings,
+            "totals": claim.get("totals")}  # fmt: skip
 
 
 __all__ = ["CONVENTION", "DiffRefused", "check", "compute", "dumps", "file_row", "listing",

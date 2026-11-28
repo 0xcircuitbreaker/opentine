@@ -5,8 +5,10 @@ lineage folder, and ``bound`` reports whether its recorded artifacts include the
 tree's digest. ``--key`` signs the diff (:mod:`opentine._sdiff`) into
 ``--out`` (default ``LINEAGE_FOLDER/diffs/HEX.json``). ``--check FILE`` verifies
 a signed diff and, given OLD and NEW, recomputes it (exit 1 when it does not
-hold). ``--tree`` prints the tree digest of each path, the value to record as
-``--code-tree``/``--skill`` so a later diff is bound to the variant.
+hold); without them ``bound`` is reported ``unverified``, and ``--policy FILE``
+under ``profile = "rsi"`` refuses that. ``--tree`` prints the tree digest of
+each path, the value to record as ``--code-tree``/``--skill`` so a later diff is
+bound to the variant.
 """
 
 from __future__ import annotations
@@ -33,6 +35,7 @@ def add_diff_parser(actions: argparse._SubParsersAction) -> None:
     diff.add_argument("--out", metavar="FILE", help="Signed diff file (LINEAGE/diffs/HEX.json)")
     diff.add_argument("--at", metavar="TIME", help="YYYY-MM-DDTHH:MM:SSZ (default: now)")
     diff.add_argument("--check", metavar="FILE", help="Verify a signed diff file")
+    diff.add_argument("--policy", metavar="FILE", help="Promote policy (rsi: --check needs trees)")
     diff.add_argument("--tree", action="store_true", help="Print each path's tree digest")
     diff.add_argument("--json", action="store_true", help="Machine-readable output")
 
@@ -96,7 +99,12 @@ def _row(args: argparse.Namespace) -> dict:
         trees = [Path(p) for p in paths] or [None, None]
         sides = _signed_sides(Path(args.check)) if paths else {}
         found = {f"{side}_artifacts": _artifacts(args, v) for side, v in sides.items()}
-        return {"mode": "check", **_sdiff.check(Path(args.check), *trees, **found)}
+        rsi = False
+        if args.policy:
+            from opentine._promote_checks import load_policy
+
+            rsi = load_policy(Path(args.policy)).get("profile") == "rsi"
+        return {"mode": "check", **_sdiff.check(Path(args.check), *trees, **found, rsi=rsi)}
     if len(paths) != 2:
         raise error("lineage diff needs OLD and NEW", USAGE, prefix="lineage: ")
     claim = _sdiff.compute(Path(args.old), Path(args.new), from_variant=args.from_variant,
@@ -125,7 +133,8 @@ def _text(row: dict) -> str:
     if row["mode"] == "tree":
         return "\n".join(f"{t['tree']} {t['path']}" for t in row["trees"])
     if row["mode"] == "check":
-        lines = [f"{'OK' if row['ok'] else 'REFUSED'} signed by {row['signer']}"]
+        lines = [f"{'OK' if row['ok'] else 'REFUSED'} signed by {row['signer']}, bound "
+                 f"{row['bound']}"]  # fmt: skip
         return "\n".join(lines + [f"  {f['code']}: {f['detail']}" for f in row["findings"]])
     claim = row["claim"]
     totals = claim["totals"]

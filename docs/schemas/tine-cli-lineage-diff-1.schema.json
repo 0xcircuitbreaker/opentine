@@ -311,6 +311,7 @@
         "ok",
         "signer",
         "target",
+        "bound",
         "findings",
         "totals"
       ],
@@ -345,6 +346,12 @@
             {
               "type": "null"
             }
+          ]
+        },
+        "bound": {
+          "enum": [
+            "recomputed",
+            "unverified"
           ]
         },
         "findings": {

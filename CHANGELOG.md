@@ -73,7 +73,14 @@
   the advisory `advisory:promote.skill-changed`; with `skill_labels =
   "required"` (on under `profile = "rsi"`) it is refused
   (`promote.skill-label-required`), and a `skill.*` label on a candidate with
-  no recorded skill is `promote.skill-unrecorded`.
+  no recorded skill is `promote.skill-unrecorded`. Under that rule a lineage
+  record counts only when signed by a pinned key role that is not an
+  `optimizer` key; a record any other key signed (the loop's own included)
+  makes the run's skill unknown, so the optimizer cannot forge the skill
+  digest that decides the label. Outside the rule it stays advisory (D12).
+- `tine lineage diff --check FILE` without OLD and NEW reports `bound` as
+  `unverified` (`recomputed` with them); `--policy FILE` under
+  `profile = "rsi"` refuses an unrecomputed check (`lineage-diff.mismatch`).
 - Padded base64 values (signatures, digests, opaque provider blobs such as
   thought signatures) that end in `pw=` or `Pw==` (about 1 in 200 random
   values) are no longer rewritten by the field scrubber in stored runs, `.tine`

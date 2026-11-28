@@ -241,3 +241,22 @@ def test_the_cli_signs_into_the_lineage_folder_and_binds_variants(tmp_path, caps
     assert code != 0
     code, text = _tine(capsys, "lineage", "diff", old.as_posix(), new.as_posix())
     assert code == 0 and "changed tools tools.json" in text
+
+
+def test_check_without_trees_reports_bound_unverified_and_rsi_refuses(tmp_path, capsys):
+    from tests.promote_helpers import policy
+
+    old, new = pair(tmp_path, agent_DOT_py=BASE["agent.py"].replace("3", "4"))
+    path = tmp_path / "diff.json"
+    path.write_bytes(dumps(sign(compute(old, new), key(PROMOTER), at=AT)))
+    alone = check(path)
+    assert alone["ok"] and alone["bound"] == "unverified"
+    assert check(path, old, new)["bound"] == "recomputed"
+    assert [f["code"] for f in check(path, rsi=True)["findings"]] == ["lineage-diff.mismatch"]
+    assert check(path, old, new, rsi=True)["ok"]
+    rsi = policy(tmp_path, require_holdout=False, profile="rsi")
+    code, row = _tine(capsys, "lineage", "diff", "--check", path.as_posix(), "--policy",
+                      rsi.as_posix(), "--json")  # fmt: skip
+    assert code == 1 and row["bound"] == "unverified" and not row["ok"]
+    code, row = _tine(capsys, "lineage", "diff", "--check", path.as_posix(), "--json")
+    assert code == 0 and row["bound"] == "unverified"

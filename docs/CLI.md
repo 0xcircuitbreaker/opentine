@@ -2299,7 +2299,7 @@ conflict toward the side that weakens a hold. `--json` prints
 | `tine lineage archive [--loop LOOP] [--signed] [--dir DIR] --repo PATH` | Population totals and per-variant fan-in/fan-out |
 | `tine lineage index [--rebuild] [--dir DIR] --repo PATH` | Build the derived index (`LINEAGE_FOLDER/index/lineage.sqlite`; rebuildable, never authoritative) |
 | `tine lineage diff OLD NEW [--from VARIANT] [--to VARIANT] [--key KEY] [--out FILE] [--at TIME] [--dir DIR] --repo PATH` | (0.88) Structural diff of two variant trees: Python by AST symbol, prompts by section, tool sets by `tool_def_digest`, configs by canonical leaf (a repeated key is refused, `lineage-diff.duplicate-key`), other text by tokens, with hidden-edit flags; `--key` signs it (claim convention `opentine.lineage.diff`) into `LINEAGE_FOLDER/diffs/` |
-| `tine lineage diff --check FILE [OLD NEW]` / `tine lineage diff PATH... --tree` | (0.88) Verify a signed diff and recompute it from the trees (exit 1 on `lineage-diff.bad-signature` or `lineage-diff.mismatch`) / print each path's tree digest |
+| `tine lineage diff --check FILE [OLD NEW] [--policy FILE]` / `tine lineage diff PATH... --tree` | (0.88) Verify a signed diff and recompute it from the trees (exit 1 on `lineage-diff.bad-signature` or `lineage-diff.mismatch`); without the trees `bound` is `unverified`, refused under an rsi `--policy` / print each path's tree digest |
 
 `--json` prints `tine-cli-lineage/1`. Every subcommand but `record` refuses a
 lineage folder over `--max-files` (200000) or `--max-bytes` (1 GiB) before

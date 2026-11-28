@@ -14,6 +14,12 @@ one whose name starts with ``skill.``:
 ``promote.skill-unrecorded``        under that rule, a skill label moves to a candidate
                                     whose signed lineage record names no skill.
 
+Under that rule a record counts only when its signer holds a pinned key role
+(``REPO/.tine/key-roles.toml`` in an owner-signed trust bundle) and is not an
+``optimizer`` key: a record any other key signed, the loop's own included, makes
+its run's skill unknown (``conflicting``), so an optimizer cannot forge the skill
+digest that decides the label. Outside the rule every signed record counts (D12).
+
 ``tine promote --revert`` moves a skill label back like any other label.
 """
 
@@ -37,8 +43,31 @@ def check_policy(policy: dict[str, Any]) -> None:
     policy["skill_labels"] = mode
 
 
-def _skills(lineage: Path) -> dict[str, str | None]:
-    """``{mutation run: skill digest or None}`` over the signed variant records."""
+def trusted_signers(lineage: Path, repo_path: Path | None) -> set[str]:
+    """Pinned non-``optimizer`` keys of the repository, else of the lineage folder's ``.tine``."""
+    from opentine._key_roles import KeyRoleError
+    from opentine._key_roles_pin import resolve
+
+    stores = [Path(repo_path) / ".tine"] if repo_path is not None else []
+    if Path(lineage).name == "lineage" and Path(lineage).parent.name == ".tine":
+        stores.append(Path(lineage).parent)
+    roles: dict = {}
+    for store in stores:  # the repository's pinned roles first, then the lineage's own
+        try:
+            found = resolve(store)
+        except KeyRoleError:
+            continue
+        if found["status"] == "pinned":
+            roles = found["roles"] or {}
+            break
+    keys = {k for role, held in roles.items() if role != "optimizer" for k in held}
+    return keys - set(roles.get("optimizer", []))
+
+
+def _skills(lineage: Path, trusted: set[str] | None = None) -> dict[str, str | None]:
+    """``{mutation run: skill digest or None}`` over the signed variant records.
+
+    With ``trusted``, a record signed by another key makes its run ``CONFLICT``."""
     from opentine import _lineage
 
     out: dict[str, str | None] = {}
@@ -58,8 +87,10 @@ def _skills(lineage: Path) -> dict[str, str | None]:
             continue
         run, skill = claim.get("mutation_run"), claim["artifacts"].get("skill")
         if isinstance(run, str):
-            seen.setdefault(run, set()).add(skill if isinstance(skill, str) else None)
-    for run, found in seen.items():  # records disagree: no one of them decides
+            untrusted = trusted is not None and doc.get("signer") not in trusted
+            named = skill if isinstance(skill, str) else None
+            seen.setdefault(run, set()).add(CONFLICT if untrusted else named)
+    for run, found in seen.items():  # records disagree, or one is untrusted: none decides
         out[run] = next(iter(found)) if len(found) == 1 else CONFLICT
     return out
 
@@ -72,13 +103,15 @@ def findings(policy: dict[str, Any], *, candidate: str, current: str | None, lab
 
     if lineage is None and repo_path is not None:
         lineage = Path(repo_path) / ".tine" / "lineage"
-    known = _skills(Path(lineage)) if lineage is not None else {}
     required = policy.get("skill_labels") == "required"
+    trusted = trusted_signers(Path(lineage), repo_path) if required and lineage else None
+    known = _skills(Path(lineage), trusted) if lineage is not None else {}
     to, was = known.get(candidate), known.get(current) if current else None
     skill_label = label.startswith(PREFIX)
     if required and skill_label and to in (None, CONFLICT):
         return [refusal("promote.skill-unrecorded", f"{label} is a skill label and the "
-                        "candidate's signed lineage record names no skill")], [], None  # fmt: skip
+                        "candidate has no lineage record naming one skill, signed by a "
+                        "pinned non-optimizer key")], [], None  # fmt: skip
     if to == was and to != CONFLICT:
         return [], [], None
     row = {"from": was, "to": to, "label": label}
@@ -101,4 +134,4 @@ def gates(policy: dict[str, Any], repo_path: Path | None, candidate: str, curren
     return held + more, advised + advice, row
 
 
-__all__ = ["MODES", "PREFIX", "check_policy", "findings", "gates"]
+__all__ = ["MODES", "PREFIX", "check_policy", "findings", "gates", "trusted_signers"]

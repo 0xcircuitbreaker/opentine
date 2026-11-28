@@ -233,7 +233,10 @@ newer tree's digest. `tine lineage diff --check FILE [OLD NEW]` verifies the
 signature (the signer must be the signing key) and, given both trees,
 recomputes the claim, `bound` included (read from the lineage folder, never
 taken from the signed file): exit 1 with `lineage-diff.bad-signature` or
-`lineage-diff.mismatch`. The diff is evidence: it does not block a promotion.
+`lineage-diff.mismatch`. Without the trees only the signature is checked and
+the result's `bound` is `unverified` (`recomputed` with them); with `--policy
+FILE` under `profile = "rsi"` that is refused (`lineage-diff.mismatch`). The
+diff is evidence: it does not block a promotion.
 
 No folder is skipped (a cache or VCS folder can hold scaffold). A Python file
 with a coding cookie other than UTF-8 is diffed by tokens, since Python would
@@ -241,9 +244,13 @@ decode its bytes differently. A config key that is not plain
 (`[A-Za-z0-9_-]+`) or not a string is quoted in its path, so `{"a.b": 1}` is not
 `{"a": {"b": 1}}`. In `tine promote`, signed records of one run that name
 different skills are a skill change, and under `skill_labels = "required"` a
-`skill.*` label cannot move to such a candidate.
+`skill.*` label cannot move to such a candidate. Under that rule a record
+counts only when its signer holds a pinned role of the repository's key-role
+policy (else of the lineage folder's `.tine`) and is not an `optimizer` key; a
+record another key signed makes its run's skill unknown, refused like
+conflicting records.
 
 ## Not yet
 
 The Tineyard view of the graph comes later. Record signers are proven, not
-pinned to a role.
+pinned to a role, except for skill labels under `skill_labels = "required"`.
