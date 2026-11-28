@@ -468,6 +468,7 @@ DRIVEN = (
     ),  # 0.78: exports the root variant the pre-step records
     (("agent", "scaffold", "--root", ".", "--json"), "tine-cli-scaffold-1"),  # 0.88
     (("agent", "scaffold-diff", "sa.json", "sa.json", "--json"), "tine-cli-scaffold-1"),
+    (("judge", "injection", "repo/d.jsonl", "--json"), "tine-cli-judge-1"),  # 0.89
 )
 
 

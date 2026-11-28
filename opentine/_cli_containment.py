@@ -23,6 +23,8 @@ from opentine._cli_ingest import COMMANDS as INGEST_COMMANDS
 from opentine._cli_ingest import add_ingest_parser
 from opentine._cli_interp import COMMANDS as INTERP_COMMANDS
 from opentine._cli_interp import add_interp_parser
+from opentine._cli_judge import COMMANDS as JUDGE_COMMANDS
+from opentine._cli_judge import add_judge_parser
 from opentine._cli_keyless import COMMANDS as KEYLESS_COMMANDS
 from opentine._cli_keyless import add_keyless_parser
 from opentine._cli_organism import COMMANDS as ORGANISM_COMMANDS
@@ -47,6 +49,7 @@ def add_containment_parser(subparsers: argparse._SubParsersAction) -> None:
         subparsers
     )  # 0.74: tine transcripts index|search|similar|cluster|label|flags
     add_policy_parser(subparsers)  # 0.75 (release 0.74.0): tine policy check|list|show
+    add_judge_parser(subparsers)  # 0.89: tine judge classify|label|queue|agreement|validate|...
     parser = subparsers.add_parser("containment", help="Sandbox policy and containment evidence")
     verbs = parser.add_subparsers(dest="containment_command", required=True)
     rec = verbs.add_parser("record", help="Sign and hold a run's sandbox policy")
@@ -151,4 +154,5 @@ COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
     **POLICY_COMMANDS,
     **KEYLESS_COMMANDS,
     **INGEST_COMMANDS,
+    **JUDGE_COMMANDS,
 }

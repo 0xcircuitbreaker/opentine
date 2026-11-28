@@ -142,7 +142,8 @@ def promote(key: Any, policy: dict[str, Any], candidate: str, label: str, *, sta
     refusals += sealed(list(sealed_holdouts), canary_lengths, repo_path, candidate,
                        policy=policy, advisories=evidence["advisories"])  # fmt: skip
     refusals += late(repo_path, candidate, label, record, evals)  # 0.61 memory, 0.64 oversight
-    held, advised, skills = gates(policy, repo_path, candidate, record["current"], label, lineage)
+    held, advised, skills = gates(policy, repo_path, candidate, record["current"], label, lineage,
+                                  {"baseline": baseline, "evals": evals})  # fmt: skip
     refusals += held  # 0.87: EVOLVE-BLOCK region pins; 0.88: skill labels
     evidence["advisories"] += advised
     more, advice, plan_row = planned(policy, record, candidate, baseline, evals, holdout, plan,
@@ -204,9 +205,8 @@ def revert(key: Any, policy: dict[str, Any], candidate: str, label: str, *, stat
         raise PromotionRefused(
             [refusal("promote.not-current", f"{candidate} does not hold {label}")]
         )
-    promoted = [
-        h for h in record["history"] if h["action"] == "promote" and h["candidate"] == candidate
-    ]
+    promoted = [h for h in record["history"]
+                if h["action"] == "promote" and h["candidate"] == candidate]  # fmt: skip
     back = promoted[-1]["previous"] if promoted else None
     decision = _decision(key, candidate, {
         "action": "revert", "label": label, "candidate": candidate, "previous": back,

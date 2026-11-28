@@ -1,0 +1,735 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-judge-1.schema.json",
+  "title": "tine judge VERB --json",
+  "description": "Judge assurance (0.89). `classify` runs label judges (label, probability, explicit abstain; a parse failure is an error, never a 0) and ensembles whose members must be independent (copies of one judge count once). `label` signs one human rubric label with a pinned reviewer key; `queue` lists each reviewer's assigned and pending items; `agreement` reports judge-vs-human agreement with a bootstrap interval and floor; `validate` signs a judge or monitor validation (adversarial cases plus the floor); `independence` checks judges, monitors and eval items against the candidate's lineage; `injection` lists candidate outputs aimed at their judge (advisory).",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": [
+        "command",
+        "schema",
+        "labels",
+        "members",
+        "independence",
+        "rows",
+        "advisories",
+        "counts"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-judge/1"
+        },
+        "command": {
+          "const": "judge classify"
+        },
+        "labels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "aggregate": {
+          "type": "string"
+        },
+        "members": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "pin",
+              "model",
+              "prompt_digest",
+              "lineage"
+            ],
+            "properties": {
+              "pin": {
+                "type": "string"
+              },
+              "model": {
+                "type": "string"
+              },
+              "prompt_digest": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "lineage": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "independence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "groups",
+            "independent",
+            "links",
+            "findings"
+          ],
+          "properties": {
+            "groups": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "independent": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "findings": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "code"
+                ],
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "pattern": "^(fail|advisory):[a-z.-]+$"
+                  },
+                  "detail": {
+                    "type": "string"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "item": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "kind": {
+                    "type": "string"
+                  },
+                  "match": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "links": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "members",
+                  "because"
+                ],
+                "properties": {
+                  "members": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "because": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "advisories": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "pattern": "^(fail|advisory):[a-z.-]+$"
+              },
+              "detail": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "item": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "kind": {
+                "type": "string"
+              },
+              "match": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "counts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "item",
+              "outcome",
+              "members"
+            ],
+            "properties": {
+              "item": {
+                "type": "string"
+              },
+              "outcome": {
+                "type": "object",
+                "required": [
+                  "status",
+                  "label",
+                  "probability"
+                ],
+                "properties": {
+                  "status": {
+                    "enum": [
+                      "label",
+                      "abstain",
+                      "error"
+                    ]
+                  },
+                  "label": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "probability": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "reason": {
+                    "type": "string"
+                  },
+                  "judge_run": {
+                    "type": "string"
+                  },
+                  "votes": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "groups": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              },
+              "members": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "status",
+                    "label",
+                    "probability"
+                  ],
+                  "properties": {
+                    "status": {
+                      "enum": [
+                        "label",
+                        "abstain",
+                        "error"
+                      ]
+                    },
+                    "label": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "probability": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "reason": {
+                      "type": "string"
+                    },
+                    "judge_run": {
+                      "type": "string"
+                    },
+                    "votes": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "groups": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "command",
+        "schema",
+        "record",
+        "claim"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-judge/1"
+        },
+        "command": {
+          "const": "judge label"
+        },
+        "record": {
+          "type": "string"
+        },
+        "claim": {
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "command",
+        "schema",
+        "rubric",
+        "reviewers",
+        "pinned"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-judge/1"
+        },
+        "command": {
+          "const": "judge queue"
+        },
+        "rubric": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "pinned": {
+          "type": "boolean"
+        },
+        "why": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "short": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "reviewers": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "assigned",
+              "pending"
+            ],
+            "properties": {
+              "assigned": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "pending": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "unassigned_labels": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "conflicts": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "ignored": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "command",
+        "schema",
+        "rubric",
+        "agreement",
+        "advisory"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-judge/1"
+        },
+        "command": {
+          "const": "judge agreement"
+        },
+        "rubric": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "agreement": {
+          "type": "object",
+          "required": [
+            "method",
+            "value",
+            "ci",
+            "floor",
+            "meets_floor",
+            "coverage",
+            "counted",
+            "labelled"
+          ],
+          "properties": {
+            "method": {
+              "enum": [
+                "cohen-kappa",
+                "fleiss-kappa",
+                "krippendorff-alpha"
+              ]
+            },
+            "value": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "ci": {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "floor": {
+              "type": "string",
+              "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
+            },
+            "meets_floor": {
+              "type": "boolean"
+            },
+            "coverage": {
+              "type": "string",
+              "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
+            },
+            "counted": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "labelled": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "reasons": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "advisory": {
+          "type": "boolean"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "command",
+        "schema",
+        "record",
+        "claim"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-judge/1"
+        },
+        "command": {
+          "const": "judge validate"
+        },
+        "record": {
+          "type": "string"
+        },
+        "claim": {
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "command",
+        "schema",
+        "candidate",
+        "family",
+        "rows",
+        "findings"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-judge/1"
+        },
+        "command": {
+          "const": "judge independence"
+        },
+        "candidate": {
+          "type": "string"
+        },
+        "family": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "variants",
+            "runs"
+          ],
+          "properties": {
+            "variants": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "runs": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "kind",
+              "id",
+              "independent",
+              "because"
+            ],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "judge",
+                  "monitor",
+                  "item"
+                ]
+              },
+              "id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "independent": {
+                "type": "boolean"
+              },
+              "because": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "pattern": "^(fail|advisory):[a-z.-]+$"
+              },
+              "detail": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "item": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "kind": {
+                "type": "string"
+              },
+              "match": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "command",
+        "schema",
+        "findings",
+        "advisory"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-judge/1"
+        },
+        "command": {
+          "const": "judge injection"
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "pattern": "^(fail|advisory):[a-z.-]+$"
+              },
+              "detail": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "item": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "kind": {
+                "type": "string"
+              },
+              "match": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "advisory": {
+          "type": "boolean"
+        }
+      }
+    }
+  ]
+}
