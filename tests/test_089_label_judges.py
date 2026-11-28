@@ -10,7 +10,16 @@ import pytest
 import opentine.cli as cli
 from opentine import _eval_judge, _schemas
 from opentine._judge_label import check_labels, parse
-from tests.judge_helpers import fake_models, judge_room, write_jsonl  # noqa: F401
+from tests.judge_helpers import (  # noqa: F401
+    AT,
+    OPTIMIZER,
+    REV1,
+    SCORER,
+    fake_models,
+    judge_room,
+    keyfile,
+    write_jsonl,
+)
 from tests.key_roles_helpers import isolated_trust_config  # noqa: F401
 from tests.query_helpers import tine
 
@@ -99,8 +108,9 @@ def test_classify_keeps_abstains_and_errors_apart(room, monkeypatch, capsys):
     base = room["base"]
     code, out = tine(capsys, "judge", "classify", "--judge", "ollama:a", "--labels", "pass,fail",
                      "--items", (base / "items.jsonl").as_posix(), "--runs-dir",
-                     (base / "runs").as_posix(), "--out",
-                     (base / "o.jsonl").as_posix())  # fmt: skip
+                     (base / "runs").as_posix(), "--out", (base / "o.jsonl").as_posix(),
+                     "--key", keyfile(room, SCORER), "--repo", (base / "r").as_posix(),
+                     "--at", AT)  # fmt: skip
     assert code == 0, out
     _schemas.validate(out, "tine-cli-judge-1")
     assert out["counts"] == {"label": 7, "abstain": 7, "error": 6}
@@ -108,4 +118,22 @@ def test_classify_keeps_abstains_and_errors_apart(room, monkeypatch, capsys):
     assert by["i0"]["label"] == "pass" and by["i1"]["status"] == "abstain"
     assert by["i2"]["status"] == "error" and by["i2"]["label"] is None
     written = [json.loads(x) for x in (base / "o.jsonl").read_bytes().splitlines()]
-    assert [r["item"] for r in written] == [r["item"] for r in out["rows"]]
+    claims = [w["claim"] for w in written]  # signed opentine.judge-outcome/1 lines
+    from opentine._label_queue import digest
+
+    items = {i["id"]: i for i in room["items"]}
+    assert [c["item_sha256"] for c in claims] == [digest(items[r["item"]]) for r in out["rows"]]
+    assert {c["judge"] for c in claims} == {out["members"][0]["pin"]}
+    assert [c["status"] for c in claims] == [r["outcome"]["status"] for r in out["rows"]]
+
+
+def test_classify_signs_outcomes_only_with_a_pinned_scorer(room, monkeypatch, capsys):
+    fake = fake_models(monkeypatch, {"ollama:a": lambda _t: "LABEL: pass"})
+    base = room["base"]
+    argv = ["judge", "classify", "--judge", "ollama:a", "--labels", "pass,fail", "--items",
+            (base / "items.jsonl").as_posix(), "--runs-dir", (base / "runs").as_posix(),
+            "--out", (base / "o.jsonl").as_posix(), "--repo", (base / "r").as_posix()]  # fmt: skip
+    for extra in ([], ["--key", keyfile(room, OPTIMIZER)], ["--key", keyfile(room, REV1)]):
+        code, out = tine(capsys, *argv, *extra)
+        assert code != 0, out
+    assert fake["ollama:a"].calls == 0  # refused before any model is called

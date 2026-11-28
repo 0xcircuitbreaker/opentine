@@ -11,10 +11,12 @@ from opentine._eval_run import run_eval
 from opentine._eval_scorers import Scorer
 from opentine._label_queue import LabelError
 from opentine._label_report import settings
-from opentine._promote_agreement import check_policy, findings
+from opentine._promote_judges import check_policy, findings
 from tests.key_roles_helpers import isolated_trust_config  # noqa: F401
 from tests.label_helpers import ADMIN, AT, R1, RUBRIC, items, write_items
 from tests.promote_helpers import EVALER, fingerprint, key
+
+RUN = "run:sha256:" + "e" * 64
 
 
 def _pin_both(repo):
@@ -47,7 +49,7 @@ def test_agreement_numbers_are_plain_decimals(value):
     with pytest.raises(ValueError):
         settings(floor=value)
     with pytest.raises(ValueError):
-        check_policy({"judge_agreement": "required", "agreement_floor": value})
+        check_policy({"judge_assurance": "required", "agreement_floor": value})
 
 
 def test_a_judge_verdict_without_a_provenance_pin_is_refused_when_required(tmp_path):
@@ -57,11 +59,24 @@ def test_a_judge_verdict_without_a_provenance_pin_is_refused_when_required(tmp_p
     scorer = Scorer(id="llm-judge", version="renamed-judge-v2", config={},
                     func=lambda item, out: (1.0, "run:sha256:" + "d" * 64))  # fmt: skip
     run_eval(rows, scorer, key(EVALER), tmp_path / "ev", outputs=outputs, created_at=AT)
-    required = {"judge_agreement": "required"}
+    required = {"judge_assurance": "required"}
     check_policy(required)
-    refused, _ = findings(required, tmp_path, tmp_path / "ev")
-    assert [r["code"] for r in refused] == ["promote.judge-agreement"]
+    refused, _ = findings(required, tmp_path, RUN, None, {"evals": tmp_path / "ev"})
+    assert [r["code"] for r in refused] == ["promote.judge-unvalidated"]
     advisory = {}
     check_policy(advisory)
-    refused, advised = findings(advisory, tmp_path, tmp_path / "ev")
-    assert refused == [] and [a["code"] for a in advised] == ["advisory:promote.judge-agreement"]
+    refused, advised = findings(advisory, tmp_path, RUN, None, {"evals": tmp_path / "ev"})
+    assert refused == [] and [a["code"] for a in advised] == ["advisory:judge.unvalidated"]
+
+
+def test_a_reveal_cannot_carry_plain_judge_labels(tmp_path):
+    """Judge outcomes are bound to the judge: an unsigned outputs file is refused."""
+    from tests.label_helpers import pin, provenance, queue
+
+    pin(tmp_path)
+    shas = queue(tmp_path, n=2)
+    path = tmp_path / "plain.jsonl"
+    path.write_bytes(b"".join(json.dumps({"item_sha256": s, "label": "good"}).encode() + b"\n"
+                              for s in shas))  # fmt: skip
+    with pytest.raises(LabelError, match="judge.outcome-unsigned"):
+        ops.reveal(tmp_path, "q", provenance(tmp_path / "j.json"), path, key(ADMIN), AT)

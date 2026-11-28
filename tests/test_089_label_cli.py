@@ -72,9 +72,14 @@ def test_the_label_flow_through_the_cli(room, capsys):
                        fingerprint(R1), "--to", fingerprint(OPT), "--reason", "x",
                        "--key", keys[ADMIN])  # fmt: skip
     assert code == 1  # R1 already labelled it
-    code, row = _label(capsys, repo, "agree", "q", "--resamples", "50")
-    assert code == 0 and not row["ok"]  # advisory: one category only, undefined
+    agree = ["judge", "agreement", "--queue", "q", "--resamples", "50", "--repo",
+             repo.as_posix(), "--json"]  # fmt: skip
+    code, row = _tine(capsys, *agree)
+    assert code == 0 and not row["ok"] and row["advisory"]  # one category only, undefined
     assert row["human"]["krippendorff"]["value"] is None
-    assert row["judges"][0]["abstained"] == 3 and row["judges"][0]["cohen"]["value"] is None
-    code, row = _label(capsys, repo, "agree", "q", "--resamples", "50", "--strict")
+    judge = row["judges"][0]
+    assert judge["abstained"] == 3 and judge["judge_vs_consensus"]["value"] is None
+    code, row = _tine(capsys, *agree, "--strict")
     assert code == 1
+    code, row = _tine(capsys, "label", "agree", "q", "--repo", repo.as_posix())
+    assert code == 2  # one home for agreement: tine judge agreement

@@ -2,83 +2,76 @@
 
 ## 0.89.0 — Judge assurance (2026-11-28)
 
-- Agreement also requires the judge-vs-majority Cohen's kappa lower bound to
-  meet the floor; agreement and validate count only labels from assigned
-  reviewers (`--per-item`); under `judge_assurance = "required"` an unknown
-  candidate lineage refuses as not independent; validation records below 0.9
-  coverage do not count; ensemble model names are folded and padded prompt
-  copies are caught by containment; the injection scan folds NFKC forms and
-  strips format characters.
+One human-label system (`tine label`), one judge toolkit (`tine judge`) and one
+promote gate (`judge_assurance`). See `docs/JUDGES.md`.
+
 - New `tine judge classify`: label judges that return a label, an optional
   probability, or an explicit abstain. A reply with no label line, a label
   outside the set, two outcomes or a probability outside 0..1 is an error,
   never a label or a 0. Several `--judge` options form an ensemble aggregated
   by `majority`, `mean` or `min` over independent groups: members that share a
-  model, a prompt digest, a declared lineage, or near-copy prompt texts count
-  once, and an ensemble with too few independent groups is refused before any
-  model is called (`fail:judge.ensemble-not-independent`). See `docs/JUDGES.md`.
+  model (names folded), a prompt digest, a declared lineage, or near-copy
+  prompt texts (padded copies caught by containment) count once, and an
+  ensemble with too few independent groups is refused before any model is
+  called (`fail:judge.ensemble-not-independent`).
+- `tine judge classify --out FILE --key KEY` writes signed judge outcomes: one
+  attestation per item under the `opentine.judge-outcome/1` claim convention,
+  bound to the judge's `jp1+sha256:` provenance pin (its verdicts'
+  `scorer_version`) and the item digest, signed by a pinned non-optimizer
+  `scorer` key (`judge.outcome-signer`). Agreement and validation take judge
+  outcomes only in this form; a plain labels file is refused
+  (`judge.outcome-unsigned`).
 - The `llm-judge` scorer no longer scores an unparseable reply 0: a reply with
   no `SCORE:` line, two different scores, or a score outside 0..1 is an error
   (the item is `errored` under `--continue-on-error`).
-- New `tine judge label` and `tine judge queue`: human rubric labels as held
-  attestations under the `opentine.rubric-label/1` claim convention, bound to
-  the reviewer key, the rubric digest and the item digest. Only keys holding
-  the new `reviewer` role in the owner-signed trust bundle, and not also
-  `optimizer` keys, may label (`judge.label-signer`). The queue assigns items to
-  pinned reviewers reproducibly and lists pending items.
-- New `tine judge agreement`: judge-vs-human agreement (Cohen's kappa, Fleiss'
-  kappa or Krippendorff's alpha) with a seeded bootstrap interval. The floor is
-  met when the lower bound of the 95% interval is at least 0.6 and the judge
-  decided at least 90% of the labelled items (both configurable); abstaining on
-  hard items lowers coverage. Advisory unless `--strict`.
-- New `tine judge validate`: signs a held `opentine.judge-validation/1` record
-  for a judge or monitor once its adversarial cases pass and the agreement
-  floor, recomputed from the held labels, is met; the signer must be a pinned
-  non-optimizer `scorer` or `policy` key.
+- New `tine label init|assign|reassign|next|submit|reveal`: rubric label queues
+  in `REPO/.tine/labels/NAME/`, an append-only, hash-chained log of signed
+  entries under the `opentine.label-rubric/1`, `opentine.label-assign/1`,
+  `opentine.label/1` and `opentine.label-reveal/1` claim conventions. The rubric
+  is pinned by digest; assignments are signed by a pinned `policy` key and never
+  name their signer (`labels.self-assign`); each label is bound to the reviewer
+  key that signs it, the rubric digest and the item digest. Forged, replayed
+  (within or across queues), duplicated, unassigned and off-rubric labels are
+  refused when written and make the queue invalid when read (fail closed).
+  `tine label next` never shows judge output, and only labels recorded before a
+  judge's reveal count toward that judge.
+- New key role `reviewer`: labels must be signed by a `reviewer` key from the
+  owner-pinned trust bundle; a key the bundle also names `optimizer` is refused.
+- New `tine judge agreement --queue NAME`: recomputes, from the verified queue
+  and the revealed signed outcomes, Krippendorff's alpha, Fleiss' kappa and
+  Cohen's kappa between reviewers, and for each judge both the Cohen's kappa
+  against the human consensus (`judge_vs_consensus`, so agreeing reviewers
+  cannot carry a judge) and the multi-rater alpha with the judge as a rater.
+  Intervals are seeded bootstraps in exact arithmetic; a degenerate statistic
+  is undefined (`null`) and never passes. The floor needs both lower bounds at
+  `--floor` (0.6), coverage at `--min-coverage` (0.9; abstaining lowers it) and
+  `--min-items` (20). Decimals are strict (no exponents, `nan`, fractions).
+  Advisory unless `--strict`.
+- New `tine judge validate --queue NAME --judge judge.json`: signs a held
+  `opentine.judge-validation/1` record naming the queue once the judge's signed
+  adversarial outcomes pass and the recomputed agreement floor is met; the
+  signer must be a pinned non-optimizer `scorer` or `policy` key.
 - New `tine judge independence`: judges, monitors and eval items checked
   against the candidate's lineage family (ancestors, siblings, cousins), digest
   ancestry and prompt similarity: `fail:lineage.judge-not-independent`,
   `fail:lineage.monitor-not-independent`, `fail:lineage.self-generated-eval-item`;
   an edited variant record is `fail:lineage.record-invalid`.
 - New `tine judge injection`: `advisory:judge.outbound-injection` for candidate
-  outputs that address their judge; `classify` scans every output it sends.
-- `tine promote` reads `judge_assurance` (`"advisory"` by default, `"required"`
-  under `profile = "rsi"`) and `judge_floor`: a judge-scored eval needs a
-  validation record and a judge independent of the candidate's lineage
-  (`promote.judge-unvalidated`, `promote.judge-not-independent`; advisories
-  otherwise).
-- Freeze: no new object kind and no new `tine verify` code; two claim
-  conventions on existing attestations, held and never released.
-- New `tine label init|assign|reassign|next|submit|reveal|agree`: rubric label
-  queues in `REPO/.tine/labels/NAME/`. A queue is an append-only, hash-chained
-  log of signed entries. Each entry is an existing attestation under one of the
-  `opentine.label-rubric/1`, `opentine.label-assign/1`, `opentine.label/1` and
-  `opentine.label-reveal/1` claim conventions. The rubric is pinned by digest.
-  Assignments and reassignments are logged, and a reassignment records `from`
-  and a reason. Each label is bound to the reviewer key that signs it, the
-  rubric digest and the item digest. See `docs/LABELS.md`.
-- New key role `reviewer`: labels must be signed by a `reviewer` key from the
-  owner-pinned trust bundle, and a key the bundle also names `optimizer` is
-  refused. Rubrics, assignments and reveals need a pinned `policy` key.
-- Forged, replayed (within or across queues), duplicated, unassigned and
-  off-rubric labels are refused when written and make the queue invalid when
-  read. The queue fails closed as a whole.
-- `tine label next` never shows judge output. Only labels recorded before a
-  judge's outputs are revealed count toward that judge.
-- `tine label agree` reports Krippendorff's alpha, Fleiss' kappa and Cohen's
-  kappa between reviewers, and each judge's Cohen's kappa against the human
-  consensus. Intervals are seeded bootstraps computed in exact arithmetic. A
-  degenerate statistic is reported as undefined (`null`, with a reason) and
-  never passes a floor.
-- Judge outputs are labels or explicit abstentions. An abstention or an
-  unparsable answer is never scored as a label or as 0, and it lowers coverage.
-- `tine promote`: when a judged candidate's judge has no queue, its queue does
-  not verify, or its kappa lower bound against the human consensus falls below
-  `agreement_floor` (default 0.6), the candidate gets
-  `advisory:promote.judge-agreement`. Under `judge_agreement = "required"`
-  (implied by `profile = "rsi"`) this becomes the refusal
-  `promote.judge-agreement`. The gate recomputes the report from the queue
-  instead of trusting a stored one.
+  outputs that address their judge (NFKC-folded, format characters stripped);
+  `classify` scans every output it sends.
+- `tine promote` has one judge gate, `judge_assurance` (`"advisory"` by default,
+  `"required"` under `profile = "rsi"`), with the policy keys
+  `agreement_floor`, `agreement_min_items` and `agreement_min_coverage`. For
+  every judge pin of an eval folder it reads, it needs a validation record
+  (`promote.judge-unvalidated`; a missing or mismatched `judge.json` and an
+  `llm-judge` verdict with no `jp1` pin count as unvalidated), agreement
+  recomputed from the queues at the policy's floor (`promote.judge-agreement`;
+  a queue that does not verify never passes), and independence from the
+  candidate's lineage (`promote.judge-not-independent`; an unknown candidate
+  fails closed). Advisories otherwise (`advisory:judge.unvalidated`,
+  `advisory:promote.judge-agreement`, `advisory:lineage.judge-not-independent`).
+- Freeze: no new object kind and no new `tine verify` code; claim conventions
+  on existing attestations only.
 
 ## 0.88.1 — Credential redaction gaps (2026-11-28)
 

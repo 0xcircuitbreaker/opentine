@@ -11,7 +11,6 @@ from opentine import _eval_judge
 from opentine.repository import Repo
 from tests.key_roles_helpers import pin_roles
 from tests.promote_helpers import fingerprint
-from tests.query_helpers import tine
 
 REV1, REV2, SCORER, OPTIMIZER, OTHER = "a1" * 32, "a2" * 32, "5a" * 32, "7c" * 32, "22" * 32
 BOTH = "b3" * 32  # pinned reviewer *and* optimizer: grants nothing
@@ -66,40 +65,5 @@ def keyfile(room: dict, seed: str) -> str:
     return (room["base"] / f"{seed[:2]}.key").as_posix()
 
 
-def common(room: dict) -> list[str]:
-    base = room["base"]
-    return ["--repo", (base / "r").as_posix(), "--rubric", (base / "rubric.md").as_posix(),
-            "--items", (base / "items.jsonl").as_posix()]  # fmt: skip
-
-
-def label(capsys, room: dict, item: str, value: str, seed: str) -> tuple[int, dict]:
-    return tine(capsys, "judge", "label", *common(room), "--item", item, "--label", value,
-                "--key", keyfile(room, seed), "--at", AT)  # fmt: skip
-
-
-def truth(n: int) -> str:
-    """The human label of item ``i<n>``: a fixed, mixed pattern."""
-    return "pass" if n % 3 else "fail"
-
-
-def outcomes(path: Path, labels: dict, statuses: dict | None = None) -> Path:
-    """Judge outcome rows as ``tine judge classify --out`` writes them."""
-    rows = []
-    for item, value in labels.items():
-        status = (statuses or {}).get(item, "label")
-        rows.append(
-            {
-                "item": item,
-                "outcome": {
-                    "status": status,
-                    "label": value if status == "label" else None,
-                    "probability": None,
-                },
-            }
-        )
-    return write_jsonl(path, rows)
-
-
-__all__ = ["AT", "BOTH", "Fake", "OPTIMIZER", "OTHER", "REV1", "REV2", "SCORER", "common",
-           "fake_models", "judge_room", "keyfile", "label", "outcomes", "truth",
-           "write_jsonl"]  # fmt: skip
+__all__ = ["AT", "BOTH", "Fake", "OPTIMIZER", "OTHER", "REV1", "REV2", "SCORER", "fake_models",
+           "judge_room", "keyfile", "write_jsonl"]  # fmt: skip

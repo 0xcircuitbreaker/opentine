@@ -1,7 +1,8 @@
-"""JSON Schema for ``tine label VERB --json`` (0.89): rubric label queues and agreement.
+"""JSON Schema for ``tine label VERB --json`` (0.89): rubric label queues.
 
 A CLI output, not an object kind: queue entries are existing attestations under
-the ``opentine.label-*/1`` claim conventions (docs/LABELS.md).
+the ``opentine.label-*/1`` claim conventions (docs/JUDGES.md). The agreement
+report shapes (``REPORT``) are shared with ``tine judge agreement``.
 """
 
 from __future__ import annotations
@@ -27,12 +28,20 @@ _HUMAN = closed(["items", "pairable", "reviewers", "krippendorff", "fleiss", "co
     "items": INT, "pairable": INT, "reviewers": INT, "krippendorff": _STAT, "fleiss": _STAT,
     "cohen": _STAT, "primary": {"enum": ["cohen", "krippendorff"]}, "floor_ok": BOOL})  # fmt: skip
 _JUDGE_ROW = closed(["judge", "outputs_sha256", "reveal_seq", "consensus_items", "ties",
-                     "compared", "abstained", "errors", "missing", "coverage", "cohen", "floor",
-                     "floor_ok", "reasons"], {
+                                      "compared", "abstained", "errors", "missing", "coverage",
+                     "judge_vs_consensus", "multi_rater", "floor", "floor_ok", "reasons"], {
     "judge": _JUDGE, "outputs_sha256": _HEX, "reveal_seq": INT, "consensus_items": INT,
     "ties": INT, "compared": INT, "abstained": INT, "errors": INT, "missing": INT,
-    "coverage": _DEC, "cohen": _STAT, "floor": STR, "floor_ok": BOOL,
+    "coverage": _DEC, "judge_vs_consensus": _STAT, "multi_rater": _STAT, "floor": STR,
+    "floor_ok": BOOL,
     "reasons": {"type": "array", "items": STR}})  # fmt: skip
+
+
+#: The agreement report of a queue (``tine judge agreement``), as properties.
+REPORT = {"queue": STR, "ok": BOOL, "queue_sha256": _HEX, "rubric_sha256": _HEX,
+          "entries": INT, "settings": _SETTINGS, "human": _HUMAN,
+          "judges": {"type": "array", "items": _JUDGE_ROW}}  # fmt: skip
+JUDGE_ROW = _JUDGE_ROW
 
 
 def _verb(name: str, required: list[str], props: dict[str, Any]) -> dict[str, Any]:
@@ -56,11 +65,6 @@ _VERBS = [
           {"reviewer": FPR, "rubric": _RUBRIC, "rubric_sha256": _HEX,
            "pending": {"type": "array", "items": closed(["item_sha256", "item"], {
                "item_sha256": _HEX, "item": {}})}}),
-    _verb("agree", ["ok", "queue_sha256", "rubric_sha256", "entries", "settings", "human",
-                    "judges"],
-          {"ok": BOOL, "queue_sha256": _HEX, "rubric_sha256": _HEX, "entries": INT,
-           "settings": _SETTINGS, "human": _HUMAN,
-           "judges": {"type": "array", "items": _JUDGE_ROW}}),
 ]  # fmt: skip
 
 SCHEMAS: dict[str, dict[str, Any]] = {
@@ -69,15 +73,14 @@ SCHEMAS: dict[str, dict[str, Any]] = {
         "`assign` and `reassign` record who labels which item (reassignment names `from` and "
         "a reason); `next` lists a reviewer's unlabelled items without any judge output; "
         "`submit` signs one label bound to the reviewer key, rubric digest and item digest; "
-        "`reveal` files a judge's outputs (labels recorded after it do not count toward that "
-        "judge). `agree` reports human agreement (Krippendorff's alpha, Fleiss' and Cohen's "
-        "kappa) and each revealed judge's Cohen's kappa against the human consensus, with "
-        "bootstrap intervals; undefined values are null and never pass a floor.",
+        "`reveal` files a judge's signed `opentine.judge-outcome/1` outcomes (labels recorded "
+        "after it do not count toward that judge). Agreement over a queue is `tine judge "
+        "agreement`.",
         {"oneOf": _VERBS}),
 }  # fmt: skip
 COMMAND_SCHEMAS: dict[str, str] = {
     f"label {name}": "tine-cli-label-1"
-    for name in ("init", "assign", "reassign", "next", "submit", "reveal", "agree")
+    for name in ("init", "assign", "reassign", "next", "submit", "reveal")
 }
 
-__all__ = ["COMMAND_SCHEMAS", "SCHEMAS"]
+__all__ = ["COMMAND_SCHEMAS", "JUDGE_ROW", "REPORT", "SCHEMAS"]

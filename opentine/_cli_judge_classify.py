@@ -8,6 +8,12 @@ model is called, the members' independence is checked
 the aggregate of the group votes; abstains and errors are kept, never scored 0.
 Candidate outputs are scanned for text aimed at the judge
 (:mod:`opentine._judge_injection`); those findings are advisory.
+
+``--out FILE --key KEY`` writes each item's outcome as a signed
+``opentine.judge-outcome/1`` line (:mod:`opentine._judge_outcomes`), bound to the
+judge's ``jp1+sha256:`` pin and the item's canonical digest. Only that form is
+accepted by ``tine label reveal`` and ``tine judge validate``, so it needs
+exactly one ``--judge`` and a pinned ``scorer`` key.
 """
 
 from __future__ import annotations
@@ -56,6 +62,35 @@ def _members(args: argparse.Namespace, labels: list[str]) -> list[Any]:
     return out
 
 
+def _signing(args: argparse.Namespace) -> Any:
+    """The scorer key that signs ``--out``; refused before any model is called."""
+    from opentine._judge_outcomes import signers
+    from opentine._key_hygiene import ed25519_private
+    from opentine._promote import _who
+
+    if args.out is None:
+        return None
+    if args.key is None or len(args.judge) != 1:
+        raise ValueError("--out writes signed outcomes: give --key and exactly one --judge")
+    key = ed25519_private(args.key)
+    allowed, why = signers(Path(args.repo) / ".tine")
+    if _who(key) not in allowed:
+        raise ValueError(f"judge.outcome-signer: {_who(key)}: {why}")
+    return key
+
+
+def _write(args: argparse.Namespace, pin: str, found: dict, out_rows: list) -> None:
+    from opentine._audit_game import now
+    from opentine._judge_outcomes import sign
+    from opentine._label_queue import digest
+
+    at = args.at or now()
+    docs = [sign(args.signing_key, pin, digest(found[r["item"]]), r["outcome"], at)
+            for r in out_rows]  # fmt: skip
+    text = "".join(json.dumps(d, sort_keys=True, separators=(",", ":")) + "\n" for d in docs)
+    Path(args.out).write_bytes(text.encode("utf-8"))
+
+
 def classify(args: argparse.Namespace) -> tuple[dict, list[str], bool]:
     from opentine._cli_judge_ops import _fraction, items
     from opentine._judge_ensemble import aggregate, independence
@@ -67,6 +102,7 @@ def classify(args: argparse.Namespace) -> tuple[dict, list[str], bool]:
         raise ValueError(f"--positive {args.positive!r} is not one of the labels")
     if args.aggregate != "majority" and len(labels) != 2:
         raise ValueError(f"--aggregate {args.aggregate} needs exactly two labels")
+    args.signing_key = _signing(args)
     found = items(args.items)
     outputs = _outputs(args, found)
     judges = _members(args, labels)
@@ -113,8 +149,7 @@ def classify(args: argparse.Namespace) -> tuple[dict, list[str], bool]:
         counts[result["status"]] += 1
         out_rows.append({"item": name, "outcome": result, "members": each})
     if args.out:
-        text = "".join(json.dumps(r, sort_keys=True) + "\n" for r in out_rows)
-        Path(args.out).write_bytes(text.encode("utf-8"))
+        _write(args, judges[0].version, found, out_rows)
     lines = [f"{r['item']}: {r['outcome']['status']} {r['outcome'].get('label') or ''}".rstrip()
              for r in out_rows]  # fmt: skip
     lines += [f"{a['code']} {a['item']} ({a['kind']})" for a in advisories]

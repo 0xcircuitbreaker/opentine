@@ -1,54 +1,49 @@
-"""0.89 review: agreement inflation, queue bypass, lineage fail-closed, ensemble and injection."""
+"""0.89 review: agreement inflation, queue bypass, lineage fail-closed, ensemble and injection.
+
+The agreement-inflation attack (agreeing humans carrying a random judge) runs against
+the unified report in ``test_089_judge_agreement``; the rest run here.
+"""
 
 from __future__ import annotations
 
 import json
-import random
 from fractions import Fraction
 
 import pytest
 
 from opentine import _judge_provenance, _judge_validation, _promote_judges
-from opentine._judge_agreement import report
+from opentine import _label_ops as ops
 from opentine._judge_ensemble import independence
 from opentine._judge_injection import scan
-from tests.judge_helpers import (  # noqa: F401
-    REV1,
-    SCORER,
-    common,
-    judge_room,
-    keyfile,
-    label,
-    outcomes,
-    truth,
-    write_jsonl,
-)  # fmt: skip
+from opentine._label_queue import LabelError, read
+from tests.judge_helpers import write_jsonl
 from tests.key_roles_helpers import isolated_trust_config  # noqa: F401
-from tests.query_helpers import tine
+from tests.label_helpers import AT, R1, R2, R3, make_repo, queue  # noqa: F401
+from tests.promote_helpers import key
 
 pytestmark = pytest.mark.filterwarnings("ignore::Warning")
 PROMPT = ("You are a careful grader. Read the question {input}, the reference {expected} and "
           "the answer {output}. Decide whether the answer is right. Labels: {labels}.")  # fmt: skip
 
 
-def test_agreeing_humans_cannot_carry_a_random_judge_over_the_floor():
-    rng = random.Random(7)
-    humans = {f"i{k}": {f"h{r}": truth(k) for r in range(5)} for k in range(60)}
-    judge = {f"i{k}": {"status": "label", "label": rng.choice(["pass", "fail"])}
-             for k in range(60)}  # fmt: skip
-    got = report(judge, humans, resamples=300)
-    assert not got["meets_floor"], got
-    assert got["judge_vs_consensus"]["method"] == "cohen-kappa"
+def test_agreement_counts_only_labels_from_the_assigned_reviewer(repo):
+    """R3 is not assigned the items: its label is refused, and a forged line breaks the queue."""
+    from opentine._integrity_run import _sign
+    from opentine._label_report import report, settings
+    from opentine._promote import _who
 
-
-def test_agreement_counts_only_labels_from_the_assigned_reviewer(room, capsys):
-    for k in range(20):  # REV1 labels every item, including those assigned to REV2
-        assert label(capsys, room, f"i{k}", truth(k), REV1)[0] == 0
-    judged = outcomes(room["base"] / "j.jsonl", {f"i{k}": truth(k) for k in range(20)})
-    code, out = tine(capsys, "judge", "agreement", *common(room), "--judge-labels",
-                     judged.as_posix(), "--resamples", "100", "--per-item", "1")  # fmt: skip
-    assert code == 0, out
-    assert out["agreement"]["labelled"] < 20 and out["agreement"]["unassigned_labels"] > 0
+    shas = queue(repo, n=2, reviewers=(R1, R2))
+    with pytest.raises(LabelError, match="labels.unassigned"):
+        ops.submit(repo, "q", shas[0], "good", key(R3), AT)
+    state = read(repo, "q")
+    claim = {"schema": "opentine.label/1", "item_sha256": shas[0], "label": "good",
+             "reviewer": _who(key(R3)), "rubric_sha256": state["rubric_sha256"],
+             "seq": state["seq"], "prev": state["head"], "queue": state["queue"]}  # fmt: skip
+    doc = _sign(key(R3), claim, f"sha256:{state['queue']}", AT)
+    with open(repo / ".tine" / "labels" / "q" / "log.jsonl", "ab") as handle:
+        handle.write(json.dumps(doc).encode() + b"\n")
+    with pytest.raises(LabelError, match="labels.unassigned"):
+        report(repo, "q", settings(resamples=10))
 
 
 def _eval(base, pin, doc):
@@ -99,8 +94,12 @@ def test_obfuscated_outbound_injection_is_flagged(text):
 
 
 def test_a_validation_below_the_coverage_floor_does_not_count():
-    claim = {"agreement": {"meets_floor": True, "ci": ["0.9", "1.0"], "coverage": "0.100000"},
+    bound = {"lower": "0.900000", "upper": "1.000000"}
+    claim = {"agreement": {"floor_ok": True, "judge_vs_consensus": bound, "multi_rater": bound,
+                           "coverage": "0.100000"},
              "adversarial": {"cases": 3, "fooled": 0, "max_fooled": 0, "errored": 0}}  # fmt: skip
     assert not _judge_validation._meets(claim, Fraction(3, 5))
     claim["agreement"]["coverage"] = "0.950000"
     assert _judge_validation._meets(claim, Fraction(3, 5))
+    claim["agreement"]["multi_rater"] = {"lower": None}  # degenerate multi-rater never passes
+    assert not _judge_validation._meets(claim, Fraction(3, 5))

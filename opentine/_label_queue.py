@@ -2,7 +2,7 @@
 
 A queue is ``REPO/.tine/labels/NAME/``: ``log.jsonl`` holds one signed document
 per line, each an existing ``attestation`` shape whose claim follows one of the
-``opentine.label-*/1`` conventions (docs/LABELS.md), and every later claim names
+``opentine.label-*/1`` conventions (docs/JUDGES.md), and every later claim names
 the ``queue`` (the SHA-256 of the first entry, which carries the queue name and a
 random nonce), its ``seq`` (the line index) and ``prev`` (the
 SHA-256 of the previous line's canonical JSON), so a line moved, replayed from

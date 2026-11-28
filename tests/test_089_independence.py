@@ -155,6 +155,7 @@ def test_promote_refuses_a_lineage_judge_under_rsi(tree):
     _promote_judges.check_policy(rsi)
     held, _ = _promote_judges.findings(rsi, None, _run(2), tree["store"], {"evals": folder})
     assert sorted(r["code"] for r in held) == [
+        "promote.judge-agreement",
         "promote.judge-not-independent",
         "promote.judge-unvalidated",
     ]

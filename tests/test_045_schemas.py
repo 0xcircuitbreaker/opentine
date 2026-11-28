@@ -22,6 +22,8 @@ from opentine._lineage import variant_id
 from opentine.core import Run, RunStatus, StepKind
 from tests.monitor_fixture import SPEC, record_online, trajectories
 
+_R1 = "sha256:26f3cfc4e47f703666721413ce07c50f3565672f4aecc104a59835e7fc70b52e"  # label_helpers R1
+
 ROOT = Path(__file__).resolve().parents[1]
 GOLDEN = ROOT / "tests" / "fixtures" / "compat" / "v0_5_0" / "repo"
 REPORT_VECTORS = ROOT / "tests" / "fixtures" / "redaction_report" / "vectors.json"
@@ -469,7 +471,11 @@ DRIVEN = (
     (("agent", "scaffold", "--root", ".", "--json"), "tine-cli-scaffold-1"),  # 0.88
     (("agent", "scaffold-diff", "sa.json", "sa.json", "--json"), "tine-cli-scaffold-1"),
     (("judge", "injection", "repo/d.jsonl", "--json"), "tine-cli-judge-1"),  # 0.89
-    (("label", "agree", "q", "--repo", "lq", "--resamples", "20", "--json"), "tine-cli-label-1"),
+    (
+        ("judge", "agreement", "--queue", "q", "--repo", "lq", "--resamples", "20", "--json"),
+        "tine-cli-judge-1",
+    ),
+    (("label", "next", "q", "--repo", "lq", "--reviewer", _R1, "--json"), "tine-cli-label-1"),
 )
 
 
@@ -496,7 +502,7 @@ def test_every_driven_json_output_validates(monkeypatch, capsys, room, argv, exp
     if argv[:2] == ("agent", "scaffold-diff"):  # 0.88: a manifest to compare
         _code, out = _tine(monkeypatch, capsys, "agent", "scaffold", "--json")
         (room / "sa.json").write_bytes(out.encode("utf-8"))
-    if argv[0] == "label":  # 0.89: a pinned queue with labels to agree on
+    if argv[0] == "label" or argv[:2] == ("judge", "agreement"):  # 0.89: a pinned queue
         from tests.label_helpers import pin, queue
 
         (room / "lq").mkdir()

@@ -84,7 +84,7 @@ INTERP_CUSTODY = "custody:interp"
 COLLUSION_VERDICT = "collusion-verdict:"
 #: 0.84/0.88: an artifact provenance record and its run; a run's scaffold manifest.
 PROVENANCE, SCAFFOLD = "custody:provenance:", "scaffold-manifest:"
-RUBRIC_LABEL, JUDGE_VALIDATION = "rubric-label:", "judge-validation:"  # 0.89: _rubric_labels
+JUDGE_VALIDATION = "judge-validation:"  # 0.89: opentine._judge_validation
 _NEVER_RELEASED = (
     ((MEMORY_QUARANTINE,), "a memory quarantine"),
     ((MONITOR_VERDICT, MONITOR_STOP), "a monitor verdict or stop token"),
@@ -107,7 +107,7 @@ _NEVER_RELEASED = (
     ((COLLUSION_VERDICT,), "a collusion-protocol verdict"),
     ((PROVENANCE,), "an artifact provenance record"),
     ((SCAFFOLD,), "a scaffold manifest record"),
-    ((RUBRIC_LABEL, JUDGE_VALIDATION), "a rubric label or judge validation record"),
+    ((JUDGE_VALIDATION,), "a judge validation record"),
 )
 MAX_HOLDS_BYTES = 4 * 1024 * 1024
 

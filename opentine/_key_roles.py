@@ -59,7 +59,7 @@ GUARDED = (
     "monitor",
     "auditor",
     "runner",
-    "reviewer",  # 0.89: signs human rubric labels (_rubric_labels, _label_queue)
+    "reviewer",  # 0.89: signs human rubric labels (_label_queue)
 )
 AUDITOR = "auditor"
 CURATOR = "curator"

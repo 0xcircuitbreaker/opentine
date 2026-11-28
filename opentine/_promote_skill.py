@@ -41,9 +41,6 @@ def check_policy(policy: dict[str, Any]) -> None:
     if mode not in MODES or (rsi and mode != "required"):
         raise ValueError('skill_labels is "advisory" or "required"; the rsi profile requires it')
     policy["skill_labels"] = mode
-    from opentine._promote_agreement import check_policy as agreement
-
-    agreement(policy)  # 0.89: judge-vs-human agreement, required under rsi
 
 
 def trusted_signers(lineage: Path, repo_path: Path | None) -> set[str]:
@@ -130,7 +127,6 @@ def gates(policy: dict[str, Any], repo_path: Path | None, candidate: str, curren
           label: str, lineage: Path | None,
           folders: dict[str, Path] | None = None) -> tuple[list, list, dict | None]:  # fmt: skip
     """The region pin (0.87), skill label (0.88) and judge (0.89) findings of ``tine promote``."""
-    from opentine._promote_agreement import findings as agreement
     from opentine._promote_judges import findings as judges
     from opentine._regions_pin import promote_findings as regions
 
@@ -138,8 +134,7 @@ def gates(policy: dict[str, Any], repo_path: Path | None, candidate: str, curren
     more, advice, row = findings(policy, candidate=candidate, current=current, label=label,
                                  lineage=lineage, repo_path=repo_path)  # fmt: skip
     judged, told = judges(policy, repo_path, candidate, lineage, folders or {})
-    agreed, agree_advice = agreement(policy, repo_path, (folders or {}).get("evals"))
-    return held + more + judged + agreed, advised + advice + told + agree_advice, row
+    return held + more + judged, advised + advice + told, row
 
 
 __all__ = ["MODES", "PREFIX", "check_policy", "findings", "gates", "trusted_signers"]

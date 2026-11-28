@@ -1,8 +1,9 @@
 """0.89 end to end: the judge assurance acceptance criteria in one walk.
 
-Signed, assigned human labels -> a judge revealed after labelling -> agreement with an
-interval -> the promote floor (advisory by default, refused when required); copies of one
-judge never count as an independent ensemble; outbound injection is advisory.
+Signed, assigned human labels -> signed judge outcomes revealed after labelling ->
+agreement with intervals -> a signed validation -> the one promote gate (advisory by
+default, refused when required); copies of one judge never count as an independent
+ensemble; outbound injection is advisory.
 """
 
 from __future__ import annotations
@@ -20,7 +21,7 @@ from tests.label_helpers import AT, OPT, R1
 from tests.promote_helpers import key
 from tests.test_058_promote import _codes
 from tests.test_089_judge_agreement import _reveal, labelled, truth
-from tests.test_089_promote_agreement import _promote
+from tests.test_089_promote_agreement import _promote, validate
 from tests.test_089_promote_agreement import room as room  # noqa: F401
 
 pytestmark = pytest.mark.filterwarnings("ignore::UserWarning")
@@ -36,8 +37,8 @@ def test_labels_agreement_and_the_promote_floor(room, capsys):
         ops.submit(room.repo, "q", shas[0], "good", key(R1), AT, read(room.repo, "q"))
     # required: an always-"good" judge misses the floor and is refused
     _reveal(room.repo, [{"item_sha256": s, "label": "good"} for s in shas])
-    code, row = _promote(room, capsys, judge_agreement="required")
-    assert code == 1 and _codes(row) == {"promote.judge-agreement"}
+    code, row = _promote(room, capsys, judge_assurance="required")
+    assert code == 1 and _codes(row) == {"promote.judge-agreement", "promote.judge-unvalidated"}
     # by default the same finding is advisory and does not block (D12)
     code, row = _promote(room, capsys)
     assert code == 0, row.get("refusals")
@@ -52,8 +53,12 @@ def test_an_accurate_judge_passes_with_an_interval(room, capsys):
     found = report(room.repo, "q", settings(resamples=200))
     judge = found["judges"][0]
     assert judge["floor_ok"] and judge["coverage"] != "1.000000"  # abstain lowers coverage
-    assert judge["cohen"]["lower"] is not None
-    code, row = _promote(room, capsys, judge_agreement="required")
+    assert judge["judge_vs_consensus"]["lower"] is not None
+    assert judge["multi_rater"]["lower"] is not None
+    code, row = _promote(room, capsys, judge_assurance="required")
+    assert code == 1 and _codes(row) == {"promote.judge-unvalidated"}
+    assert validate(room, capsys)[0] == 0
+    code, row = _promote(room, capsys, judge_assurance="required")
     assert code == 0, row.get("refusals")
 
 

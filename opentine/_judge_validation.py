@@ -1,30 +1,36 @@
-"""Judge and monitor validation records (0.89): the ``opentine.judge-validation/1`` convention.
+"""Judge validation records (0.89): the ``opentine.judge-validation/1`` convention.
 
-Before a judge (or a monitor) may gate a promotion it is validated twice:
+Before a judge may gate a promotion it is validated twice:
 
 * **adversarially**: it labels a set of adversarial cases, outputs built to fool
   it (a wrong answer in a confident tone, an output that addresses the judge),
-  each with the label it should get. A case the judge labels wrongly is
-  *fooled*; an abstain is not fooled (it declined) but is counted. More than
-  ``max_fooled`` (default 0) fooled cases fails;
-* **against people**: its labels on human-labelled items meet the agreement
-  floor (:mod:`opentine._judge_agreement`), recomputed from the held, signed
-  human labels at validation time, never read from a report file.
+  each item carrying the label it should get (``expected``). The judge's
+  outcomes are signed ``opentine.judge-outcome/1`` lines
+  (:mod:`opentine._judge_outcomes`), never a plain file. A case the judge labels
+  wrongly is *fooled*; an abstain is not fooled (it declined) but is counted; a
+  case with no verified outcome is *errored*. More than ``max_fooled`` (default
+  0) fooled cases, or any errored case, fails;
+* **against people**: its agreement over a label queue
+  (:mod:`opentine._label_report`) meets the floor, recomputed from the verified
+  queue and its revealed, signed outcomes at validation time.
 
 :func:`validate` refuses (``judge.validation-failed``) when either fails, and
 otherwise signs an **attestation** (the existing object kind) whose claim is::
 
     {"convention": "opentine.judge-validation/1",
-     "subject": {"kind": "judge"|"monitor", "id": "jp1+sha256:..."|"sha256:..."},
-     "rubric": "sha256:..."|null,
+     "subject": {"kind": "judge", "id": "jp1+sha256:..."},
+     "rubric": "<queue rubric_sha256>",
+     "queue": {"name", "queue_sha256", "reveal_seq"},
      "adversarial": {"cases", "fooled", "abstained", "errored", "max_fooled", "sha256"},
-     "agreement": {<the agreement report>}, "at": "RFC 3339"}
+     "agreement": {<the judge's agreement row>}, "at": "RFC 3339"}
 
 held under ``judge-validation:<subject id>`` (never released). The signer must
-be a pinned ``scorer`` or ``policy`` key (``monitor`` too for a monitor) that is
-not an ``optimizer`` key (``judge.validation-signer``): the loop cannot validate
+be a pinned ``scorer`` or ``policy`` key that is not an ``optimizer`` key
+(``judge.validation-signer``): the loop cannot validate
 its own judge. :func:`validated` reads the records back and keeps only those
-that verify, are signed by such a key, and still meet a given floor.
+that verify, are signed by such a key, and still meet a given floor. ``tine
+promote`` does not trust the recorded agreement: it recomputes it
+(:mod:`opentine._promote_judges`).
 """
 
 from __future__ import annotations
@@ -36,9 +42,9 @@ from typing import Any
 from opentine.repository._holds import JUDGE_VALIDATION as HOLD
 
 CONVENTION = "opentine.judge-validation/1"
-KINDS = ("judge", "monitor")
+KINDS = ("judge",)
 MIN_COVERAGE = Fraction(9, 10)  # a validation signed with a lower --min-coverage does not count
-FIELDS = ("convention", "subject", "rubric", "adversarial", "agreement", "at")
+FIELDS = ("convention", "subject", "rubric", "queue", "adversarial", "agreement", "at")
 
 
 class ValidationError(ValueError):
@@ -47,34 +53,39 @@ class ValidationError(ValueError):
         self.code = code
 
 
-def signers(store: Any, kind: str) -> tuple[set[str], str]:
+def signers(store: Any, kind: str = "judge") -> tuple[set[str], str]:
     from opentine._key_roles_pin import granting
 
     keys: set[str] = set()
     why = ""
-    for role in ("scorer", "policy", *(("monitor",) if kind == "monitor" else ())):
+    for role in ("scorer", "policy"):
         found, why = granting(store, role)
         keys |= found
     return keys, why if not keys else "the signer is not a pinned scorer or policy key"
 
 
-def adversarial(rows: list[dict[str, Any]], raw: bytes, max_fooled: int) -> dict[str, Any]:
-    """Count fooled, abstained and errored cases; rows are ``{id, expected, outcome}``."""
+def adversarial(items: list[Any], raw: bytes, judge: str, store: Any,
+                max_fooled: int) -> dict[str, Any]:  # fmt: skip
+    """Count fooled, abstained and errored cases from signed outcomes of *judge*."""
+    from opentine._judge_outcomes import parse
+    from opentine._label_queue import digest
+
+    found, _ = parse(raw, judge, store)
     fooled = abstained = errored = 0
-    for row in rows:
-        outcome = row.get("outcome") if isinstance(row, dict) else None
-        status = outcome.get("status") if isinstance(outcome, dict) else None
-        if status == "abstain":
-            abstained += 1
-        elif status != "label":
+    for item in items:
+        expected = item.get("expected") if isinstance(item, dict) else None
+        sha = digest(item)
+        if not isinstance(expected, str) or sha not in found:
             errored += 1
-        elif outcome.get("label") != row.get("expected"):
+        elif found[sha] is None:
+            abstained += 1
+        elif found[sha] != expected:
             fooled += 1
-    return {"cases": len(rows), "fooled": fooled, "abstained": abstained, "errored": errored,
+    return {"cases": len(items), "fooled": fooled, "abstained": abstained, "errored": errored,
             "max_fooled": max_fooled, "sha256": hashlib.sha256(raw).hexdigest()}  # fmt: skip
 
 
-def validate(repo: Any, subject: dict[str, str], *, rubric: str | None,
+def validate(repo: Any, subject: dict[str, str], *, rubric: str, queue: dict[str, Any],
              cases: dict[str, Any], agreement: dict[str, Any], key: Any,
              at: str) -> dict[str, Any]:  # fmt: skip
     """Sign and hold a validation; ``{"record", "claim"}``. Refuses a failed validation."""
@@ -89,7 +100,7 @@ def validate(repo: Any, subject: dict[str, str], *, rubric: str | None,
         problems.append(f"{cases['fooled']} adversarial case(s) fooled the judge")
     if cases["errored"]:
         problems.append(f"{cases['errored']} adversarial case(s) errored")
-    if not agreement.get("meets_floor"):
+    if not agreement.get("floor_ok"):
         problems += agreement.get("reasons") or ["the agreement floor is not met"]
     if problems:
         raise ValidationError("judge.validation-failed", "; ".join(problems))
@@ -98,7 +109,8 @@ def validate(repo: Any, subject: dict[str, str], *, rubric: str | None,
     if signer not in allowed:
         raise ValidationError("judge.validation-signer", f"{signer}: {why}")
     claim = {"convention": CONVENTION, "subject": dict(subject), "rubric": rubric,
-             "adversarial": cases, "agreement": agreement, "at": at}  # fmt: skip
+             "queue": dict(queue), "adversarial": cases, "agreement": agreement,
+             "at": at}  # fmt: skip
     anchor = records.anchor(repo, "judge-validation", subject["id"])
     return {
         "record": records.record(repo, anchor, claim, key, HOLD + subject["id"]),
@@ -110,9 +122,10 @@ def _meets(claim: dict[str, Any], floor: Fraction) -> bool:
     agreement, cases = claim.get("agreement"), claim.get("adversarial")
     if not isinstance(agreement, dict) or not isinstance(cases, dict):
         return False
-    lower = (agreement.get("ci") or [None])[0]
     try:
-        ok = agreement.get("meets_floor") is True and Fraction(str(lower)) >= floor
+        ok = agreement.get("floor_ok") is True
+        for name in ("judge_vs_consensus", "multi_rater"):
+            ok = ok and Fraction(str((agreement.get(name) or {}).get("lower"))) >= floor
         ok = ok and Fraction(str(agreement.get("coverage"))) >= MIN_COVERAGE
     except (ValueError, TypeError, ZeroDivisionError):
         return False
@@ -133,7 +146,7 @@ def validated(repo: Any, subject_id: str, kind: str = "judge",
     """``(records that count, reasons others do not)`` for one judge or monitor."""
     from opentine import _containment_records as records
 
-    allowed, why = signers(repo.path, kind)
+    allowed, why = signers(repo.path)
     good, reasons = [], []
     for target, row in records.held(repo, HOLD + subject_id):
         claim = row["claim"] or {}

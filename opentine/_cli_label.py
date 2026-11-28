@@ -1,16 +1,15 @@
-"""``tine label`` (0.89): rubric label queues and judge-vs-human agreement.
+"""``tine label`` (0.89): rubric label queues -- the one human-label system.
 
 * ``init NAME --rubric FILE --key POLICY`` starts a queue with a pinned rubric;
 * ``assign NAME --items FILE.jsonl --reviewer KEY... --key POLICY`` assigns items;
 * ``reassign NAME --item SHA --from KEY --to KEY --reason TEXT --key POLICY``;
 * ``next NAME --reviewer KEY`` lists a reviewer's unlabelled items (never judge output);
 * ``submit NAME --item SHA --label L --key REVIEWER`` signs one label;
-* ``reveal NAME --judge judge.json --outputs FILE.jsonl --key POLICY`` files judge outputs;
-* ``agree NAME`` reports human agreement and each revealed judge's agreement with
-  the human consensus; it exits 1 when the queue does not verify and, with
-  ``--strict``, when a floor fails (advisory otherwise, D12).
+* ``reveal NAME --judge judge.json --outputs SIGNED.jsonl --key POLICY`` files signed
+  judge outcomes (``tine judge classify --key --out``); later labels do not count.
 
-See :mod:`opentine._label_queue` and docs/LABELS.md.
+Agreement over a queue is ``tine judge agreement --queue NAME``. See
+:mod:`opentine._label_queue` and docs/JUDGES.md.
 """
 
 from __future__ import annotations
@@ -62,30 +61,8 @@ def _run(args: argparse.Namespace) -> tuple[dict[str, Any], list[str]]:
         row = ops.reveal(repo, name, Path(args.judge), Path(args.outputs), _key(args.key),
                          _at(args))  # fmt: skip
         return row, [f"revealed {row['judge']} at entry {row['seq']}"]
-    if verb == "next":
-        row = ops.pending(repo, name, args.reviewer)
-        return row, [f"{r['item_sha256']}" for r in row["pending"]]
-    return _agree(args, repo, name)
-
-
-def _agree(args: argparse.Namespace, repo: Path, name: str) -> tuple[dict[str, Any], list[str]]:
-    from opentine._label_report import report, settings
-
-    opts = settings(floor=args.floor, alpha=args.alpha, seed=args.seed,
-                    resamples=args.resamples, min_items=args.min_items,
-                    min_coverage=args.min_coverage)  # fmt: skip
-    row = report(repo, name, opts)
-    human = row["human"]
-    top = human[human["primary"]]
-    lines = [f"human: {human['items']} item(s), {human['reviewers']} reviewer(s), "
-             f"{human['primary']} {top['value']} [{top['lower']}, {top['upper']}]"]  # fmt: skip
-    for j in row["judges"]:
-        k = j["cohen"]
-        lines.append(f"judge {j['judge'][:24]}: kappa {k['value']} [{k['lower']}, {k['upper']}] "
-                     f"coverage {j['coverage']} abstained {j['abstained']} errors {j['errors']} "
-                     f"{'ok' if j['floor_ok'] else 'below floor'}")  # fmt: skip
-    row["ok"] = human["floor_ok"] and all(j["floor_ok"] for j in row["judges"])
-    return row, lines
+    row = ops.pending(repo, name, args.reviewer)
+    return row, [f"{r['item_sha256']}" for r in row["pending"]]
 
 
 def cmd_label(args: argparse.Namespace) -> None:
@@ -104,12 +81,10 @@ def cmd_label(args: argparse.Namespace) -> None:
     else:
         for line in lines:
             console.print(line, markup=False, highlight=False)
-    if verb == "agree" and args.strict and not body["ok"]:
-        raise SystemExit(1)
 
 
 def add_label_parser(sub: Any) -> None:
-    parser = sub.add_parser("label", help="Rubric label queues and judge-vs-human agreement")
+    parser = sub.add_parser("label", help="Rubric label queues: signed, assigned human labels")
     verbs = parser.add_subparsers(dest="label_command", required=True)
     init = verbs.add_parser("init", help="Start a queue with a pinned rubric")
     init.add_argument("--rubric", required=True, metavar="FILE", help="{name, labels, ...} JSON")
@@ -132,17 +107,9 @@ def add_label_parser(sub: Any) -> None:
         "--outputs",
         required=True,
         metavar="FILE.jsonl",
-        help="{item_sha256, label} / {item_sha256, abstain: true} lines",
+        help="Signed judge outcomes (tine judge classify --key --out)",
     )
-    agree = verbs.add_parser("agree", help="Human and judge-vs-human agreement with intervals")
-    agree.add_argument("--floor", help="Kappa / alpha lower-bound floor (default 0.6)")
-    agree.add_argument("--alpha", help="Interval alpha (default 0.05)")
-    agree.add_argument("--seed", type=int, help="Bootstrap seed (default 0)")
-    agree.add_argument("--resamples", type=int, help="Bootstrap resamples (default 2000)")
-    agree.add_argument("--min-items", type=int, help="Items a judge is compared on (default 20)")
-    agree.add_argument("--min-coverage", help="Labelled/consensus floor (default 0.8)")
-    agree.add_argument("--strict", action="store_true", help="Exit 1 when a floor fails")
-    for verb in (init, assign, move, nxt, submit, reveal, agree):
+    for verb in (init, assign, move, nxt, submit, reveal):
         verb.add_argument("queue", metavar="NAME", help="Queue name (REPO/.tine/labels/NAME)")
         verb.add_argument("--repo", default=".", help="Repository root (default .)")
         verb.add_argument("--json", action="store_true", help="Print a JSON object")

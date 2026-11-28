@@ -82,8 +82,8 @@ named trust policies for `tine verify --policy NAME` (see below).
 
 `tine agent id|show|trust|keys` are unchanged. `tine agent scaffold|scaffold-diff|scaffold-pin`
 are new in 0.88: scaffold manifests ([SCAFFOLD.md](SCAFFOLD.md)). `tine label
-init|assign|reassign|next|submit|reveal|agree` is new in 0.89: rubric label queues and
-judge-vs-human agreement ([LABELS.md](LABELS.md)). `tine GROUP --help` lists a group;
+init|assign|reassign|next|submit|reveal` is new in 0.89: rubric label queues, the one
+human-label system; agreement over a queue is `tine judge agreement` ([JUDGES.md](JUDGES.md)). `tine GROUP --help` lists a group;
 `tine help --all` lists every command.
 
 `tine hold add|list|release OID|REF` is new in 0.35 (no older spelling): it
@@ -2130,11 +2130,9 @@ are statistical evidence, not proof of intent. `--json` prints
 
 | Command | What it does |
 | --- | --- |
-| `tine judge classify --judge PROVIDER[:MODEL]... --labels A,B --items FILE [--outputs FILE] [--prompt FILE]... [--rubric FILE] [--lineage-of NAME]... [--aggregate majority\|mean\|min] [--positive LABEL] [--min-independent N] [--max-abstain D] [--out FILE]` | Runs label judges (label, probability, explicit abstain; a parse failure is an error, never 0) over items; an ensemble with fewer independent groups than `--min-independent` exits 1 with `fail:judge.ensemble-not-independent` before any model is called; outputs aimed at the judge are `advisory:judge.outbound-injection` |
-| `tine judge label --rubric FILE --items FILE --item ID --label L --key KEY [--at TIME]` | Signs and holds one `opentine.rubric-label/1` label; the key must be a pinned `reviewer` key that is not an `optimizer` key (`judge.label-signer`) |
-| `tine judge queue --rubric FILE --items FILE [--per-item N]` | Each pinned reviewer's assigned and pending items, and labels made outside the assignment |
-| `tine judge agreement --rubric FILE --items FILE --judge-labels FILE [--floor D] [--min-coverage D] [--seed N] [--resamples N] [--per-item N] [--strict]` | Judge-vs-human agreement (Cohen's kappa, Fleiss' kappa or Krippendorff's alpha) with a seeded bootstrap interval, plus the judge-vs-majority kappa; only labels of assigned reviewers count; advisory unless `--strict` |
-| `tine judge validate --rubric FILE --items FILE (--judge judge.json \| --monitor DIGEST) --judge-labels FILE --adversarial FILE [--max-fooled N] [--per-item N] --key KEY` | Signs and holds an `opentine.judge-validation/1` record when the adversarial cases and the agreement floor pass (`judge.validation-failed`, `judge.validation-signer` otherwise) |
+| `tine judge classify --judge PROVIDER[:MODEL]... --labels A,B --items FILE [--outputs FILE] [--prompt FILE]... [--rubric FILE] [--lineage-of NAME]... [--aggregate majority\|mean\|min] [--positive LABEL] [--min-independent N] [--max-abstain D] [--out FILE --key KEY [--at TIME]]` | Runs label judges (label, probability, explicit abstain; a parse failure is an error, never 0) over items; an ensemble with fewer independent groups than `--min-independent` exits 1 with `fail:judge.ensemble-not-independent` before any model is called; outputs aimed at the judge are `advisory:judge.outbound-injection`; `--out` writes signed `opentine.judge-outcome/1` lines (one `--judge`, a pinned `scorer` key: `judge.outcome-signer`) |
+| `tine judge agreement --queue NAME [--judge judge.json] [--floor D] [--alpha D] [--min-items N] [--min-coverage D] [--seed N] [--resamples N] [--strict]` | Re-verifies a `tine label` queue and its revealed, signed judge outcomes and reports human agreement (Krippendorff, Fleiss, Cohen) and each judge's judge-vs-consensus kappa and multi-rater alpha with seeded bootstrap intervals; both lower bounds must reach the floor; undefined never passes; advisory unless `--strict` |
+| `tine judge validate --queue NAME --judge judge.json --adversarial ITEMS --adversarial-outcomes SIGNED [--max-fooled N] [agreement options] --key KEY [--at TIME]` | Signs and holds an `opentine.judge-validation/1` record naming the queue when the signed adversarial outcomes and the recomputed agreement floor pass (`judge.validation-failed`, `judge.validation-signer` otherwise) |
 | `tine judge independence --lineage DIR --candidate RUN\|VARIANT [--judge FILE]... [--judge-prompt FILE]... [--family-prompt FILE]... [--monitor DIGEST[=trusted\|untrusted]]... [--items FILE] [--ancestry FILE] [--threshold D]` | Exits 1 on `fail:lineage.judge-not-independent`, `fail:lineage.monitor-not-independent`, `fail:lineage.self-generated-eval-item`, `fail:lineage.record-invalid` or `fail:lineage.candidate-unknown` |
 | `tine judge injection OUTPUTS [--strict]` | Lists candidate outputs that address their judge; advisory unless `--strict` |
 

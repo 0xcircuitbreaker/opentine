@@ -1,12 +1,12 @@
 """``tine judge`` (0.89): judge assurance.
 
 * ``classify``      run one label judge, or an ensemble, over items (abstain explicit;
-                    an ensemble must be independent: copies of one judge count once);
-* ``label``         sign and hold one human rubric label (a pinned ``reviewer`` key);
-* ``queue``         each pinned reviewer's assigned and pending items;
-* ``agreement``     judge-vs-human agreement with a bootstrap interval and floor;
-* ``validate``      sign a judge (or monitor) validation: adversarial cases plus the
-                    agreement floor, recomputed from the held labels;
+                    an ensemble must be independent: copies of one judge count once;
+                    (``--key --out``: signed ``opentine.judge-outcome/1`` lines);
+* ``agreement``     human and judge-vs-human agreement over a label queue
+                    (``tine label``), recomputed, with bootstrap intervals and floor;
+* ``validate``      sign a judge validation: signed adversarial outcomes plus the
+                    agreement floor, recomputed from the queue;
 * ``independence``  judges, monitors and eval items against the candidate's lineage;
 * ``injection``     candidate outputs that address their judge (advisory).
 
@@ -21,32 +21,24 @@ from collections.abc import Callable
 from typing import Any
 
 SCHEMA = "tine-cli-judge/1"
-VERBS = ("classify", "label", "queue", "agreement", "validate", "independence", "injection")
+VERBS = ("classify", "agreement", "validate", "independence", "injection")
 
 
 def _stats(verb: argparse.ArgumentParser) -> None:
-    verb.add_argument("--floor", default="0.6", help="Lower-bound floor (default 0.6)")
-    verb.add_argument("--min-coverage", default="0.9", help="Share the judge must decide")
-    verb.add_argument("--seed", type=int, default=0, help="Bootstrap seed (default 0)")
-    verb.add_argument("--resamples", type=int, default=2000, help="Bootstrap resamples")
-    verb.add_argument(
-        "--per-item",
-        type=int,
-        default=1,
-        help="Reviewers per item, as in queue; other labels do not count",
-    )
-
-
-def _labelled(verb: argparse.ArgumentParser) -> None:
-    verb.add_argument("--rubric", required=True, metavar="FILE", help="Rubric text file")
-    verb.add_argument("--items", required=True, metavar="FILE", help="Items (JSONL)")
+    verb.add_argument("--queue", required=True, metavar="NAME", help="Label queue (tine label)")
+    verb.add_argument("--floor", help="Lower-bound floor of both statistics (default 0.6)")
+    verb.add_argument("--alpha", help="Interval alpha (default 0.05)")
+    verb.add_argument("--seed", type=int, help="Bootstrap seed (default 0)")
+    verb.add_argument("--resamples", type=int, help="Bootstrap resamples (default 2000)")
+    verb.add_argument("--min-items", type=int, help="Items a judge is compared on (default 20)")
+    verb.add_argument("--min-coverage", help="Share the judge must decide (default 0.9)")
 
 
 def add_judge_parser(subparsers: argparse._SubParsersAction) -> None:
     from opentine._judge_ensemble import AGGREGATES
 
-    parser = subparsers.add_parser("judge", help="Label judges, ensembles, human labels, "
-                                   "agreement and independence")  # fmt: skip
+    parser = subparsers.add_parser("judge", help="Label judges, ensembles, agreement, "
+                                   "validation and independence")  # fmt: skip
     verbs = parser.add_subparsers(dest="judge_command", required=True)
     cls = verbs.add_parser("classify", help="Run label judges over items")
     cls.add_argument("--judge", action="append", required=True, metavar="PROVIDER[:MODEL]")
@@ -64,33 +56,22 @@ def add_judge_parser(subparsers: argparse._SubParsersAction) -> None:
     cls.add_argument("--max-abstain", default="0.5", help="Abstaining share that abstains")
     cls.add_argument("--out", metavar="FILE", help="Write outcome rows (JSONL)")
     cls.add_argument("--runs-dir", metavar="DIR", help="Where judge runs are saved")
-    lab = verbs.add_parser("label", help="Sign and hold one human rubric label")
-    _labelled(lab)
-    lab.add_argument("--item", required=True, metavar="ID")
-    lab.add_argument("--label", required=True)
-    lab.add_argument("--key", required=True, metavar="KEY", help="A pinned reviewer key")
-    lab.add_argument("--at", metavar="RFC3339", help="Label time (default now)")
-    que = verbs.add_parser("queue", help="Each pinned reviewer's assigned and pending items")
-    _labelled(que)
-    que.add_argument("--per-item", type=int, default=1, help="Reviewers per item")
-    agr = verbs.add_parser("agreement", help="Judge-vs-human agreement (advisory)")
-    _labelled(agr)
-    agr.add_argument("--judge-labels", required=True, metavar="FILE",
-                     help="Judge outcomes (tine judge classify --out)")  # fmt: skip
-    agr.add_argument("--strict", action="store_true", help="Exit 1 below the floor")
+    cls.add_argument("--key", metavar="KEY", help="Pinned scorer key that signs --out")
+    cls.add_argument("--at", metavar="RFC3339", help="Signing time (default now)")
+    agr = verbs.add_parser("agreement", help="Human and judge agreement over a label queue")
     _stats(agr)
-    val = verbs.add_parser("validate", help="Sign a judge or monitor validation")
-    _labelled(val)
-    who = val.add_mutually_exclusive_group(required=True)
-    who.add_argument("--judge", metavar="FILE", help="Judge provenance (judge.json)")
-    who.add_argument("--monitor", metavar="DIGEST", help="Monitor digest (sha256:HEX)")
-    val.add_argument("--judge-labels", required=True, metavar="FILE")
+    agr.add_argument("--judge", metavar="FILE", help="Only this judge (judge.json)")
+    agr.add_argument("--strict", action="store_true", help="Exit 1 below a floor")
+    val = verbs.add_parser("validate", help="Sign a judge validation")
+    _stats(val)
+    val.add_argument("--judge", required=True, metavar="FILE", help="Judge provenance (judge.json)")
     val.add_argument("--adversarial", required=True, metavar="FILE",
-                     help="Adversarial outcomes (JSONL: id, expected, outcome)")  # fmt: skip
+                     help="Adversarial items (JSONL, each with its expected label)")  # fmt: skip
+    val.add_argument("--adversarial-outcomes", required=True, metavar="FILE",
+                     help="Signed outcomes on them (tine judge classify --key --out)")  # fmt: skip
     val.add_argument("--max-fooled", type=int, default=0, help="Fooled cases allowed")
     val.add_argument("--key", required=True, metavar="KEY", help="A pinned scorer/policy key")
     val.add_argument("--at", metavar="RFC3339", help="Signing time (default now)")
-    _stats(val)
     ind = verbs.add_parser("independence", help="Judges, monitors, items vs a lineage")
     ind.add_argument("--lineage", required=True, metavar="DIR", help="Lineage folder")
     ind.add_argument("--candidate", required=True, metavar="RUN|VARIANT")
@@ -104,7 +85,7 @@ def add_judge_parser(subparsers: argparse._SubParsersAction) -> None:
     inj = verbs.add_parser("injection", help="Outputs that address their judge (advisory)")
     inj.add_argument("outputs", metavar="OUTPUTS", help="Outputs (JSONL)")
     inj.add_argument("--strict", action="store_true", help="Exit 1 on a finding")
-    for verb in (cls, lab, que, agr, val, ind, inj):
+    for verb in (cls, agr, val, ind, inj):
         verb.add_argument("--repo", default=".", metavar="PATH", help="Repository")
         verb.add_argument("--json", action="store_true", help="Print a JSON object")
 

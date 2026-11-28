@@ -123,13 +123,18 @@ def submit(repo: Path, name: str, item: str, label: str, key: Any, at: str,
 
 def reveal(repo: Path, name: str, provenance: Path, outputs: Path, key: Any,
            at: str) -> dict[str, Any]:  # fmt: skip
-    """File judge outputs for the queue's items and sign their reveal."""
+    """File signed judge outcomes (``opentine.judge-outcome/1``) and sign their reveal."""
     from opentine import _judge_provenance as jp
+    from opentine._judge_outcomes import OutcomeError, check
 
     doc = _json(_bytes(provenance), str(provenance))
     if jp.check(doc):
         raise LabelError("labels.bad-input", f"{provenance} is not judge provenance")
     raw = _bytes(outputs)
+    try:
+        check(raw, jp.pin(doc), Path(repo) / ".tine")
+    except OutcomeError as exc:
+        raise LabelError("labels.bad-input", str(exc)) from exc
     sha = hashlib.sha256(raw).hexdigest()
     state = read(repo, name)
     _write_new(folder(repo, name) / "judge" / f"{sha}.jsonl", raw)

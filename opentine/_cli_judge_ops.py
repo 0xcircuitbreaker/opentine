@@ -57,12 +57,6 @@ def items(path: str) -> dict[str, dict[str, Any]]:
     return out
 
 
-def digests(found: dict[str, dict[str, Any]]) -> dict[str, str]:
-    from opentine._eval_dataset import item_digest
-
-    return {k: item_digest(v) for k, v in found.items()}
-
-
 def _fraction(text: str, name: str) -> Fraction:
     try:
         return Fraction(str(text))
@@ -82,81 +76,48 @@ def _repo(args: argparse.Namespace) -> Any:
     return Repo.open(args.repo)
 
 
-def _outcomes(path: str) -> dict[str, dict[str, Any]]:
-    from opentine._judge_label import STATUSES
+def _opts(args: argparse.Namespace) -> dict[str, Any]:
+    from opentine._label_report import settings
 
-    out = {}
-    for row in rows(path):
-        if not isinstance(row, dict) or not isinstance(row.get("item"), str):
-            raise ValueError(f"{path}: each row has an item id and an outcome")
-        outcome = row.get("outcome") if isinstance(row.get("outcome"), dict) else {}
-        if outcome.get("status") not in STATUSES:
-            outcome = {"status": "error", "label": None}
-        out[row["item"]] = outcome
-    return out
+    return settings(floor=args.floor, alpha=args.alpha, seed=args.seed,
+                    resamples=args.resamples, min_items=args.min_items,
+                    min_coverage=args.min_coverage)  # fmt: skip
 
 
-def _agreement(args: argparse.Namespace, repo: Any) -> tuple[dict, str]:
-    from opentine import _judge_agreement, _rubric_labels
+def _report(args: argparse.Namespace, pin: str | None) -> dict[str, Any]:
+    from opentine._label_queue import LabelError
+    from opentine._label_report import report
 
-    rubric = _rubric_labels.rubric_digest(_read(args.rubric))
-    known = digests(items(args.items))
-    found = _rubric_labels.labels(repo, rubric, known)
-    plan = _rubric_labels.assignment(known, _rubric_labels.reviewers(repo)[0], args.per_item)
-    counted = {i: {r: v for r, v in by.items() if r in plan.get(i, ())}
-               for i, by in found["labels"].items()}  # fmt: skip
-    outside = sum(len(by) for by in found["labels"].values()) - sum(map(len, counted.values()))
-    report = _judge_agreement.report(
-        _outcomes(args.judge_labels), counted,
-        floor=_fraction(args.floor, "--floor"),
-        min_coverage=_fraction(args.min_coverage, "--min-coverage"), seed=args.seed,
-        resamples=args.resamples)  # fmt: skip
-    report["ignored_labels"] = len(found["ignored"])
-    report["unassigned_labels"] = outside  # a reviewer cannot pick the items they label
-    report["conflicts"] = found["conflicts"]
-    return report, rubric
+    try:
+        return report(Path(args.repo), args.queue, _opts(args), judge_pin=pin)
+    except LabelError as exc:
+        raise Refused(str(exc)) from exc
+
+
+def _pin(path: str) -> str:
+    from opentine import _judge_provenance
+
+    found = doc(path)
+    if _judge_provenance.check(found):
+        raise ValueError(f"{path} is not judge provenance")
+    return _judge_provenance.pin(found)
 
 
 def agreement(args: argparse.Namespace) -> tuple[dict, list[str], bool]:
-    report, rubric = _agreement(args, _repo(args))
-    lo, hi = report["ci"]
-    lines = [
-        f"{report['method']} {report['value']} [{lo}, {hi}] over {report['counted']} item(s), "
-        f"floor {report['floor']}: " + ("met" if report["meets_floor"] else "not met")
-    ]
-    lines += [f"advisory: {r}" for r in report["reasons"]]
-    body = {"rubric": rubric, "agreement": report, "advisory": not args.strict}
-    return body, lines, report["meets_floor"] or not args.strict
-
-
-def label(args: argparse.Namespace) -> tuple[dict, list[str], bool]:
-    from opentine import _containment_records, _rubric_labels
-    from opentine._key_hygiene import ed25519_private
-
-    repo, found = _repo(args), items(args.items)
-    if args.item not in found:
-        raise ValueError(f"no item {args.item!r} in {args.items}")
-    key = ed25519_private(args.key)
-    claim = {"convention": _rubric_labels.CONVENTION,
-             "rubric": _rubric_labels.rubric_digest(_read(args.rubric)), "item": args.item,
-             "item_digest": digests({args.item: found[args.item]})[args.item],
-             "label": args.label, "reviewer": _containment_records.fingerprint(key),
-             "at": _now(args)}  # fmt: skip
-    try:
-        oid = _rubric_labels.record(repo, claim, key)
-    except _rubric_labels.LabelError as exc:
-        raise Refused(str(exc)) from exc
-    return {"record": oid, "claim": claim}, [f"labelled {args.item} {args.label}: {oid}"], True
-
-
-def queue(args: argparse.Namespace) -> tuple[dict, list[str], bool]:
-    from opentine import _rubric_labels
-
-    rubric = _rubric_labels.rubric_digest(_read(args.rubric))
-    body = _rubric_labels.queue(_repo(args), rubric, digests(items(args.items)), args.per_item)
-    lines = [f"{k}: {len(v['pending'])} pending of {len(v['assigned'])}"
-             for k, v in body["reviewers"].items()] or [f"no reviewer: {body['why']}"]  # fmt: skip
-    return {"rubric": rubric, **body}, lines, True
+    """Human agreement over a queue and each revealed judge's, recomputed (advisory)."""
+    row = _report(args, _pin(args.judge) if args.judge else None)
+    human = row["human"]
+    top = human[human["primary"]]
+    lines = [f"human: {human['items']} item(s), {human['reviewers']} reviewer(s), "
+             f"{human['primary']} {top['value']} [{top['lower']}, {top['upper']}]"]  # fmt: skip
+    for j in row["judges"]:
+        k, m = j["judge_vs_consensus"], j["multi_rater"]
+        lines.append(f"judge {j['judge'][:24]}: kappa {k['value']} [{k['lower']}, {k['upper']}] "
+                     f"alpha {m['value']} [{m['lower']}, {m['upper']}] coverage {j['coverage']} "
+                     f"{'ok' if j['floor_ok'] else 'below floor'}")  # fmt: skip
+    ok = human["floor_ok"] and bool(row["judges"]) and all(j["floor_ok"] for j in row["judges"])
+    lines += [] if row["judges"] else ["advisory: no judge was revealed in this queue"]
+    return {**row, "ok": ok, "advisory": not args.strict}, lines, ok or not args.strict
 
 
 def injection(args: argparse.Namespace) -> tuple[dict, list[str], bool]:
@@ -212,24 +173,27 @@ def independence(args: argparse.Namespace) -> tuple[dict, list[str], bool]:
 
 
 def validate(args: argparse.Namespace) -> tuple[dict, list[str], bool]:
-    from opentine import _judge_provenance, _judge_validation
+    from opentine import _judge_validation
     from opentine._key_hygiene import ed25519_private
 
-    repo = _repo(args)
-    if args.judge:
-        subject = {"kind": "judge", "id": _judge_provenance.pin(doc(args.judge))}
-    else:
-        subject = {"kind": "monitor", "id": args.monitor}
-    report, rubric = _agreement(args, repo)
-    raw = _read(args.adversarial)
-    cases = _judge_validation.adversarial(rows(args.adversarial), raw, args.max_fooled)
+    repo, pin = _repo(args), _pin(args.judge)
+    found = _report(args, pin)
+    if not found["judges"]:
+        raise Refused(f"judge.validation-failed: queue {args.queue} revealed no outcome of {pin}")
+    row = found["judges"][0]
+    raw = _read(args.adversarial_outcomes)
+    cases = _judge_validation.adversarial(rows(args.adversarial), raw, pin, repo.path,
+                                          args.max_fooled)  # fmt: skip
+    queue = {"name": args.queue, "queue_sha256": found["queue_sha256"],
+             "reveal_seq": row["reveal_seq"]}  # fmt: skip
     try:
-        done = _judge_validation.validate(repo, subject, rubric=rubric, cases=cases,
-                                          agreement=report, key=ed25519_private(args.key),
+        done = _judge_validation.validate(repo, {"kind": "judge", "id": pin},
+                                          rubric=found["rubric_sha256"], queue=queue, cases=cases,
+                                          agreement=row, key=ed25519_private(args.key),
                                           at=_now(args))  # fmt: skip
     except _judge_validation.ValidationError as exc:
         raise Refused(str(exc)) from exc
-    return done, [f"validated {subject['kind']} {subject['id']}: {done['record']}"], True
+    return done, [f"validated judge {pin}: {done['record']}"], True
 
 
 def classify(args: argparse.Namespace) -> tuple[dict, list[str], bool]:
@@ -238,8 +202,8 @@ def classify(args: argparse.Namespace) -> tuple[dict, list[str], bool]:
     return run(args)
 
 
-HANDLERS = {"classify": classify, "agreement": agreement, "label": label, "queue": queue,
-            "injection": injection, "independence": independence,
+HANDLERS = {"classify": classify, "agreement": agreement, "injection": injection,
+            "independence": independence,
             "validate": validate}  # fmt: skip
 
-__all__ = ["HANDLERS", "Refused", "digests", "doc", "items", "rows"]
+__all__ = ["HANDLERS", "Refused", "doc", "items", "rows"]
