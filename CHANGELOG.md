@@ -27,6 +27,12 @@
   oversight queue.
 - The reference loop runs under a stop policy and checks a fresh continue proof
   before each step (`run_loop(stop_at=N)` stops it at step N).
+- Stop compliance is judged from the record's own signed numbers (the claimed
+  verdict alone counts for nothing, and a non-integer measurement fails); a
+  halt more than one watchdog interval plus the allowed skew after a fleet stop
+  is late; residual processes are counted before any second kill; a runner's
+  clock advances only monotonically once read, so setting the system clock
+  back keeps no proof fresh.
 - Docs: STOP.md.
 
 ## 0.90.0 — Monitors as evidence and role tokens (2026-11-28)

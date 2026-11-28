@@ -36,13 +36,13 @@ _CONT = closed(_CONT_KEYS, {
     "checkpoint": _POINT})  # fmt: skip
 _COMP_KEYS = ["convention", "fleet", "run", "code", "stop", "stop_issued_at", "requested_at",
               "halted_at", "time_to_halt_ms", "since_stop_ms", "window_s", "watchdog_s",
-              "residual_processes", "residual_method", "forwarded_after_stop",
+              "skew_s", "residual_processes", "residual_method", "forwarded_after_stop",
               "refused_after_stop", "compliant"]  # fmt: skip
 _COMP = closed(_COMP_KEYS, {
     "convention": {"const": "opentine.stop-compliance/1"}, "fleet": _FLEET, "run": STR,
     "code": _CODE, "stop": opt(STR), "stop_issued_at": opt(STR), "requested_at": STR,
     "halted_at": STR, "time_to_halt_ms": INT, "since_stop_ms": opt(INT), "window_s": INT,
-    "watchdog_s": INT, "residual_processes": INT,
+    "watchdog_s": INT, "skew_s": INT, "residual_processes": INT,
     "residual_method": {"enum": ["proc", "killpg", "job-object", "in-process"]},
     "forwarded_after_stop": INT, "refused_after_stop": INT, "compliant": BOOL})  # fmt: skip
 _ENTRY = closed(["kind", "attestation", "index", "signer", "claim"], {

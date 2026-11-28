@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from opentine import _stop_compliance, _stop_guard, _stop_policy, _stop_supervise, cli
+from opentine import _stop_compliance, _stop_guard, _stop_policy, cli
 from opentine.core import Run, StepKind
 from tests.key_roles_helpers import isolated_trust_config  # noqa: F401 - autouse
 from tests.stop_helpers import (
@@ -62,7 +62,6 @@ def tine(*argv: str) -> int:
 def fixed(monkeypatch) -> Clock:
     clock = Clock()
     monkeypatch.setattr(_stop_guard, "_now_ms", clock)
-    monkeypatch.setattr(_stop_supervise, "_ms", clock)
     return clock
 
 

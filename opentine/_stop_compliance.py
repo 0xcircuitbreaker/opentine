@@ -5,18 +5,20 @@ claim follows ``opentine.stop-compliance/1``::
 
     {"convention": "opentine.stop-compliance/1", "fleet", "run", "code", "stop",
      "stop_issued_at", "requested_at", "halted_at", "time_to_halt_ms",
-     "since_stop_ms", "window_s", "watchdog_s", "residual_processes",
+     "since_stop_ms", "window_s", "watchdog_s", "skew_s", "residual_processes",
      "residual_method", "forwarded_after_stop", "refused_after_stop",
      "compliant"}
 
 ``compliant`` holds when the tree was gone within one watchdog interval of the
 halt decision, no process of it was left, no action was forwarded after the
-halt, and (for a fleet stop) the halt came within the freshness window of the
-stop's own time. The record is held, never released, under
-``stop-compliance:<run>``. :func:`items` feeds the ``stop`` source of the
-oversight queue: every held record that is not compliant, does not verify, or
-is not signed by a pinned ``runner`` key (never an ``optimizer`` key) opens
-``stop:<oid>``; the queue fails closed on what it cannot read.
+halt, and (for a fleet stop) the halt came within one watchdog interval plus
+the allowed clock skew of the stop's own time. :func:`check` recomputes this
+from the signed numbers; the claimed ``compliant`` alone counts for nothing.
+The record is held, never released, under ``stop-compliance:<run>``.
+:func:`items` feeds the ``stop`` source of the oversight queue: every held
+record that is not compliant, does not verify, or is not signed by a pinned
+``runner`` key (never an ``optimizer`` key) opens ``stop:<oid>``;
+the queue fails closed on what it cannot read.
 """
 
 from __future__ import annotations
@@ -37,22 +39,51 @@ def claim_for(policy: dict[str, Any], run: str, measured: dict[str, Any],
     to_halt = max(0, halted - requested)
     issued = parse_at(stop_issued_at)
     since = None if issued is None else max(0, halted - issued)
-    compliant = (
-        to_halt <= policy["watchdog_s"] * 1000
-        and measured["residual_processes"] == 0
-        and measured["forwarded_after_stop"] == 0
-        and (since is None or since <= policy["window_s"] * 1000)
-    )
+    numbers = {"time_to_halt_ms": to_halt, "since_stop_ms": since,
+               "watchdog_s": policy["watchdog_s"], "skew_s": policy["skew_s"],
+               "residual_processes": measured["residual_processes"],
+               "forwarded_after_stop": measured["forwarded_after_stop"]}  # fmt: skip
+    compliant = _compliant(numbers) is None
     return {"convention": CONVENTION, "fleet": policy["fleet"], "run": run,
             "code": measured["code"], "stop": measured["stop"],
             "stop_issued_at": stop_issued_at, "requested_at": rfc3339(requested),
             "halted_at": rfc3339(halted), "time_to_halt_ms": to_halt, "since_stop_ms": since,
             "window_s": policy["window_s"], "watchdog_s": policy["watchdog_s"],
+            "skew_s": policy["skew_s"],
             "residual_processes": measured["residual_processes"],
             "residual_method": measured["residual_method"],
             "forwarded_after_stop": measured["forwarded_after_stop"],
             "refused_after_stop": measured["refused_after_stop"],
             "compliant": compliant}  # fmt: skip
+
+
+def _int(value: Any) -> bool:
+    return type(value) is int and 0 <= value < 2**53
+
+
+def _compliant(c: dict[str, Any]) -> str | None:
+    """Why the measured numbers of *c* are not a compliant halt; ``None`` when they are.
+
+    The tree must be gone within one watchdog interval of the decision, nothing of it
+    left, nothing forwarded after the halt and, for a fleet stop, the halt must come
+    within one watchdog interval (plus the allowed clock skew) of the stop itself: a
+    runner that only notices a stop when its proof goes stale is late.
+    """
+    fields = ("time_to_halt_ms", "watchdog_s", "skew_s", "residual_processes",
+              "forwarded_after_stop")  # fmt: skip
+    if not all(_int(c.get(f)) for f in fields) or not (
+        c.get("since_stop_ms") is None or _int(c.get("since_stop_ms"))
+    ):
+        return "the record's measurements are not non-negative integers"
+    bound = (c["watchdog_s"] + c["skew_s"]) * 1000
+    if (c["time_to_halt_ms"] > c["watchdog_s"] * 1000 or c["residual_processes"]
+            or c["forwarded_after_stop"]
+            or (c["since_stop_ms"] is not None and c["since_stop_ms"] > bound)):  # fmt: skip
+        return (f"non-compliant halt: {c['time_to_halt_ms']} ms to halt, "
+                f"{c['residual_processes']} residual process(es), "
+                f"{c['forwarded_after_stop']} action(s) after the stop, "
+                f"{c['since_stop_ms']} ms after the stop")  # fmt: skip
+    return None
 
 
 def stop_time(policy: dict[str, Any], store: Path | None, base: Path | None, stop: Any) -> Any:
@@ -113,11 +144,10 @@ def check(repo: Any, oid: str) -> str | None:
     keys, why = granting(Path(repo.path), "runner")
     if payload.get("signer") not in keys:
         return why
-    if claim.get("compliant") is not True:
-        return (f"non-compliant halt: {claim.get('time_to_halt_ms')} ms to halt, "
-                f"{claim.get('residual_processes')} residual process(es), "
-                f"{claim.get('forwarded_after_stop')} action(s) after the stop")  # fmt: skip
-    return None
+    problem = _compliant(claim)  # recomputed: the claimed verdict alone counts for nothing
+    if problem is None and claim.get("compliant") is not True:
+        problem = "the record does not claim a compliant halt"
+    return problem
 
 
 def held(repo: Any) -> list[str]:

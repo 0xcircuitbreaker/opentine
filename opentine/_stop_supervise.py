@@ -19,15 +19,10 @@ from __future__ import annotations
 import os
 import subprocess
 import threading
-import time
 from collections.abc import Callable
 from typing import Any
 
 from opentine._stop_guard import Halt, StopGuard, Watchdog
-
-
-def _ms() -> int:
-    return int(time.time() * 1000)
 
 
 def _alive(pid: int) -> bool:
@@ -71,7 +66,7 @@ def residual(group: int, token: str | None) -> tuple[int, str]:
 
 class Supervised:
     def __init__(self, guard: StopGuard, *, clock_ms: Callable[[], int] | None = None) -> None:
-        self.guard, self.clock_ms = guard, clock_ms or (lambda: _ms())
+        self.guard, self.clock_ms = guard, clock_ms or guard.now_ms
         self.process: subprocess.Popen[bytes] | None = None
         self.job: Any = None
         self.token: str | None = None
@@ -81,6 +76,7 @@ class Supervised:
         self.forwarded_after = 0
         self.refused_after = 0
         self._lock = threading.Lock()
+        self.settle: Callable[[], Any] = lambda: threading.Event().wait(0.02)
 
     def launch(self, argv: list[str], env: dict[str, str], **popen: Any) -> subprocess.Popen[bytes]:
         from opentine.tools import _subreaper
@@ -144,16 +140,13 @@ class Supervised:
             count, method = 0, "in-process"
         else:
             count, method = residual(self.process.pid, self.token)
-        for _ in range(
-            100 if self.process is not None else 0
-        ):  # SIGKILL lands asynchronously: let the kernel catch up
-            if count == 0:
-                break
+        for _ in range(100 if count else 0):  # SIGKILL lands asynchronously: wait, never
+            self.settle()  # kill again first, which would hide a survivor
+            count, method = residual(self.process.pid, self.token)
+        if self.process is not None:
             from opentine.tools._process import _cleanup_owned
 
-            _cleanup_owned(self.process, self.job)
-            threading.Event().wait(0.02)
-            count, method = residual(self.process.pid, self.token)
+            _cleanup_owned(self.process, self.job)  # a survivor is counted, then still killed
         halted = self.halted_ms if self.halted_ms is not None else self.clock_ms()
         return {"code": self.reason.code, "message": self.reason.message,
                 "stop": self.reason.stop, "requested_ms": self.requested_ms,

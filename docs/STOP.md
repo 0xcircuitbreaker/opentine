@@ -75,7 +75,12 @@ entry, when the halt was decided and when the tree was gone
 (`residual_processes`, with how they were counted), and the actions forwarded
 or refused after the halt. It is `compliant` when the tree was gone within one
 watchdog interval, nothing was left, nothing was forwarded after the halt and,
-for a fleet stop, the halt came within the window of the stop. A record that
+for a fleet stop, the halt came within one watchdog interval plus `skew_s` of
+the stop's `stopped_at` (a runner that only halts once its proof goes stale is
+late). The residue is counted before any second kill, so a process that
+survived the first one is reported, then killed. Whoever reads the record
+recomputes `compliant` from its signed numbers; the claimed flag alone counts
+for nothing. A record that
 is not compliant, does not verify, or is not by a pinned runner key opens a
 `stop:<record>` item in the oversight queue (`tine oversight queue`).
 `tine stop compliance` lists the records; a non-compliant one is advisory
@@ -115,6 +120,8 @@ tine stop issue --channel /shared/stop --fleet fleet-a --key stopper.key --reaso
   a stop policy; repositories without one are unaffected.
 * Freshness rests on the signer's and the runner's clocks; `skew_s` bounds how
   far they may disagree.
+  A runner reads the wall clock once and then advances it only by the
+  monotonic clock, so setting the system clock back mid-run keeps no proof fresh.
 * A runner remembers what it has read only while it runs: a new runner cannot
   tell that a whole channel was replaced by an older copy of itself (it still
   needs a fresh proof within the window, so the replay is bounded by `window_s`).

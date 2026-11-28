@@ -40,8 +40,17 @@ class Halt(RuntimeError):
         self.code, self.message, self.stop = code, message, stop
 
 
-def _now_ms() -> int:
-    return int(time.time() * 1000)
+def anchored_clock(wall: Callable[[], float] = time.time,
+                   mono: Callable[[], float] = time.monotonic) -> Callable[[], int]:  # fmt: skip
+    """Milliseconds: the wall clock read once, then advanced only by the monotonic clock.
+
+    Setting the system clock back while a run is in flight cannot keep a proof fresh.
+    """
+    start_wall, start_mono = wall(), mono()
+    return lambda: int((start_wall + (mono() - start_mono)) * 1000)
+
+
+_now_ms = anchored_clock()  # the process's clock (a test injects its own)
 
 
 class StopGuard:
@@ -55,8 +64,13 @@ class StopGuard:
         self.halted: Halt | None = None
         self.accepted: dict[str, Any] | None = None
         self.checks = 0
-        self._size, self._root, self._seq = 0, None, 0
+        self._size, self._root, self._seq, self._last_ms = 0, None, 0, 0
         self._lock = threading.Lock()
+
+    def now_ms(self) -> int:
+        """The clock, never earlier than any time this guard has already read."""
+        self._last_ms = max(self._last_ms, int(self.clock_ms()))
+        return self._last_ms
 
     @property
     def window_ms(self) -> int:
@@ -120,7 +134,7 @@ class StopGuard:
         if seq < self._seq:
             raise Halt("stop.continue-rollback", f"continue seq {seq} after {self._seq}")
         self._bound(snap, claim)
-        now = self.clock_ms()
+        now = self.now_ms()
         issued = _stop_proof.parse_at(claim["issued_at"])
         if issued is None or issued > now + int(self.policy["skew_s"]) * 1000:
             raise Halt("stop.continue-future", f"continue proof {oid} is dated in the future")
@@ -186,4 +200,4 @@ class Watchdog:
             self._thread.join()
 
 
-__all__ = ["Halt", "StopGuard", "Watchdog"]
+__all__ = ["Halt", "StopGuard", "Watchdog", "anchored_clock"]
