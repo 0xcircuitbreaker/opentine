@@ -10,23 +10,23 @@ file is diffed by tokens.
 A JSON file is a *tool set* when it holds a list of tool definitions (a
 ``tools/list`` result, ``{"tools": [...]}`` or a bare list), each an object with
 a ``name`` and one of ``inputSchema``, ``input_schema`` or ``parameters``. Tools
-are compared by name and :func:`tool_def_digest`, so a tool that keeps its name
+are compared by name and the same ``tool_def_digest`` ``tine mcp-proxy``
+records on each call (``_mcp_tool_pins``), so a tool that keeps its name
 while its schema changes is ``changed``.
 """
 
 from __future__ import annotations
 
-import hashlib
 import re
 import tomllib
 from typing import Any
 
 from opentine import _json_shallow
+from opentine._mcp_tool_pins import tool_def_digest
 from opentine.kernel import canonical_json
 
 CONFIG_SUFFIXES = (".json", ".toml", ".yaml", ".yml")
 _SCHEMA_KEYS = ("inputSchema", "input_schema", "parameters")
-TOOL_DOMAIN = b"opentine.tool-def.v1:"
 _PLAIN_KEY = re.compile(r"[A-Za-z0-9_-]+")
 
 
@@ -36,11 +36,6 @@ class DuplicateKey(ValueError):
 
 class Unreadable(ValueError):
     """A config file does not parse (or its parser is not installed)."""
-
-
-def tool_def_digest(definition: dict[str, Any]) -> str:
-    """``sha256:`` over a domain and the JCS of one tool definition."""
-    return "sha256:" + hashlib.sha256(TOOL_DOMAIN + canonical_json(definition)).hexdigest()
 
 
 def _yaml(text: str) -> Any:

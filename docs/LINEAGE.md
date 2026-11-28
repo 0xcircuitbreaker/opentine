@@ -202,7 +202,7 @@ file is listed with both SHA-256 digests, a kind, whether its structure changed
 | --- | --- |
 | `python` | AST symbols: each function and class by qualified name, a class header, every other statement by digest. A changed default, decorator or constant is a `changed` symbol; comments and formatting are not structural. A source that does not parse falls back to tokens. |
 | `prompt` | Markdown and text (`.md`, `.txt`, `.prompt`, names with `prompt`) split into sections by heading path (`Role / Rules`); added, removed, changed and reordered sections. |
-| `tools` | A whole `tools/list` result (`{"tools": [...]}`, its JSON-RPC envelope, or a bare list of definitions with `inputSchema`, `input_schema` or `parameters`): tools by name and `tool_def_digest` (`sha256:` over `opentine.tool-def.v1:` + JCS of the definition), so a schema change under a kept name and description is `changed`. A file with other top-level keys is a config. |
+| `tools` | A whole `tools/list` result (`{"tools": [...]}`, its JSON-RPC envelope, or a bare list of definitions with `inputSchema`, `input_schema` or `parameters`): tools by name and `tool_def_digest` (the same digest `tine mcp-proxy` records on each `tools/call`; see `docs/SCAFFOLD.md`), so a schema change under a kept name and description is `changed`. A file with other top-level keys is a config. |
 | `config` | JSON, TOML and YAML (YAML only when PyYAML is installed) as leaves by path; reordered keys are not a change, a value that changes type is. A repeated key refuses the whole diff (`lineage-diff.duplicate-key`). |
 | `text` | Any other UTF-8 file, as a whitespace-insensitive token diff. |
 | `binary` | Digests only (also a symbolic link, recorded by its target, never followed). |
