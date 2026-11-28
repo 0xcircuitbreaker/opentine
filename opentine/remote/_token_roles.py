@@ -24,13 +24,15 @@ Authorship: every ref move and every installed run is noted against the agent
 that made it (the token's ``agent``, else the identity's subject) through
 ``service.authorship`` (the token store's ``note_authors``). A run whose
 payload names an ``agent_id``, ``agent`` or ``author`` is attributed to that
-id too. An approve token's own ids are its ``agent`` and its subject; a run the
+id too. An approve token's own ids are its ``agent`` and its subject, compared
+NFKC-normalized, trimmed and case-folded (:func:`same_id`); a run the
 tenant does not hold cannot be attributed, so an approval over it is refused
 (fail closed).
 """
 
 from __future__ import annotations
 
+import unicodedata
 from typing import Any
 
 ROLES = ("ingest", "verdict", "approve")
@@ -77,8 +79,14 @@ def agent(identity: Any) -> str:
     return value if isinstance(value, str) and value else str(getattr(identity, "subject", ""))
 
 
+def same_id(value: str) -> str:
+    """The form agent ids are compared in: NFKC, trimmed, case-folded."""
+    return unicodedata.normalize("NFKC", value).strip().casefold()
+
+
 def own_ids(identity: Any) -> set[str]:
-    return {item for item in (agent(identity), str(getattr(identity, "subject", ""))) if item}
+    ids = (agent(identity), str(getattr(identity, "subject", "")))
+    return {same_id(item) for item in ids if item}
 
 
 def allows(identity: Any, action: str) -> bool:
@@ -104,6 +112,8 @@ def check_mint(role_name: str | None, refs: list[str], agent_id: str) -> None:
         raise ValueError("an approve token names the agent id it acts as")
     if not isinstance(agent_id, str) or len(agent_id) > AGENT_MAX or not agent_id.isprintable():
         raise ValueError(f"an agent id is at most {AGENT_MAX} printable characters")
+    if agent_id != agent_id.strip():
+        raise ValueError("an agent id has no leading or trailing spaces")
 
 
 def note_authors(service: Any, identity: Any, tenant: str, oids: list[str]) -> None:
@@ -114,11 +124,11 @@ def note_authors(service: Any, identity: Any, tenant: str, oids: list[str]) -> N
 
 
 def _payload_ids(service: Any, tenant: str, oid: str) -> set[str] | None:
-    from opentine.kernel import ObjectEnvelope
+    from opentine.kernel import KernelError, ObjectEnvelope
 
     try:
-        payload = ObjectEnvelope.decode(service.objects.get(tenant, oid), oid).payload
-    except (KeyError, FileNotFoundError, ValueError):
+        payload = ObjectEnvelope.decode(service.objects.get(tenant, oid), oid).payload()
+    except (KeyError, FileNotFoundError, ValueError, KernelError):
         return None
     found: set[str] = set()
     for where in (payload, payload.get("metadata") if isinstance(payload, dict) else None):
@@ -144,7 +154,7 @@ def self_authored(service: Any, identity: Any, tenant: str, version: dict) -> st
             return f"run {row['id']} is not held here: its author cannot be checked"
         if callable(lookup):
             ids |= lookup(tenant, row["id"])
-        if ids & mine:
+        if {same_id(item) for item in ids} & mine:
             return f"run {row['id']} was authored by this token's own agent id"
     return None
 
@@ -161,5 +171,6 @@ __all__ = [
     "note_authors",
     "own_ids",
     "role",
+    "same_id",
     "self_authored",
 ]

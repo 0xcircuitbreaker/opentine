@@ -68,6 +68,12 @@
   (`token_scope`). A ref move refused for being outside a token's namespaces is
   now audited as `denied`; before this release it was refused without an audit
   row.
+- Role tokens reach no admin-surface route (tenant, holds, members, settings,
+  retention, invitations), as namespace-limited tokens already did.
+- The self-approval check reads the run's recorded `agent_id`, `agent` or
+  `author`, and compares agent ids after NFKC normalization, trimming and case
+  folding, so a differently spelled id is still the token's own. An agent id
+  with leading or trailing spaces is refused at mint.
 
 ## 0.89.0 — Judge assurance (2026-11-28)
 

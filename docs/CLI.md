@@ -273,8 +273,10 @@ and it never uploads, moves a ref or edits a Review. Its approval is refused
 its own agent id, or when the tenant does not hold that run, because then its
 author cannot be checked. A run's authors are the agents that uploaded it or
 moved a ref to it (a token's `--agent`, else the identity's subject), plus any
-`agent_id`, `agent` or `author` the run records. Every route checks the role,
-and any route the role does not list refuses the token. Revocation and expiry
+`agent_id`, `agent` or `author` the run records. Agent ids are compared after
+NFKC normalization, trimming and case folding, and one with leading or
+trailing spaces is refused at mint. Every route checks the role, and any route
+the role does not list (the admin surface included) refuses the token. Revocation and expiry
 apply on every request. Every audit row written for a scoped token carries its
 scope (`token_scope`: token id, access, refs, role, agent).
 
