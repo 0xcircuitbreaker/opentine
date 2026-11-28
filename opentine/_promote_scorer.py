@@ -41,6 +41,9 @@ def check_policy(policy: dict[str, Any]) -> None:
     from opentine._regions_pin import check_policy as regions
 
     regions(policy)  # 0.87: EVOLVE-BLOCK region pins, required under rsi
+    from opentine._promote_skill import check_policy as skills
+
+    skills(policy)  # 0.88: skill labels, required under rsi
 
 
 def in_process(folder: Path) -> bool:

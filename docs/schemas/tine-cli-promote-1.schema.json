@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opentine.com/schemas/tine-cli-promote-1.schema.json",
   "title": "tine promote --json",
-  "description": "`tine promote TARGET --name NAME` moves a `promotions/<name>` ref (`run_id`, `ref`, `created`). With `--baseline LABEL` (0.58) it is the signed promotion gate: `action` is `promote`, `revert`, `canary`, `approve`, `sign-policy` (`--sign-policy`, the `opentine.promotion-policy/1` attestation) or `refused`; `refusals` lists each named reason (`promote.*`); `previous` and `current` are the label's holder before and after; `stats` holds the `opentine.eval-compare/1` statistics; `advisories` (0.85) lists non-blocking findings such as `advisory:scorer.in-process`; `plan` (0.86) is the pre-registered, corrected analysis under `--plan`.",
+  "description": "`tine promote TARGET --name NAME` moves a `promotions/<name>` ref (`run_id`, `ref`, `created`). With `--baseline LABEL` (0.58) it is the signed promotion gate: `action` is `promote`, `revert`, `canary`, `approve`, `sign-policy` (`--sign-policy`, the `opentine.promotion-policy/1` attestation) or `refused`; `refusals` lists each named reason (`promote.*`); `previous` and `current` are the label's holder before and after; `stats` holds the `opentine.eval-compare/1` statistics; `advisories` (0.85) lists non-blocking findings such as `advisory:scorer.in-process`; `plan` (0.86) is the pre-registered, corrected analysis under `--plan`; `skills` (0.88) is the skill tree change (`from`, `to`, `label`) when the candidate's signed lineage record names another skill than the holder's.",
   "type": "object",
   "required": [
     "command"
@@ -314,6 +314,48 @@
       "anyOf": [
         {
           "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "skills": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "from",
+            "to",
+            "label"
+          ],
+          "properties": {
+            "from": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "to": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "label": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+            }
+          }
         },
         {
           "type": "null"

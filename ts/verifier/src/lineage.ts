@@ -20,7 +20,7 @@ import { verifyAttestation } from "./signature.js";
 export const CONVENTION = "opentine.lineage.variant";
 const DECISION = "opentine.promotion-decision/1";
 const DOMAIN = new TextEncoder().encode("opentine.lineage.variant.v1:");
-const ARTIFACTS = ["code_tree", "prompt", "config", "weights"];
+const ARTIFACTS = ["code_tree", "prompt", "config", "weights", "skill"];
 const CLAIM = ["convention", "variant", "artifacts", "parents", "mutation_run", "evals", "selector",
   "decision", "policy", "loop"];
 const DIGEST = /^sha256:[0-9a-f]{64}$/;
@@ -77,7 +77,7 @@ function shape(claim: JValue | undefined, variant: string): string | null {
   if (!sameKeys(claim, CLAIM)) return "the claim's fields are not the convention's";
   const arts = claim.get("artifacts");
   if (!isObject(arts) || !arts.size || ![...arts].every(([k, v]) => ARTIFACTS.includes(k) && str(v) && DIGEST.test(v))) {
-    return "artifacts must map code_tree/prompt/config/weights to sha256: digests";
+    return "artifacts must map code_tree/prompt/config/weights/skill to sha256: digests";
   }
   if (claim.get("variant") !== variant || variantId(arts) !== variant) return "the variant id is not the digest of its artifacts";
   const parents = claim.get("parents");

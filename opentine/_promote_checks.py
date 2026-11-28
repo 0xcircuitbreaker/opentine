@@ -45,7 +45,8 @@ LABEL_RE = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}")
 RUN_RE = re.compile(r"run:sha256:[0-9a-f]{64}")
 _KEYS = {"label_policy", "test", "alpha", "seed", "resamples", "min_n", "metric", "budget_usd",
          "approvers", "min_approvals", "require_holdout", "eval_signers",
-         "scorer_isolation", "profile", "require_plan", "holdout_queries", "regions"}  # fmt: skip
+         "scorer_isolation", "profile", "require_plan", "holdout_queries", "regions",
+         "skill_labels"}  # fmt: skip
 
 
 def refusal(code: str, detail: str) -> dict[str, str]:
