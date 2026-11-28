@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Monitors as evidence and role tokens
+## 0.90.0 — Monitors as evidence and role tokens (2026-11-28)
 
 - Monitor coverage, heartbeats and suspicion are stricter: an event the monitor
   errored on is not covered; a coverage line must carry the digest of the input
