@@ -2466,8 +2466,8 @@ claims carry `policy_sha256` and `label_policy_sha256`, `target_id`
 {NAME: "sha256:HEX"}, "parents": [ID, ...], "mutation_run": RUN, "evals":
 [{"eval": "sha256:HEX", "verdicts_sha256": HEX}], "selector": TEXT,
 "decision": null | {"sha256": HEX}, "policy": null | HEX, "loop": null |
-LOOP}`. `artifacts` names one or more of `code_tree`, `prompt`, `config` and
-`weights` (weights by digest only); `ID` is `sha256:` over
+LOOP}`. `artifacts` names one or more of `code_tree`, `prompt`, `config`,
+`weights` (weights by digest only) and, from 0.88, `skill` (a skill tree); `ID` is `sha256:` over
 `opentine.lineage.variant.v1:` + JCS of `artifacts`. `evals` are
 `tine-eval/1` evals by id and the SHA-256 of their `verdicts.jsonl` bytes;
 `decision` is the SHA-256 of an `opentine.promotion-decision/1` decision

@@ -14,26 +14,14 @@ from typing import Any
 
 from opentine._redact_extra import extra_secret_names
 from opentine._redact_names import CREDENTIAL_NAMES, SECRET_SUFFIXES
+from opentine._redact_padding import PADDED_B64, padding_of_blob
 
-#: Hard nesting bound for every write-side walk over caller data.
-#:
-#: The *format* bound is the reader's — ``kernel.validate_json_shape`` refuses
-#: any artifact nested deeper than 512, and ``_artifact_io.assert_loadable``
-#: still reports exactly that at save, in the message that names the fix. This
-#: second, looser bound exists for a different reason: without it ``_redact``
-#: below and ``_canon._jsonable`` recurse as deep as the caller's data and die
-#: with ``RecursionError``, and *where* is interpreter-dependent. Before 3.12 a
-#: comprehension got its own frame (PEP 709 inlined them in 3.12), so identical
-#: input crossed the 1000-frame limit at ~495 levels on 3.11 and ~990 on 3.12+:
-#: three CI legs failed on the declared support floor while the same step
-#: recorded cleanly on 3.12, and ``asdict``'s deepcopy put a third boundary at
-#: ~495 on 3.11 and 3.12 only.
-#:
-#: 768 is 1.5x the reader's bound, so nothing a ``.tine`` artifact could ever
-#: hold comes near it and every refusal a savable-shaped run sees still comes
-#: from the reader-symmetric check. It also leaves ~200 Python frames spare on
-#: 3.11, the floor: both walks now cost exactly one frame per level, and the
-#: stdlib JSON encoder ``_graph_serde.save_run`` uses dies at ~992 there.
+#: Hard nesting bound for every write-side walk over caller data. The *format* bound
+#: is the reader's (``kernel.validate_json_shape`` refuses deeper than 512, reported
+#: at save by ``_artifact_io.assert_loadable``). Without this looser one, ``_redact``
+#: and ``_canon._jsonable`` die with ``RecursionError`` at interpreter-dependent
+#: depths (~495 on 3.11, ~990 on 3.12+, PEP 709). 768 is 1.5x the reader's bound,
+#: leaves ~200 frames spare on 3.11, and both walks cost one frame per level.
 MAX_CANONICAL_DEPTH = 768
 
 
@@ -50,8 +38,7 @@ _CAMEL_BOUNDARY = re.compile(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
 
 
 def _field_name(value: Any) -> str:
-    # Quotes stripped so a JSON fragment in free text ('"api_key": "sk-…"') names
-    # the same field as the bare form; v3 handles it, v2 stored the secret.
+    # Quotes stripped so '"api_key": "sk-…"' in free text names the bare field.
     if type(value) is str:  # exact str: a subclass may override __str__
         return _field_name_text(value)
     return _CAMEL_BOUNDARY.sub("_", str(value).strip().strip("\"'")).lower().replace("-", "_")
@@ -206,7 +193,13 @@ def _redact(value: Any, _depth: int = 0) -> Any:
             redacted.append(_redact(item, _depth + 1))
         return redacted
     if isinstance(value, str) and (":" in value or "=" in value):
+        if PADDED_B64.fullmatch(value):
+            return value
         label, separator, candidate = _split_assignment(value)
+        if separator == "=" and not candidate.strip("= \t"):
+            return value  # only padding follows: nothing can be hidden, and it must verify
+        if separator == "=" and padding_of_blob(label, candidate):
+            return label + separator + _redact(candidate, _depth + 1)
         name = _field_name(label)
         headers = {"authorization", "proxy_authorization", "cookie", "set_cookie"}
         words = candidate.strip().casefold().split()

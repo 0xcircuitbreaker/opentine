@@ -11,6 +11,9 @@ per-run instance nonce. Optional environment, set by whoever launched the agent:
 * ``OPENTINE_FLEET_*`` / ``OPENTINE_DELEGATION`` -- the fleet member record and
   delegation chain (``_fleet_record``), as ``metadata.fleet`` / ``.delegation``.
 
+Since 0.88 the run also records ``metadata.scaffold``: the tree digest and file
+count of the harness's scaffold manifest (:mod:`opentine._scaffold_record`).
+
 A malformed value is dropped, never guessed; a resumed run keeps its record.
 """
 
@@ -59,6 +62,13 @@ def _record(name: str, model: str) -> dict[str, Any] | None:
             return None
 
 
+def _scaffold(name: str) -> dict[str, Any] | None:
+    from opentine._scaffold_files import DEFAULTS
+    from opentine._scaffold_record import summary
+
+    return summary(name) if name in DEFAULTS else None
+
+
 def harness_metadata(harness: Any, context: Any, existing: Any = None) -> dict[str, Any]:
     """Run metadata for a harness capture, with its agent identity."""
     meta: dict[str, Any] = {"context": _jsonable(context or {}), "harness": harness.name}
@@ -66,6 +76,10 @@ def harness_metadata(harness: Any, context: Any, existing: Any = None) -> dict[s
     record = kept or _record(str(harness.name), str(getattr(harness, "model_info", "") or ""))
     if record is not None:
         meta["agent_identity"] = record
+    kept = existing.get("scaffold") if isinstance(existing, dict) else None
+    scaffold = kept or _scaffold(str(harness.name))
+    if scaffold is not None:  # 0.88: the scaffold manifest's tree digest (digests only)
+        meta["scaffold"] = scaffold
     from opentine._fleet_record import capture_metadata
 
     captured = capture_metadata()

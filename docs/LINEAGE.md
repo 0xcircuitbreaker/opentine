@@ -36,7 +36,7 @@ key (`tine-attest/2`). Its claim:
 
 | Field | Meaning |
 | --- | --- |
-| `artifacts` | One or more of `code_tree`, `prompt`, `config`, `weights`, each a `sha256:` digest. Weights are named by digest only; OpenTine never stores them. |
+| `artifacts` | One or more of `code_tree`, `prompt`, `config`, `weights` and (0.88) `skill`, each a `sha256:` digest. Weights are named by digest only; OpenTine never stores them. `skill` names a skill tree; `tine lineage diff PATH --tree` prints the digest to record. |
 | `variant` | `sha256:` over `opentine.lineage.variant.v1:` + JCS of `artifacts`. Equal artifacts are the same variant. |
 | `parents` | Zero (a root), one, or many variant ids (a merge or recombination in an archive with many live variants). |
 | `mutation_run` | The run that produced the variant; also the attestation's `target_id`. |
@@ -191,7 +191,66 @@ From 0.72 `tine lineage record` refuses to re-sign a variant that already has a
 record with a different claim (other parents, evals or run): records are
 append-only, so a loop cannot re-root a regressed variant to drop its parent.
 
+## Structural diff (0.88)
+
+`tine lineage diff OLD NEW` compares two variant trees (a directory or one file
+each) file by file. A file is unchanged only when its bytes are; every other
+file is listed with both SHA-256 digests, a kind, whether its structure changed
+(`structural`) and the changes:
+
+| Kind | Compared as |
+| --- | --- |
+| `python` | AST symbols: each function and class by qualified name, a class header, every other statement by digest. A changed default, decorator or constant is a `changed` symbol; comments and formatting are not structural. A source that does not parse falls back to tokens. |
+| `prompt` | Markdown and text (`.md`, `.txt`, `.prompt`, names with `prompt`) split into sections by heading path (`Role / Rules`); added, removed, changed and reordered sections. |
+| `tools` | A whole `tools/list` result (`{"tools": [...]}`, its JSON-RPC envelope, or a bare list of definitions with `inputSchema`, `input_schema` or `parameters`): tools by name and `tool_def_digest` (the same digest `tine mcp-proxy` records on each `tools/call`; see `docs/SCAFFOLD.md`), so a schema change under a kept name and description is `changed`. A file with other top-level keys is a config. |
+| `config` | JSON, TOML and YAML (YAML only when PyYAML is installed) as leaves by path; reordered keys are not a change, a value that changes type is. A repeated key refuses the whole diff (`lineage-diff.duplicate-key`). |
+| `text` | Any other UTF-8 file, as a whitespace-insensitive token diff. |
+| `binary` | Digests only (also a symbolic link, recorded by its target, never followed). |
+
+Every changed file also carries hidden-edit `flags`, so an edit made to look
+like no change is named: `invisible` (a zero-width or other format character
+was added), `bidi` (a bidirectional control), `non-ascii` (a non-ASCII letter,
+a possible look-alike), `nfkc` (equal after NFKC normalisation, which Python
+applies to identifiers), `line-endings` and `whitespace`.
+
+With `--key` the diff is signed as an existing `attestation` payload
+(`tine-attest/2`, Ed25519) and filed in `LINEAGE_FOLDER/diffs/HEX.json` (or
+`--out`). Its claim follows the `opentine.lineage.diff` convention:
+
+```json
+{"convention": "opentine.lineage.diff",
+ "from": {"tree": "sha256:…", "variant": "sha256:…" | null, "bound": true | false | null},
+ "to":   {"tree": "sha256:…", "variant": "sha256:…" | null, "bound": true | false | null},
+ "totals": {"files": 7, "changed": 2, "structural": 1, "flagged": 1},
+ "files": [{"path", "before", "after", "status", "kind", "structural", "changes", "flags"}]}
+```
+
+`tree` is `sha256:` over `opentine.lineage.diff.tree.v1:` + JCS of
+`{path: sha256 hex}`. `--from`/`--to` name variants that must be signed records
+in the lineage folder; `bound` says whether the variant's recorded artifacts
+include the tree's digest. The `target_id` is the newer variant id, else the
+newer tree's digest. `tine lineage diff --check FILE [OLD NEW]` verifies the
+signature (the signer must be the signing key) and, given both trees,
+recomputes the claim, `bound` included (read from the lineage folder, never
+taken from the signed file): exit 1 with `lineage-diff.bad-signature` or
+`lineage-diff.mismatch`. Without the trees only the signature is checked and
+the result's `bound` is `unverified` (`recomputed` with them); with `--policy
+FILE` under `profile = "rsi"` that is refused (`lineage-diff.mismatch`). The
+diff is evidence: it does not block a promotion.
+
+No folder is skipped (a cache or VCS folder can hold scaffold). A Python file
+with a coding cookie other than UTF-8 is diffed by tokens, since Python would
+decode its bytes differently. A config key that is not plain
+(`[A-Za-z0-9_-]+`) or not a string is quoted in its path, so `{"a.b": 1}` is not
+`{"a": {"b": 1}}`. In `tine promote`, signed records of one run that name
+different skills are a skill change, and under `skill_labels = "required"` a
+`skill.*` label cannot move to such a candidate. Under that rule a record
+counts only when its signer holds a pinned role of the repository's key-role
+policy (else of the lineage folder's `.tine`) and is not an `optimizer` key; a
+record another key signed makes its run's skill unknown, refused like
+conflicting records.
+
 ## Not yet
 
 The Tineyard view of the graph comes later. Record signers are proven, not
-pinned to a role.
+pinned to a role, except for skill labels under `skill_labels = "required"`.

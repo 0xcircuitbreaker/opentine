@@ -1,0 +1,462 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-lineage-diff-1.schema.json",
+  "title": "tine lineage diff --json",
+  "description": "The structural diff between two variant trees. `diff` carries the `opentine.lineage.diff` claim (files whose bytes differ, each with both digests, a kind, whether the structure changed, the changes and hidden-edit flags) and `signed`, the signed diff file when `--key` was given; `check` re-verifies one (exit 1 when `ok` is false); `tree` prints each path's tree digest.",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "mode",
+        "ok",
+        "signed",
+        "claim"
+      ],
+      "properties": {
+        "command": {
+          "const": "lineage diff"
+        },
+        "schema": {
+          "const": "tine-cli-lineage-diff/1"
+        },
+        "mode": {
+          "const": "diff"
+        },
+        "ok": {
+          "const": true
+        },
+        "signed": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "claim": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "convention",
+            "from",
+            "to",
+            "totals",
+            "files"
+          ],
+          "properties": {
+            "convention": {
+              "const": "opentine.lineage.diff"
+            },
+            "from": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "tree",
+                "variant",
+                "bound"
+              ],
+              "properties": {
+                "tree": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "variant": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "bound": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            },
+            "to": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "tree",
+                "variant",
+                "bound"
+              ],
+              "properties": {
+                "tree": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "variant": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "bound": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            },
+            "totals": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "files",
+                "changed",
+                "structural",
+                "flagged"
+              ],
+              "properties": {
+                "files": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "changed": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "structural": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "flagged": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "files": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "path",
+                  "before",
+                  "after",
+                  "status",
+                  "kind",
+                  "structural",
+                  "changes",
+                  "flags"
+                ],
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "before": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "after": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "status": {
+                    "enum": [
+                      "added",
+                      "removed",
+                      "changed"
+                    ]
+                  },
+                  "kind": {
+                    "enum": [
+                      "python",
+                      "prompt",
+                      "tools",
+                      "config",
+                      "text",
+                      "binary"
+                    ]
+                  },
+                  "structural": {
+                    "type": "boolean"
+                  },
+                  "changes": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "op"
+                      ],
+                      "properties": {
+                        "op": {
+                          "enum": [
+                            "added",
+                            "removed",
+                            "changed",
+                            "reordered",
+                            "insert",
+                            "delete",
+                            "replace"
+                          ]
+                        },
+                        "item": {
+                          "type": "string"
+                        },
+                        "at": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "before": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "after": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "flags": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "flags": {
+                    "type": "array",
+                    "items": {
+                      "enum": [
+                        "invisible",
+                        "bidi",
+                        "non-ascii",
+                        "nfkc",
+                        "line-endings",
+                        "whitespace"
+                      ]
+                    }
+                  },
+                  "inserted": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "deleted": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "truncated": {
+                    "type": "boolean"
+                  },
+                  "note": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "mode",
+        "ok",
+        "signer",
+        "target",
+        "bound",
+        "findings",
+        "totals"
+      ],
+      "properties": {
+        "command": {
+          "const": "lineage diff"
+        },
+        "schema": {
+          "const": "tine-cli-lineage-diff/1"
+        },
+        "mode": {
+          "const": "check"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "signer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "target": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "bound": {
+          "enum": [
+            "recomputed",
+            "unverified"
+          ]
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "detail"
+            ],
+            "properties": {
+              "code": {
+                "enum": [
+                  "lineage-diff.bad-signature",
+                  "lineage-diff.mismatch"
+                ]
+              },
+              "detail": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "totals": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "files",
+                "changed",
+                "structural",
+                "flagged"
+              ],
+              "properties": {
+                "files": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "changed": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "structural": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "flagged": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "mode",
+        "ok",
+        "trees"
+      ],
+      "properties": {
+        "command": {
+          "const": "lineage diff"
+        },
+        "schema": {
+          "const": "tine-cli-lineage-diff/1"
+        },
+        "mode": {
+          "const": "tree"
+        },
+        "ok": {
+          "const": true
+        },
+        "trees": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "tree"
+            ],
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "tree": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

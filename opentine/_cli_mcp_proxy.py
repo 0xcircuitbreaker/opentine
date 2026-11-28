@@ -16,6 +16,8 @@ advisory by default, a blocking gate only when the config says ``mode = "gate"``
 subject's budget is reached (:mod:`opentine._budget_gate`, docs/BUDGETS.md).
 0.72: ``--organism-gate`` refuses a ``tools/call`` that loads a tagged model
 organism without an approval for ``--organism-run`` (docs/MODEL_ORGANISMS.md).
+0.88: ``--tool-defs block`` refuses calls to a tool whose definition is not the
+session pin (:mod:`opentine._mcp_tool_guard`); recording it is always on.
 """
 
 from __future__ import annotations
@@ -58,11 +60,10 @@ def add_mcp_proxy_parser(sub: Any) -> None:
                        help="Repository the signed verdicts go to (default: --repo)")  # fmt: skip
     proxy.add_argument("--monitor-key", metavar="KEY", help="Ed25519 key that signs verdicts")
     proxy.add_argument("--monitor-agent", metavar="NAME", help="Agent name stop tokens match")
-    proxy.add_argument(
-        "--budget",
-        metavar="SUBJECT",
-        help="Refuse tools/call once SUBJECT's budget is reached (docs/BUDGETS.md)",
-    )
+    proxy.add_argument("--budget", metavar="SUBJECT",
+                       help="Refuse tools/call once SUBJECT's budget is reached")  # fmt: skip
+    proxy.add_argument("--tool-defs", choices=("advisory", "block"), default="advisory",
+                       help="Refuse calls to a tool whose definition changed (block)")  # fmt: skip
     proxy.add_argument("--budget-key", metavar="KEY", help="Ed25519 key that signs budget flags")
     proxy.add_argument("--organism-gate", action="store_true",
                        help="Refuse loading a tagged model organism without approval")  # fmt: skip
@@ -175,6 +176,7 @@ def _serve_http(args: argparse.Namespace, command: list[str], recorder: Any) -> 
 def cmd_mcp_proxy(args: argparse.Namespace) -> None:
     from opentine import _mcp_proxy_stdio
     from opentine._mcp_proxy_record import McpRecorder
+    from opentine._mcp_tool_guard import cli_wrap as wrap_tool_defs
 
     command = list(args.cmd or [])
     command = command[1:] if command[:1] == ["--"] else command
@@ -182,8 +184,7 @@ def cmd_mcp_proxy(args: argparse.Namespace) -> None:
         _fail("Name the MCP server: tine mcp-proxy -- CMD [ARGS...] or --http-upstream URL")
     if args.ref and not args.repo:
         _fail("--ref needs --repo")
-    if args.http_upstream:
-        args.address = _address(args.listen, args.allow_non_loopback)
+    args.address = _address(args.listen, args.allow_non_loopback) if args.http_upstream else None
     if args.save:
         _require_output_slot(Path(args.save), args.force)
     stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
@@ -192,6 +193,7 @@ def cmd_mcp_proxy(args: argparse.Namespace) -> None:
     recorder = McpRecorder(output, command or [args.http_upstream], transport, err.print)
     monitor = _guard(args, f"mcp-{stamp}-{os.getpid()}")
     args.guard = _organism(args, _budget(args, monitor), f"mcp-{stamp}-{os.getpid()}")
+    args.guard = wrap_tool_defs(args, args.guard)  # 0.88: outermost guard
     if monitor is not None:
         recorder.run.metadata["monitor"] = {**monitor.gate.monitor.identity,
                                             "mode": monitor.gate.config["mode"]}  # fmt: skip

@@ -1,13 +1,13 @@
 """``tine lineage record``: a signed node of the self-modification lineage (0.58).
 
-A variant (a code tree, prompt, config or weights, by digest) is recorded as an
+A variant (a code tree, prompt, config, weights or skill tree, by digest) is recorded as an
 existing ``attestation`` (tine-attest/2, Ed25519) on its mutation run, whose
 claim follows the ``opentine.lineage.variant`` convention (docs/SPEC.md,
 docs/LINEAGE.md)::
 
     {"convention": "opentine.lineage.variant",
      "variant": "sha256:HEX",            # over the artifacts, see variant_id
-     "artifacts": {"code_tree"|"prompt"|"config"|"weights": "sha256:HEX"},
+     "artifacts": {"code_tree"|"prompt"|"config"|"weights"|"skill": "sha256:HEX"},
      "parents": ["sha256:HEX", ...],     # zero for a root, many for a merge
      "mutation_run": "run:sha256:HEX",   # also the attestation's target
      "evals": [{"eval": "sha256:HEX", "verdicts_sha256": HEX}],
@@ -34,7 +34,7 @@ from opentine.kernel import canonical_json
 
 CONVENTION = "opentine.lineage.variant"
 DOMAIN = b"opentine.lineage.variant.v1:"
-ARTIFACTS = ("code_tree", "prompt", "config", "weights")
+ARTIFACTS = ("code_tree", "prompt", "config", "weights", "skill")  # skill: 0.88
 DIGEST_RE = re.compile(r"sha256:[0-9a-f]{64}")
 HEX_RE = re.compile(r"[0-9a-f]{64}")
 RUN_RE = re.compile(r"run:sha256:[0-9a-f]{64}")
@@ -69,7 +69,7 @@ def _artifacts(given: dict[str, str | None]) -> dict[str, str]:
     out = {k: v for k, v in given.items() if v is not None}
     if not out:
         raise ValueError("a variant names at least one of --code-tree, --prompt, --config, "
-                         "--weights")  # fmt: skip
+                         "--weights, --skill")  # fmt: skip
     for name, value in out.items():
         if name not in ARTIFACTS or not DIGEST_RE.fullmatch(value):
             raise ValueError(f"--{name.replace('_', '-')} must be a sha256:HEX digest")

@@ -173,7 +173,10 @@ def test_the_rsi_profile_requires_a_plan_and_pinned_eval_signers(room, capsys):
     assert code == 1 and {"promote.plan-missing", "promote.eval-signer-role"} <= _codes(row)
     store = room.repo / ".tine"
     (store / "key-roles.toml").write_bytes(
-        (f'version = 1\n[roles]\nscorer = ["{fingerprint(EVALER)}"]\n' + policy_role()).encode()
+        (
+            f'version = 1\n[roles]\nscorer = ["{fingerprint(EVALER)}"]\n'
+            f'runner = ["{fingerprint(PROMOTER)}"]\n' + policy_role()
+        ).encode()  # signs lineage
     )
     pin_roles(store)
     pin_regions(room.repo)  # 0.87: rsi requires a signed region pin

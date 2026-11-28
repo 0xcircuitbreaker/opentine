@@ -12,6 +12,10 @@ before a byte of it reaches the server; a blocked call is answered on the
 client's stdout under the same lock the server direction writes with. A line
 longer than :data:`MAX_MESSAGE` cannot be decided and is dropped (fail closed).
 In advisory mode the bytes are relayed as before and the call is scored after.
+
+0.88: a guard with ``observe`` (``--tool-defs block``) sees each whole server
+line before it is written to the client, so a changed ``tools/list`` is pinned
+before the client can call the tool it describes.
 """
 
 from __future__ import annotations
@@ -31,26 +35,33 @@ def pump(
     source: IO[bytes], sink: IO[bytes], sender: str, recorder: McpRecorder,
     lock: Any = None, guard: Any = None,
 ) -> None:  # fmt: skip
-    """Copy *source* to *sink* line by line until EOF, feeding each line to *recorder*."""
+    """Copy *source* to *sink* line by line until EOF, feeding each line to *recorder*.
+
+    0.88: a finished line is queued for the recorder just before its last chunk is
+    written, so the recorder never sees the peer's answer to a line before the
+    line itself (a ``tools/call`` right after the ``tools/list`` it relies on).
+    """
     kept, oversize = bytearray(), False
     try:
         while chunk := source.readline(CHUNK):
+            if len(kept) + len(chunk) > MAX_MESSAGE:
+                oversize, kept = True, bytearray()
+            elif not oversize:
+                kept += chunk
+            done = chunk.endswith(b"\n")
+            line, big = bytes(kept), oversize
+            if done:
+                if big or line.strip():
+                    recorder.feed(sender, line, big)
+                kept, oversize = bytearray(), False
             try:
                 with lock or nullcontext():
                     sink.write(chunk)
                     sink.flush()
             except (BrokenPipeError, OSError, ValueError):
                 return
-            if len(kept) + len(chunk) > MAX_MESSAGE:
-                oversize, kept = True, bytearray()
-            elif not oversize:
-                kept += chunk
-            if chunk.endswith(b"\n"):
-                if oversize or kept.strip():
-                    recorder.feed(sender, bytes(kept), oversize)
-                    if guard is not None and not oversize:
-                        guard.check(bytes(kept))  # advisory: scored after relaying
-                kept, oversize = bytearray(), False
+            if done and guard is not None and not big and line.strip():
+                guard.check(line)  # advisory: scored after relaying
     finally:
         if kept.strip():
             recorder.feed(sender, bytes(kept), oversize)
@@ -60,15 +71,15 @@ def _deliver(raw, sink, client, lock, recorder: McpRecorder, guard: Any) -> None
     forward, back, blocked = guard.check(raw)
     if blocked:
         recorder.feed(CLIENT, blocked)
-    if forward:
+    if forward:  # queued first: the server's answer cannot reach the recorder before it
+        recorder.feed(CLIENT, forward)
         sink.write(forward)
         sink.flush()
-        recorder.feed(CLIENT, forward)
     if back:
+        recorder.feed(SERVER, back)
         with lock:
             client.write(back)
             client.flush()
-        recorder.feed(SERVER, back)
 
 
 def gated_pump(
@@ -97,6 +108,31 @@ def gated_pump(
         return
 
 
+def observed_pump(source: IO[bytes], sink: IO[bytes], recorder: McpRecorder, lock: Any,
+                  observe: Any) -> None:  # fmt: skip
+    """The server direction with *observe*: each whole line is observed, then relayed."""
+    line = bytearray()
+    try:
+        while chunk := source.readline(CHUNK):
+            line += chunk
+            if not chunk.endswith(b"\n") and len(line) <= MAX_MESSAGE:
+                continue
+            raw, line = bytes(line), bytearray()
+            if raw.endswith(b"\n"):
+                observe(raw)
+            recorder.feed(SERVER, raw if len(raw) <= MAX_MESSAGE else b"", len(raw) > MAX_MESSAGE)
+            with lock:
+                sink.write(raw)
+                sink.flush()
+        if line:
+            with lock:
+                sink.write(bytes(line))
+                sink.flush()
+            recorder.feed(SERVER, bytes(line))
+    except (BrokenPipeError, OSError, ValueError):
+        return
+
+
 def relay(command: list[str], recorder: McpRecorder, guard: Any = None) -> int:
     """Run *command* as the MCP server and relay this process's stdio to it."""
     child = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
@@ -118,8 +154,11 @@ def relay(command: list[str], recorder: McpRecorder, guard: Any = None) -> int:
                 pass
 
     threading.Thread(target=upstream, daemon=True).start()
-    pump(child.stdout, sys.stdout.buffer, SERVER, recorder, lock)
+    if getattr(guard, "observe", None) is not None:
+        observed_pump(child.stdout, sys.stdout.buffer, recorder, lock, guard.observe)
+    else:
+        pump(child.stdout, sys.stdout.buffer, SERVER, recorder, lock)
     return child.wait()
 
 
-__all__ = ["gated_pump", "pump", "relay"]
+__all__ = ["gated_pump", "observed_pump", "pump", "relay"]

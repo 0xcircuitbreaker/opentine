@@ -20,6 +20,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from opentine import _mcp_tool_pins
 from opentine._assurance import proxy_marker, witness_save
 from opentine._v4_values import mark_lenient
 from opentine.core import Run, RunStatus, StepKind
@@ -53,6 +54,7 @@ class McpRecorder:
         self.run.metadata["capture"] = proxy_marker("mcp-proxy")  # checked at verify time
         mark_lenient(self.run)
         self.dropped = self.steps = 0
+        self.pins = _mcp_tool_pins.ToolPins()  # 0.88: tools/list pin, tool_def_digest
         self.witnessed = False
         self._queue: queue.Queue[tuple[str, bytes, float] | None] = queue.Queue(MAX_QUEUE)
         self._pending: OrderedDict[str, tuple[dict[str, Any], float]] = OrderedDict()
@@ -102,7 +104,7 @@ class McpRecorder:
 
     def _handle(self, sender: str, raw: bytes, now: float) -> None:
         try:
-            message = json.loads(raw.decode("utf-8"))
+            message = _mcp_tool_pins.loads(raw)  # duplicate keys kept for the digest
         except (UnicodeDecodeError, ValueError, RecursionError):
             message = {"opentine_unparsed": raw[:4096].decode("utf-8", "replace")}
         for item in message if isinstance(message, list) else [message]:
@@ -145,16 +147,45 @@ class McpRecorder:
         error = reply.get("error") if isinstance(reply.get("error"), dict) else None
         params = request.get("params") if isinstance(request.get("params"), dict) else {}
         name = params.get("name") or params.get("uri") or method
+        info = {"name": redact_text(str(name)), "type": "mcp", "method": method}
+        info.update(self._tool_defs(method, request, reply))
         self.run.add_step(
             StepKind.tool,
             redact_value(inputs),
             outputs=redact_value(outputs),
             duration=max(0.0, ended - started),
-            tool_info={"name": redact_text(str(name)), "type": "mcp", "method": method},
+            tool_info=info,
             error=redact_value(error) if error else None,
         )
         self.steps += 1
         self._dirty = True
+
+    def _tool_defs(self, method: str, request: dict[str, Any], reply: dict[str, Any]) -> dict:
+        """0.88: pin ``tools/list``; ``tool_def_digest`` and advisories on ``tools/call``."""
+        if request.get("_sender") != CLIENT:
+            return {}
+        result = reply.get("result") if isinstance(reply.get("result"), dict) else {}
+        out: dict[str, Any] = {}
+        meta = result.get("_meta")
+        server = meta.get("io.modelcontextprotocol/serverInfo") if isinstance(meta, dict) else None
+        if isinstance(server, dict):
+            out["server_info"] = redact_value(server)
+        if method == "tools/list" and "result" in reply:
+            changes = self.pins.listed(request.get("params"), result, self.steps)
+            for tool in result.get("tools") or []:
+                if isinstance(tool, dict) and redact_value(tool) != tool:
+                    self.pins.redacted.add(redact_text(str(tool.get("name"))))
+            if changes:
+                out["advisory"] = _mcp_tool_pins.CHANGED
+                out["tool_def_changes"] = redact_value(changes)
+            self.run.metadata["mcp_proxy"]["tool_defs"] = redact_value(self.pins.summary())
+        elif method == "tools/call":
+            params = request.get("params") if isinstance(request.get("params"), dict) else {}
+            digest, code = self.pins.call(params.get("name"))
+            out["tool_def_digest"] = digest
+            if code:
+                out["advisory"] = code
+        return out
 
     def _save(self) -> None:
         self.output.parent.mkdir(parents=True, exist_ok=True)

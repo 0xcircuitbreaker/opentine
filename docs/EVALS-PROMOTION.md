@@ -99,6 +99,7 @@ eval_signers = ["sha256:<key fingerprint>"]   # the keys trusted to sign verdict
 scorer_isolation = "advisory"  # 0.85: or "required"; profile = "rsi" implies "required"
 holdout_queries = "advisory"   # 0.86: or "required"; profile = "rsi" implies "required"
 regions = "advisory"           # 0.87: or "required"; profile = "rsi" implies "required"
+skill_labels = "advisory"      # 0.88: or "required"; profile = "rsi" implies "required"
 ```
 
 ### What the gate checks
@@ -130,6 +131,7 @@ A label moves only when every check passes. Each refusal names its reason:
 | `promote.plan-missing`, `promote.plan-invalid`, `promote.plan-signer`, `promote.plan-mismatch`, `promote.plan-after-outputs`, `promote.seed-not-committed`, `promote.coverage`, `promote.candidates-over-plan`, `promote.uncorrected`, `promote.eval-signer-role` | (0.86) a pre-registered plan (`--plan`, `--reveal`) is required and missing, does not hold, or its corrected test fails; under `profile = "rsi"` a verdict signer holds no pinned `scorer` role. Without a plan and without `require_plan` the advisory is `advisory:promote.no-plan` (docs/EVAL-PLANS.md) |
 | `promote.holdout-query-budget` | (0.86) a lineage node made more queries against a sealed holdout than its commitment's `max_queries`, while the policy sets `holdout_queries = "required"` or `profile = "rsi"`; otherwise the advisory `advisory:holdout.query-budget` (docs/HOLDOUTS.md) |
 | `promote.region-modified`, `promote.regions-unpinned` | (0.87) the policy sets `regions = "required"` (or `profile = "rsi"`) and the working tree changes code outside an EVOLVE-BLOCK region, adds or removes a covered file or tampers with a marker, or no signed region pin is filed; otherwise findings are the advisory `advisory:regions.outside-modified` (docs/INTEGRITY.md) |
+| `promote.skill-label-required`, `promote.skill-unrecorded` | (0.88) the candidate's signed lineage record names another `skill` tree than the holder's and the label is not a skill label (`skill.*`), or a skill label moves to a candidate whose record names no skill, while the policy sets `skill_labels = "required"` (or `profile = "rsi"`); otherwise a skill change under another label is the advisory `advisory:promote.skill-changed`. The change is shown as `skills` (`from`, `to`, `label`) in the output and the signed decision, and `--revert` moves a skill label back like any other (docs/LINEAGE.md). Under the rule a lineage record counts only when signed by a pinned non-`optimizer` key role; an optimizer-signed or unpinned record makes the skill unknown and is refused |
 | `promote.already-current` | the run already holds the label |
 | `promote.not-current` | the run to revert does not hold the label |
 

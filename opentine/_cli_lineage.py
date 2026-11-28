@@ -1,4 +1,4 @@
-"""``tine lineage record|check|graph|why|archive|index`` (0.58): self-modification lineage.
+"""``tine lineage record|check|graph|why|archive|index|diff`` (0.58): self-modification lineage.
 
 ``lineage record --run RUN --key KEY --code-tree D ...`` signs an attestation
 whose claim follows ``opentine.lineage.variant`` and files it, with the evals
@@ -7,7 +7,7 @@ and promotion decision it cites, in the lineage folder (:mod:`opentine._lineage`
 and exits 1 on any ``lineage.*`` finding (:mod:`opentine._lineage_check`).
 ``graph``, ``why``, ``archive`` and ``index`` read the derived, rebuildable
 index over the same folder (:mod:`opentine._cli_lineage_graph`); ``why`` exits 1
-when the check refuses the variant.
+when the check refuses the variant. ``diff`` (0.88) is :mod:`opentine._cli_lineage_diff`.
 """
 
 from __future__ import annotations
@@ -20,6 +20,7 @@ from pathlib import Path
 from opentine._cli_bom import add_bom_parser, cmd_bom
 from opentine._cli_common import _terminal, console
 from opentine._cli_errors import USAGE, error
+from opentine._cli_lineage_diff import add_diff_parser, cmd_diff
 from opentine._cli_trends import add_trends_parser, cmd_trends
 from opentine._lineage import MAX_BYTES, MAX_FILES
 
@@ -66,7 +67,7 @@ def add_lineage_parser(subparsers: argparse._SubParsersAction) -> None:
     check.add_argument("variant", help="The variant id (sha256:HEX)")
     record.add_argument("--run", required=True, metavar="RUN", help="The mutation run")
     record.add_argument("--key", metavar="KEY", help="Ed25519 private key that signs")
-    for name in ("code-tree", "prompt", "config", "weights"):
+    for name in ("code-tree", "prompt", "config", "weights", "skill"):
         record.add_argument(f"--{name}", metavar="DIGEST", help=f"The variant's {name} sha256:")
     record.add_argument("--parent", action="append", default=[], metavar="VARIANT",
                         help="A parent variant id; repeatable")  # fmt: skip
@@ -86,6 +87,7 @@ def add_lineage_parser(subparsers: argparse._SubParsersAction) -> None:
                      help="Stop after N ancestors and mark the walk truncated")  # fmt: skip
     archive.add_argument("--signed", action="store_true", help="Only verified records")
     index.add_argument("--rebuild", action="store_true", help="Delete and rebuild the index")
+    add_diff_parser(actions)  # 0.88: tine lineage diff
     add_trends_parser(subparsers)  # 0.72: tine trends, over the same lineage folder
     add_bom_parser(subparsers)  # 0.78: tine bom export, of one lineage node
 
@@ -105,7 +107,7 @@ def _record(args: argparse.Namespace) -> dict:
                     USAGE, prefix="lineage: ")  # fmt: skip
     key = ed25519_private_from_file(args.key, signer=False)
     artifacts = {"code_tree": args.code_tree, "prompt": args.prompt, "config": args.config,
-                 "weights": args.weights}  # fmt: skip
+                 "weights": args.weights, "skill": args.skill}  # fmt: skip
     row = record(key, run=args.run, artifacts=artifacts, store=_folder(args),
                  parents=args.parent, evals=[Path(e) for e in args.eval],
                  selector=args.selector, decision=Path(args.decision) if args.decision else None,
@@ -177,6 +179,8 @@ def cmd_lineage(args: argparse.Namespace) -> None:
     from opentine._key_store import PassphraseUnavailable
     from opentine._signing_keys import SignatureError
 
+    if args.lineage_command == "diff":
+        return cmd_diff(args)
     try:
         row = _row(args)
     except (PassphraseUnavailable, SignatureError, OSError, ValueError, KeyError) as exc:
