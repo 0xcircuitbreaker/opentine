@@ -34,7 +34,7 @@ def add_token_parser(actions: Any) -> argparse.ArgumentParser:
         default=None,
         help="0.90: narrow the token to one role (implies write access)",
     )
-    mint.add_argument("--agent", default="", help="The agent id a role token acts as")
+    mint.add_argument("--agent", default=None, help="The agent id a role token acts as")
     listing = verbs.add_parser("list", help="The tenant's tokens (never their secrets)")
     revoke = verbs.add_parser("revoke", help="Revoke a token by id (idempotent)")
     revoke.add_argument("token_id", metavar="ID")
@@ -63,7 +63,7 @@ def cmd_token(args: argparse.Namespace, console: Any) -> None:
                 ttl=ttl,
                 label=args.label,
                 role=args.role,
-                agent=args.agent,
+                agent=args.agent or "",
             )
             tokens = [record]
         elif verb == "list":
