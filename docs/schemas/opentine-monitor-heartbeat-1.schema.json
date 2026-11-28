@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-monitor-heartbeat-1.schema.json",
+  "title": "opentine.monitor-heartbeat/1 claim",
+  "description": "The value of an annotation proving a monitor was alive, bound to the ingest head.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "monitor",
+    "stream",
+    "seq",
+    "previous",
+    "interval_s",
+    "ingest",
+    "ledger",
+    "at"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.monitor-heartbeat/1"
+    },
+    "monitor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "config_digest"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "rule",
+            "command",
+            "http",
+            "probe"
+          ]
+        },
+        "config_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "stream": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "previous": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "interval_s": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "ingest": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "head",
+            "seq",
+            "at"
+          ],
+          "properties": {
+            "head": {
+              "type": "string",
+              "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+            },
+            "seq": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "at": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "ledger": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^annotation:sha256:[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "at": {
+      "type": "string"
+    }
+  }
+}

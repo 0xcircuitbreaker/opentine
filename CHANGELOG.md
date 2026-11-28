@@ -1,5 +1,51 @@
 # Changelog
 
+## Unreleased — Monitors as evidence and role tokens
+
+- New `tine monitor run`: an asynchronous monitor runner over an ingest stream.
+  It evaluates every captured event of each pending batch, in order, and writes
+  one signed coverage record per batch under the `opentine.monitor-coverage/1`
+  claim convention: the monitor's config digest, counts by outcome (`allow`
+  included, as a count plus a digest list) and by category, one line per
+  evaluated event, and the ingest-to-verdict latency against the SLO (p95 at
+  most 30 s; recorded and advisory). Outcomes other than `allow` are also held
+  monitor verdicts. `--follow` keeps running and signs a heartbeat every
+  `--interval` seconds (default 60). The runner never blocks (D12).
+- New `tine monitor coverage`: the exact fraction of captured events a monitor
+  evaluated (`covered = "E/C"`), the uncovered ranges, config changes, stale
+  heartbeats, latency SLO misses and the operating point. Unsigned, broken or
+  forged records (`monitor.coverage-unsigned`, `monitor.coverage-chain`,
+  `monitor.coverage-forged`) fail in every profile; gaps, config changes,
+  staleness, SLO misses and an unvalidated threshold are advisory by default
+  and fail under `--profile rsi`, where an unvalidated monitor counts as no
+  coverage.
+- New `tine monitor heartbeat`: signed heartbeats under the
+  `opentine.monitor-heartbeat/1` convention, chained per monitor and stream and
+  bound to the ingest head; a monitor is stale after three missed intervals.
+  A heartbeat older than its predecessor or its bound batch is refused, and one
+  that names an old head after the stream moved on, or belongs to another
+  monitor or stream, is `monitor.heartbeat-backfilled` or
+  `monitor.heartbeat-replayed`.
+- New `tine monitor validate`: a monitor's operating point on a labelled set
+  (TPR and FPR with Wilson and Clopper-Pearson 95 % intervals) under the
+  `opentine.monitor-operating-point/1` convention, bound to the config digest
+  and threshold and signed by a pinned `scorer` or `policy` key that is not an
+  `optimizer` key (`monitor.validation-signer`). A record whose rates do not
+  follow from its counts, or that names another threshold or config, does not
+  count.
+- New `tine monitor suspicion`: cumulative suspicion across agents, sessions
+  and runs, and doom-loop flags (repeated near-threshold scores, the same
+  failing action repeated under any identity), all advisory. Each flag opens a
+  `suspicion:RECORD` item in the oversight queue (route `source =
+  "suspicion"`).
+- Monitor verdicts may carry a `category` and a `severity`
+  (`low|medium|high|critical`), from a rule's `category`/`severity` keys or a
+  command or http monitor's reply.
+- Coverage ledger, heartbeat and operating-point records are held under
+  `monitor-ledger:`, `monitor-heartbeat:` and `monitor-validation:`, which
+  `tine hold release` refuses. No object kind and no `tine verify` code is
+  added.
+
 ## 0.89.0 — Judge assurance (2026-11-28)
 
 One human-label system (`tine label`), one judge toolkit (`tine judge`) and one

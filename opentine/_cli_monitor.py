@@ -7,7 +7,9 @@ checks offline that every blocked or replaced action in the given runs has its
 verdict record (:mod:`opentine._monitor_audit`) and exits 1 on a ``fail:``
 finding (``--strict``: on an advisory too); ``gate`` is the hook-path monitor
 an agent CLI runs before each tool call (:mod:`opentine._monitor_hook`).
-``backtest`` and ``collusion`` are in :mod:`opentine._cli_monitor_eval`.
+``backtest`` and ``collusion`` are in :mod:`opentine._cli_monitor_eval`;
+``run``, ``heartbeat``, ``coverage``, ``validate`` and ``suspicion`` in
+:mod:`opentine._cli_monitor_ledger`.
 """
 
 from __future__ import annotations
@@ -55,6 +57,9 @@ def add_monitor_parser(subparsers: argparse._SubParsersAction) -> None:
     from opentine._cli_monitor_eval import add_eval_parsers
 
     add_eval_parsers(verbs)
+    from opentine._cli_monitor_ledger import add_ledger_parsers
+
+    add_ledger_parsers(verbs)
 
 
 def _runs(repo: Any, names: list[str]) -> list[tuple[str, Any]]:
@@ -117,9 +122,13 @@ def _body(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[str
 def cmd_monitor(args: argparse.Namespace) -> None:
     from opentine._cli_monitor_eval import EVAL_VERBS
     from opentine._cli_monitor_eval import run as run_eval
+    from opentine._cli_monitor_ledger import LEDGER_VERBS
+    from opentine._cli_monitor_ledger import run as run_ledger
 
     if args.monitor_command in EVAL_VERBS:
         return run_eval(args)
+    if args.monitor_command in LEDGER_VERBS:
+        return run_ledger(args)
     if args.monitor_command == "gate":
         from opentine._monitor_hook import run
 

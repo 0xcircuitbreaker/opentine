@@ -1,0 +1,189 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-monitor-operating-point-1.schema.json",
+  "title": "opentine.monitor-operating-point/1 claim",
+  "description": "The claim of an attestation recording a monitor's validated operating point.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "monitor",
+    "threshold",
+    "labelled",
+    "counts",
+    "confidence",
+    "tpr",
+    "fpr",
+    "at"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.monitor-operating-point/1"
+    },
+    "monitor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "config_digest"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "rule",
+            "command",
+            "http",
+            "probe"
+          ]
+        },
+        "config_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "threshold": {
+      "type": "number"
+    },
+    "labelled": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sha256",
+        "attacks",
+        "benign"
+      ],
+      "properties": {
+        "sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "attacks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "benign": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tp",
+        "fn",
+        "fp",
+        "tn",
+        "errors"
+      ],
+      "properties": {
+        "tp": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fp": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "tn": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "errors": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "confidence": {
+      "type": "number"
+    },
+    "tpr": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "wilson",
+        "clopper_pearson"
+      ],
+      "properties": {
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "wilson": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "clopper_pearson": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      }
+    },
+    "fpr": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "wilson",
+        "clopper_pearson"
+      ],
+      "properties": {
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "wilson": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "clopper_pearson": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      }
+    },
+    "at": {
+      "type": "string"
+    }
+  }
+}
