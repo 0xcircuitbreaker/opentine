@@ -8,10 +8,9 @@ from __future__ import annotations
 
 import pytest
 
-from opentine import _bundle_section
+from opentine import _bundle_section, _trust_bundle
 from opentine import _custody_quorum as cq
 from opentine import _tripwire_registry as reg
-from opentine import _trust_bundle
 from tests.key_roles_helpers import isolated_trust_config  # noqa: F401
 from tests.monitor_ledger_helpers import repo_fixture  # noqa: F401
 from tests.tripwire_helpers import pin_rule
