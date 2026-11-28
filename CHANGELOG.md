@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Scaffold manifests and structural diff
+## 0.88.0 — Scaffold manifests and structural diff (2026-11-28)
 
 - New `tine agent scaffold [--harness H] [--root DIR] [--json]`: a per-file
   scaffold manifest (`opentine.scaffold-manifest/1`) of a harness's
