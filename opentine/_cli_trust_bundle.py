@@ -12,6 +12,7 @@ named trust policy's portable fields or ``--pin`` fingerprints, an
 ``oversight.toml``: its sha256 and routed sources) pin the oversight policy so
 an older signed copy cannot be put back. 0.90: ``--monitors FILE`` (a JSON
 section) binds monitor ids to signer keys (:mod:`opentine._monitor_binding`).
+0.91: ``--tripwires FILE`` and ``--custody FILE`` pin those two rules.
 ``verify FILE --owner-vkey V [--min-serial N]`` checks one against the owner
 key pinned out of band and exits 4 when it does not hold. Both take ``--json``
 (``tine-cli-trust-bundle/1``).
@@ -67,6 +68,8 @@ def add_bundle_parser(group_sub: argparse._SubParsersAction) -> None:
         metavar="FILE",
         help="Bind monitor ids to signer keys (JSON: signers, required)",
     )
+    for name, what in (("tripwires", "required, min_serial"), ("custody", "k")):  # 0.91
+        create.add_argument(f"--{name}", metavar="FILE", help=f"The {name} rule (JSON: {what})")
     create.add_argument("--expires", metavar="TIME", help="RFC 3339 expiry time")
     create.add_argument("--out", metavar="FILE", help="Write the bundle here (else stdout)")
     create.add_argument("--json", action="store_true", help="Emit a JSON object instead")
@@ -135,8 +138,8 @@ def _payload(args: argparse.Namespace) -> dict[str, Any]:
         payload["key_roles"] = {"version": 1, "roles": {r: k for r, k in roles.items() if k}}
     if args.oversight or args.oversight_policy:
         payload["oversight"] = _oversight(args)
-    if args.monitors:
-        payload["monitors"] = json.loads(_read(args.monitors))
+    sections = ("monitors", "tripwires", "custody")  # 0.91: the tripwire and custody rules
+    payload.update({n: json.loads(_read(getattr(args, n))) for n in sections if getattr(args, n)})
     return payload
 
 

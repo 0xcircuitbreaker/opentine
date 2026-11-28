@@ -27,7 +27,8 @@ CLAIM = closed(["convention", "artifact", "event", "seq", "prev", "location", "d
     "recorded_at": STR})  # fmt: skip
 _FINDING = closed(["code", "record", "message"], {
     "code": {"enum": ["fail:custody-gap", "fail:custody-chain-broken",
-                      "fail:custody-unapproved-load", "advisory:custody.signer-unpinned"]},
+                      "fail:custody-unapproved-load", "fail:custody-copy-unapproved",
+                      "advisory:custody.signer-unpinned"]},
     "record": opt(_ATT), "message": STR})  # fmt: skip
 _ROW = closed(["record", "seq", "event", "signer", "verification", "location", "digest"], {
     "record": _ATT, "seq": opt(INT), "event": opt(STR), "signer": opt(STR),

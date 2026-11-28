@@ -118,7 +118,65 @@ allow a load.
 `weight_custody` and every organism tag, approval and untag as
 `organism_records` (docs/QUERY.md). The rows are derived and non-authoritative.
 
+## Export and copy quorum (0.91)
+
+Once the owner-pinned trust bundle names any `custodian` key (key roles), or
+carries a `custody` section (`tine trust bundle create --custody FILE`):
+
+```json
+{"version": 1, "k": 3}
+```
+
+a weight `copied` or `exported` event and a `tine interp export` need `k`
+approvals (default 2; at least 2) from **distinct** custodian keys:
+
+```
+tine custody approve --operation copy|export --digest D [--checkpoint C]
+                     --requester FPR [--artifact NAME] [--destination TEXT] --key KEY
+tine custody revoke APPROVAL --key KEY
+tine custody approvals --operation copy|export --digest D [--checkpoint C] --requester FPR
+```
+
+An approval is an attestation under `opentine.custody-approval/1`
+(`operation`, `digest`, `checkpoint`, `requester`, `artifact`, `destination`,
+`at`), held under `custody:quorum:approval:...` and never released. It covers
+exactly one request:
+
+- `digest`: the bytes copied or exported. Re-encoded bytes have another
+  digest and need approvals of their own.
+- `checkpoint`: what the bytes cover. For a weight artifact this is the digest
+  of its `created` event; for an interpretability artifact, its checkpoint.
+- `requester`: the fingerprint of the key that records the event (weights) or
+  of `tine interp export --requester-key KEY`.
+
+An approval counts only when it is signed by its key, that key is a pinned
+`custodian` key that is not an `optimizer` key, it is not the requester's own
+key, and it has not been revoked. A revocation (`opentine.custody-revocation/1`,
+`{"approval", "at"}`) is signed by the approval's signer or a pinned `policy`
+key. Approvals and revocations are read from the whole object store, so
+dropping a hold row cannot hide a revocation. One custodian approving twice
+counts once.
+
+A request short of its quorum is refused (`custody.quorum`, exit 1 from
+`approvals`), and the refusal is held as an
+`opentine.weight-custody-refusal/1` entry for the oversight queue. A copy or
+export written around `tine custody record` (straight into the object store)
+is reported by `tine custody check` as `fail:custody-copy-unapproved` when the
+approvals it needed did not exist at its `recorded_at` time. Under a pinned
+owner, a bundle that is missing or does not verify makes the quorum
+impossible (fail closed). Without custodian keys or the section nothing
+changes.
+
+`tine interp calibrate` reads probe weights for scoring and is not an export.
+
+Limits: distinct keys are counted, not distinct people; give each custodian
+one key. Approvals carry no expiry; revoke an approval that is no longer
+wanted.
+
 ## JSON
 
 `--json` on `record --artifact`, `chain` and `check` prints
-`tine-cli-custody-weights/1` (`docs/schemas/tine-cli-custody-weights-1.schema.json`).
+`tine-cli-custody-weights/1` (`docs/schemas/tine-cli-custody-weights-1.schema.json`);
+on `approve`, `revoke` and `approvals` it prints `tine-cli-custody-quorum/1`
+(0.91). The approval and revocation claims are published as
+`opentine-custody-approval-1` and `opentine-custody-revocation-1`.

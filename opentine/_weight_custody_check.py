@@ -11,7 +11,9 @@ copied, loaded or exported from a location no event put it at, or with a digest
 no event gave it (copied without a copy event); a location used after it was
 destroyed; an *observed* location or digest (``--file``) that no event explains.
 A load of a ``model-organism`` artifact with no earlier valid approval for that
-digest is ``fail:custody-unapproved-load``. A signer the pinned trust bundle does
+digest is ``fail:custody-unapproved-load``. 0.91: a copy or export without the
+k-of-n custodian approvals it needed when it was recorded (one written around
+``tine custody record``) is ``fail:custody-copy-unapproved``. A signer the pinned trust bundle does
 not give the needed role is ``advisory:custody.signer-unpinned``, which blocks
 only with ``--strict``. These are command-level codes, not ``tine verify`` codes.
 
@@ -31,6 +33,7 @@ GAP, BROKEN, UNAPPROVED = (
     "fail:custody-chain-broken",
     ("fail:custody-unapproved-load"),
 )
+COPY_UNAPPROVED = "fail:custody-copy-unapproved"  # 0.91: opentine._custody_quorum
 UNPINNED = "advisory:custody.signer-unpinned"
 _NO_BUNDLE = "role is unpinned (no owner-signed trust bundle)"
 
@@ -119,6 +122,31 @@ def walk(rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, An
     return findings, {"where": where, "digests": digests, "approved": approved, "tagged": tagged}
 
 
+def _quorum(repo: Any, rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    from opentine import _custody_quorum as quorum
+
+    out = []
+    for row in [r for r in rows if not r["problems"]]:
+        claim = row["claim"]
+        if claim["event"] not in wc.QUORUM:
+            continue
+        try:
+            ok = quorum.tally(
+                repo,
+                operation=wc.QUORUM[claim["event"]],
+                digest=claim.get("digest"),
+                checkpoint=wc.checkpoint(rows),
+                requester=row["signer"],
+                at=claim.get("recorded_at"),
+            )["ok"]
+        except ValueError:  # a malformed digest is approved by nothing
+            ok = not quorum.policy(repo)["required"]
+        if not ok:
+            out.append(_finding(COPY_UNAPPROVED, row["oid"], f"{claim['event']} without the "
+                                "custodian approvals it needed"))  # fmt: skip
+    return out
+
+
 def check(repo: Any, artifact: str, observed: list[tuple[str, str]] | None = None,
           strict: bool = False) -> dict[str, Any]:  # fmt: skip
     """``{"ok", "artifact", "tagged", "locations", "events", "findings"}``."""
@@ -131,7 +159,7 @@ def check(repo: Any, artifact: str, observed: list[tuple[str, str]] | None = Non
         if not row["problems"] and row["verification"] != "verified":
             findings.append(_finding(UNPINNED, row["oid"], row["verification"]))
     walked, state = walk([r for r in rows if counts(r)])
-    findings += walked
+    findings += walked + _quorum(repo, rows)
     for loc, dig in observed or []:
         if state["where"].get(loc) != dig:
             findings.append(_finding(GAP, None, f"{dig} observed at {loc}: no event explains "
@@ -147,4 +175,14 @@ def check(repo: Any, artifact: str, observed: list[tuple[str, str]] | None = Non
             "findings": findings}  # fmt: skip
 
 
-__all__ = ["BROKEN", "GAP", "UNAPPROVED", "UNPINNED", "chain", "check", "counts", "walk"]
+__all__ = [
+    "BROKEN",
+    "COPY_UNAPPROVED",
+    "GAP",
+    "UNAPPROVED",
+    "UNPINNED",
+    "chain",
+    "check",
+    "counts",
+    "walk",
+]

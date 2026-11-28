@@ -34,6 +34,34 @@
   clock advances only monotonically once read, so setting the system clock
   back keeps no proof fresh.
 - Docs: STOP.md.
+- New `tine tripwire add|remove|list|check|trips`: a signed tripwire registry
+  (`opentine.tripwire-registry/1`). Each tripwire names a metric (suspicion
+  flags or score, monitor outcomes, ingest events, decoy touches, budget
+  totals), a threshold, a scope and an action (`flag` or `stop`). Every change
+  is a new chained version signed by a pinned `policy` key that is not an
+  `optimizer` key; versions by other keys, forks, broken chains, dropped hold
+  rows and rollbacks below a pinned `min_serial` are `tripwire.*` findings.
+  The registry is read from the whole object store, so dropping a hold row
+  neither hides nor rolls it back.
+- `tine tripwire check --key` signs and holds one trip per tripwire and
+  registry version (`opentine.tripwire-trip/1`), routes it to the oversight
+  queue (`tripwire:` items, source `tripwire`), and for a `stop` action writes
+  an `opentine.monitor-stop/1` stop token that the existing gates honour. A
+  signal that cannot be read trips. Decoys are registered by digest only.
+- The trust bundle may carry a `tripwires` rule (`--tripwires FILE`:
+  `required`, `min_serial`). With `required`, a missing, unpinned or broken
+  registry fails closed: `check --key` records a trip and a `*` stop. Without
+  the rule nothing changes.
+- Custody export and copy need k-of-n approvals once `custodian` keys are
+  pinned: `tine custody approve|revoke|approvals` sign, revoke and count
+  `opentine.custody-approval/1` approvals from distinct custodian keys, each
+  bound to the exact digest, the covering checkpoint, the operation and the
+  requester. Optimizer keys and the requester's own key never count; a
+  revocation holds even when its hold row is dropped. `tine custody record
+  copied|exported` and `tine interp export --requester-key` are refused short
+  of the quorum (default 2, raised by the bundle's `custody` section,
+  `--custody FILE`), the refusal is held for review, and a copy written around
+  the command is `fail:custody-copy-unapproved` in `tine custody check`.
 
 ## 0.90.0 — Monitors as evidence and role tokens (2026-11-28)
 

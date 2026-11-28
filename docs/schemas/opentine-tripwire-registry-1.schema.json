@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-tripwire-registry-1.schema.json",
+  "title": "opentine.tripwire-registry/1 claim",
+  "description": "One version of the tripwire registry, the claim of an attestation. A claim convention, not an object kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "serial",
+    "previous",
+    "tripwires",
+    "at"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.tripwire-registry/1"
+    },
+    "serial": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "previous": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "tripwires": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "metric",
+          "op",
+          "threshold",
+          "scope",
+          "action",
+          "decoys"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "metric": {
+            "type": "string"
+          },
+          "op": {
+            "enum": [
+              ">=",
+              ">",
+              "<=",
+              "<"
+            ]
+          },
+          "threshold": {
+            "type": "number"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "action": {
+            "enum": [
+              "flag",
+              "stop"
+            ]
+          },
+          "decoys": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          }
+        }
+      }
+    },
+    "at": {
+      "type": "string"
+    }
+  }
+}

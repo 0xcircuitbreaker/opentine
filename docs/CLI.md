@@ -2273,6 +2273,32 @@ Findings and failing policy records are listed in the oversight queue as
 `--json` prints `tine-cli-custody-weights/1`; events follow the claim
 convention `opentine.weight-custody/1`. See docs/CUSTODY.md.
 
+### Custody quorum (0.91)
+
+| Command | What it does |
+| --- | --- |
+| `tine custody approve --operation copy\|export --digest D [--checkpoint C] --requester FPR [--artifact NAME] [--destination TEXT] --key KEY [--at T]` | Signs and holds one `opentine.custody-approval/1` approval by a pinned custodian key (never an optimizer key, never the requester) |
+| `tine custody revoke APPROVAL --key KEY [--at T]` | Revokes an approval (its signer or a pinned policy key) |
+| `tine custody approvals --operation copy\|export --digest D [--checkpoint C] --requester FPR` | Counts the distinct custodian keys approving one request; exits 1 when the quorum is short |
+
+With custodian keys pinned, `tine custody record copied|exported --artifact`
+and `tine interp export --requester-key KEY` are refused without the quorum
+(`custody.quorum`). `--json` prints `tine-cli-custody-quorum/1`. See
+docs/CUSTODY.md.
+
+## Tripwires (0.91)
+
+| Command | What it does |
+| --- | --- |
+| `tine tripwire add ID --metric M --threshold X [--op OP] [--scope S] [--action flag\|stop] [--decoy DIGEST]... [--replace] --key KEY` | Signs the next `opentine.tripwire-registry/1` version with the tripwire (a pinned policy key that is not an optimizer key) |
+| `tine tripwire remove ID --key KEY` | Signs the next version without it |
+| `tine tripwire list` | The registry in force and every finding about its versions |
+| `tine tripwire check [--key KEY] [--now-ms MS]` | Evaluates each tripwire; with `--key` holds the trips and the stop tokens of `stop` actions; exits 1 on a trip or a finding |
+| `tine tripwire trips` | The held trips and whether each counts |
+
+All commands take `--repo PATH`; `--json` prints `tine-cli-tripwire/1`. See
+docs/TRIPWIRES.md.
+
 ## Model organisms (0.72)
 
 | Command | What it does |
@@ -2293,7 +2319,7 @@ docs/MODEL_ORGANISMS.md.
 | --- | --- |
 | `tine interp store FILE --kind attribution-graph\|sae-dashboard\|probe-weights --checkpoint DIGEST [--layer N] [--name NAME] [--tag model-organism] --key KEY` | Stores the bytes as a held, content-addressed blob and signs and holds an `opentine.interp-artifact/1` record keyed to the checkpoint digest (probe weights need `--layer`) |
 | `tine interp list [--checkpoint DIGEST]` | The records, their verification (a pinned `runner` without `optimizer`) and why each is under custody |
-| `tine interp export DIGEST --out PATH [--run RUN]` | Writes the bytes after checking them against their digest (`digest.mismatch`, exit 4); a tagged artifact needs a `tine organism approve` record binding the run to it or its checkpoint (`custody.denied`, exit 6); every read of a tagged artifact is logged and held |
+| `tine interp export DIGEST --out PATH [--run RUN] [--requester-key KEY]` | Writes the bytes after checking them against their digest (`digest.mismatch`, exit 4); a tagged artifact needs a `tine organism approve` record binding the run to it or its checkpoint (`custody.denied`, exit 6); every read of a tagged artifact is logged and held |
 | `tine interp calibrate DIGEST --threshold T --samples FILE --key KEY [--run RUN]` | Scores labelled samples with the probe and signs and holds `opentine.probe-calibration/1` evidence (a pinned `monitor` or `policy` key) |
 | `tine interp check CONFIG` | Compares a `kind = "probe"` monitor configuration with its calibration; exits 1 on `probe.swapped`, `probe.threshold-changed`, `probe.layer-changed`, `digest.mismatch`, `probe.calibration-missing` or `probe.calibration-unverified` |
 | `tine interp score CONFIG --request FILE` | Scores one `{"checkpoint_digest", "activations"}` request; activations from another checkpoint exit 4 with `digest.mismatch` |

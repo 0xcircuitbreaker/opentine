@@ -18,6 +18,11 @@ signers count only when the owner-pinned trust bundle gives them the ``runner``
 role; an ``approved`` event (the approval to load a ``model-organism`` artifact)
 counts only when it gives them the ``policy`` role. Gaps and approvals are judged
 by :mod:`opentine._weight_custody_check`.
+
+0.91: once custodian keys are pinned, a ``copied`` or ``exported`` event is
+refused (and the refusal held for review) without k-of-n custodian approvals
+of its digest, its artifact's ``created`` digest and its signer as the
+requester (:mod:`opentine._custody_quorum`).
 """
 
 from __future__ import annotations
@@ -34,6 +39,7 @@ CONVENTION = "opentine.weight-custody/1"
 HOLD = "custody:weights:"
 EVENTS = ("created", "copied", "loaded", "exported", "destroyed", "approved")
 NEEDS_DIGEST = ("created", "copied", "loaded", "exported", "approved")
+QUORUM = {"copied": "copy", "exported": "export"}  # 0.91: opentine._custody_quorum
 MODEL_ORGANISM = "model-organism"
 TAGS = (MODEL_ORGANISM,)
 MAX_BYTES = 1 << 40  # 1 TiB: the default cap of a streaming weight digest
@@ -83,6 +89,8 @@ def record(repo: Any, artifact: str, event: str, key: Any, *, location: str,
     data, tags = sorted(set(data or [])), sorted(set(tags or []))
     _check_fields(artifact, event, location, digest, data, tags)
     rows = events(repo, artifact)
+    if event in QUORUM:  # 0.91: a copy or export needs k-of-n custodian approvals
+        _quorum(repo, artifact, event, key, digest, rows, now)
     prev = rows[-1]["oid"] if rows else None
     seq = len(rows)
     if rows and rows[0]["target"]:
@@ -95,6 +103,27 @@ def record(repo: Any, artifact: str, event: str, key: Any, *, location: str,
              "recorded_at": records.rfc3339(time.time() if now is None else now)}  # fmt: skip
     oid = records.record(repo, target, claim, key, f"{HOLD}{artifact}:{seq:08d}")
     return {"record": oid, "seq": seq, "prev": prev, "claim": claim}
+
+
+def checkpoint(rows: list[dict[str, Any]]) -> str | None:
+    """The digest of the artifact's first (``created``) event: what its copies cover."""
+    first = (rows[0]["claim"] or {}) if rows else {}
+    return first.get("digest") if first.get("event") == "created" else None
+
+
+def _quorum(repo: Any, artifact: str, event: str, key: Any, digest: Any,
+            rows: list[dict[str, Any]], now: float | None) -> None:  # fmt: skip
+    from opentine import _custody_quorum
+    from opentine._weight_custody_review import log_refusal
+
+    try:
+        _custody_quorum.require(repo, operation=QUORUM[event], digest=digest,
+                                checkpoint=checkpoint(rows),
+                                requester=records.fingerprint(key))  # fmt: skip
+    except _custody_quorum.QuorumError as exc:
+        log_refusal(repo, artifact, str(exc), f"custody record {event}",
+                    records.rfc3339(time.time() if now is None else now))  # fmt: skip
+        raise
 
 
 def events(repo: Any, artifact: str) -> list[dict[str, Any]]:

@@ -304,6 +304,7 @@
                   "fail:custody-gap",
                   "fail:custody-chain-broken",
                   "fail:custody-unapproved-load",
+                  "fail:custody-copy-unapproved",
                   "advisory:custody.signer-unpinned"
                 ]
               },

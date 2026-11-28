@@ -516,6 +516,13 @@ DRIVEN = (
         ),
         "tine-cli-stop-1",
     ),
+    (("tripwire", "list", "--repo", "repo", "--json"), "tine-cli-tripwire-1"),  # 0.91
+    (("tripwire", "check", "--now-ms", "0", "--repo", "repo", "--json"), "tine-cli-tripwire-1"),
+    (
+        ("custody", "approvals", "--operation", "copy", "--digest", "sha256:" + "a" * 64)
+        + ("--requester", "sha256:" + "b" * 64, "--repo", "repo", "--json"),
+        "tine-cli-custody-quorum-1",
+    ),
 )
 
 

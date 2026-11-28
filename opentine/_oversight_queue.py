@@ -58,6 +58,7 @@ def _sources(repo: Any) -> list[dict[str, Any]]:
     from opentine._monitor_suspicion import items as suspicion_items
     from opentine._stop_compliance import items as stop_items
     from opentine._transcript_oversight import items as transcript_items
+    from opentine._tripwire_check import items as tripwire_items
     from opentine._weight_custody_review import items as custody_items
 
     # 0.72: custody gaps and refusals; 0.74: behaviour flags and runs like flagged runs;
@@ -65,7 +66,8 @@ def _sources(repo: Any) -> list[dict[str, Any]]:
     for name, source in (("containment", _containment), ("custody", custody_items),
                          ("transcript", transcript_items), ("ingest", ingest_items),
                          ("collusion", collusion_items),
-                         ("suspicion", suspicion_items), ("stop", stop_items)):  # fmt: skip
+                         ("suspicion", suspicion_items),
+                         ("tripwire", tripwire_items), ("stop", stop_items)):  # fmt: skip
         found += _isolated(name, source, repo)
     return found
 

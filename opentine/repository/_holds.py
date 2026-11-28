@@ -41,11 +41,9 @@ MONITOR_VERDICT, MONITOR_STOP = "monitor-verdict:", "monitor-stop:"
 OVERSIGHT_DECISION = "oversight-decision:"
 #: 0.65: a blind audit game's seal, findings and reveal (opentine._audit_game): never released.
 AUDIT_GAME = "audit-game:"
-#: 0.68: rows that keep a sabotage task record (opentine._sabotage): released never,
-#: so a loop cannot delete the record of an attempted or achieved side task.
+#: 0.68: a sabotage task record (opentine._sabotage): never released.
 SABOTAGE_TASK = "sabotage-task:"
-#: 0.69: rows that keep a signed history-merge record (opentine._history_merge_repo):
-#: released never, so a loop cannot delete the record of what a merge kept or weakened.
+#: 0.69: a signed history-merge record (opentine._history_merge_repo): never released.
 HISTORY_MERGE = "history-merge:"
 #: 0.69: rows that keep budget-ledger entries and the flags routed to oversight
 #: (opentine._budget_ledger): released never, so a loop cannot delete its own spend.
@@ -83,6 +81,7 @@ MONITOR_LEDGER, MONITOR_HEARTBEAT = "monitor-ledger:", "monitor-heartbeat:"
 MONITOR_VALIDATION = "monitor-validation:"
 #: 0.91: an installed stop policy, a fleet stop issued here, a stop-compliance record.
 STOP_POLICY, FLEET_STOP, STOP_COMPLIANCE = "stop-policy:", "fleet-stop:", "stop-compliance:"
+TRIPWIRE, CUSTODY_QUORUM = "tripwire:", "custody:quorum:"  # 0.91: _tripwire_*, _custody_quorum
 _NEVER_RELEASED = (
     ((MEMORY_QUARANTINE,), "a memory quarantine"),
     ((MONITOR_VERDICT, MONITOR_STOP), "a monitor verdict or stop token"),
@@ -108,6 +107,7 @@ _NEVER_RELEASED = (
     ((JUDGE_VALIDATION,), "a judge validation record"),
     ((MONITOR_LEDGER, MONITOR_HEARTBEAT, MONITOR_VALIDATION), "a monitor coverage record"),
     ((STOP_POLICY, FLEET_STOP, STOP_COMPLIANCE), "a stop policy, fleet stop or compliance record"),
+    ((TRIPWIRE, CUSTODY_QUORUM), "a tripwire or custody quorum record"),
 )
 MAX_HOLDS_BYTES = 4 * 1024 * 1024
 

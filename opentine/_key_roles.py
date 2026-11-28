@@ -18,6 +18,7 @@ play which part in a loop::
     auditor   = ["sha256:<fingerprint>"]   # signs audit-game findings (0.65, optional)
     runner    = ["sha256:<fingerprint>"]   # signs ledgers, sandbox policies (0.69, optional)
     reviewer  = ["sha256:<fingerprint>"]   # signs human rubric labels (0.89, optional)
+    custodian = ["sha256:<fingerprint>"]   # approves custody export/copy (0.91, optional)
 
 With a ``policy`` role, ``promote`` needs a signed policy
 (:mod:`opentine._promote_pins`); with a ``stopper`` role, a loop stop signed by
@@ -60,6 +61,7 @@ GUARDED = (
     "auditor",
     "runner",
     "reviewer",  # 0.89: signs human rubric labels (_label_queue)
+    "custodian",  # 0.91: approves custody exports and copies (_custody_quorum)
 )
 AUDITOR = "auditor"
 CURATOR = "curator"

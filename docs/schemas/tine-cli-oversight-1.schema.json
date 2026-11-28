@@ -107,6 +107,7 @@
                       "ingest",
                       "collusion",
                       "suspicion",
+                      "tripwire",
                       "stop"
                     ]
                   },
@@ -196,7 +197,7 @@
               },
               "item": {
                 "type": "string",
-                "pattern": "^(promotion|monitor|integrity|budget|containment|organism|custody|transcript|ingest|collusion|suspicion):.+$"
+                "pattern": "^(promotion|monitor|integrity|budget|containment|organism|custody|transcript|ingest|collusion|suspicion|tripwire):.+$"
               },
               "action": {
                 "enum": [
@@ -313,7 +314,7 @@
             "properties": {
               "item": {
                 "type": "string",
-                "pattern": "^(promotion|monitor|integrity|budget|containment|organism|custody|transcript|ingest|collusion|suspicion):.+$"
+                "pattern": "^(promotion|monitor|integrity|budget|containment|organism|custody|transcript|ingest|collusion|suspicion|tripwire):.+$"
               },
               "source": {
                 "enum": [
@@ -328,6 +329,7 @@
                   "ingest",
                   "collusion",
                   "suspicion",
+                  "tripwire",
                   "stop"
                 ]
               },
