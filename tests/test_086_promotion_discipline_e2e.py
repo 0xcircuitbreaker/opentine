@@ -35,7 +35,10 @@ def rsi_room(tmp_path, monkeypatch):
     room.rows = items(40, families=20)
     store = room.repo / ".tine"
     (store / "key-roles.toml").write_bytes(
-        (f'version = 1\n[roles]\nscorer = ["{fingerprint(EVALER)}"]\n' + policy_role()).encode()
+        (
+            f'version = 1\n[roles]\nscorer = ["{fingerprint(EVALER)}"]\n'
+            f'runner = ["{fingerprint(PROMOTER)}"]\n' + policy_role()
+        ).encode()  # signs lineage
     )
     pin_roles(store)
     pin_regions(room.repo)  # 0.87: rsi requires a signed region pin
