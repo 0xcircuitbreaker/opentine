@@ -1,5 +1,48 @@
 # Changelog
 
+## Unreleased — Judge assurance
+
+- New `tine judge classify`: label judges that return a label, an optional
+  probability, or an explicit abstain. A reply with no label line, a label
+  outside the set, two outcomes or a probability outside 0..1 is an error,
+  never a label or a 0. Several `--judge` options form an ensemble aggregated
+  by `majority`, `mean` or `min` over independent groups: members that share a
+  model, a prompt digest, a declared lineage, or near-copy prompt texts count
+  once, and an ensemble with too few independent groups is refused before any
+  model is called (`fail:judge.ensemble-not-independent`). See `docs/JUDGES.md`.
+- The `llm-judge` scorer no longer scores an unparseable reply 0: a reply with
+  no `SCORE:` line, two different scores, or a score outside 0..1 is an error
+  (the item is `errored` under `--continue-on-error`).
+- New `tine judge label` and `tine judge queue`: human rubric labels as held
+  attestations under the `opentine.rubric-label/1` claim convention, bound to
+  the reviewer key, the rubric digest and the item digest. Only keys holding
+  the new `reviewer` role in the owner-signed trust bundle, and not also
+  `optimizer` keys, may label (`judge.label-signer`). The queue assigns items to
+  pinned reviewers reproducibly and lists pending items.
+- New `tine judge agreement`: judge-vs-human agreement (Cohen's kappa, Fleiss'
+  kappa or Krippendorff's alpha) with a seeded bootstrap interval. The floor is
+  met when the lower bound of the 95% interval is at least 0.6 and the judge
+  decided at least 90% of the labelled items (both configurable); abstaining on
+  hard items lowers coverage. Advisory unless `--strict`.
+- New `tine judge validate`: signs a held `opentine.judge-validation/1` record
+  for a judge or monitor once its adversarial cases pass and the agreement
+  floor, recomputed from the held labels, is met; the signer must be a pinned
+  non-optimizer `scorer` or `policy` key.
+- New `tine judge independence`: judges, monitors and eval items checked
+  against the candidate's lineage family (ancestors, siblings, cousins), digest
+  ancestry and prompt similarity: `fail:lineage.judge-not-independent`,
+  `fail:lineage.monitor-not-independent`, `fail:lineage.self-generated-eval-item`;
+  an edited variant record is `fail:lineage.record-invalid`.
+- New `tine judge injection`: `advisory:judge.outbound-injection` for candidate
+  outputs that address their judge; `classify` scans every output it sends.
+- `tine promote` reads `judge_assurance` (`"advisory"` by default, `"required"`
+  under `profile = "rsi"`) and `judge_floor`: a judge-scored eval needs a
+  validation record and a judge independent of the candidate's lineage
+  (`promote.judge-unvalidated`, `promote.judge-not-independent`; advisories
+  otherwise).
+- Freeze: no new object kind and no new `tine verify` code; two claim
+  conventions on existing attestations, held and never released.
+
 ## 0.88.1 — Credential redaction gaps (2026-11-28)
 
 Six credential shapes were stored in clear by the field walk

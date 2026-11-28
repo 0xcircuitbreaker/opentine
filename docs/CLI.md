@@ -2124,6 +2124,20 @@ Records count only when signed by a pinned `scorer` or `eval` key. Catch rates
 are statistical evidence, not proof of intent. `--json` prints
 `tine-cli-sabotage/1`; see docs/SABOTAGE.md.
 
+## Judge assurance (0.89)
+
+| Command | What it does |
+| --- | --- |
+| `tine judge classify --judge PROVIDER[:MODEL]... --labels A,B --items FILE [--outputs FILE] [--prompt FILE]... [--rubric FILE] [--lineage-of NAME]... [--aggregate majority\|mean\|min] [--positive LABEL] [--min-independent N] [--max-abstain D] [--out FILE]` | Runs label judges (label, probability, explicit abstain; a parse failure is an error, never 0) over items; an ensemble with fewer independent groups than `--min-independent` exits 1 with `fail:judge.ensemble-not-independent` before any model is called; outputs aimed at the judge are `advisory:judge.outbound-injection` |
+| `tine judge label --rubric FILE --items FILE --item ID --label L --key KEY [--at TIME]` | Signs and holds one `opentine.rubric-label/1` label; the key must be a pinned `reviewer` key that is not an `optimizer` key (`judge.label-signer`) |
+| `tine judge queue --rubric FILE --items FILE [--per-item N]` | Each pinned reviewer's assigned and pending items, and labels made outside the assignment |
+| `tine judge agreement --rubric FILE --items FILE --judge-labels FILE [--floor D] [--min-coverage D] [--seed N] [--resamples N] [--strict]` | Judge-vs-human agreement (Cohen's kappa, Fleiss' kappa or Krippendorff's alpha) with a seeded bootstrap interval; advisory unless `--strict` |
+| `tine judge validate --rubric FILE --items FILE (--judge judge.json \| --monitor DIGEST) --judge-labels FILE --adversarial FILE [--max-fooled N] --key KEY` | Signs and holds an `opentine.judge-validation/1` record when the adversarial cases and the agreement floor pass (`judge.validation-failed`, `judge.validation-signer` otherwise) |
+| `tine judge independence --lineage DIR --candidate RUN\|VARIANT [--judge FILE]... [--judge-prompt FILE]... [--family-prompt FILE]... [--monitor DIGEST[=trusted\|untrusted]]... [--items FILE] [--ancestry FILE] [--threshold D]` | Exits 1 on `fail:lineage.judge-not-independent`, `fail:lineage.monitor-not-independent`, `fail:lineage.self-generated-eval-item`, `fail:lineage.record-invalid` or `fail:lineage.candidate-unknown` |
+| `tine judge injection OUTPUTS [--strict]` | Lists candidate outputs that address their judge; advisory unless `--strict` |
+
+`--json` prints `tine-cli-judge/1`; see [JUDGES.md](JUDGES.md).
+
 ## Policy engine (0.74)
 
 | Command | What it does |
