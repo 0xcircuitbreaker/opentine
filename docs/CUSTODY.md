@@ -166,7 +166,9 @@ export written around `tine custody record` (straight into the object store)
 is reported by `tine custody check` as `fail:custody-copy-unapproved` when the
 approvals it needed did not exist at its `recorded_at` time. Under a pinned
 owner, a bundle that is missing or does not verify makes the quorum
-impossible (fail closed). Without custodian keys or the section nothing
+impossible (fail closed), and so does a `custody` section that is present but
+does not parse (an unknown `version`, a `k` outside 2..256, not an object): it
+is never read as "no section". Without custodian keys or the section nothing
 changes.
 
 `tine interp calibrate` reads probe weights for scoring and is not an export.

@@ -64,7 +64,10 @@ With `required`, a registry that is absent, unpinned or broken **fails closed**:
 `tine tripwire check --key` signs a trip with `tripwire` null and writes a `*`
 stop token. `min_serial` refuses a rollback to an older version. Under a
 pinned owner, a bundle that is missing or does not verify also requires a
-registry. Without the section, a repository with no tripwires behaves as
+registry, and so does a `tripwires` section that is present but does not
+parse (an unknown `version`, a non-boolean `required`, a negative
+`min_serial`, not an object): it is never read as "no section" (the registry
+is `broken`, finding `tripwire.registry-rule`). Without the section, a repository with no tripwires behaves as
 before (owner decision D12).
 
 ## Signals

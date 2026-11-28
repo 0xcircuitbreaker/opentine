@@ -39,6 +39,47 @@ count as verified only for a pinned `runner` key.
 reference loop checks before each iteration (`tine stop status --run`). A
 watchdog repeats the check every `watchdog_s` seconds while a long step runs.
 
+`tine run` in every mode (a script, `--harness`, `--model`, `--parallel`) and
+`tine fan-out` run under a stop policy as a supervised tree: the command
+re-runs itself as a child (`$OPENTINE_STOP_SUPERVISED` names its fleet and
+run) of a supervisor that only watches. Every `watchdog_s` the supervisor
+re-reads the channel and the continue proof; on a stop, a stale or missing
+proof or an unreachable channel it kills the whole tree (the harness, the
+script, every fan-out member and their children) and signs the compliance
+record, then exits 3. A script with no model calls, a harness that never
+returns and a fan-out member that sleeps are all stopped within one interval.
+The child also checks at start and, except under `--model` (which refuses its
+next call in process and signs its own record), runs a watchdog of its own that
+kills its own process group: a marker forged outside a supervisor skips
+nothing but the supervisor's record. A child that dies without a record of its
+own is re-checked once by the supervisor, so its halt is recorded there.
+Fan-out members are each supervised runs of their own as well.
+
+## Which policy applies
+
+A stop policy belongs to a repository, so the question is which repositories
+a command touches. `tine run`, `tine record` and `tine fan-out` look at the
+current directory, `--repo`, a harness `--cwd`, `--save`, `--autosave` and
+`--worktree-dir`, each searched up through its parents as `tine` itself does
+(a subdirectory of a repository is under its policy; a `--save` into a
+repository from elsewhere is too). A policy pointer adds one for every command:
+
+* `$XDG_CONFIG_HOME/opentine/stop-policy`, one line naming a repository
+  directory, beside the pinned `trust-owner` and outside every repository (a
+  run cannot edit it from its own checkout, and the environment cannot lift it);
+* `$OPENTINE_STOP_POLICY`, the same for one environment (it only adds).
+
+A pointer to a directory with no usable stop policy refuses the command, as do
+two different stop policies at once (a run belongs to one fleet). With no
+policy anywhere nothing changes.
+
+The boundary: the policy governs the commands that run agent code (`tine
+run`, `tine record`, `tine fan-out`) and the reference loop. Administrative
+writes (`tine stop`, `tine tripwire`, signing, imports) are not agent actions
+and are not gated, and a process that never calls `tine` (an agent run by some
+other launcher, writing to the repository directly) is outside it: pin the
+pointer and launch agents only through `tine`.
+
 The runner reads the channel and verifies every entry against the checkpoint
 and the pinned verifier key. It halts (fail closed) with:
 
@@ -61,7 +102,8 @@ a new fleet id). These codes are command-level codes, not `tine verify` codes.
 
 ## Children inherit the stop
 
-`tine record` starts its command as one killable tree: its own process group
+`tine record` starts its command, and the supervisor of a `tine run` or
+`tine fan-out` starts its child, as one killable tree: its own process group
 and, on Linux, the subreaper supervisor that also catches descendants that
 leave the group (`setsid`); on Windows a kill-on-close job object. A halt kills
 the whole tree, so sub-agents and their children stop with it.
@@ -128,10 +170,15 @@ policy publishes a fleet stop to the same channel.
 * A runner remembers what it has read only while it runs: a new runner cannot
   tell that a whole channel was replaced by an older copy of itself (it still
   needs a fresh proof within the window, so the replay is bounded by `window_s`).
-* `tine run --harness` and script mode check once before they start; only
-  `tine record` and `tine run --model` check before every call. An in-process
-  tool call that does not return cannot be killed; the watchdog marks the run
-  halted and the next check stops it.
+* `tine run --harness`, script mode and fan-out are stopped by the
+  supervisor's watchdog (within `watchdog_s`), not before each call; only
+  `tine record` and `tine run --model` check before every call. A supervised
+  run costs one extra Python process.
+* The supervisor runs as the same user as the agent. An agent that finds and
+  kills the supervisor loses it the compliance record and the subreaper sweep;
+  its child's own watchdog still kills the child's process group, but a
+  descendant that left the group survives. POSIX without an OS sandbox cannot
+  contain a same-user adversary (SECURITY_MODEL).
 * A runner checks the whole log on each step, so cost grows with the log.
 * Residual processes are counted from `/proc` on Linux, by probing the process
   group elsewhere on POSIX, and are taken as zero after closing the job object

@@ -33,6 +33,22 @@
   is late; residual processes are counted before any second kill; a runner's
   clock advances only monotonically once read, so setting the system clock
   back keeps no proof fresh.
+- Review: `tine run` (script, `--harness`, `--model`, `--parallel`) and
+  `tine fan-out` under a stop policy run as a supervised tree: the command
+  re-runs itself under a supervisor whose watchdog re-checks the stop channel
+  and continue proof every `watchdog_s` and, on a stop, a stale proof or an
+  unreachable channel, kills the whole tree (every fan-out member included)
+  and signs the compliance record. Before, those modes checked only at start.
+- Review: the stop policy of every place a command touches applies (the
+  current directory and `--repo`, `--cwd`, `--save`, `--autosave`,
+  `--worktree-dir`, each searched up through its parents), plus a pointer
+  pinned in the user's trust config (`$XDG_CONFIG_HOME/opentine/stop-policy`)
+  or `$OPENTINE_STOP_POLICY`; a pointer that names no policy, or two fleets at
+  once, refuses the command. Before, a subdirectory, `--repo` elsewhere or a
+  cwd without `.tine` skipped the policy.
+- Review: a `tripwires` or `custody` trust-bundle section that is present but
+  does not parse under a pinned owner fails closed (registry broken, quorum
+  impossible) instead of reading as absent.
 - Docs: STOP.md.
 - New `tine tripwire add|remove|list|check|trips`: a signed tripwire registry
   (`opentine.tripwire-registry/1`). Each tripwire names a metric (suspicion
