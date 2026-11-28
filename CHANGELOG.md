@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Stop and tripwires
+## 0.91.0 — Stop and tripwires (2026-11-28)
 
 - New `tine stop init|issue|continue|status|compliance`: a fleet-wide
   fail-closed stop. A stop channel is a signed transparency log shared by the
