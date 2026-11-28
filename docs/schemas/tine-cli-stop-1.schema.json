@@ -1,0 +1,537 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-stop-1.schema.json",
+  "title": "tine stop init|issue|continue|status|compliance --json",
+  "description": "The fleet-wide fail-closed stop. `init` installs the stop policy; `issue` and `continue` publish signed fleet stops and continue proofs to the stop channel; `status` says whether a run may act now (`code` names why not); `compliance` lists the signed records of how halted runs stopped.",
+  "anyOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "policy",
+        "held"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-stop/1"
+        },
+        "command": {
+          "const": "stop init"
+        },
+        "policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "convention",
+            "fleet",
+            "channel",
+            "vkey",
+            "window_s",
+            "skew_s",
+            "watchdog_s"
+          ],
+          "properties": {
+            "convention": {
+              "const": "opentine.stop-policy/1"
+            },
+            "fleet": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+            },
+            "channel": {
+              "type": "string"
+            },
+            "vkey": {
+              "type": "string"
+            },
+            "window_s": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "skew_s": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "watchdog_s": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "held": {
+          "type": "string",
+          "pattern": "^blob:sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "entries"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-stop/1"
+        },
+        "command": {
+          "enum": [
+            "stop issue",
+            "stop continue"
+          ]
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "attestation",
+              "index",
+              "signer",
+              "claim"
+            ],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "stop",
+                  "continue"
+                ]
+              },
+              "attestation": {
+                "type": "string",
+                "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+              },
+              "index": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "signer": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "claim": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "convention",
+                      "fleet",
+                      "reason",
+                      "stopped_at",
+                      "channel",
+                      "checkpoint"
+                    ],
+                    "properties": {
+                      "convention": {
+                        "const": "opentine.fleet-stop/1"
+                      },
+                      "fleet": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+                      },
+                      "reason": {
+                        "type": "string"
+                      },
+                      "stopped_at": {
+                        "type": "string"
+                      },
+                      "channel": {
+                        "type": "string"
+                      },
+                      "checkpoint": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "origin",
+                          "size",
+                          "root"
+                        ],
+                        "properties": {
+                          "origin": {
+                            "type": "string"
+                          },
+                          "size": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "root": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{64}$"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "convention",
+                      "fleet",
+                      "run",
+                      "seq",
+                      "issued_at",
+                      "window_s",
+                      "channel",
+                      "checkpoint"
+                    ],
+                    "properties": {
+                      "convention": {
+                        "const": "opentine.stop-continue/1"
+                      },
+                      "fleet": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+                      },
+                      "run": {
+                        "type": "string"
+                      },
+                      "seq": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "issued_at": {
+                        "type": "string"
+                      },
+                      "window_s": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "channel": {
+                        "type": "string"
+                      },
+                      "checkpoint": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "origin",
+                          "size",
+                          "root"
+                        ],
+                        "properties": {
+                          "origin": {
+                            "type": "string"
+                          },
+                          "size": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "root": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{64}$"
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "fleet",
+        "channel",
+        "window_s",
+        "run",
+        "ok",
+        "code",
+        "message",
+        "proof",
+        "stops",
+        "runs",
+        "checkpoint"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-stop/1"
+        },
+        "command": {
+          "const": "stop status"
+        },
+        "fleet": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "channel": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "window_s": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "run": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "code": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^stop\\.[a-z-]+$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "message": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "proof": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "proof",
+                "seq",
+                "issued_at",
+                "age_ms",
+                "window_s",
+                "checkpoint"
+              ],
+              "properties": {
+                "proof": {
+                  "type": "string",
+                  "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+                },
+                "seq": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "issued_at": {
+                  "type": "string"
+                },
+                "age_ms": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "window_s": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "checkpoint": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "origin",
+                    "size",
+                    "root"
+                  ],
+                  "properties": {
+                    "origin": {
+                      "type": "string"
+                    },
+                    "size": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "root": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stops": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+          }
+        },
+        "runs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "checkpoint": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "origin",
+                "size",
+                "root"
+              ],
+              "properties": {
+                "origin": {
+                  "type": "string"
+                },
+                "size": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "root": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "records",
+        "ok"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-stop/1"
+        },
+        "command": {
+          "const": "stop compliance"
+        },
+        "records": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "record",
+              "run",
+              "code",
+              "time_to_halt_ms",
+              "residual_processes",
+              "compliant",
+              "problem"
+            ],
+            "properties": {
+              "record": {
+                "type": "string",
+                "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+              },
+              "run": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "code": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "time_to_halt_ms": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "residual_processes": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "compliant": {
+                "type": "boolean"
+              },
+              "problem": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    }
+  ]
+}

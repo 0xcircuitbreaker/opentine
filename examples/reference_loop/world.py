@@ -186,6 +186,13 @@ def uplift_suite(world: World, run: str) -> str:
     return body["suite"]
 
 
+def stop_channel(world: World) -> None:
+    """The fleet stop channel and policy: every step needs a fresh signed continue proof."""
+    world.files["stop_channel"] = world.path("stop-channel").as_posix()
+    must("stop", "init", "--channel", world.files["stop_channel"], "--fleet", LOOP, "--repo",
+         world.repo, "--json")  # fmt: skip
+
+
 def build(work: Path) -> World:
     """A fresh repository under *work* with every key, policy and pin in place."""
     from opentine.repository import Repo
@@ -204,6 +211,7 @@ def configure(world: World, *, cap_usd: float, max_unseals: int) -> None:
     promotion_policy(world)
     budget(world, cap_usd)
     holdout(world, max_unseals)
+    stop_channel(world)
 
 
 __all__ = ["LABEL", "LOOP", "MONITOR", "SANDBOX", "SUBJECT", "Clock", "World", "build",

@@ -23,6 +23,7 @@ from opentine._cli_flags import (
     refuse_unhonoured,
 )
 from opentine._cli_render import _save_run_receipt
+from opentine._cli_stop_run import add_stop_args, exit_if_halted, halted_metadata, run_watched
 from opentine._cli_text import endpoint_for_display
 from opentine.redaction import redact_value
 
@@ -62,8 +63,11 @@ def cmd_run_model(args: argparse.Namespace) -> None:
         console.print(f"[red]{_display_safe(exc)}[/]")
         raise SystemExit(1) from exc
     console.print(f"[{BRAND}]# Running {_terminal(model.name)}...[/]\n")
+    agent, stop = Agent(model=model), getattr(args, "stop_runner", None)
+    if stop is not None:  # 0.91: check before each model and tool call; watchdog between
+        agent.stop_check = stop.check
     try:
-        run = Agent(model=model).run_sync(args.prompt)
+        run = run_watched(agent, args.prompt, stop)
     except ImportError as exc:
         # The adapter's own guidance, e.g. "pip install opentine[anthropic]".
         console.print(f"[red]Missing dependency:[/] {_display_safe(exc)}")
@@ -73,9 +77,11 @@ def cmd_run_model(args: argparse.Namespace) -> None:
         # reported as one line rather than as a traceback.
         console.print(f"[red]Model run failed:[/] {_display_safe(exc)}")
         raise SystemExit(1) from exc
+    halted = halted_metadata(run, stop)
     # args.force, like args.save, because this mode's tail *is* the script
     # mode's tail: the third `tine run` mode may not be the one that overwrites.
     _save_run_receipt(run, args.save, args.force)
+    exit_if_halted(halted)
 
 
 def _refuse_competing_modes(args: argparse.Namespace) -> None:
@@ -107,6 +113,7 @@ def _refuse_competing_modes(args: argparse.Namespace) -> None:
 
 def add_model_args(run: argparse.ArgumentParser) -> None:
     """``tine run --model`` and the two flags that configure its adapter."""
+    add_stop_args(run)
     run.add_argument(
         "--model",
         metavar="PROVIDER[:MODEL]",

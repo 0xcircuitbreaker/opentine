@@ -44,7 +44,24 @@ def seed(world: W.World) -> dict[str, Any]:
             "generation": 0}  # fmt: skip
 
 
-def iterate(world: W.World, model: Any, i: int, champ: dict, seen: set[str]) -> dict[str, Any]:
+def _may_act(world: W.World, stop_at: int | None, i: int) -> bool:
+    """The oversight side signs a continue proof (or, at *stop_at*, a fleet stop); the loop
+    then checks it before acting. Under the stop policy a loop with no fresh proof halts."""
+    channel = ["--channel", world.files["stop_channel"], "--fleet", W.LOOP, "--key",
+               world.keys["policy"], "--repo", world.repo, "--at", world.clock.tick()]  # fmt: skip
+    if stop_at is not None and i >= stop_at:
+        tine("stop", "issue", *channel, "--reason", f"stopped at step {i}")
+    else:
+        tine("stop", "continue", *channel, "--run", W.LOOP)
+    code, _ = tine("stop", "status", "--run", W.LOOP, "--repo", world.repo, "--at",
+                   world.clock.tick(), "--json")  # fmt: skip
+    return code == 0
+
+
+def iterate(world: W.World, model: Any, i: int, champ: dict, seen: set[str],
+            stop_at: int | None = None) -> dict[str, Any]:  # fmt: skip
+    if not _may_act(world, stop_at, i):  # check-before-act: a stop or a stale proof halts
+        return {"step": i, "stopped": "fleet-stop"}
     code, _ = tine("budget", "check", W.SUBJECT, "--key", world.keys["runner"], "--at",
                    world.clock.tick(), "--repo", world.repo, "--json")  # fmt: skip
     if code != 0:
@@ -122,7 +139,8 @@ def finale(world: W.World, variants: list[str]) -> dict[str, Any]:
 
 
 def run_loop(work: Path, *, steps: int = 8, model: Any = None, cap_usd: float = 10.0,
-             hack_at: int | None = 2, regress_at: int | None = 4) -> dict[str, Any]:  # fmt: skip
+             hack_at: int | None = 2, regress_at: int | None = 4,
+             stop_at: int | None = None) -> dict[str, Any]:  # fmt: skip
     model = model or StubModel(hack_at=hack_at, regress_at=regress_at)
     world = W.build(Path(work))
     with isolated(world.path("config"), world.owner_vkey):
@@ -131,7 +149,7 @@ def run_loop(work: Path, *, steps: int = 8, model: Any = None, cap_usd: float = 
         seen = {champ["source"]}
         rows: list[dict[str, Any]] = []
         for i in range(1, steps + 1):
-            rows.append(iterate(world, model, i, champ, seen))
+            rows.append(iterate(world, model, i, champ, seen, stop_at))
             if "stopped" in rows[-1]:
                 break
         variants = [r["variant"] for r in rows if "variant" in r]

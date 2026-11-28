@@ -1,7 +1,8 @@
 """``tine custody record|log|verify``: the chain of custody (0.39, ``_custody``).
 
 Checkpoint and weight custody (0.71: ``record --artifact``, ``chain``, ``check``,
-``gate``) is :mod:`opentine._cli_custody_weights`.
+``gate``) is :mod:`opentine._cli_custody_weights`; k-of-n approvals (0.91:
+``approve``, ``revoke``, ``approvals``) are :mod:`opentine._cli_custody_quorum`.
 
 ``record ACTION SUBJECT --sign-key KEY`` appends a record signed with the
 actor's Ed25519 key (``tine keygen``); ``record timestamp SIG_BOUND --token
@@ -52,6 +53,9 @@ def add_custody_parser(sub: Any) -> None:
     from opentine._cli_custody_weights import add_weight_arguments
 
     add_weight_arguments(rec, actions)  # 0.71: checkpoint and weight custody
+    from opentine._cli_custody_quorum import add_quorum_parsers
+
+    add_quorum_parsers(actions)  # 0.91: k-of-n custody approvals
 
 
 def _record(args: argparse.Namespace, base: Any) -> None:
@@ -80,7 +84,11 @@ def _record(args: argparse.Namespace, base: Any) -> None:
 
 def cmd_custody(args: argparse.Namespace) -> None:
     from opentine import _cli_custody_weights, _custody
+    from opentine._cli_custody_quorum import VERBS, run_quorum
 
+    if args.custody_command in VERBS:
+        run_quorum(args)
+        return
     if args.custody_command == "gate":
         raise SystemExit(_cli_custody_weights.gate(args))
     if args.custody_command in ("chain", "check") or getattr(args, "artifact", None):

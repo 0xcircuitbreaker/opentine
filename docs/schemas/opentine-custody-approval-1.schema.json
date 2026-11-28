@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-custody-approval-1.schema.json",
+  "title": "opentine.custody-approval/1 claim",
+  "description": "A custodian's approval of one export or copy of exact bytes, the claim of a held attestation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "operation",
+    "digest",
+    "checkpoint",
+    "requester",
+    "artifact",
+    "destination",
+    "at"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.custody-approval/1"
+    },
+    "operation": {
+      "enum": [
+        "copy",
+        "export"
+      ]
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "checkpoint": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "requester": {
+      "type": "string"
+    },
+    "artifact": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "destination": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "at": {
+      "type": "string"
+    }
+  }
+}

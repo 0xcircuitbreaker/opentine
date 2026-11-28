@@ -100,6 +100,19 @@ and `.tine/lineage/index/lineage.sqlite` are caches rebuilt from the formats
 above; their tables may change in any release, and they add no object kind
 and no `tine verify` code (docs/QUERY.md).
 
+## 0.91: tripwires and custody quorum
+
+No object kind, wire format, vector family or `tine verify` code was added.
+Tripwire registry versions, trips, custody approvals and revocations are
+attestations under the claim conventions `opentine.tripwire-registry/1`,
+`opentine.tripwire-trip/1`, `opentine.custody-approval/1` and
+`opentine.custody-revocation/1` (published as claim shapes in
+`docs/schemas`). The trust bundle gains the optional sections `tripwires` and
+`custody`, and the key-role policy the optional `custodian` role. The new
+`tine tripwire` command, the `custody approve|revoke|approvals` verbs and
+`tine interp export --requester-key` add CLI surface only; `tripwire.*`,
+`custody.quorum` and `custody-copy-unapproved` are command-level codes.
+
 ## 0.90: role tokens
 
 No object kind, wire format, vector family, `docs/schemas` object schema or

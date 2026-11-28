@@ -1,0 +1,557 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-tripwire-1.schema.json",
+  "title": "tine tripwire VERB --json",
+  "description": "The signed tripwire registry (0.91). `add` and `remove` sign the next registry version (`opentine.tripwire-registry/1`) with a pinned policy key; `list` shows the version in force and every finding; `check` evaluates each tripwire over monitor, suspicion, ingest and budget signals and, with `--key`, holds the trips (`opentine.tripwire-trip/1`) and the stop tokens of `stop` actions; `trips` lists them. `tripwire.*` codes are command-level.",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "record",
+        "serial",
+        "tripwires"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-tripwire/1"
+        },
+        "command": {
+          "enum": [
+            "tripwire add",
+            "tripwire remove"
+          ]
+        },
+        "record": {
+          "type": "string",
+          "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+        },
+        "serial": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "tripwires": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "metric",
+              "op",
+              "threshold",
+              "scope",
+              "action",
+              "decoys"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "metric": {
+                "type": "string"
+              },
+              "op": {
+                "enum": [
+                  ">=",
+                  ">",
+                  "<=",
+                  "<"
+                ]
+              },
+              "threshold": {
+                "type": "number"
+              },
+              "scope": {
+                "type": "string"
+              },
+              "action": {
+                "enum": [
+                  "flag",
+                  "stop"
+                ]
+              },
+              "decoys": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "status",
+        "head",
+        "serial",
+        "tripwires",
+        "findings",
+        "required"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-tripwire/1"
+        },
+        "command": {
+          "const": "tripwire list"
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "absent",
+            "unpinned",
+            "broken"
+          ]
+        },
+        "head": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "serial": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tripwires": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "metric",
+              "op",
+              "threshold",
+              "scope",
+              "action",
+              "decoys"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "metric": {
+                "type": "string"
+              },
+              "op": {
+                "enum": [
+                  ">=",
+                  ">",
+                  "<=",
+                  "<"
+                ]
+              },
+              "threshold": {
+                "type": "number"
+              },
+              "scope": {
+                "type": "string"
+              },
+              "action": {
+                "enum": [
+                  "flag",
+                  "stop"
+                ]
+              },
+              "decoys": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                }
+              }
+            }
+          }
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "level",
+              "code",
+              "record",
+              "message"
+            ],
+            "properties": {
+              "level": {
+                "const": "fail"
+              },
+              "code": {
+                "type": "string",
+                "pattern": "^fail:tripwire\\.[a-z-]+$"
+              },
+              "record": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": {
+          "type": "boolean"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "registry",
+        "required",
+        "missing",
+        "tripwires",
+        "findings",
+        "ok",
+        "recorded"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-tripwire/1"
+        },
+        "command": {
+          "const": "tripwire check"
+        },
+        "registry": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "head",
+            "serial"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "ok",
+                "absent",
+                "unpinned",
+                "broken"
+              ]
+            },
+            "head": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "serial": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "missing": {
+          "type": "boolean"
+        },
+        "tripwires": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "metric",
+              "op",
+              "threshold",
+              "scope",
+              "action",
+              "decoys",
+              "value",
+              "tripped",
+              "evidence",
+              "error"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "metric": {
+                "type": "string"
+              },
+              "op": {
+                "enum": [
+                  ">=",
+                  ">",
+                  "<=",
+                  "<"
+                ]
+              },
+              "threshold": {
+                "type": "number"
+              },
+              "scope": {
+                "type": "string"
+              },
+              "action": {
+                "enum": [
+                  "flag",
+                  "stop"
+                ]
+              },
+              "decoys": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                }
+              },
+              "value": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "tripped": {
+                "type": "boolean"
+              },
+              "evidence": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "error": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "level",
+              "code",
+              "record",
+              "message"
+            ],
+            "properties": {
+              "level": {
+                "const": "fail"
+              },
+              "code": {
+                "type": "string",
+                "pattern": "^fail:tripwire\\.[a-z-]+$"
+              },
+              "record": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "recorded": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "record",
+              "tripwire",
+              "action",
+              "stop",
+              "fleet_stop"
+            ],
+            "properties": {
+              "record": {
+                "type": "string",
+                "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+              },
+              "tripwire": {
+                "type": "string"
+              },
+              "action": {
+                "enum": [
+                  "flag",
+                  "stop"
+                ]
+              },
+              "stop": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "fleet_stop": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "attestation",
+                      "error"
+                    ],
+                    "properties": {
+                      "attestation": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "error": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "trips"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-tripwire/1"
+        },
+        "command": {
+          "const": "tripwire trips"
+        },
+        "trips": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "record",
+              "signer",
+              "counted",
+              "claim"
+            ],
+            "properties": {
+              "record": {
+                "type": "string",
+                "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+              },
+              "signer": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "counted": {
+                "type": "boolean"
+              },
+              "claim": {
+                "type": [
+                  "object",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

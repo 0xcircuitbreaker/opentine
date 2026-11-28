@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-custody-revocation-1.schema.json",
+  "title": "opentine.custody-revocation/1 claim",
+  "description": "The revocation of one custody approval.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "approval",
+    "at"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.custody-revocation/1"
+    },
+    "approval": {
+      "type": "string",
+      "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+    },
+    "at": {
+      "type": "string"
+    }
+  }
+}

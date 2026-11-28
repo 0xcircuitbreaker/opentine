@@ -1,0 +1,188 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/tine-cli-custody-quorum-1.schema.json",
+  "title": "tine custody approve|revoke|approvals --json",
+  "description": "k-of-n custody approvals (0.91): `approve` signs one approval by a pinned custodian key, `revoke` revokes one, `approvals` counts the distinct custodian keys that approve one request (exit 1 when short).",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "record",
+        "operation",
+        "digest",
+        "checkpoint",
+        "requester"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-custody-quorum/1"
+        },
+        "command": {
+          "const": "custody approve"
+        },
+        "record": {
+          "type": "string",
+          "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+        },
+        "operation": {
+          "enum": [
+            "copy",
+            "export"
+          ]
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "checkpoint": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "requester": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "record",
+        "approval"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-custody-quorum/1"
+        },
+        "command": {
+          "const": "custody revoke"
+        },
+        "record": {
+          "type": "string",
+          "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+        },
+        "approval": {
+          "type": "string",
+          "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "schema",
+        "operation",
+        "digest",
+        "checkpoint",
+        "requester",
+        "required",
+        "k",
+        "counted",
+        "approvals",
+        "ok"
+      ],
+      "properties": {
+        "schema": {
+          "const": "tine-cli-custody-quorum/1"
+        },
+        "command": {
+          "const": "custody approvals"
+        },
+        "operation": {
+          "enum": [
+            "copy",
+            "export"
+          ]
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "checkpoint": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "requester": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "k": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "counted": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "approvals": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "record",
+              "signer",
+              "counted",
+              "why"
+            ],
+            "properties": {
+              "record": {
+                "type": "string",
+                "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+              },
+              "signer": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "counted": {
+                "type": "boolean"
+              },
+              "why": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

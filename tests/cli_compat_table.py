@@ -8583,4 +8583,208 @@ ROWS: tuple[tuple, ...] = (
             "repeats": 4,
         },
     ),  # 0.90
+    (
+        "plain:stop init --channel ch --fleet f --window 120",
+        "plain",
+        ["stop", "init", "--channel", "ch", "--fleet", "f", "--window", "120"],
+        "opentine._cli_stop:cmd_stop",
+        False,
+        {
+            "command": "stop",
+            "stop_command": "init",
+            "channel": "ch",
+            "fleet": "f",
+            "window": 120,
+            "skew": 30,
+            "watchdog": 10,
+        },
+    ),  # 0.91
+    (
+        "plain:stop issue --channel ch --fleet f --key k --reason r",
+        "plain",
+        ["stop", "issue", "--channel", "ch", "--fleet", "f", "--key", "k", "--reason", "r"],
+        "opentine._cli_stop:cmd_stop",
+        False,
+        {"command": "stop", "stop_command": "issue", "key": "k", "reason": "r"},
+    ),  # 0.91
+    (
+        "plain:stop continue --channel ch --fleet f --run a --run b --key k",
+        "plain",
+        [
+            "stop",
+            "continue",
+            "--channel",
+            "ch",
+            "--fleet",
+            "f",
+            "--run",
+            "a",
+            "--run",
+            "b",
+            "--key",
+            "k",
+        ],
+        "opentine._cli_stop:cmd_stop",
+        False,
+        {"command": "stop", "stop_command": "continue", "run": ["a", "b"], "window": 300},
+    ),  # 0.91
+    (
+        "plain:stop status --run a --json",
+        "plain",
+        ["stop", "status", "--run", "a", "--json"],
+        "opentine._cli_stop:cmd_stop",
+        False,
+        {"command": "stop", "stop_command": "status", "run": "a", "json": True},
+    ),  # 0.91
+    (
+        "plain:stop compliance --strict",
+        "plain",
+        ["stop", "compliance", "--strict"],
+        "opentine._cli_stop:cmd_stop",
+        False,
+        {"command": "stop", "stop_command": "compliance", "strict": True},
+    ),  # 0.91
+    (
+        "plain:record --stop-run a --stop-key k -- python a.py",
+        "plain",
+        ["record", "--stop-run", "a", "--stop-key", "k", "--", "python", "a.py"],
+        "opentine._cli_record:cmd_record",
+        False,
+        {"command": "record", "stop_run": "a", "stop_key": "k"},
+    ),  # 0.91
+    (
+        "plain:run --model mock --prompt p --stop-run a --stop-key k",
+        "plain",
+        ["run", "--model", "mock", "--prompt", "p", "--stop-run", "a", "--stop-key", "k"],
+        "opentine._cli_execute:cmd_run",
+        False,
+        {"command": "run", "model": "mock", "stop_run": "a", "stop_key": "k"},
+    ),  # 0.91
+    (
+        "plain:tripwire add w1 --metric decoy.touches --threshold 1 --decoy D --key k",
+        "plain",
+        [
+            "tripwire",
+            "add",
+            "w1",
+            "--metric",
+            "decoy.touches",
+            "--threshold",
+            "1",
+            "--decoy",
+            "D",
+            "--key",
+            "k",
+        ],
+        "opentine._cli_tripwire:cmd_tripwire",
+        False,
+        {
+            "command": "tripwire",
+            "tripwire_command": "add",
+            "id": "w1",
+            "metric": "decoy.touches",
+            "threshold": 1.0,
+            "action": "flag",
+            "decoy": ["D"],
+            "key": "k",
+        },
+    ),  # 0.91
+    (
+        "plain:tripwire remove w1 --key k",
+        "plain",
+        ["tripwire", "remove", "w1", "--key", "k"],
+        "opentine._cli_tripwire:cmd_tripwire",
+        False,
+        {"command": "tripwire", "tripwire_command": "remove", "id": "w1", "key": "k"},
+    ),  # 0.91
+    (
+        "plain:tripwire list --json",
+        "plain",
+        ["tripwire", "list", "--json"],
+        "opentine._cli_tripwire:cmd_tripwire",
+        False,
+        {"command": "tripwire", "tripwire_command": "list", "json": True},
+    ),  # 0.91
+    (
+        "plain:tripwire check --key k --now-ms 5",
+        "plain",
+        ["tripwire", "check", "--key", "k", "--now-ms", "5"],
+        "opentine._cli_tripwire:cmd_tripwire",
+        False,
+        {"command": "tripwire", "tripwire_command": "check", "key": "k", "now_ms": 5},
+    ),  # 0.91
+    (
+        "plain:tripwire trips",
+        "plain",
+        ["tripwire", "trips"],
+        "opentine._cli_tripwire:cmd_tripwire",
+        False,
+        {"command": "tripwire", "tripwire_command": "trips"},
+    ),  # 0.91
+    (
+        "plain:custody approve --operation copy --digest D --requester F --key k",
+        "plain",
+        [
+            "custody",
+            "approve",
+            "--operation",
+            "copy",
+            "--digest",
+            "D",
+            "--requester",
+            "F",
+            "--key",
+            "k",
+        ],
+        "opentine._cli_custody:cmd_custody",
+        False,
+        {
+            "command": "custody",
+            "custody_command": "approve",
+            "operation": "copy",
+            "digest": "D",
+            "requester": "F",
+            "key": "k",
+        },
+    ),  # 0.91
+    (
+        "plain:custody revoke A --key k",
+        "plain",
+        ["custody", "revoke", "A", "--key", "k"],
+        "opentine._cli_custody:cmd_custody",
+        False,
+        {"command": "custody", "custody_command": "revoke", "approval": "A", "key": "k"},
+    ),  # 0.91
+    (
+        "plain:custody approvals --operation export --digest D --checkpoint C --requester F",
+        "plain",
+        [
+            "custody",
+            "approvals",
+            "--operation",
+            "export",
+            "--digest",
+            "D",
+            "--checkpoint",
+            "C",
+            "--requester",
+            "F",
+        ],
+        "opentine._cli_custody:cmd_custody",
+        False,
+        {
+            "command": "custody",
+            "custody_command": "approvals",
+            "operation": "export",
+            "checkpoint": "C",
+        },
+    ),  # 0.91
+    (
+        "plain:interp export D --out o --requester-key k",
+        "plain",
+        ["interp", "export", "D", "--out", "o", "--requester-key", "k"],
+        "opentine._cli_interp:cmd_interp",
+        False,
+        {"command": "interp", "requester_key": "k"},
+    ),  # 0.91
 )

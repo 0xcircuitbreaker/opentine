@@ -1,5 +1,100 @@
 # Changelog
 
+## 0.91.0 — Stop and tripwires (2026-11-28)
+
+- New `tine stop init|issue|continue|status|compliance`: a fleet-wide
+  fail-closed stop. A stop channel is a signed transparency log shared by the
+  fleet's repositories; fleet stops (`opentine.fleet-stop/1`) and continue
+  proofs (`opentine.stop-continue/1`) are attestations appended to it, signed
+  by a pinned `stopper` or `policy` key and never an `optimizer` key. A
+  repository under a stop policy (`.tine/stop-policy.json`,
+  `opentine.stop-policy/1`, held so deleting it fails closed) needs a fresh
+  continue proof before each step: one bound to its fleet, run id, a per-run
+  sequence and a checkpoint of the channel, and no older than the freshness
+  window (300 s by default). A stop, a stale, unbound, future-dated or
+  rolled-back proof, or an unreachable or rolled-back channel halts the run.
+  Without a stop policy nothing changes.
+- `tine record` and `tine run` honour the stop policy: `--stop-run` and
+  `--stop-key` (or `$OPENTINE_STOP_RUN`, `$OPENTINE_STOP_KEY`), a check before
+  every model call (`tine record`) or model and tool call (`tine run
+  --model`), a watchdog for long steps, and the recorded command run as one
+  killable process tree so its children stop with it. A refused or halted run
+  exits 3.
+- Stop compliance: after a halt the runner signs an
+  `opentine.stop-compliance/1` record (time to halt, time since the stop,
+  residual processes, actions after the stop), held for good; one that is not
+  compliant or not by a pinned `runner` key opens a `stop:` item in the
+  oversight queue.
+- The reference loop runs under a stop policy and checks a fresh continue proof
+  before each step (`run_loop(stop_at=N)` stops it at step N).
+- Stop compliance is judged from the record's own signed numbers (the claimed
+  verdict alone counts for nothing, and a non-integer measurement fails); a
+  halt more than one watchdog interval plus the allowed skew after a fleet stop
+  is late; residual processes are counted before any second kill; a runner's
+  clock advances only monotonically once read, so setting the system clock
+  back keeps no proof fresh.
+- Review: `tine run` (script, `--harness`, `--model`, `--parallel`) and
+  `tine fan-out` under a stop policy run as a supervised tree: the command
+  re-runs itself under a supervisor whose watchdog re-checks the stop channel
+  and continue proof every `watchdog_s` and, on a stop, a stale proof or an
+  unreachable channel, kills the whole tree (every fan-out member included)
+  and signs the compliance record. Before, those modes checked only at start.
+- Review: the stop policy of every place a command touches applies (the
+  current directory and `--repo`, `--cwd`, `--save`, `--autosave`,
+  `--worktree-dir`, each searched up through its parents), plus a pointer
+  pinned in the user's trust config (`$XDG_CONFIG_HOME/opentine/stop-policy`)
+  or `$OPENTINE_STOP_POLICY`; a pointer that names no policy, or two fleets at
+  once, refuses the command. Before, a subdirectory, `--repo` elsewhere or a
+  cwd without `.tine` skipped the policy.
+- Review: a `tripwires` or `custody` trust-bundle section that is present but
+  does not parse under a pinned owner fails closed (registry broken, quorum
+  impossible) instead of reading as absent.
+- Review: the supervisor always measures and signs its own compliance record
+  when a supervised child ends under a halt, whatever its exit code and
+  whatever record the child wrote (the supervisor's is authoritative); its
+  residual count includes what the subreaper sweep killed after the child
+  exited. Before, a hostile child that exited 3 holding a forged "compliant"
+  record made the supervisor skip its own, hiding a surviving setsid
+  grandchild. The child's own watchdog halt is now a tree kill too: it freezes
+  and kills every descendant (setsid ones, and `--parallel` fan-out members in
+  process groups of their own) and waits for them before it exits, so what the
+  supervisor's sweep counts is only what truly outlived the child; before, a
+  `--parallel` child whose own watchdog won the race left its members to the
+  sweep, which counted them as residue. A process already dying (zombie,
+  exiting, or with a SIGKILL pending) is not counted as a survivor.
+- Docs: STOP.md.
+- New `tine tripwire add|remove|list|check|trips`: a signed tripwire registry
+  (`opentine.tripwire-registry/1`). Each tripwire names a metric (suspicion
+  flags or score, monitor outcomes, ingest events, decoy touches, budget
+  totals), a threshold, a scope and an action (`flag` or `stop`). Every change
+  is a new chained version signed by a pinned `policy` key that is not an
+  `optimizer` key; versions by other keys, forks, broken chains, dropped hold
+  rows and rollbacks below a pinned `min_serial` are `tripwire.*` findings.
+  The registry is read from the whole object store, so dropping a hold row
+  neither hides nor rolls it back.
+- `tine tripwire check --key` signs and holds one trip per tripwire and
+  registry version (`opentine.tripwire-trip/1`), routes it to the oversight
+  queue (`tripwire:` items, source `tripwire`), and for a `stop` action writes
+  an `opentine.monitor-stop/1` stop token that the existing gates honour. A
+  signal that cannot be read trips. Decoys are registered by digest only.
+- The trust bundle may carry a `tripwires` rule (`--tripwires FILE`:
+  `required`, `min_serial`). With `required`, a missing, unpinned or broken
+  registry fails closed: `check --key` records a trip and a `*` stop. Without
+  the rule nothing changes.
+- Custody export and copy need k-of-n approvals once `custodian` keys are
+  pinned: `tine custody approve|revoke|approvals` sign, revoke and count
+  `opentine.custody-approval/1` approvals from distinct custodian keys, each
+  bound to the exact digest, the covering checkpoint, the operation and the
+  requester. Optimizer keys and the requester's own key never count; a
+  revocation holds even when its hold row is dropped. `tine custody record
+  copied|exported` and `tine interp export --requester-key` are refused short
+  of the quorum (default 2, raised by the bundle's `custody` section,
+  `--custody FILE`), the refusal is held for review, and a copy written around
+  the command is `fail:custody-copy-unapproved` in `tine custody check`.
+- A `stop` trip in a repository under a stop policy also publishes a fleet
+  stop to its channel (`fleet_stop` in `tine tripwire check --json`), so the
+  whole fleet halts, not only the local gates.
+
 ## 0.90.0 — Monitors as evidence and role tokens (2026-11-28)
 
 - Monitor coverage, heartbeats and suspicion are stricter: an event the monitor

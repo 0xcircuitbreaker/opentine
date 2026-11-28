@@ -71,7 +71,7 @@ trend.
 | --- | --- | --- |
 | owner | (pinned outside the repository) | the trust bundle that names every role |
 | optimizer | `optimizer` | nothing that counts: its approvals are refused |
-| policy | `policy` | protected list, promotion and oversight policies, budget policy, admission decisions |
+| policy | `policy` | protected list, promotion and oversight policies, budget policy, admission decisions, stop and continue proofs |
 | runner | `runner` | spend entries, containment records, integrity taints, lineage records |
 | eval | `eval`, `scorer` | eval verdicts, holdout access records, uplift records |
 | dataset | `dataset` | the sealed holdout's commitment |
@@ -89,6 +89,11 @@ grant powers only from the owner-signed bundle.
 
 ## One step
 
+0. **Stop check (0.91).** The oversight side signs a continue proof for the
+   loop (`tine stop continue`, policy key) and the loop checks it
+   (`tine stop status --run reference`) before it acts. A fleet stop or a
+   proof older than the 300 s window halts the loop (`stopped: fleet-stop`);
+   `run_loop(..., stop_at=N)` issues the stop at step N. See [STOP.md](STOP.md).
 1. **Budget.** `tine budget check loop:reference` must allow the next action
    (fail closed: no policy in force refuses).
 2. **Propose.** The model returns a new `solver.py` and the tool calls it made.

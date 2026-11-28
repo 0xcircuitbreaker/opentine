@@ -126,7 +126,7 @@ class _Handler(GuardedHandler):
         record: dict[str, Any] = {"upstream": name, "path": "/" + rest, "request": body}
         record["started"] = started
         gate, ticket = self.server.gate, None
-        if gate is not None:  # 0.87: --budget; see opentine._record_budget
+        if gate is not None:  # 0.87: --budget (opentine._record_budget); 0.91: stop policy
             decision = self._admit(gate, name, rest, body)
             if not decision["ok"]:
                 self._refuse(decision, record, started)
@@ -161,12 +161,15 @@ class _Handler(GuardedHandler):
     def _refuse(self, decision: dict[str, Any], record: dict[str, Any], started: float) -> None:
         from opentine._record_budget import refusal
 
-        payload = refusal(decision)
-        self.send_response(decision["status"])
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(payload)))
-        self.end_headers()
-        self.wfile.write(payload)
+        payload = decision.get("body") or refusal(decision)  # 0.91: a stop names its own
+        try:
+            self.send_response(decision["status"])
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+        except OSError:  # 0.91: a halted child is gone before its refusal is written
+            self.close_connection = True
         record.update(status=decision["status"], content_type="application/json",
                       response=payload, denied=decision["code"],
                       duration=time.monotonic() - started)  # fmt: skip

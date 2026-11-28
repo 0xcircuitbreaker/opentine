@@ -132,7 +132,7 @@ def calibrate(repo: Any, probe: str, key: Any, *, threshold: float,
         raise ProbeError("a threshold is between 0 and 1")
     if not isinstance(samples, list) or not 0 < len(samples) <= MAX_SAMPLES:
         raise ProbeError(f"calibration needs 1..{MAX_SAMPLES} labelled samples")
-    data, row = ic.export(repo, probe, run=run, tool="tine interp calibrate")
+    data, row = ic.export(repo, probe, run=run, tool="tine interp calibrate", quorum=False)
     if row["kind"] != "probe-weights":
         raise ProbeError(f"{probe} is a {row['kind']}, not probe weights")
     weights = parse(data)

@@ -188,13 +188,33 @@ def read_bytes(repo: Any, row: dict[str, Any]) -> bytes:
     return data
 
 
-def export(repo: Any, artifact: str, *, run: str | None = None,
-           tool: str = "tine interp export") -> tuple[bytes, dict[str, Any]]:  # fmt: skip
-    """The bytes of *artifact* and its record, under custody; :class:`CustodyDenied`."""
+def _quorum(repo: Any, row: dict[str, Any], requester: str | None, tool: str) -> None:
+    from opentine import _custody_quorum
+    from opentine._organism import now
+    from opentine._weight_custody_review import log_refusal
+
+    try:
+        _custody_quorum.require(repo, operation="export", digest=row["digest"],
+                                checkpoint=row["checkpoint"], requester=requester)  # fmt: skip
+    except _custody_quorum.QuorumError as exc:
+        log_refusal(repo, row["digest"], str(exc), tool, now())
+        raise CustodyDenied(str(exc)) from exc
+
+
+def export(repo: Any, artifact: str, *, run: str | None = None, tool: str = "tine interp export",
+           requester: str | None = None,
+           quorum: bool = True) -> tuple[bytes, dict[str, Any]]:  # fmt: skip
+    """The bytes of *artifact* and its record, under custody; :class:`CustodyDenied`.
+
+    0.91: an export (*quorum*, not an internal read such as a probe calibration)
+    also needs the k-of-n custodian approvals of :mod:`opentine._custody_quorum`
+    for *requester* once custodian keys are pinned."""
     from opentine._organism import now
     from opentine._organism_registry import approval_for, log_access
 
     row = find(repo, artifact)
+    if quorum:
+        _quorum(repo, row, requester, tool)
     why = tagged(repo, row)
     if not why:
         return read_bytes(repo, row), row

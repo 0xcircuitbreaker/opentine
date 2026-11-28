@@ -56,9 +56,14 @@ def parse_item(item: str) -> dict[str, Any]:
         label, _, candidate = rest.partition(":")
         if LABEL_RE.fullmatch(label) and RUN_RE.fullmatch(candidate):
             return {"source": source, "label": label, "candidate": candidate, "oid": None}
-    elif source in ("monitor", "integrity", "containment", "organism") and rest.startswith(
-        "attestation:sha256:"
-    ):
+    elif source in (
+        "monitor",
+        "integrity",
+        "containment",
+        "organism",
+        "tripwire",
+        "stop",
+    ) and rest.startswith("attestation:sha256:"):
         return {"source": source, "label": None, "candidate": None, "oid": rest}
     elif source == "budget" and rest.startswith("annotation:sha256:"):  # 0.69: a budget flag
         return {"source": source, "label": None, "candidate": None, "oid": rest}
@@ -76,7 +81,7 @@ def parse_item(item: str) -> dict[str, Any]:
         if FLAG_LABEL_RE.fullmatch(label) and RUN_RE.fullmatch(run):
             return {"source": source, "label": label, "candidate": None, "oid": run}
     raise ValueError(f"{item!r} is not an oversight item (promotion:LABEL:RUN, monitor:"
-                     "ATTESTATION, integrity:|containment:|organism:ATTESTATION, "
+                     "ATTESTATION, integrity:|containment:|organism:|stop:ATTESTATION, "
                      "budget:ANNOTATION, custody:ATTESTATION|BLOB, transcript:ATTESTATION "
                      "or transcript:LABEL:RUN, ingest:ANNOTATION|BLOB, "
                      "collusion:BLOB)")  # fmt: skip

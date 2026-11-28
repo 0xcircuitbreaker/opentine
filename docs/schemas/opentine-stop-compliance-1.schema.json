@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-stop-compliance-1.schema.json",
+  "title": "opentine.stop-compliance/1 claim",
+  "description": "The claim of an attestation, signed by the runner, recording how a halted run stopped: time to halt, residual processes and actions after the stop.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "fleet",
+    "run",
+    "code",
+    "stop",
+    "stop_issued_at",
+    "requested_at",
+    "halted_at",
+    "time_to_halt_ms",
+    "since_stop_ms",
+    "window_s",
+    "watchdog_s",
+    "skew_s",
+    "residual_processes",
+    "residual_method",
+    "forwarded_after_stop",
+    "refused_after_stop",
+    "compliant"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.stop-compliance/1"
+    },
+    "fleet": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+    },
+    "run": {
+      "type": "string"
+    },
+    "code": {
+      "type": "string",
+      "pattern": "^stop\\.[a-z-]+$"
+    },
+    "stop": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "stop_issued_at": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "requested_at": {
+      "type": "string"
+    },
+    "halted_at": {
+      "type": "string"
+    },
+    "time_to_halt_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "since_stop_ms": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "window_s": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "watchdog_s": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "skew_s": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "residual_processes": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "residual_method": {
+      "enum": [
+        "proc",
+        "killpg",
+        "job-object",
+        "in-process"
+      ]
+    },
+    "forwarded_after_stop": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "refused_after_stop": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "compliant": {
+      "type": "boolean"
+    }
+  }
+}

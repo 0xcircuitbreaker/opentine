@@ -80,6 +80,23 @@ def held(repo: Any, prefix: str) -> list[tuple[str, dict[str, Any]]]:
             for r in sorted(rows, key=lambda r: (r["target"], r["oid"]))]  # fmt: skip
 
 
+def scan(repo: Any, conventions: tuple[str, ...], limit: int = 10**7) -> list[dict[str, Any]]:
+    """Every attestation in the object store whose claim names one of *conventions*,
+    held or not (0.91), each a :func:`read` row, sorted by id: dropping a hold row
+    does not hide a record from a reader that must see all of them."""
+    from opentine.repository._objects import iter_typed_object_oids
+
+    out = []
+    for oid in iter_typed_object_oids(repo.path, {"attestation"}, limit=limit):
+        try:
+            claim = repo.get(oid).payload().get("claim")
+        except Exception:  # noqa: BLE001 - an unreadable attestation names no convention
+            continue
+        if isinstance(claim, dict) and claim.get("convention") in conventions:
+            out.append(read(repo, oid))
+    return sorted(out, key=lambda r: r["oid"])
+
+
 def role_state(repo: Any, signer: Any, role: str) -> str:
     """``verified`` when *signer* holds *role* in the owner-pinned key roles."""
     from opentine._key_roles import KeyRoleError
@@ -99,4 +116,4 @@ def role_state(repo: Any, signer: Any, role: str) -> str:
     return "verified"
 
 
-__all__ = ["anchor", "fingerprint", "held", "read", "record", "rfc3339", "role_state"]
+__all__ = ["anchor", "fingerprint", "held", "read", "record", "rfc3339", "role_state", "scan"]

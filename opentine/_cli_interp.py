@@ -48,6 +48,8 @@ def add_interp_parser(subparsers: argparse._SubParsersAction) -> None:
     export = verbs.add_parser("export", help="Write an artifact's bytes (custody applies)")
     export.add_argument("artifact", metavar="DIGEST", help="The artifact's sha256: digest")
     export.add_argument("--out", required=True, metavar="PATH", help="Where to write the bytes")
+    export.add_argument("--requester-key", metavar="KEY",
+                        help="0.91: the requester's key, named by custodian approvals")  # fmt: skip
     cal = verbs.add_parser("calibrate", help="Sign calibration evidence for a probe")
     cal.add_argument("artifact", metavar="DIGEST", help="The probe weights' sha256: digest")
     cal.add_argument("--threshold", required=True, type=float, help="The decision threshold")
@@ -113,7 +115,13 @@ def _list(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[str
 def _export(args: argparse.Namespace, repo: Any) -> tuple[dict[str, Any], list[str]]:
     from opentine import _interp_custody as ic
 
-    data, row = ic.export(repo, args.artifact, run=args.run)
+    requester = None
+    if args.requester_key:
+        from opentine._containment_records import fingerprint
+        from opentine._key_hygiene import ed25519_private
+
+        requester = fingerprint(ed25519_private(args.requester_key))
+    data, row = ic.export(repo, args.artifact, run=args.run, requester=requester)
     Path(args.out).write_bytes(data)
     return {"digest": row["digest"], "size": len(data), "out": Path(args.out).as_posix()}, [
         f"wrote {len(data)} bytes of {row['digest']} to {args.out}"

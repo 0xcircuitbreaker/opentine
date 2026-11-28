@@ -114,6 +114,8 @@ def finish(process: Any) -> bool:
         line[len(prefix) :] for line in _drain(state.read).splitlines() if line.startswith(prefix)
     ]
     swept = any(line in (b"ok", b"unsupported") for line in lines)
+    counts = [int(line[6:]) for line in lines if line.startswith(b"swept ") and line[6:].isdigit()]
+    process.opentine_swept = sum(counts)  # type: ignore[attr-defined]  # outlived the command
     if not swept:
         for line in lines:
             if line.startswith(b"pid ") and line[4:].isdigit():

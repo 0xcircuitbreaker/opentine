@@ -93,6 +93,10 @@ coverage record in which a cumulative-suspicion or doom-loop flag was first
 reached (`tine monitor suspicion`, docs/MONITORS.md). Flags are recomputed from
 the held coverage records on every read.
 
+A `tripwire:ATTESTATION` item (0.91, route `source = "tripwire"`) names a held
+tripwire trip (`tine tripwire check --key`, docs/TRIPWIRES.md), including a
+trip whose signer does not count.
+
 An item routed into several tiers must satisfy each of them.
 
 ### Pinning

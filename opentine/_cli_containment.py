@@ -35,6 +35,8 @@ from opentine._cli_provenance import COMMANDS as PROVENANCE_COMMANDS
 from opentine._cli_provenance import add_provenance_parser
 from opentine._cli_transcripts import COMMANDS as TRANSCRIPTS_COMMANDS
 from opentine._cli_transcripts import add_transcripts_parser
+from opentine._cli_tripwire import COMMANDS as TRIPWIRE_COMMANDS
+from opentine._cli_tripwire import add_tripwire_parser
 
 SCHEMA = "tine-cli-containment/1"
 
@@ -50,6 +52,7 @@ def add_containment_parser(subparsers: argparse._SubParsersAction) -> None:
     )  # 0.74: tine transcripts index|search|similar|cluster|label|flags
     add_policy_parser(subparsers)  # 0.75 (release 0.74.0): tine policy check|list|show
     add_judge_parser(subparsers)  # 0.89: tine judge classify|label|queue|agreement|validate|...
+    add_tripwire_parser(subparsers)  # 0.91: tine tripwire add|remove|list|check|trips
     parser = subparsers.add_parser("containment", help="Sandbox policy and containment evidence")
     verbs = parser.add_subparsers(dest="containment_command", required=True)
     rec = verbs.add_parser("record", help="Sign and hold a run's sandbox policy")
@@ -155,4 +158,5 @@ COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
     **KEYLESS_COMMANDS,
     **INGEST_COMMANDS,
     **JUDGE_COMMANDS,
+    **TRIPWIRE_COMMANDS,
 }

@@ -20,6 +20,7 @@ OpenTine covers each with one release. This guide shows how they fit.
 | 0.58 lineage | Where did this variant come from, and which evals justify it? | [LINEAGE.md](LINEAGE.md) |
 | 0.60 integrity | Was the score produced honestly? | this page |
 | 0.80 reference loop | What does a loop with every record wired look like? | [REFERENCE-LOOP.md](REFERENCE-LOOP.md) |
+| 0.91 fleet stop | Can every run of the fleet be stopped, and did it stop? | [STOP.md](STOP.md) |
 
 ## The loop, record by record
 

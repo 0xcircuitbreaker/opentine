@@ -18,7 +18,9 @@ and whose payload holds only existing documents::
      ["key_roles": {"version": 1, "roles": {...}}],  # .tine/key-roles.toml, as JSON (0.59)
      ["oversight": {"version": 1, "tiers": {name: {"k": N}}}]}  # k floors per tier (0.64)
      # 0.85: oversight may add "routes": [source] and "policy_sha256": hex
-     ["monitors": {"version": 1, "signers": {id: [pin]}, "required": [id]}]}  # 0.90
+     ["monitors": {"version": 1, "signers": {id: [pin]}, "required": [id]}]  # 0.90
+     ["tripwires": {"version": 1, "required": bool, "min_serial": N}]  # 0.91
+     ["custody": {"version": 1, "k": N}]}  # 0.91: custody export/copy quorum
 
 Every part is checked by the validator of its own format. Path fields of a
 trust policy (``pubkey``, ``rekor_key``, ...) name local files and are
@@ -35,6 +37,7 @@ import hashlib
 import json
 import re
 from datetime import UTC, datetime
+from importlib import import_module
 from typing import Any
 
 from opentine.kernel import _parse_int, canonical_json
@@ -53,7 +56,15 @@ _TOP = {
     "key_roles",
     "oversight",
     "monitors",
+    "tripwires",
+    "custody",
 }
+_SECTIONS = {
+    "monitors": ("opentine._monitor_binding", "{version: 1, signers: {id: [pin]}, "
+                 "required: [bound id]}, each pin bound to one id"),
+    "tripwires": ("opentine._tripwire_registry", "{version: 1, required: bool, min_serial: N}"),
+    "custody": ("opentine._custody_quorum", "{version: 1, k: N} with 2 <= k <= 256"),
+}  # fmt: skip
 #: Trust-policy fields a bundle may carry: no local paths.
 PORTABLE = ("pin", "require_receipt", "cert_identity", "cert_oidc_issuer", "require_sct",
             "key_lifecycle")  # fmt: skip
@@ -165,12 +176,9 @@ def validate(payload: Any) -> dict[str, Any]:
         if section_of(payload["oversight"]) is None:
             raise BundleError("trust bundle: oversight is {version: 1, tiers: {name: {k: N}}, "
                               "routes: [source], policy_sha256: hex}")  # fmt: skip
-    if "monitors" in payload:
-        from opentine._monitor_binding import section_of as monitors
-
-        if monitors(payload["monitors"]) is None:
-            raise BundleError("trust bundle: monitors is {version: 1, signers: {id: [pin]}, "
-                              "required: [bound id]}, each pin bound to one id")  # fmt: skip
+    for name, (module, shape) in _SECTIONS.items():
+        if name in payload and import_module(module).section_of(payload[name]) is None:
+            raise BundleError(f"trust bundle: {name} is {shape}")
     return payload
 
 

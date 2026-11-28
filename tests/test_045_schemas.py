@@ -476,6 +476,53 @@ DRIVEN = (
         "tine-cli-judge-1",
     ),
     (("label", "next", "q", "--repo", "lq", "--reviewer", _R1, "--json"), "tine-cli-label-1"),
+    (
+        ("stop", "init", "--channel", "ch", "--fleet", "f", "--repo", "repo", "--json"),
+        "tine-cli-stop-1",
+    ),  # 0.91
+    (("stop", "status", "--run", "r", "--repo", "repo", "--json"), "tine-cli-stop-1"),
+    (("stop", "compliance", "--repo", "repo", "--json"), "tine-cli-stop-1"),
+    (
+        (
+            "stop",
+            "continue",
+            "--channel",
+            "ch",
+            "--fleet",
+            "f",
+            "--run",
+            "r",
+            "--key",
+            "purge.key",
+            "--repo",
+            "repo",
+            "--json",
+        ),
+        "tine-cli-stop-1",
+    ),
+    (
+        (
+            "stop",
+            "issue",
+            "--channel",
+            "ch",
+            "--fleet",
+            "f",
+            "--key",
+            "purge.key",
+            "--repo",
+            "repo",
+            "--json",
+        ),
+        "tine-cli-stop-1",
+    ),
+    (("tripwire", "list", "--repo", "repo", "--json"), "tine-cli-tripwire-1"),  # 0.91
+    (("tripwire", "check", "--now-ms", "0", "--repo", "repo", "--json"), "tine-cli-tripwire-1"),
+    (
+        ("custody", "approvals", "--operation", "copy", "--digest", "sha256:" + "a" * 64)
+        + ("--requester", "sha256:" + "b" * 64, "--repo", "repo", "--json"),
+        "tine-cli-custody-quorum-1",
+    ),
 )
 
 
@@ -526,6 +573,16 @@ def test_every_driven_json_output_validates(monkeypatch, capsys, room, argv, exp
         key = Ed25519PrivateKey.from_private_bytes(b"\xab" * 32)
         annotate(repo, _resolve(repo, "main")[1], key)
         pin_contributor(repo, key)
+    if argv[0] == "stop" and argv[1] != "init":  # 0.91: a channel, a policy, a pinned stopper
+        from tests.key_roles_helpers import pin_roles
+        from tests.promote_helpers import fingerprint
+
+        _tine(monkeypatch, capsys, "stop", "init", "--channel", "ch", "--fleet", "f", "--repo",
+              "repo")  # fmt: skip
+        roles = f'version = 1\n[roles]\nstopper = ["{fingerprint("ab" * 32)}"]\n'
+        (room / "repo" / ".tine" / "key-roles.toml").write_bytes(roles.encode("utf-8"))
+        pin_roles(room / "repo" / ".tine")
+        capsys.readouterr()
     if argv[:2] == ("keyless", "verify"):  # 0.74: trust material, and a bundle with no cert
         from tests._sigstore_fakes import FakeFulcio, FakeLog
 

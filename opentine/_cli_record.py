@@ -22,6 +22,7 @@ from opentine._cli_flags import _require_output_slot
 from opentine._cli_key import add_key_parser, cmd_key
 from opentine._cli_mcp_proxy import add_mcp_proxy_parser
 from opentine._cli_mcp_proxy import cmd_mcp_proxy as _cmd_mcp_proxy
+from opentine._cli_stop_run import add_stop_args, exit_if_halted, halted_metadata, stop_for_run
 from opentine._v4_values import mark_lenient
 from opentine.core import Run, RunStatus, StepKind
 from opentine.redaction import redact_text, redact_value
@@ -53,6 +54,7 @@ def add_record_parser(sub: Any) -> None:
         "--budget-key", metavar="KEY", help="Ed25519 key that signs reservations, spend and denials"
     )
     record.add_argument("--repo", metavar="PATH", help="Repository holding the budget ledger")
+    add_stop_args(record)  # 0.91: read only when the repository has a stop policy
     record.add_argument("cmd", nargs=argparse.REMAINDER, help="The command to run, after --")
     add_mcp_proxy_parser(sub)
     add_proxy_parser(sub)
@@ -103,13 +105,16 @@ def cmd_record(args: argparse.Namespace) -> None:
         console.print(f"[red]{exc}[/]")
         raise SystemExit(2) from None
     records: list[dict[str, Any]] = []
+    stop = stop_for_run(args, args.repo)
     gate, budget = _budget_gate(args)
-    server = _record_proxy.start(records.append, overrides, gate)
+    server = _record_proxy.start(records.append, overrides, stop_gate(stop, gate))
     try:
+        env = _record_proxy.child_env(dict(os.environ), server.port, server.bases)
         try:
-            code = subprocess.call(
-                command, env=_record_proxy.child_env(dict(os.environ), server.port, server.bases)
-            )
+            if stop is None:
+                code = subprocess.call(command, env=env)
+            else:  # 0.91: one killable tree, watched while it runs
+                code = stop.supervised.run(command, env, interval_s=stop.policy["watchdog_s"])
         except OSError as exc:
             console.print(f"[red]Cannot run {redact_text(command[0])}:[/] {exc.strerror or exc}")
             code = 127
@@ -117,13 +122,21 @@ def cmd_record(args: argparse.Namespace) -> None:
         server.shutdown()
         server.server_close()
     run = build_run(command, records, code, budget)
+    halted = halted_metadata(run, stop, run.metadata["record"])
     if gate is not None and gate.denied:
         console.print(f"[yellow]budget: refused {gate.denied} model call(s); see "
                       f"`tine budget ledger {budget['subject']}`[/]")  # fmt: skip
     output = _save_run_receipt(run, args.save, force=True)
     if not witness_save(run, output):
         console.print("[yellow]Unwitnessed (assurance T0): run `tine proxy keygen` to sign.[/]")
+    exit_if_halted(halted)
     raise SystemExit(code)
+
+
+def stop_gate(stop: Any, gate: Any) -> Any:
+    from opentine._stop_runner import StopGate
+
+    return gate if stop is None else StopGate(stop, gate)
 
 
 def _budget_gate(args: argparse.Namespace) -> tuple[Any, dict[str, Any] | None]:
