@@ -119,9 +119,16 @@ A `stop` action first writes an `opentine.monitor-stop/1` stop token
 (docs/MONITORS.md) and names it in the trip's `stop` field. The token's scope
 is the tripwire's `agent:` or `session:` scope, `agent:ID` for a
 `budget:agent:ID` scope, and `*` otherwise. Every gate that honours a stop
-token (hooks, the MCP proxy) then blocks; there is no un-stop. A stop service
-that propagates stops to other repositories can treat a trip with a `stop`
-field the same way it treats a stop token.
+token (hooks, the MCP proxy) then blocks; there is no un-stop.
+
+When the repository has a stop policy (docs/STOP.md), a `stop` trip also
+publishes a fleet stop (`opentine.fleet-stop/1`) to the policy's channel,
+signed by the same key, so every runner of the fleet halts at its next check.
+The trip key must then be a pinned `stopper` or `policy` key. The `fleet_stop`
+field of each recorded row names the fleet stop's attestation, or carries the
+error when the channel cannot be reached or the key may not stop (the trip and
+the local stop token are written either way, and runners halt on an
+unreachable channel); it is `null` without a stop policy.
 
 Each held trip is a `tripwire:ATTESTATION` item in the oversight queue (route
 `source = "tripwire"`, docs/OVERSIGHT.md), including trips that do not count,

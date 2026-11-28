@@ -427,7 +427,8 @@
               "record",
               "tripwire",
               "action",
-              "stop"
+              "stop",
+              "fleet_stop"
             ],
             "properties": {
               "record": {
@@ -448,6 +449,44 @@
                   {
                     "type": "string",
                     "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "fleet_stop": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "attestation",
+                      "error"
+                    ],
+                    "properties": {
+                      "attestation": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "pattern": "^attestation:sha256:[0-9a-f]{64}$"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "error": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    }
                   },
                   {
                     "type": "null"

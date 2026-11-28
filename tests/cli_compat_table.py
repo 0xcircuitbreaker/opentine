@@ -8659,6 +8659,8 @@ ROWS: tuple[tuple, ...] = (
         "opentine._cli_execute:cmd_run",
         False,
         {"command": "run", "model": "mock", "stop_run": "a", "stop_key": "k"},
+    ),  # 0.91
+    (
         "plain:tripwire add w1 --metric decoy.touches --threshold 1 --decoy D --key k",
         "plain",
         [

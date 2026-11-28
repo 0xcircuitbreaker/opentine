@@ -101,6 +101,9 @@ tine record --repo ./repo-b --stop-run job-1 --stop-key runner.key -- ./agent
 tine stop issue --channel /shared/stop --fleet fleet-a --key stopper.key --reason "halt"
 ```
 
+A `stop` tripwire (docs/TRIPWIRES.md) that trips in a repository under a stop
+policy publishes a fleet stop to the same channel.
+
 ## Tamper resistance
 
 * Deleting the policy file does not lift the requirement: the policy is held,

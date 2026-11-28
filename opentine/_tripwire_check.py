@@ -103,6 +103,31 @@ def _done(repo: Any, ident: str, head: str | None) -> bool:
                and t["claim"].get("registry") == head for t in trips(repo))  # fmt: skip
 
 
+def _fleet_stop(repo: Any, key: Any, reason: str, at: float) -> dict[str, Any] | None:
+    """With a stop policy installed, also publish a fleet stop to its channel.
+
+    ``None`` without a policy (D12). A policy that cannot be read, a key that
+    may not stop, or an unreachable channel is reported, never raised: the trip
+    and the local stop token are already written, and runners halt on an
+    unreadable channel or policy anyway.
+    """
+    from pathlib import Path
+
+    from opentine import _stop_ops, _stop_policy
+
+    try:
+        policy = _stop_policy.load(repo)
+        if policy is None:
+            return None
+        channel = Path(policy["channel"])
+        channel = channel if channel.is_absolute() else Path(repo.path).parent / channel
+        row = _stop_ops.issue_stop(repo, channel, policy["fleet"], key,
+                                   reason=reason, now_ms=int(at * 1000))  # fmt: skip
+    except (OSError, ValueError) as exc:
+        return {"attestation": None, "error": str(exc)[:1024]}
+    return {"attestation": row["attestation"], "error": None}
+
+
 def record(repo: Any, result: dict[str, Any], key: Any, *,
            now: float | None = None) -> list[dict[str, Any]]:  # fmt: skip
     """Sign and hold the trips *result* shows that are not recorded yet."""
@@ -131,17 +156,19 @@ def record(repo: Any, result: dict[str, Any], key: Any, *,
         wire = {k: row[k] for k in ("id", "metric", "op", "threshold", "scope", "action",
                                     "decoys")} if row else None  # fmt: skip
         action = wire["action"] if wire else "stop"
-        stop = None
+        stop = fleet = None
         if action == "stop":
             stop = _monitor_stop.stop(repo, _stop_scope(wire["scope"] if wire else "*"), key,
                                       reason=reason[:1024], now=at)  # fmt: skip
+            fleet = _fleet_stop(repo, key, reason[:1024], at)
         claim = {"convention": CONVENTION, "tripwire": wire, "registry": head,
                  "serial": result["registry"]["serial"], "value": row["value"] if row else None,
                  "evidence": row["evidence"] if row else [], "action": action, "stop": stop,
                  "reason": reason, "at": records.rfc3339(at)}  # fmt: skip
         anchor = records.anchor(repo, "tripwire-trip", reason)
         oid = records.record(repo, anchor, claim, key, HOLD + ident)
-        written.append({"record": oid, "tripwire": ident, "action": action, "stop": stop})
+        written.append({"record": oid, "tripwire": ident, "action": action, "stop": stop,
+                        "fleet_stop": fleet})  # fmt: skip
     return written
 
 

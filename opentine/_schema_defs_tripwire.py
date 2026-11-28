@@ -58,9 +58,11 @@ _TRIPWIRE = [
             "status": _STATUS, "head": opt(_ATT), "serial": opt(INT)}),
         "required": BOOL, "missing": BOOL, "tripwires": {"type": "array", "items": _ROW},
         "findings": _FINDINGS, "ok": BOOL,
-        "recorded": {"type": "array", "items": closed(["record", "tripwire", "action", "stop"], {
+        "recorded": {"type": "array", "items": closed(["record", "tripwire", "action", "stop",
+                                                     "fleet_stop"], {
             "record": _ATT, "tripwire": STR, "action": {"enum": ["flag", "stop"]},
-            "stop": opt(_ATT)})}}),
+            "stop": opt(_ATT), "fleet_stop": opt(closed(["attestation", "error"], {
+                "attestation": opt(_ATT), "error": opt(STR)}))})}}),
     closed(["command", "schema", "trips"], {
         **_HEAD, "command": {"const": "tripwire trips"},
         "trips": {"type": "array", "items": closed(["record", "signer", "counted", "claim"], {

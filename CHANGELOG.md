@@ -62,6 +62,9 @@
   of the quorum (default 2, raised by the bundle's `custody` section,
   `--custody FILE`), the refusal is held for review, and a copy written around
   the command is `fail:custody-copy-unapproved` in `tine custody check`.
+- A `stop` trip in a repository under a stop policy also publishes a fleet
+  stop to its channel (`fleet_stop` in `tine tripwire check --json`), so the
+  whole fleet halts, not only the local gates.
 
 ## 0.90.0 — Monitors as evidence and role tokens (2026-11-28)
 
