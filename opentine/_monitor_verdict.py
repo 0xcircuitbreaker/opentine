@@ -12,6 +12,9 @@ records one decision an inline monitor made about one proposed action::
      "enforced", "mode": "advisory|gate", "decided_by", "latency_ms",
      "deadline_ms", "fail_closed", "trajectories", "chosen", "stop", "decided_at"}
 
+plus, when the monitor names them, ``category`` and ``severity``
+(``low|medium|high|critical``).
+
 It is signed with an Ed25519 key; ``verified`` needs the signer in the
 ``monitor`` role of the owner-pinned key roles (:mod:`opentine._key_roles_pin`).
 A verdict that is not ``allow`` is kept by a ``tine hold`` row whose target
@@ -34,6 +37,8 @@ DECIDED_BY = ("monitor", "deadline", "error", "stop-token", "alternate")
 KINDS = ("rule", "command", "http", "probe")
 MODES = ("advisory", "gate")
 ROLES = ("original", "resample", "trusted")
+#: Optional ``category`` (a short name) and ``severity`` a monitor may give a verdict.
+SEVERITIES = ("low", "medium", "high", "critical")
 _FIELDS = ("convention", "monitor", "input_digest", "reasoning", "tool", "session", "score",
            "threshold", "action", "enforced", "mode", "decided_by", "latency_ms", "deadline_ms",
            "fail_closed", "trajectories", "chosen", "stop", "decided_at")  # fmt: skip
@@ -87,6 +92,7 @@ def check_claim(claim: Any) -> list[str]:
         problems.append("unknown mode or decided_by")
     if claim["enforced"] and claim["mode"] != "gate" and claim["decided_by"] != "stop-token":
         problems.append("only gate mode (or a stop token) enforces a verdict")
+    problems += check_label(claim.get("category"), claim.get("severity"))
     trajectories = claim["trajectories"]
     if (
         not isinstance(trajectories, list)
@@ -97,6 +103,34 @@ def check_claim(claim: Any) -> list[str]:
     elif trajectories[0].get("digest") != claim["input_digest"]:
         problems.append("the first trajectory is the original action")
     return problems
+
+
+def check_label(category: Any, severity: Any) -> list[str]:
+    """Problems with an optional verdict ``category`` and ``severity``."""
+    import re
+
+    problems = []
+    if category is not None and (
+        not isinstance(category, str) or not re.fullmatch(r"[a-z0-9][a-z0-9._-]{0,63}", category)
+    ):
+        problems.append("category is a lowercase name [a-z0-9._-], at most 64")
+    if severity is not None and severity not in SEVERITIES:
+        problems.append(f"severity is one of {', '.join(SEVERITIES)}")
+    return problems
+
+
+def valid_reply(reply: Any) -> bool:
+    """A reply any monitor plugin returns: a score in 0..1, a known non-allow action, a label."""
+    if not isinstance(reply, dict) or isinstance(reply.get("score"), bool):
+        return False
+    try:
+        score = float(reply["score"])
+    except (KeyError, TypeError, ValueError):
+        return False
+    action = reply.get("action")
+    if check_label(reply.get("category"), reply.get("severity")):
+        return False
+    return 0.0 <= score <= 1.0 and (action is None or action in ACTIONS[1:])
 
 
 def monitors(repo: Any) -> tuple[set[str], str]:
@@ -161,5 +195,21 @@ def held(repo: Any) -> list[str]:
     return sorted({r["oid"] for r in rows if r["target"].startswith(MONITOR_VERDICT)})
 
 
-__all__ = ["ACTIONS", "CONVENTION", "META_KEY", "REASONING", "check_claim", "digest", "held",
-           "hold", "input_digest", "monitors", "record", "text_digest", "verify"]  # fmt: skip
+__all__ = [
+    "ACTIONS",
+    "CONVENTION",
+    "META_KEY",
+    "REASONING",
+    "SEVERITIES",
+    "check_claim",
+    "check_label",
+    "digest",
+    "held",
+    "hold",
+    "input_digest",
+    "monitors",
+    "record",
+    "text_digest",
+    "valid_reply",
+    "verify",
+]

@@ -62,7 +62,18 @@ def _reply(data: bytes) -> dict[str, Any]:
     action = reply.get("action")
     if action is not None and action not in ACTIONS[1:]:
         raise MonitorError(f"a monitor action is one of {', '.join(ACTIONS[1:])}")
-    return {"score": score, **({"action": action} if action else {})}
+    return {"score": score, **({"action": action} if action else {}), **_label(reply)}
+
+
+def _label(row: dict[str, Any]) -> dict[str, Any]:
+    """The optional ``category`` and ``severity`` of a reply or rule (checked)."""
+    from opentine._monitor_verdict import check_label
+
+    found = {k: row[k] for k in ("category", "severity") if row.get(k) is not None}
+    problems = check_label(found.get("category"), found.get("severity"))
+    if problems:
+        raise MonitorError(problems[0])
+    return found
 
 
 class RuleMonitor:
@@ -71,8 +82,10 @@ class RuleMonitor:
             raise MonitorError(f"monitor.rules is a list of at most {MAX_RULES} rules")
         self._rules = []
         for rule in rules:
-            if not isinstance(rule, dict) or set(rule) - {"tool", "pattern", "score", "action"}:
-                raise MonitorError("a rule has tool, pattern, score and optionally action")
+            if not isinstance(rule, dict) or set(rule) - {"tool", "pattern", "score", "action",
+                                                          "category", "severity"}:  # fmt: skip
+                raise MonitorError("a rule has tool, pattern, score and optionally action, "
+                                   "category and severity")  # fmt: skip
             try:
                 compiled = re.compile(str(rule.get("pattern", "")))
                 score = float(rule.get("score", 1.0))
@@ -80,16 +93,18 @@ class RuleMonitor:
                 raise MonitorError(f"bad rule {rule!r}: {exc}") from exc
             if not 0.0 <= score <= 1.0 or rule.get("action", "block") not in ACTIONS[1:]:
                 raise MonitorError(f"bad rule {rule!r}: score 0..1, action flag..block")
-            self._rules.append((str(rule.get("tool", "*")), compiled, score, rule.get("action")))
+            label = _label(rule)
+            self._rules.append((str(rule.get("tool", "*")), compiled, score, rule.get("action"),
+                                label))  # fmt: skip
         self.identity = {"id": ident, "kind": "rule", "model_digest": digest(rules)}
 
     def score(self, request: dict[str, Any]) -> dict[str, Any]:
         text = canonical_json(request.get("arguments")).decode("utf-8")
         best: dict[str, Any] = {"score": 0.0}
-        for tool, pattern, score, action in self._rules:
+        for tool, pattern, score, action, label in self._rules:
             if fnmatch.fnmatchcase(str(request.get("tool", "")), tool) and pattern.search(text):
                 if score > best["score"]:
-                    best = {"score": score, **({"action": action} if action else {})}
+                    best = {"score": score, **({"action": action} if action else {}), **label}
         return best
 
 
