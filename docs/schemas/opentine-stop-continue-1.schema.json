@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-stop-continue-1.schema.json",
+  "title": "opentine.stop-continue/1 claim",
+  "description": "The claim of an attestation letting one run of a fleet keep acting for at most `window_s` seconds, bound to a stop-channel checkpoint and a per-run sequence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "fleet",
+    "run",
+    "seq",
+    "issued_at",
+    "window_s",
+    "channel",
+    "checkpoint"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.stop-continue/1"
+    },
+    "fleet": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+    },
+    "run": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "issued_at": {
+      "type": "string"
+    },
+    "window_s": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "channel": {
+      "type": "string"
+    },
+    "checkpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "origin",
+        "size",
+        "root"
+      ],
+      "properties": {
+        "origin": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "root": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    }
+  }
+}

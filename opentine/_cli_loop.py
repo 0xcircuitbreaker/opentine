@@ -19,6 +19,9 @@ from opentine._cli_errors import USAGE, error
 
 
 def add_loop_parser(subparsers: argparse._SubParsersAction) -> None:
+    from opentine._cli_stop import add_stop_parser
+
+    add_stop_parser(subparsers)  # 0.91: tine stop, the fleet-wide stop
     loop = subparsers.add_parser("loop", help="Stop a self-improving agent loop (signed)")
     actions = loop.add_subparsers(dest="loop_command", required=True)
     stop = actions.add_parser("stop", help="Write a signed stop; generations' leases are refused")
@@ -67,6 +70,8 @@ def cmd_loop(args: argparse.Namespace) -> None:
     console.print(_terminal(line), markup=False)
 
 
-COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {"loop": cmd_loop}
+from opentine._cli_stop import COMMANDS as _STOP_COMMANDS  # noqa: E402 - after cmd_loop
+
+COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {"loop": cmd_loop, **_STOP_COMMANDS}
 
 __all__ = ["COMMANDS", "add_loop_parser", "cmd_loop"]

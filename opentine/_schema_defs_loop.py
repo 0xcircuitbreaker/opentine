@@ -10,6 +10,8 @@ from __future__ import annotations
 from typing import Any
 
 from opentine._schema_defs import BOOL, FPR, INT, STR, closed, doc, open_, opt
+from opentine._schema_defs_stop import COMMAND_SCHEMAS as _STOP_COMMANDS
+from opentine._schema_defs_stop import SCHEMAS as _STOP
 
 _ROLE = {"enum": ["optimizer", "scorer", "dataset", "verdict", "approver"]}
 _FINDING = closed(["level", "code", "role", "key", "message"], {
@@ -50,11 +52,13 @@ SCHEMAS: dict[str, dict[str, Any]] = {
         closed(["command", "schema", "loop"], {
             "command": {"enum": ["loop stop", "loop status"]},
             "schema": {"const": "tine-cli-loop/1"}, "loop": _LOOP})),
+    **_STOP,  # 0.91: tine stop and its claim conventions
 }  # fmt: skip
 COMMAND_SCHEMAS: dict[str, str] = {
     "keys lint": "tine-cli-keys-lint-1",
     "loop stop": "tine-cli-loop-1",
     "loop status": "tine-cli-loop-1",
+    **_STOP_COMMANDS,
 }
 
 __all__ = ["COMMAND_SCHEMAS", "SCHEMAS"]

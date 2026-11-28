@@ -2038,6 +2038,21 @@ rewriting `coord/loops/LOOP` does not un-stop the loop. A task whose id starts
 with `LOOP.` is fenced with or without `--loop`. `--json` prints
 `tine-cli-loop/1`. Local repositories only: `--loop` is refused with `--remote`.
 
+## Fleet-wide fail-closed stop (0.91)
+
+| Command | What it does |
+| --- | --- |
+| `tine stop init --channel DIR --fleet F [--vkey VKEY] [--window S] [--skew S] [--watchdog S] --repo PATH` | Creates the fleet's stop channel (or reads an existing one) and installs the stop policy in this repository |
+| `tine stop issue --channel DIR --fleet F --key KEY [--reason T] --repo PATH` | Signs and publishes a fleet stop; every run of the fleet halts at its next check |
+| `tine stop continue --channel DIR --fleet F --run RUN... --key KEY [--window S] --repo PATH` | Signs and publishes one continue proof per run (refused once the fleet is stopped) |
+| `tine stop status [--run RUN] [--at TIME] --repo PATH` | What a runner of RUN would decide now; exit 1 when it would halt |
+| `tine stop compliance [--strict] --repo PATH` | The signed stop-compliance records; a non-compliant halt exits 1 only with `--strict` |
+
+`tine record` and `tine run` take `--stop-run ID` and `--stop-key KEY` (or
+`$OPENTINE_STOP_RUN` and `$OPENTINE_STOP_KEY`), read only when the repository
+has a stop policy. A run that is refused or halted exits 3. `--json` prints
+`tine-cli-stop/1`. See [STOP.md](STOP.md).
+
 ## Monitor verdicts and stop tokens (0.63)
 
 | Command | What it does |

@@ -50,7 +50,7 @@ FILE_NAME = "oversight.toml"
 PIN_NAME = "oversight.sig.json"
 POLICY = "opentine.oversight-policy/1"
 SOURCES = ("promotion", "integrity", "monitor", "eval", "budget", "containment", "organism",
-           "custody", "transcript", "ingest", "collusion", "suspicion")  # fmt: skip
+           "custody", "transcript", "ingest", "collusion", "suspicion", "stop")  # fmt: skip
 EVAL_METRICS = ("pass_rate", "mean_score")
 BANNED_ROLES = ("optimizer", "monitor", "scorer")
 MONITOR_ACTIONS = ("flag", "defer", "block")

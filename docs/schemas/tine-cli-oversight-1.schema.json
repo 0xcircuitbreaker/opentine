@@ -106,7 +106,8 @@
                       "transcript",
                       "ingest",
                       "collusion",
-                      "suspicion"
+                      "suspicion",
+                      "stop"
                     ]
                   },
                   "tier": {
@@ -326,7 +327,8 @@
                   "transcript",
                   "ingest",
                   "collusion",
-                  "suspicion"
+                  "suspicion",
+                  "stop"
                 ]
               },
               "opened_at": {

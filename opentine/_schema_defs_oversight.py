@@ -27,7 +27,7 @@ _TIER = closed(["tier", "k", "n"], {"tier": STR, "k": INT, "n": INT})
 _ROUTE = closed(["source", "tier", "label"], {
     "source": {"enum": ["promotion", "integrity", "monitor", "eval", "budget",
                           "containment", "organism", "custody", "transcript",
-                          "ingest", "collusion", "suspicion"]}, "tier": STR,
+                          "ingest", "collusion", "suspicion", "stop"]}, "tier": STR,
     "label": STR, "metric": opt(STR), "above": opt(NUM), "below": opt(NUM),
     "actions": {"type": "array", "items": STR}})  # fmt: skip
 _POLICY = closed(["status", "why", "floors", "sha256", "tiers", "routes"], {
@@ -51,7 +51,7 @@ _ITEM_ROW = closed(["item", "source", "opened_at", "tiers", "state", "rejected_b
                     "uncounted", "decisions"], {
     "item": _ITEM, "source": {"enum": ["promotion", "integrity", "monitor", "budget",
                                        "containment", "organism", "custody", "transcript",
-                                       "ingest", "collusion", "suspicion"]},
+                                       "ingest", "collusion", "suspicion", "stop"]},
     "opened_at": opt(STR),
     "tiers": {"type": "array", "items": _TALLY},
     "state": {"enum": ["pending", "approved", "rejected", "unrouted"]},

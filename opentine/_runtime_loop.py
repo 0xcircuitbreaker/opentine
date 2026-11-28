@@ -129,18 +129,17 @@ class RuntimeLoopMixin:
         tool_calls: list[dict[str, Any]],
         exhausted: Callable[[], bool] | None = None,
     ) -> None:
-        # The model chooses how many calls a response holds, so the budget is
-        # checked before each one; once spent, the rest are answered, not run,
-        # which keeps the batch complete for a resume.
+        # The budget (and 0.91: the stop policy) is checked before each call; once
+        # spent, the rest are answered, not run, keeping the batch whole for a resume.
         spent = False
         for call in tool_calls:
             name, arguments = call["name"], call.get("arguments", {})
-            call_id = call.get("id") or name
+            call_id, started = call.get("id") or name, time.monotonic()
             cache_key = semantic_key("tool.call", {"arguments": arguments, "name": name})
-            started = time.monotonic()
-            spent = spent or (exhausted is not None and exhausted())
-            if spent:
-                result = f"[Tool output from {name}] Error: not executed: run budget exhausted"
+            halted = self._stop_halted(run)
+            if spent or halted or (exhausted is not None and exhausted()):
+                why = "halted by the stop policy" if halted else "run budget exhausted"
+                spent, result = True, f"[Tool output from {name}] Error: not executed: {why}"
             else:
                 result = await self._run_tool(run, name, arguments, cache_key)
             duration = time.monotonic() - started
@@ -188,8 +187,7 @@ class RuntimeLoopMixin:
         autosaver: Autosaver | None = None,
     ) -> Run:
         budget = run.budget()
-        prior_duration = run.total_duration
-        continued_at = _clock()
+        prior_duration, continued_at = run.total_duration, _clock()
 
         def elapsed_duration() -> float:
             return prior_duration + _clock() - continued_at
@@ -205,6 +203,8 @@ class RuntimeLoopMixin:
             return breach is not None
 
         for _ in range(self.max_steps):
+            if self._stop_halted(run):
+                return run
             if budget is not None and self._enforce_budget(
                 run, budget, elapsed_duration=elapsed_duration()
             ):

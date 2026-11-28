@@ -1,5 +1,34 @@
 # Changelog
 
+## Unreleased — Stop and tripwires
+
+- New `tine stop init|issue|continue|status|compliance`: a fleet-wide
+  fail-closed stop. A stop channel is a signed transparency log shared by the
+  fleet's repositories; fleet stops (`opentine.fleet-stop/1`) and continue
+  proofs (`opentine.stop-continue/1`) are attestations appended to it, signed
+  by a pinned `stopper` or `policy` key and never an `optimizer` key. A
+  repository under a stop policy (`.tine/stop-policy.json`,
+  `opentine.stop-policy/1`, held so deleting it fails closed) needs a fresh
+  continue proof before each step: one bound to its fleet, run id, a per-run
+  sequence and a checkpoint of the channel, and no older than the freshness
+  window (300 s by default). A stop, a stale, unbound, future-dated or
+  rolled-back proof, or an unreachable or rolled-back channel halts the run.
+  Without a stop policy nothing changes.
+- `tine record` and `tine run` honour the stop policy: `--stop-run` and
+  `--stop-key` (or `$OPENTINE_STOP_RUN`, `$OPENTINE_STOP_KEY`), a check before
+  every model call (`tine record`) or model and tool call (`tine run
+  --model`), a watchdog for long steps, and the recorded command run as one
+  killable process tree so its children stop with it. A refused or halted run
+  exits 3.
+- Stop compliance: after a halt the runner signs an
+  `opentine.stop-compliance/1` record (time to halt, time since the stop,
+  residual processes, actions after the stop), held for good; one that is not
+  compliant or not by a pinned `runner` key opens a `stop:` item in the
+  oversight queue.
+- The reference loop runs under a stop policy and checks a fresh continue proof
+  before each step (`run_loop(stop_at=N)` stops it at step N).
+- Docs: STOP.md.
+
 ## 0.90.0 — Monitors as evidence and role tokens (2026-11-28)
 
 - Monitor coverage, heartbeats and suspicion are stricter: an event the monitor

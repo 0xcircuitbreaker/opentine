@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opentine.com/schemas/opentine-fleet-stop-1.schema.json",
+  "title": "opentine.fleet-stop/1 claim",
+  "description": "The claim of an attestation stopping a fleet, bound to a stop-channel checkpoint.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "convention",
+    "fleet",
+    "reason",
+    "stopped_at",
+    "channel",
+    "checkpoint"
+  ],
+  "properties": {
+    "convention": {
+      "const": "opentine.fleet-stop/1"
+    },
+    "fleet": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "stopped_at": {
+      "type": "string"
+    },
+    "channel": {
+      "type": "string"
+    },
+    "checkpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "origin",
+        "size",
+        "root"
+      ],
+      "properties": {
+        "origin": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "root": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    }
+  }
+}

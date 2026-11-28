@@ -161,6 +161,9 @@ NOT_KINDS = (
     # 0.90: annotation values (monitor coverage records, heartbeats), an attestation claim
     "opentine-monitor-coverage-1", "opentine-monitor-heartbeat-1",
     "opentine-monitor-operating-point-1",
+    # 0.91: attestation claims (fleet stops, continue proofs, stop compliance) and a policy file
+    "opentine-fleet-stop-1", "opentine-stop-continue-1", "opentine-stop-compliance-1",
+    "opentine-stop-policy-1",
 )  # fmt: skip
 DEFERRED_SCHEMAS: dict[str, str] = {}
 #: Backticked SPEC heading words that are not kinds (capabilities, commands, fields).

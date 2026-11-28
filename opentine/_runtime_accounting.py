@@ -32,6 +32,25 @@ def _listed(value: Any) -> list[Any]:
 
 
 class AccountingMixin:
+    stop_check: Any = None  # 0.91: a callable raising _stop_guard.Halt (tine run under a policy)
+
+    def _stop_halted(self, run: Run) -> bool:
+        """``True`` once the stop policy halted this run (an error step is added once)."""
+        if self.stop_check is None:
+            return False
+        from opentine._stop_guard import Halt
+
+        try:
+            self.stop_check()
+        except Halt as halt:
+            if not getattr(self, "_stop_noted", False):
+                run.add_step(StepKind.error, {"text": "Halted by the stop policy"},
+                             error={"message": str(halt), "type": "Halt"})  # fmt: skip
+                self._stop_noted = True
+            run.status = RunStatus.failed
+            return True
+        return False
+
     def _enforce_budget(
         self,
         run: Run,
