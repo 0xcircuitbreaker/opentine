@@ -14,7 +14,8 @@ The runner never enforces anything (owner decision D12): it reads events that
 already happened. ``--follow`` keeps running, signs a heartbeat every
 ``interval_s`` seconds (:mod:`opentine._monitor_heartbeat`) and stops when its
 stop event is set; the clock, the wait and the deadline runner are injectable,
-so tests drive it without sleeping.
+so tests drive it without sleeping. A rule monitor is scored inline, never
+against a wall-clock deadline, so its coverage does not depend on machine load.
 """
 
 from __future__ import annotations
@@ -25,7 +26,7 @@ from collections.abc import Callable
 from typing import Any
 
 from opentine import _ingest_batch, _ingest_holds, _monitor_heartbeat, _monitor_ledger
-from opentine._monitor_gate import run_with_deadline
+from opentine._monitor_gate import score_offline
 from opentine._monitor_heartbeat import millis
 from opentine._monitor_verdict import CONVENTION as VERDICT
 from opentine._monitor_verdict import digest
@@ -67,7 +68,7 @@ def _subject(event: Any) -> dict[str, str]:
 class Runner:
     def __init__(self, repo: Any, config: dict[str, Any], stream: str, key: Any, *,
                  clock_ms: Callable[[], int] = lambda: int(time.time() * 1000),
-                 runner: Callable[..., tuple[bool, Any, Any]] = run_with_deadline,
+                 runner: Callable[..., tuple[bool, Any, Any]] | None = None,
                  interval_s: int = _monitor_heartbeat.INTERVAL_S) -> None:  # fmt: skip
         from opentine._ingest_policy import stream_name
 
@@ -82,7 +83,10 @@ class Runner:
 
     def _score(self, request: dict[str, Any]) -> dict[str, Any] | None:
         deadline = self.config["deadline_ms"] / 1000
-        finished, value, error = self.runner(lambda: self.monitor.score(request), deadline)
+        if self.runner is None:  # a rule monitor never misses a wall-clock deadline
+            finished, value, error = score_offline(self.monitor, request, deadline)
+        else:
+            finished, value, error = self.runner(lambda: self.monitor.score(request), deadline)
         return value if finished and error is None and _valid(value) else None
 
     def _event(self, line: dict[str, Any], batch_ms: int) -> tuple[dict[str, Any], Any]:

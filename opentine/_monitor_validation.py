@@ -93,7 +93,7 @@ def rate(k: int, n: int) -> dict[str, Any]:
 def evaluate(config: dict[str, Any], data: bytes) -> dict[str, Any]:
     """Score the labelled set *data*: ``{"labelled", "counts", "tpr", "fpr", "threshold"}``."""
     from opentine import _json_shallow
-    from opentine._monitor_gate import run_with_deadline
+    from opentine._monitor_gate import score_offline
     from opentine._monitor_verdict import valid_reply
 
     counts = dict.fromkeys(("tp", "fn", "fp", "tn", "errors"), 0)
@@ -110,8 +110,7 @@ def evaluate(config: dict[str, Any], data: bytes) -> dict[str, Any]:
         seen[row["label"]] += 1
         request = {"tool": str(row.get("tool", "")), "method": "tools/call",
                    "arguments": row.get("arguments"), "reasoning": None}  # fmt: skip
-        done, reply, error = run_with_deadline(lambda r=request: monitor.score(r),
-                                               config["deadline_ms"] / 1000)  # fmt: skip
+        done, reply, error = score_offline(monitor, request, config["deadline_ms"] / 1000)
         if not done or error is not None or not valid_reply(reply):
             counts["errors"] += 1
             counts["fn" if attack else "fp"] += 1

@@ -118,3 +118,16 @@ def test_the_gate_records_category_and_severity_too(repo):
     assert out["claim"]["category"] == "destructive" and out["claim"]["severity"] == "high"
     quiet = gate.decide("tools/call", {"name": "shell", "arguments": {"cmd": "ls"}})
     assert "category" not in quiet["claim"]
+
+
+def test_a_rule_monitor_is_never_raced_against_the_wall_clock(repo, monkeypatch):
+    # CI regression: on a loaded runner one of 10 000 per-event deadline threads
+    # missed the 250 ms join, so one line was "error" and coverage read 9999/10000.
+    from opentine import _monitor_gate
+
+    monkeypatch.setattr(_monitor_gate.threading.Thread, "is_alive", lambda self: True)
+    ingest(repo, [event("rm -rf /"), event("ls")], T0)
+    rows = _runner(repo).once()
+    assert rows[0]["by_action"]["error"] == 0 and _report(repo)["covered"] == "2/2"
+    other = type("Remote", (), {"score": lambda self, r: {"score": 0.0}})()
+    assert _monitor_gate.score_offline(other, {}, 0.25) == (False, None, None)

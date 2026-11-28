@@ -40,7 +40,7 @@ from typing import Any
 from opentine import _containment_detect, _monitor_stop, _monitor_verdict
 from opentine._monitor_verdict import CONVENTION, input_digest, text_digest
 from opentine._monitor_verdict import valid_reply as _valid
-from opentine._monitors import MonitorError
+from opentine._monitors import MonitorError, RuleMonitor
 from opentine._utc import rfc3339_utc
 
 
@@ -60,6 +60,16 @@ def run_with_deadline(fn: Callable[[], Any], seconds: float) -> tuple[bool, Any,
     if worker.is_alive():
         return False, None, None
     return True, box.get("value"), box.get("error")
+
+
+def score_offline(monitor: Any, request: dict[str, Any], seconds: float) -> tuple[bool, Any, Any]:
+    """Like :func:`run_with_deadline`, but a pure in-process rule monitor runs inline."""
+    if not isinstance(monitor, RuleMonitor):
+        return run_with_deadline(lambda: monitor.score(request), seconds)
+    try:
+        return True, monitor.score(request), None
+    except Exception as exc:  # noqa: BLE001 - reported as a monitor error
+        return True, None, exc
 
 
 def command_alternate(argv: list[str], timeout: float = 60.0) -> Callable[..., Any]:
@@ -237,4 +247,4 @@ class Gate:
         return self._target
 
 
-__all__ = ["Gate", "command_alternate", "run_with_deadline"]
+__all__ = ["Gate", "command_alternate", "run_with_deadline", "score_offline"]
